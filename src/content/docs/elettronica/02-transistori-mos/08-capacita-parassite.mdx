@@ -1,0 +1,160 @@
+---
+title: "8. Capacità Parassite del MOSFET"
+description: "Elettronica — Capitolo 8: Capacità Parassite del MOSFET"
+sidebar:
+  order: 4
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 8" markdown={`# Cap. 8: Capacità Parassite del MOSFET
+  - 1 · Intuizione Fisica
+  - 2 · Definizione e Dimostrazione (Orale)
+    - Origine Fisica delle Capacità Interne nel Transistore MOS
+    - Ripartizione delle Capacità di Gate nelle Regioni Operative
+    - Frequenza di Transizione Intrinseca $f_T$ e Legge di Scalamento
+  - 3 · Algoritmo Operativo (Esercizi)
+  - 4 · Archetipo Svolto ed Esercizi`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+La risposta in frequenza degli amplificatori analogici integrati e la velocità di commutazione delle porte logiche digitali sono governate dalle capacità parassite interne del transistore MOS. In questo capitolo esaminiamo la ripartizione delle capacità intrinseche e di overlap nelle tre regioni operative (interdizione, triodo e saturazione), le capacità delle giunzioni con il substrato ($C_{sb}, C_{db}$) e la derivazione analitica della frequenza di transizione intrinseca $f_T$ con la sua dipendenza quadratica da $1/L^2$.
+
+<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+
+## Origine Fisica delle Capacità Interne nel Transistore MOS
+
+In un transistore MOSFET reale operante a frequenze elevate, i transitori di tensione inducono spostamenti di carica tra i terminali conduttori. Possiamo classificare le capacità parassite in due gruppi fisici distinti ([la figura](#fig-mos-parasitic-caps)):
+1. **Effetti Capacitivi legati all'Ossido di Gate (Capacità Intrinseche ed Overlap):** Accoppiamento elettrostatico tra il polisilicio di Gate e il canale, il Source, il Drain e il Body ($C_{gs}, C_{gd}, C_{gb}$).
+2. **Effetti Capacitivi delle Giunzioni Semiconduttrici (Capacità Estrinseche):** Capacità di svuotamento delle giunzioni p-n formate dalle diffusioni $N^+$ di Source e Drain verso il substrato di tipo P ($C_{sb}, C_{db}$).
+
+<figure id="fig-mos-parasitic-caps" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-mos-parasitic-caps.svg" alt="Mappatura fisica delle cinque capacità parassite interne del transistore MOSFET a quattro terminali." />
+  <figcaption>Mappatura fisica delle cinque capacità parassite interne del transistore MOSFET a quattro terminali.</figcaption>
+</figure>
+
+### Le Capacità di Sovrapposizione (Overlap Capacitance)
+Durante la fabbricazione microelettronica, la definizione geometrica del Gate funge da maschera per l'impianto ionico di Source e Drain (*processo auto-allineato*). Tuttavia, i successivi trattamenti termici ad alta temperatura inducono una diffusione laterale delle impurità donatrici sotto i bordi del Gate per una lunghezza $\Delta L = L_{ov}$.
+
+Questa sovrapposizione geometrica inevitabile forma due capacità parassite a facce piane indipendenti dalla tensione applicata:
+$$ C_{ov} = W \cdot L_{ov} \cdot C_{ox} = W \cdot C_{ov}' $$
+dove $C_{ov}'$ è la capacità di overlap per unità di larghezza di Gate (parametro di fonderia, tipicamente $0.2\div 0.5\,\text{fF/}\mu\text{m}$). 
+
+Le capacità di sovrapposizione costituiscono una quota fissa non negoziabile sia per $C_{gs}$ che per $C_{gd}$:
+$$ C_{gs,ov} = C_{gd,ov} = W \cdot C_{ov}' $$
+
+### Le Capacità delle Giunzioni di Substrato ($C_{sb}$ e $C_{db}$)
+I pozzetti $N^+$ di Source e Drain formano due giunzioni p-n con il substrato P. Poiché nei circuiti integrati il substrato è sempre polarizzato alla tensione più negativa del chip, queste giunzioni operano in **polarizzazione inversa**.
+
+La capacità totale della giunzione di Drain verso il Body $C_{db}$ include due contributi geometrici:
+1. **Capacità dell'area di fondo (Bottom Area):** La superficie inferiore orizzontale $A_D = W \cdot X_D$ che si affaccia sul bulk drogato $N_A$:
+   $$ C_{db,bottom} = \frac{C_{j0} \cdot A_D}{\left( 1 + \frac{V_{DB}}{V_0} \right)^{m_j}} $$
+2. **Capacità di perimetro (Sidewall):** I bordi verticali della diffusione $P_D = 2W + 2X_D$ che si affacciano sulla regione di isolamento superficiale drogata più pesantemente (*channel-stop*):
+   $$ C_{db,sidewall} = \frac{C_{jsw0} \cdot P_D}{\left( 1 + \frac{V_{DB}}{V_0} \right)^{m_{jsw}}} $$
+
+La capacità parassita totale vale la somma $C_{db} = C_{db,bottom} + C_{db,sidewall}$, con espressione analoga per $C_{sb}$.
+
+## Ripartizione delle Capacità di Gate nelle Regioni Operative
+
+La capacità complessiva dell'ossido di Gate vale $C_{gate} = W \cdot L \cdot C_{ox}$. Al variare della tensione $V_{GS}$ e $V_{DS}$, la ripartizione di questa carica tra Source, Drain e Body cambia radicalmente in base alla presenza e alla forma del canale di inversione (la tabella di riferimento):
+
+| Regione di Funzionamento | Capacità Gate-Source $C_{gs}$ | Capacità Gate-Drain $C_{gd}$ | Capacità Gate-Body $C_{gb}$ |
+| :--- | :--- | :--- | :--- |
+| **Interdizione ($V_{GS} < V_{th}$)** | $C_{gs} = C_{ov}$ | $C_{gd} = C_{ov}$ | $C_{gb} \approx W L C_{ox}$ (o serie con $C_d$) |
+| **Triodo ($V_{DS} < V_{OV}$)** | $C_{gs} = C_{ov} + \frac{1}{2} W L C_{ox}$ | $C_{gd} = C_{ov} + \frac{1}{2} W L C_{ox}$ | $C_{gb} \approx 0$ |
+| **Saturazione ($V_{DS} \ge V_{OV}$)** | $C_{gs} = C_{ov} + \frac{2}{3} W L C_{ox}$ | $C_{gd} = C_{ov}$ | $C_{gb} \approx 0$ |
+
+*Tabella: Valori asintotici delle capacità di Gate del MOSFET nelle tre regioni operative.*
+### 1. In Regione di Interdizione ($V_{GS} < V_{th}$)
+Non essendovi elettroni mobili sotto l'ossido, il canale non esiste:
+* Gate e Source (così come Gate e Drain) comunicano solo attraverso la minuscola sovrapposizione geometrica: $C_{gs} = C_{gd} = C_{ov}$.
+* Il Gate si accoppia direttamente con il substrato attraverso l'ossido: $C_{gb}$ raggiunge il suo valore massimo.
+
+### 2. In Regione di Triodo ($V_{GS} \ge V_{th}, V_{DS} \ll V_{OV}$)
+Un canale continuo e uniforme di elettroni connette elettricamente Source e Drain:
+* Il foglietto di elettroni forma uno schermo elettrostatico perfetto che isola il Gate dal substrato: **$C_{gb} \approx 0$**.
+* La carica del canale si ripartisce simmetricamente ed equamente tra i due morsetti terminali: ciascun terminale riceve metà della capacità dell'ossido:
+  $$ C_{gs} = C_{ov} + \frac{1}{2} W L C_{ox}, \qquad C_{gd} = C_{ov} + \frac{1}{2} W L C_{ox} $$
+
+### 3. In Regione di Saturazione ($V_{GS} \ge V_{th}, V_{DS} \ge V_{OV}$)
+Il canale subisce lo strozzamento (*pinch-off*) al Drain:
+* La carica mobile al Drain è nulla ($Q_I(L) \to 0$): il Gate non è più accoppiato al Drain tramite il canale. La capacità Gate-Drain crolla al solo valore geometrico di overlap:
+  $$ C_{gd} = C_{ov} $$
+  Questo valore minimo è fondamentale perché $C_{gd}$ agisce come capacità di retroazione (effetto Miller).
+* Tutta la carica del canale viene sostenuta e modulata dal terminale di Source. Integrando il profilo parabolico della carica lungo il canale a cuneo da $x=0$ a $x=L_{pinch}$, si ricava analiticamente che la capacità equivale a:
+  $$ C_{gs} = C_{ov} + \frac{2}{3} W L C_{ox} $$
+* Il canale mantiene la schermatura verso il bulk, per cui $C_{gb} \approx 0$.
+
+## Frequenza di Transizione Intrinseca $f_T$ e Legge di Scalamento
+
+La **frequenza di transizione intrinseca ($f_T$)** è la metrica fondamentale della velocità di un transistore. Essa è definita come **la frequenza alla quale il guadagno di corrente a piccolo segnale in cortocircuito scende a 1 ($0\text{ dB}$)** nella configurazione Common Source ([la figura](#fig-ft-test-circuit)), ed è data da:
+$$ f_T = \frac{g_m}{2\pi (C_{gs} + C_{gd})} \approx \frac{1}{2\pi} \frac{\mu_n V_{OV}}{L^2} \quad \left(\text{ovvero } f_T \approx \frac{3}{4\pi} \frac{\mu_n V_{OV}}{L^2} \text{ ponendo } C_{gs} = \frac{2}{3} W L C_{ox}\right) $$
+
+<figure id="fig-ft-test-circuit" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-ft-test-circuit.svg" alt="Circuito per il calcolo del guadagno di corrente di piccolo segnale in cortocircuito e determinazione della frequenza di transizione f_T." />
+  <figcaption>Circuito per il calcolo del guadagno di corrente di piccolo segnale in cortocircuito e determinazione della frequenza di transizione $f_T$.</figcaption>
+</figure>
+
+### Dimostrazione Matematica: Calcolo di $f_T$ e Dipendenza da $1/L^2$
+
+Consideriamo il modello a piccolo segnale ad alta frequenza con uscita cortocircuitata a massa in AC ($v_{ds} = 0$):
+1. **Corrente d'uscita ($i_{out}$):** Con il Drain a massa AC, $r_o$ è cortocircuitata e $i_{out} = g_m v_{gs} - j\omega C_{gd} v_{gs} \approx g_m v_{gs}$ (poiché alle frequenze d'interesse $g_m \gg \omega C_{gd}$).
+2. **Corrente d'ingresso ($i_{in}$):** Con il Drain a massa AC, $C_{gs}$ e $C_{gd}$ risultano in parallelo tra Gate e massa, per cui $i_{in} = j\omega (C_{gs} + C_{gd}) v_{gs}$.
+3. **Guadagno di corrente in cortocircuito:**
+   $$ A_i(j\omega) = \frac{i_{out}}{i_{in}} = \frac{g_m}{j\omega (C_{gs} + C_{gd})} $$
+   Imponendo $|A_i(j\omega_T)| = 1$, si ricava $\omega_T = 2\pi f_T = \frac{g_m}{C_{gs} + C_{gd}}$.
+4. **Legge di $1/L^2$:** In saturazione, trascurando le capacità di overlap rispetto alla capacità intrinseca ($C_{gs} + C_{gd} \approx \frac{2}{3} W L C_{ox}$) e sostituendo $g_m = \mu_n C_{ox} \frac{W}{L} V_{OV}$, la larghezza $W$ e la capacità $C_{ox}$ si semplificano:
+   $$ f_T \approx \frac{\mu_n C_{ox} \frac{W}{L} V_{OV}}{2\pi \left( \frac{2}{3} W L C_{ox} \right)} = \frac{3}{4\pi} \frac{\mu_n V_{OV}}{L^2} \propto \frac{1}{L^2} $$
+
+Questa relazione analitica esprime l'invariante tecnologico cardine della microelettronica che ha guidato lo scalamento geometrico dei circuiti integrati:
+$$ f_T \propto \frac{1}{L^2} $$
+**Dimezzare la lunghezza di canale $L$ quadruplica la massima frequenza operativa del transistore**, riducendo al contempo il ritardo di propagazione e il consumo dinamico delle porte logiche.
+
+<Callout type="tip" title="Impatto Industriale: Perché lo Scalamento Geometrico (Legge di Moore) conviene due volte">
+
+La legge $f_T \propto 1/L^2$ mostra perché per decenni l'industria dei semiconduttori ha investito miliardi di euro per miniaturizzare la lunghezza di canale $L$: accorciare il canale offre un doppio vantaggio simultaneo. Da un lato rende il singolo transistore molto più compatto (permettendo di integrare molti più componenti nello stesso millimetro quadrato di silicio e abbattendo il costo per funzione); dall'altro riduce la distanza che gli elettroni devono percorrere e abbassa la capacità di Gate $C_{GC} = W L C_{ox}$, quadruplicando la velocità operativa ad ogni dimezzamento di $L$.
+
+</Callout>
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Tabella di Ripartizione delle Capacità di Gate
+
+| Regione | $C_{gs}$ | $C_{gd}$ | $C_{gb}$ |
+| :--- | :--- | :--- | :--- |
+| **Interdizione** | $C_{GSO} W$ | $C_{GDO} W$ | $C_{ox}'' W L$ |
+| **Triodo** | $\frac{1}{2} C_{ox}'' W L + C_{GSO} W$ | $\frac{1}{2} C_{ox}'' W L + C_{GDO} W$ | $0$ |
+| **Saturazione** | $\frac{2}{3} C_{ox}'' W L + C_{GSO} W$ | $C_{GDO} W$ | $0$ |
+
+**Frequenza di transizione intrinseca:** $f_T = \frac{g_m}{2\pi (C_{gs} + C_{gd})} \propto \frac{1}{L^2}$.
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+<Callout type="warning" title="Trappola d'Esame: Dimenticare la Capacità di Overlap in Saturazione">
+
+In saturazione il contributo intrinseco di canale a $C_{gd}$ si annulla per effetto del pinch-off, ma **$C_{gd}$ non è mai zero**: resta sempre la capacità di overlap $C_{GDO} W$, fondamentale per il calcolo dell'effetto Miller ad alta frequenza.
+
+</Callout>
+
+<Exercise client:load lang="it" id="ex-8-1" title="Esercizio 8.1: Capacità Parassite e Frequenza di Transizione f_T" level="Livello 2 · Esame" hint="In saturazione C_gs = (2/3)*C_ox''*W*L + C_GSO*W e C_gd = C_GDO*W.">
+
+Un MOSFET in saturazione ha $W = 20\,\mu\text{m}$, $L = 0.5\,\mu\text{m}$, $C_{ox}'' = 3.45\,\text{fF}/\mu\text{m}^2$, $C_{GSO} = C_{GDO} = 0.3\,\text{fF}/\mu\text{m}$ e $g_m = 5.0\,\text{mA/V}$.
+
+<StepCheck client:load lang="it" prompt="Calcola la capacità totale C_gs (in fF):" expected={29.0} tolerance={0.2} unit="fF" explanation="C_ox_tot = 3.45 * 20 * 0.5 = 34.5 fF; C_gs = (2/3)*34.5 + 0.3*20 = 23 + 6 = 29.0 fF." />
+
+<StepCheck client:load lang="it" prompt="Calcola la frequenza di transizione f_T (in GHz):" expected={22.74} tolerance={0.4} unit="GHz" explanation="C_gd = 0.3*20 = 6 fF; C_gs+C_gd = 35 fF; f_T = 5e-3 / (2*pi*35e-15) ≈ 22.74 GHz." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. $C_{ox,tot} = C_{ox}'' W L = 3.45 \times 20 \times 0.5 = 34.5\,\text{fF}$.
+2. $C_{gs} = \frac{2}{3}(34.5) + 0.3(20) = 23.0 + 6.0 = 29.0\,\text{fF}$; $C_{gd} = 0.3(20) = 6.0\,\text{fF}$.
+3. $f_T = \frac{g_m}{2\pi (C_{gs} + C_{gd})} = \frac{5\times 10^{-3}}{2\pi (35\times 10^{-15})} \approx 22.74\,\text{GHz}$.
+
+</details>
+
+</Exercise>

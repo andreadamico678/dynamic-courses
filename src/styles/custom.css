@@ -1,0 +1,243 @@
+/* Dynamic Courses — Pageless Textbook & Interactive Widget Styling */
+
+/* KaTeX display math scroll safety on narrow screens */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.45rem 0.2rem;
+}
+
+/* Smooth pageless reading rhythm */
+.sl-markdown-content {
+  font-size: 1.03rem;
+  line-height: 1.72;
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2.25rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+/* Section Divider component */
+.dc-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 2.4rem 0 1.6rem;
+  color: var(--sl-color-gray-3);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dc-divider::before,
+.dc-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--sl-color-hairline);
+}
+
+.dc-divider-pill {
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 999px;
+  background: var(--sl-color-bg-nav);
+  white-space: nowrap;
+}
+
+/* Interactive Card / Widget Shell */
+.dc-widget {
+  margin: 1.5rem 0;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 0.75rem;
+  background: var(--sl-color-bg-nav);
+}
+
+.dc-widget-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.dc-widget-title {
+  font-weight: 700;
+  font-size: 0.96rem;
+  color: var(--sl-color-white);
+}
+
+.dc-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-accent-high);
+  border: 1px solid var(--sl-color-accent);
+}
+
+/* Callout cards (Pitfall / Tip / Robotics Bridge) */
+.dc-callout {
+  margin: 1.35rem 0;
+  padding: 0.95rem 1.15rem;
+  border-radius: 0.65rem;
+  border-left: 4px solid var(--sl-color-accent);
+  background: var(--sl-color-bg-nav);
+}
+
+.dc-callout-warning {
+  border-left-color: #d97706;
+}
+
+.dc-callout-tip {
+  border-left-color: #10b981;
+}
+
+.dc-callout-bridge {
+  border-left-color: #6366f1;
+}
+
+.dc-callout-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 0.4rem;
+}
+
+/* Exercise & StepCheck styling */
+.dc-exercise {
+  margin: 1.75rem 0;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 0.85rem;
+  background: var(--sl-color-bg-nav);
+}
+
+.dc-step-box {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--sl-color-hairline);
+  background: var(--sl-color-bg);
+}
+
+.dc-btn {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.42rem 0.85rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--sl-color-hairline);
+  background: var(--sl-color-bg-sidebar);
+  color: var(--sl-color-text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dc-btn:hover {
+  border-color: var(--sl-color-accent);
+}
+
+.dc-btn-primary {
+  background: var(--sl-color-accent);
+  border-color: var(--sl-color-accent);
+  color: #ffffff;
+}
+
+.dc-input {
+  font: inherit;
+  padding: 0.38rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--sl-color-hairline);
+  background: var(--sl-color-bg);
+  color: var(--sl-color-text);
+  width: 11rem;
+}
+
+.dc-feedback-ok {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.dc-feedback-err {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+/* Markmap container */
+.dc-mindmap-svg {
+  width: 100%;
+  height: 360px;
+  display: block;
+  background: var(--sl-color-bg);
+  border-radius: 0.5rem;
+  border: 1px solid var(--sl-color-hairline);
+}
+
+.dc-mindmap-svg text {
+  fill: var(--sl-color-text) !important;
+  font-family: inherit !important;
+}
+
+/* Controls row inside interactive simulators */
+.dc-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  font-size: 0.88rem;
+}
+
+.dc-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 140px;
+}
+
+/* Clean static SVG wrappers */
+.dc-svg-wrap {
+  margin: 1.4rem 0;
+  text-align: center;
+}
+
+.dc-svg-wrap svg {
+  max-width: 100%;
+  height: auto;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+details.dc-solution {
+  margin-top: 0.9rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-left: 3px solid #10b981;
+  background: var(--sl-color-bg);
+}
+
+details.dc-solution summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--sl-color-accent-high);
+  user-select: none;
+}
+
+details.dc-solution[open] summary {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--sl-color-hairline);
+}

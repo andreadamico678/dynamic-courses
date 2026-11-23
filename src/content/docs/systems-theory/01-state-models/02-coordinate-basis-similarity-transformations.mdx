@@ -1,0 +1,196 @@
+---
+title: "2. Coordinate Basis Similarity Transformations"
+description: "Linear Systems Theory — Chapter 2: Coordinate Basis Similarity Transformations"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 2 Mental Model" markdown={`# Ch. 2: Coordinate Basis Similarity Transformations
+  - Algebraic Mechanics of Coordinate Transformations
+  - Geometric Interpretation in State Space
+  - Fundamental Systemic Invariants
+    - 1. Invariance of the Characteristic Polynomial and Eigenvalues
+    - 2. Invariance of the Input-Output Transfer Function
+  - Modal Diagonalization`} />
+
+## Algebraic Mechanics of Coordinate Transformations
+
+The internal state vector $\mathbf{x}(t) \in \mathbb{R}^n$ of a physical system is an algebraic artifact of the chosen measurement coordinates (e.g., voltages across capacitors, positions in a specific Cartesian frame, or currents in motor windings). While physical reality is immutable, the mathematical representation of the state equations can be projected into an infinite family of equivalent coordinate frames.
+
+Let $\mathbf{T} \in \mathbb{R}^{n \times n}$ be an invertible linear operator ($\det(\mathbf{T}) \neq 0$), defining a bijective coordinate transformation between the original state vector $\mathbf{x}(t)$ and a new state vector $\mathbf{z}(t)$:
+
+$$\mathbf{x}(t) = \mathbf{T} \mathbf{z}(t) \iff \mathbf{z}(t) = \mathbf{T}^{-1} \mathbf{x}(t)$$
+
+Substituting the equation above into the fundamental continuous-time state equations $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$ and $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$ yields:
+
+$$\mathbf{T} \dot{\mathbf{z}}(t) = \mathbf{A} \mathbf{T} \mathbf{z}(t) + \mathbf{B} \mathbf{u}(t)$$
+
+Premultiplying both sides by the matrix inverse $\mathbf{T}^{-1}$:
+
+$$\dot{\mathbf{z}}(t) = \left( \mathbf{T}^{-1} \mathbf{A} \mathbf{T} \right) \mathbf{z}(t) + \left( \mathbf{T}^{-1} \mathbf{B} \right) \mathbf{u}(t)$$
+
+$$\mathbf{y}(t) = \left( \mathbf{C} \mathbf{T} \right) \mathbf{z}(t) + \mathbf{D} \mathbf{u}(t)$$
+
+<Callout type="note" title="Definition: Similar State Space Realizations">
+
+The dynamic systems $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ and $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}}, \tilde{\mathbf{D}})$ are said to be **algebraically similar** (or related by a similarity transformation $\mathbf{T}$) if and only if:
+$$\tilde{\mathbf{A}} = \mathbf{T}^{-1} \mathbf{A} \mathbf{T}, \quad \tilde{\mathbf{B}} = \mathbf{T}^{-1} \mathbf{B}, \quad \tilde{\mathbf{C}} = \mathbf{C} \mathbf{T}, \quad \tilde{\mathbf{D}} = \mathbf{D}$$
+
+</Callout>
+
+<Divider />
+
+## Geometric Interpretation in State Space
+
+A similarity transformation corresponds geometrically to an invertible change of basis in the $n$-dimensional state vector space $\mathcal{X} \cong \mathbb{R}^n$.
+
+<figure id="fig-coordinate-similarity-basis" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-coordinate-similarity-basis.svg" alt="Geometric state space coordinate basis transformation. The physical state point $\mathbf{x}(t)$ remains invariant; its coordinates are projected onto the column vectors $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$." />
+  <figcaption>Geometric state space coordinate basis transformation. The physical state point $\mathbf{x}(t)$ remains invariant; its coordinates are projected onto the column vectors $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$.</figcaption>
+</figure>
+
+<Divider />
+
+## Fundamental Systemic Invariants
+
+Although the numerical values of the matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ change completely under $\mathbf{T}$, all intrinsic physical and qualitative dynamic properties remain strictly invariant.
+
+### 1. Invariance of the Characteristic Polynomial and Eigenvalues
+The characteristic polynomial $\tilde{p}(\lambda)$ of the transformed matrix $\tilde{\mathbf{A}}$ is identical to $p(\lambda)$ of $\mathbf{A}$:
+
+$$\begin{aligned}
+\tilde{p}(\lambda) &= \det(\lambda \mathbf{I} - \tilde{\mathbf{A}}) = \det(\lambda \mathbf{I} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T}) \\
+&= \det(\mathbf{T}^{-1}(\lambda \mathbf{I} - \mathbf{A})\mathbf{T}) = \det(\mathbf{T}^{-1}) \det(\lambda \mathbf{I} - \mathbf{A}) \det(\mathbf{T}) \\
+&= \frac{1}{\det(\mathbf{T})} \det(\lambda \mathbf{I} - \mathbf{A}) \det(\mathbf{T}) = \det(\lambda \mathbf{I} - \mathbf{A}) = p(\lambda)
+\end{aligned}$$
+
+Consequently:
+$$\sigma(\tilde{\mathbf{A}}) = \sigma(\mathbf{A})$$
+The natural frequencies, damping ratios, time constants, and stability modes of the system are absolute physical invariants independent of coordinate choice.
+
+### 2. Invariance of the Input-Output Transfer Function
+Evaluating the transfer function $\tilde{\mathbf{W}}(s)$ in the transformed basis:
+
+$$\begin{aligned}
+\tilde{\mathbf{W}}(s) &= \tilde{\mathbf{C}} (s\mathbf{I} - \tilde{\mathbf{A}})^{-1} \tilde{\mathbf{B}} + \tilde{\mathbf{D}} \\
+&= (\mathbf{C}\mathbf{T}) \left[ s\mathbf{I} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T} \right]^{-1} (\mathbf{T}^{-1}\mathbf{B}) + \mathbf{D} \\
+&= \mathbf{C}\mathbf{T} \left[ \mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})\mathbf{T} \right]^{-1} \mathbf{T}^{-1}\mathbf{B} + \mathbf{D} \\
+&= \mathbf{C}\mathbf{T} \mathbf{T}^{-1} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{T} \mathbf{T}^{-1}\mathbf{B} + \mathbf{D} \\
+&= \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D} = \mathbf{W}(s)
+\end{aligned}$$
+
+The external frequency response, step response, and impulse response observed by a user at the terminals are strictly unaffected by internal coordinate transformations.
+
+<Divider />
+
+## Modal Diagonalization
+
+When the dynamic matrix $\mathbf{A} \in \mathbb{R}^{n \times n}$ possesses $n$ linearly independent eigenvectors $\{\mathbf{v}_1, \mathbf{v}_2, \dots, \mathbf{v}_n\}$ associated with eigenvalues $\{\lambda_1, \lambda_2, \dots, \lambda_n\}$:
+
+$$\mathbf{A} \mathbf{v}_i = \lambda_i \mathbf{v}_i, \quad i = 1, 2, \dots, n$$
+
+we construct the **Modal Matrix**:
+
+$$\mathbf{T} = \mathbf{M} = \begin{bmatrix} \mathbf{v}_1 & \mathbf{v}_2 & \dots & \mathbf{v}_n \end{bmatrix}$$
+
+Under this modal transformation, the system matrix decouples into a diagonal matrix $\mathbf{\Lambda}$:
+
+$$\tilde{\mathbf{A}} = \mathbf{T}^{-1} \mathbf{A} \mathbf{T} = \mathbf{\Lambda} = \begin{bmatrix}
+\lambda_1 & 0 & \dots & 0 \\
+0 & \lambda_2 & \dots & 0 \\
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \dots & \lambda_n
+\end{bmatrix}$$
+
+In these decoupled **modal coordinates** $\mathbf{z}(t)$, the $n$ coupled differential equations collapse into $n$ independent scalar equations:
+
+$$\dot{z}_i(t) = \lambda_i z_i(t) + \tilde{b}_i u(t), \quad i = 1, \dots, n$$
+
+where $\tilde{b}_i$ is the $i$-th row of $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$. Each modal state $z_i(t)$ evolves completely autonomously without dynamic interference from other states.
+
+<Callout type="bridge" title="SDU Robotics Bridge: Body-to-Inertial Drone Transformations">
+
+In aerial robotics algorithms implemented in the SDU UAS laboratory, coordinate transformations occur continuously between the **Body-fixed frame** $\mathcal{F}_B$ (aligned with IMU accelerometer axes) and the **Inertial World frame** $\mathcal{F}_W$ (North-East-Down or ENU coordinates).
+For linear velocities $\mathbf{v}_B = \begin{bmatrix} u & v & w \end{bmatrix}^T$ and inertial positions $\mathbf{p}_W = \begin{bmatrix} x & y & z \end{bmatrix}^T$:
+$$\dot{\mathbf{p}}_W(t) = \mathbf{R}_{WB}(\mathbf{q}) \mathbf{v}_B(t)$$
+where $\mathbf{R}_{WB} \in SO(3)$ is the orthogonal direction cosine rotation matrix parameterized by unit quaternions $\mathbf{q}$.
+State estimation nodes in ROS 2 utilize similarity transformations to convert error covariance matrices $\mathbf{P}$ between sensor-aligned coordinates (e.g. LiDAR or camera frames) and robot-centric tracking states.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-2-1" title="Exercise 2.1: Diagonal Scaling Coordinate Transformation" level="LEVEL 1: WARM-UP DRILL">
+
+Consider the decoupled continuous-time system:
+$$\mathbf{A} = \begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 1 \end{bmatrix}$$
+We apply a state coordinate scaling $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ with the diagonal transformation matrix:
+$$\mathbf{T} = \begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix}$$
+
+1. Invert the diagonal matrix $\mathbf{T}$ by inspection.
+2. Calculate the transformed matrices $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$.
+3. Verify that the eigenvalues of $\tilde{\mathbf{A}}$ are identical to those of $\mathbf{A}$. Observe how coordinate scaling alters the internal state representation while preserving input-output behavior.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. For any diagonal matrix with non-zero diagonal entries, the inverse is formed by taking the reciprocal of each diagonal element:
+   $$\mathbf{T}^{-1} = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}$$
+2. Computing the transformed state matrices:
+   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}\begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix} = \begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix} = \mathbf{A}$$
+   (Diagonal matrices commute under multiplication).
+   $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}\begin{bmatrix} 1 \\ 2 \end{bmatrix} = \begin{bmatrix} 1/2 \\ 2/3 \end{bmatrix}$$
+   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 1 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix} = \begin{bmatrix} 2 & 3 \end{bmatrix}$$
+3. The eigenvalues are read directly from $\tilde{\mathbf{A}}$: $\lambda_1 = -1$ and $\lambda_2 = -4$, confirming absolute spectral invariance.
+   Furthermore, evaluating the modal input-output transmission products reveals:
+   $$\tilde{c}_1 \tilde{b}_1 = 2 \cdot (1/2) = 1 = c_1 b_1, \quad \tilde{c}_2 \tilde{b}_2 = 3 \cdot (2/3) = 2 = c_2 b_2$$
+   Coordinate scaling rescales internal state magnitudes without altering the input-output transfer function $W(s) = \sum_{i} \frac{c_i b_i}{s - \lambda_i}$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-2-2" title="Exercise 2.2: Modal Matrix Diagonalization & Spectral Transformation" level="LEVEL 2: EXAM BENCHMARK">
+
+Consider the coupled symmetric second-order system:
+$$\mathbf{A} = \begin{bmatrix} -5 & 2 \\ 2 & -2 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 1 \end{bmatrix}$$
+
+1. Compute the eigenvalues $\lambda_1, \lambda_2$ by solving the characteristic equation $\det(\lambda\mathbf{I} - \mathbf{A}) = 0$.
+2. Compute the corresponding eigenvectors $\mathbf{v}_1, \mathbf{v}_2$.
+3. Form the modal transformation matrix $\mathbf{T} = \begin{bmatrix} \mathbf{v}_1 & \mathbf{v}_2 \end{bmatrix}$ and compute its inverse $\mathbf{T}^{-1}$ using the adjugate matrix formula.
+4. Calculate the decoupled state matrices $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$, verifying that $\tilde{\mathbf{A}}$ is diagonal.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Characteristic equation:
+   $$\det(\lambda \mathbf{I} - \mathbf{A}) = \det\begin{bmatrix} \lambda + 5 & -2 \\ -2 & \lambda + 2 \end{bmatrix} = (\lambda + 5)(\lambda + 2) - 4 = \lambda^2 + 7\lambda + 6 = (\lambda + 1)(\lambda + 6) = 0$$
+   The eigenvalues are $\lambda_1 = -1$ and $\lambda_2 = -6$.
+   * For $\lambda_1 = -1$:
+     $$(-1 \mathbf{I} - \mathbf{A})\mathbf{v}_1 = \begin{bmatrix} 4 & -2 \\ -2 & 1 \end{bmatrix}\begin{bmatrix} v_{11} \\ v_{12} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies 2v_{11} - v_{12} = 0 \implies \mathbf{v}_1 = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$$
+   * For $\lambda_2 = -6$:
+     $$(-6 \mathbf{I} - \mathbf{A})\mathbf{v}_2 = \begin{bmatrix} -1 & -2 \\ -2 & -4 \end{bmatrix}\begin{bmatrix} v_{21} \\ v_{22} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies v_{21} + 2v_{22} = 0 \implies \mathbf{v}_2 = \begin{bmatrix} -2 \\ 1 \end{bmatrix}$$
+2. The modal matrix $\mathbf{T}$ and its inverse are:
+   $$\mathbf{T} = \begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix}, \quad \det(\mathbf{T}) = 1(1) - (-2)(2) = 5$$
+   $$\mathbf{T}^{-1} = \frac{1}{5}\begin{bmatrix} 1 & 2 \\ -2 & 1 \end{bmatrix}$$
+3. Computing the transformed matrices:
+   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \mathbf{\Lambda} = \begin{bmatrix} -1 & 0 \\ 0 & -6 \end{bmatrix}$$
+   $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \frac{1}{5}\begin{bmatrix} 1 & 2 \\ -2 & 1 \end{bmatrix}\begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 1/5 \\ -2/5 \end{bmatrix}$$
+   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 1 \end{bmatrix}\begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix} = \begin{bmatrix} 3 & -1 \end{bmatrix}$$
+4. Verification:
+   $$\det(\lambda \mathbf{I} - \tilde{\mathbf{A}}) = (\lambda + 1)(\lambda + 6) = \lambda^2 + 7\lambda + 6 = \det(\lambda \mathbf{I} - \mathbf{A})$$
+
+</details>
+
+</Exercise>

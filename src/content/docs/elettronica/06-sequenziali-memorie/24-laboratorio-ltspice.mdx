@@ -1,0 +1,141 @@
+---
+title: "24. Simulazione Circuitale LTspice"
+description: "Elettronica — Capitolo 24: Simulazione Circuitale LTspice"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 24" markdown={`# Cap. 24: Simulazione Circuitale LTspice
+  - 1 · Intuizione Fisica
+    - Netlist testuale e flusso SPICE
+  - 2 · Definizione e Sintassi (Orale & Lab)
+    - Nodi, suffissi numerici e componenti
+    - Direttive di analisi (.op, .dc, .ac, .tran)
+    - Generatori controllati e .MODEL
+  - 3 · Algoritmo Operativo (Laboratorio)
+    - Protocollo di verifica circuitale
+  - 4 · Archetipo Svolto ed Esercizi
+    - Circuito Bridge-T e filtro RLC`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+Prima di mandare in fabbricazione un circuito integrato o assemblare un prototipo su scheda, il progettista verifica il comportamento della rete tramite un simulatore numerico **SPICE** (*Simulation Program with Integrated Circuit Emphasis*). Anche quando si disegna uno schema grafico in **LTspice**, il programma traduce sempre il disegno in una descrizione testuale pura chiamata **netlist** (`.cir` o `.net`), assembla il sistema di equazioni ai nodi modificato (MNA) e lo risolve numericamente nei regimi DC, AC e transitorio.
+
+Capire la netlist significa saper leggere e correggere qualsiasi simulazione quando un circuito non converge o restituisce risultati inattesi.
+
+<Divider label="2 · Definizione e Sintassi (Orale & Lab)" />
+
+## Struttura di una Netlist SPICE
+
+Una netlist rispetta quattro regole sintattiche rigide:
+1. **Prima riga:** titolo del circuito (sempre ignorato dal risolutore — non inserire mai un componente sulla prima riga!).
+2. **Nodo di massa (`0`):** il riferimento di massa globale deve essere obbligatoriamente il nodo `0` (o `GND`).
+3. **Commenti e continuazione:** una riga che inizia con `*` (o un suffisso dopo `;`) è un commento; una riga che inizia con `+` continua la riga precedente.
+4. **Prefissi dei componenti:** la prima lettera identifica il tipo di elemento (`R` resistore, `C` condensatore, `L` induttanza, `D` diodo, `M` MOSFET, `V` generatore di tensione, `I` generatore di corrente, `E/G/H/F` generatori controllati VCVS/VCCS/CCVS/CCCS).
+
+### Suffissi di Scala (Case-Insensitive!)
+
+| Suffisso SPICE | Fattore | Attenzione critica |
+| :--- | :--- | :--- |
+| `F` / `P` / `N` / `U` | $10^{-15}$ / $10^{-12}$ / $10^{-9}$ / $10^{-6}$ | Validi per fF, pF, nF, $\mu$F |
+| `M` | **$10^{-3}$ (milli)** | **MAI usare `M` per Mega!** |
+| `MEG` | $10^{6}$ (Mega) | Obbligatorio per Megaohm (`1MEG`) o MHz (`10MEG`) |
+| `K` / `G` | $10^{3}$ / $10^{9}$ | Standard per chilo e giga |
+
+<Callout type="warning" title="Errore Classico in LTspice: M vs MEG">
+
+Poiché SPICE non distingue tra maiuscole e minuscole, scrivere `R1 1 2 10M` o `10m` viene sempre interpretato come **$10\,\text{m}\Omega = 0.01\,\Omega$**, **non** $10\,\text{M}\Omega$! Per i megaohm si deve sempre scrivere `10MEG`.
+
+</Callout>
+
+## Le Quattro Analisi Fondamentali
+
+1. **`.op` (*Operating Point*):** calcola il punto di riposo in continua aprendo tutti i condensatori e cortocircuitando tutti gli induttori.
+2. **`.dc <src> <start> <stop> <step>`:** esegue una scansione parametrica di un generatore DC (anche annidata, ad es. `.dc Vds 0 5 0.05 Vgs 0 3.5 0.5`) per tracciare le famiglie di curve $I_D$–$V_{DS}$ del MOSFET o la transcaratteristica VTC dell'invertitore CMOS.
+3. **`.ac [DEC|OCT|LIN] <Nsteps> <f_start> <f_end>`:** linearizza i dispositivi non lineari attorno al punto `.op` e calcola la risposta armonica di piccolo segnale (diagramma di Bode) rispetto a un generatore dotato di direttiva `AC <mag> [<phase>]`.
+4. **`.tran <Tstep> <Tstop> [<Tstart> [<Tmax>]]`:** risolve nel dominio del tempo le equazioni differenziali non lineari complete per osservare forme d'onda di raddrizzatori, clipping di amplificatori e commutazioni logiche (`PULSE`, `SIN`, `PWL`).
+
+## Generatori Controllati e Modelli `.MODEL`
+
+I modelli di piccolo segnale e gli stadi operazionali ideali usano spesso i generatori dipendenti:
+* `E<nome> N+ N- NC+ NC- <A>`: generatore di tensione controllato in tensione (**VCVS**).
+* `G<nome> N+ N- NC+ NC- <gm>`: generatore di corrente controllato in tensione (**VCCS**, usato per modellare $g_m v_{gs}$).
+* `H<nome> N+ N- <Vnam> <rm>` e `F<nome> N+ N- <Vnam> <beta>`: **CCVS** e **CCCS** riferiti alla corrente uscente da un generatore di tensione `<Vnam>`.
+
+Per i dispositivi reali (diodi e MOSFET) si definiscono i parametri fisici tramite `.MODEL`:
+```spice
+.MODEL DMOD D(IS=1e-14 N=1 BV=5.1)
+.MODEL NMOS_LAB NMOS(LEVEL=1 VTO=0.8 KP=200u LAMBDA=0.02)
+```
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Protocollo di Verifica di una Simulazione CAD
+1. **Controllo massa e prima riga:** verificare che la riga 1 sia un titolo e che esista il nodo `0`.
+2. **Controllo polarità e suffissi:** controllare il verso positivo $\to$ negativo dei generatori e sostituire ogni `M` inteso come mega con `MEG`.
+3. **Coerenza tra generatore e analisi:** per `.ac` assicurarsi che la sorgente abbia `AC 1`; per `.tran` assicurarsi che abbia `SIN(...)`, `PULSE(...)` o `PWL(...)`.
+4. **Validazione analitica:** calcolare a mano il punto di lavoro DC o la frequenza di taglio $f_{-3\,\text{dB}}$ e confrontare con il file `.log` o il cursore grafico.
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+### Archetipo Svolto: Circuito Bridge-T in `.op` e Filtro RLC in `.ac`
+
+Consideriamo il circuito Bridge-T mostrato in [la figura](#fig-ltspice-bridge-t) e il filtro RLC serie in [la figura](#fig-ltspice-rlc).
+
+<figure id="fig-ltspice-bridge-t" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-ltspice-bridge-t.svg" alt="Circuito Bridge-T per analisi del punto operativo .op in LTspice." />
+  <figcaption>Circuito Bridge-T di riferimento per la scrittura della netlist `.op`.</figcaption>
+</figure>
+
+La netlist corrispondente per `.op` vale:
+```spice
+BRIDGE-T CIRCUIT
+Vbias 1 0 12
+R1 1 2 10
+R2 2 0 10
+R3 2 3 5
+R4 1 3 5
+.op
+.end
+```
+Per simmetria ($V(1) = 12\,\text{V}$), il risolutore restituisce $V(2) = 8\,\text{V}$ e $V(3) = 10\,\text{V}$, verificabili via KCL ai nodi `2` e `3`:
+$$ \frac{8-12}{10} + \frac{8}{10} + \frac{8-10}{5} = -0.4 + 0.8 - 0.4 = 0 $$
+
+<figure id="fig-ltspice-rlc" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-ltspice-rlc.svg" alt="Filtro RLC serie per analisi .ac e .tran in LTspice." />
+  <figcaption>Circuito RLC serie per analisi `.ac` e `.tran`.</figcaption>
+</figure>
+
+<Exercise client:load lang="it" id="ex-24-1" title="Esercizio 24.1: Analisi .AC di un Filtro RC" level="Livello 1 · Base" hint="La frequenza di taglio a -3 dB di un filtro RC del primo ordine è f_c = 1 / (2*pi*R*C).">
+
+Un circuito filtro passa-basso RC è descritto dalla netlist:
+```spice
+FILTRO RC
+Vin 1 0 0 AC 1
+R1 1 2 1k
+C1 2 0 100n
+.ac dec 100 10 100k
+.end
+```
+Calcolare la frequenza di taglio a $-3\,\text{dB}$ letta sul nodo `V(2)`.
+
+<StepCheck client:load lang="it" prompt="Calcola la frequenza di taglio f_c in Hz:" expected={1591.55} tolerance={5} unit="Hz" explanation="f_c = 1 / (2 * pi * 1e3 * 100e-9) ≈ 1591.55 Hz." />
+
+<StepCheck client:load lang="it" mode="choice" prompt="Quale suffisso SPICE rappresenta correttamente un resistore da 2.2 Megaohm?" options={["2.2M", "2.2MEG", "2.2MG"]} correctIndex={1} explanation="In SPICE M indica milli (10^-3); per Mega (10^6) è obbligatorio scrivere MEG." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. La netlist collega $R_1 = 1\,\text{k}\Omega$ tra il generatore AC `1` e il nodo d'uscita `2`, con $C_1 = 100\,\text{nF}$ verso massa `0`.
+2. La funzione di trasferimento è $H(j\omega) = \frac{1}{1 + j\omega R_1 C_1}$, con frequenza di taglio:
+   $$ f_c = \frac{1}{2\pi R_1 C_1} = \frac{1}{2\pi (10^3)(100 \times 10^{-9})} = \frac{10^4}{2\pi} \approx 1591.55\,\text{Hz} $$
+
+</details>
+
+</Exercise>

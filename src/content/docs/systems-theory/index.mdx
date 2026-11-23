@@ -1,0 +1,117 @@
+---
+title: "Linear Systems Theory"
+description: "State-Space Modeling, Structural Analysis, and State Feedback Control"
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Full Course Overview" markdown={`# Linear Systems Theory
+  - Part I: Dynamic State Models
+  - Part II: Laplace & State Resolvent
+  - Part III: Matrix Exponential & Response
+  - Part IV: Stability & Routh-Hurwitz
+  - Part V: Frequency Response & Bode
+  - Part VI: Kalman Structure
+  - Part VII: State Feedback Control
+  - Part VIII: Observers & Compensation`} />
+
+## Canonical Subject Scope & Purpose
+
+Welcome to **Linear Systems Theory: State-Space Modeling, Structural Analysis, and State Feedback Control**. This textbook is an engineered, zero-fluff manual built specifically to balance two rigorous objectives:
+1. **Academic Mastery (UniCT L-8 Automatica):** Achieving unconditional success ($\ge 28/30$) across the single comprehensive end-of-semester in-itinere exam (or general written exam) and oral defense of the *Teoria dei Sistemi* module at the Università degli Studi di Catania.
+2. **SDU Robotics Master Bridge:** Establishing the theoretical and structural mechanics required for the **MSc in Robot Systems (Drones and Autonomous Systems Specialization — DAS)** at the University of Southern Denmark (SDU), specifically unlocking *Control of Autonomous Systems*, *Introduction to Drone Technology*, and *Embodied AI*.
+
+---
+
+## AI & Large Language Model Influence
+
+In modern control engineering, numerical matrix operations, symbolic Laplace inversions, and boilerplate state-feedback gain computations are easily automated by numerical solvers (MATLAB, Python `scipy.signal`, SymPy) and generative AI coding agents. However, AI cannot diagnose physical instability caused by unmodeled structural dynamics, actuator saturation, or unobservable sensor modes.
+
+| Automated by AI & Symbolic Solvers | Irreplaceable Human Engineering Judgment |
+| :--- | :--- |
+| Symbolic inversion of $(sI - A)^{-1}$ and partial fraction decomposition | Selecting state coordinates that reflect measurable physical quantities |
+| Computing Routh arrays and polynomial determinants | Distinguishing mathematical pole cancellation from hidden internal instability |
+| Evaluating Ackermann's formula $\mathbf{k} = \mathbf{e}_n^T \mathcal{P}^{-1} \alpha(\mathbf{A})$ | Choosing closed-loop pole locations that respect physical motor bandwidth and slew rates |
+| Drawing Bode magnitude and phase plots from rational transfer functions | Validating sensor noise immunity versus transient tracking trade-offs in drone autopilots |
+
+When designing flight controllers for autonomous multirotors, blindly trusting an LLM-generated state-feedback gain vector without verifying the rank of the controllability matrix or understanding the separation principle leads directly to hardware destruction. This text enforces the mathematical rigor necessary to supervise, verify, and architect autonomous systems with mathematical certainty.
+
+---
+
+## Career Prospects & Real-World Skill Mapping
+
+Linear systems theory is the foundational mathematical language of robotics, aerospace, autonomous driving, and industrial automation.
+
+| Industry Domain | Key Control Engineering Applications |
+| :--- | :--- |
+| **Aerospace & Drones** | PX4 / ArduPilot rate loops, multirotor attitude control, guidance, navigation & control (GNC) |
+| **Robotics & Embodied AI** | State estimation (EKF / UKF), robotic arm trajectory tracking, sensorimotor stabilization |
+| **Automotive & Mechatronics** | Active suspension control, drive-by-wire steering, battery BMS state-of-charge estimation |
+
+### Academic Exam Filters vs. Production Engineering Reality
+
+* **Academic Exam Filter:** Manually computing by hand the adjugate matrix of a $3\times 3$ symbolic matrix $(s\mathbf{I} - \mathbf{A})$ with matricola parameters $a$ and $b$, or evaluating the epsilon method on a singular Routh table.
+* **Production Reality:** Understanding that pole-zero cancellations in $\mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$ hide uncontrollable or unobservable modes that can grow exponentially to infinity inside the system without appearing in the input-output transfer function.
+* **Bridging the Divide:** We drill the hand-calculation algorithms required to ace the written exams while grounding every theorem in physical hardware invariants (actuator current limits, IMU sampling jitter, and real-time state estimation).
+
+---
+
+## Academic Timeline & SDU Robotics Bridge
+
+This textbook is located along the student's academic transition:
+
+$$\text{UniCT L-8 Bachelor (Ingegneria Informatica)} \longrightarrow \text{SDU MSc Robot Systems (DAS Track)}$$
+
+| UniCT L-8 Module: Teoria dei Sistemi (6 CFU) | SDU MSc Robot Systems (DAS Track) Target |
+| :--- | :--- |
+| State-Space Models & Lagrange Formula | Control of Autonomous Systems (Dynamics & Kinematics) |
+| Controllability & Observability (Kalman) | Sensor Fusion & Actuator Allocation |
+| State Feedback (Ackermann Pole Placement) | LQR / Attitude Stabilization Loops (PX4) |
+| Luenberger Observers & Separation Principle | Kalman Filtering (KF / EKF / UKF State Estimation) |
+| Bode Diagrams & Frequency Response | Introduction to Drone Technology (Inner Rate Loops) |
+
+Throughout this textbook, dedicated **SDU Robotics Bridge** callouts connect abstract theorems directly to their practical implementations in ROS 2 nodes, PX4 flight controllers, and physical robotics laboratories at SDU Odense.
+
+---
+
+## Prerequisite Assessment
+
+Before engaging with this textbook, the reader should possess working fluency in:
+1. **Linear Algebra & Matrix Calculus:** Matrix multiplication, determinants, rank, inverse, eigenvalues, and eigenvectors.
+2. **Differential Equations:** Ordinary linear differential equations with constant coefficients.
+3. **Complex Numbers:** Euler's formula, polar representation, magnitude, and phase angles in the complex plane $\mathbb{C}$.
+
+---
+
+## Structure of the Textbook
+
+The curriculum is partitioned into two distinct operational parts and eight strictly sequential, monotonically dependent areas, mirroring the UniCT semester curriculum:
+
+### Part I: State-Space Modeling, Resolvent & Stability Dynamics
+1. **Area 1: Continuous-Time Dynamic State Models & Physical Systems** — Establishing state variables, differential state equations, multi-body mechanical cart systems, coordinate similarity transformations, and block diagram algebra reduction.
+2. **Area 2: Operational Laplace Transforms & State Resolvent Inversion** — Unilateral Laplace transformation primitives, operational theorems, partial fraction expansions (Heaviside residues), the state resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$, and transfer function invariance $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$.
+3. **Area 3: Dynamic Trajectories & Matrix Exponential Transitions** — The matrix exponential $e^{\mathbf{A}t}$, Taylor series, Cayley-Hamilton synthesis, free state response evaluation $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}(0)$, and forced response via the Lagrange convolution integral.
+4. **Area 4: System Stability Criteria & Routh** — LTI equilibrium points, Lyapunov internal stability via eigenvalue spectra ($m_a$ vs $m_g$), algebraic Routh-Hurwitz tabular arrays (including singular zero pivots and all-zero rows), parametric stability bounds, and BIBO external stability.
+
+### Part II: Harmonic Response, Structural Kalman Properties & State Feedback Control (Comprehensive January Exam)
+5. **Area 5: Harmonic Response & Frequency Analysis** — Frequency response function $\mathbf{W}(j\omega)$, asymptotic and exact Bode magnitude and phase diagrams, real resonances, and non-minimum phase systems (RHP zeros and time delays).
+6. **Area 6: Kalman Structural Properties** — Kalman controllability ($\mathcal{P}$) and observability ($\mathcal{Q}$) rank criteria, PBH tests, 4-subspace Kalman canonical decomposition, and stabilizability verification of uncontrollable modes.
+7. **Area 7: State Feedback Control & Dominant Pole Placement** — Controllable canonical form pole placement, Ackermann state feedback formula $\mathbf{u} = -\mathbf{K}\mathbf{x}$, and dominant second-order closed-loop pole specifications ($-a \pm jb$, damping $\xi$, natural frequency $\omega_n$).
+8. **Area 8: State Observer Synthesis & Dynamic Compensation** — Luenberger asymptotic state observers, error dynamics autonomy $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$, dual Ackermann observer gain synthesis ($\mathbf{L}$), and the Separation Principle dynamic output compensator.
+
+Every chapter concludes with active-recall exercises spanning mechanical calculation, conceptual differentiation, real-world troubleshooting, and failure mode analysis. Complete step-by-step solutions are compiled in [Appendix: Exercise Solutions](#structure-of-the-textbook). Furthermore, dedicated Obsidian spaced-repetition flashcards are provided in [flashcards/](https://github.com/andreadamico678/dynamic-courses/tree/main/courses/systems-theory/flashcards) for every single chapter.
+
+---
+
+## 25/30 Fast-Track Exam Syllabus & Disclaimers
+
+To maximize study efficiency for students targeting a solid **25/30** without getting bogged down in 30 e Lode edge cases, this edition incorporates a **Pure-Exam Progression Filter**:
+
+1. **Two-Level Problem Sets:**
+   - **[LEVEL 1: WARM-UP DRILL]**: Builds procedural fluency in matrix manipulation, canonical forms, and formula application.
+   - **[LEVEL 2: EXAM BENCHMARK]**: Represents authentic written exam problems across the four standard UniCT exam archetypes.
+   - **Level 3 & Non-Examinable Derivations (Trimmed for 25/30 Target):** Highly specialized edge cases and advanced derivations (time-domain Lagrange convolution integrals, Poisson sensitivity integral bounds, singular Routh $\varepsilon$-tables, full $4\times 4$ Kalman decomposition coordinate synthesis, Ackermann formula Cayley-Hamilton algebraic proofs, Doyle's robustness margin counterexamples, and high-gain observer peaking) have been trimmed from the exercise sets to keep focus on core written and oral exam competence.
+2. **Oral Defense Core:**
+   - The oral exam focuses on fundamental theoretical pillars: Lyapunov spectral stability conditions, the relation between internal and BIBO stability, Kalman rank criteria and Cayley-Hamilton, state feedback arbitrary pole placement, observer error dynamics $\dot{\mathbf{e}} = (\mathbf{A}-\mathbf{L}\mathbf{C})\mathbf{e}$, the Separation Principle block-triangular proof, and the harmonic frequency response theorem.
+   - Complex manual proofs that are never evaluated on blackboard defenses are explicitly flagged so students can bypass them with complete confidence.

@@ -1,0 +1,56 @@
+# Global Symbol Registry — Linear Systems Theory
+# Enforce across all 29 chapters and appendices/solutions.qmd.
+# Any symbol listed as forbidden in a domain must not be reused with a conflicting meaning.
+
+state_space:
+  x: "State vector in R^n"
+  u: "Input vector in R^m"
+  y: "Output vector in R^p"
+  A: "System dynamics matrix in R^(n x n)"
+  B: "Input matrix in R^(n x m)"
+  C: "Output matrix in R^(p x n)"
+  D: "Feedthrough matrix in R^(p x m)"
+  x_e: "Equilibrium state vector corresponding to constant input u_0"
+  z: "Perturbation state vector z(t) = x(t) - x_e"
+  Phi_t: "State transition matrix exp(A*t)"
+  Phi_s: "State resolvent matrix (s*I - A)^(-1)"
+  W_s: "Transfer function matrix C*(s*I - A)^(-1)*B + D"
+  w_t: "Impulse response matrix"
+
+spectral_and_multiplicities:
+  lambda_i: "Eigenvalue of A (root of characteristic polynomial det(lambda*I - A) = 0)"
+  p_s: "Characteristic polynomial det(s*I - A)"
+  m_a: "Algebraic multiplicity of eigenvalue lambda_i in det(lambda*I - A)"
+  m_g: "Geometric multiplicity dim(ker(lambda_i*I - A)) = n - rank(lambda_i*I - A)"
+  v_i: "Right eigenvector of A associated with lambda_i"
+
+routh_hurwitz:
+  a_0_to_a_n: "Coefficients of p(s) = a_0*s^n + a_1*s^(n-1) + ... + a_n (with a_0 > 0)"
+  b_i_row_s_n_minus_2: "STRICTLY reserved in Ch. 13 for entries of row s^(n-2) in the Routh table"
+  alpha_1_alpha_2: "Row s^2 entries [alpha_1, alpha_2] used to form the auxiliary equation A(s) = alpha_1*s^2 + alpha_2 = 0 when row s^1 vanishes"
+  omega_osc: "Sustained oscillation frequency at the stability boundary: sqrt(alpha_2 / alpha_1)"
+  epsilon: "Small positive perturbation parameter (epsilon -> 0+) for zero-pivot singular Routh rows"
+  forbidden_collisions:
+    - "NEVER reuse b_1, b_2 as generic placeholders for row s^2 in Ch. 15; use explicit row s^2 notation [alpha_1, alpha_2]."
+
+frequency_and_bode:
+  omega: "Angular frequency in rad/s (logarithmic horizontal axis log10(omega))"
+  K: "Evans (zero-pole-gain) leading coefficient in W(s) = K * prod(s - z_i) / prod(s - p_k)"
+  K_B: "Bode gain K_B = lim_{s -> 0} s^g * W(s) in Bode canonical form"
+  g: "System type (net number of integrators at s=0; g > 0 integrators, g < 0 differentiators)"
+  tau: "Time constant tau = -1/p or -1/z in (1 + s*tau)"
+  omega_c: "Corner (break) frequency 1/|tau| of a real singularity"
+  omega_n: "Natural undamped frequency of a complex conjugate pair"
+  zeta: "Non-dimensional damping ratio (resonant peaking strictly requires 0 < zeta < 1/sqrt(2))"
+  omega_r: "Resonance peak frequency omega_n * sqrt(1 - 2*zeta^2) for 0 < zeta < 1/sqrt(2)"
+  M_r: "Resonant peak magnitude 1 / (2*zeta*sqrt(1 - zeta^2))"
+  omega_start: "Left boundary of finite semi-log plotting window [omega_start, omega_end]"
+  omega_end: "Right boundary of finite semi-log plotting window [omega_start, omega_end]"
+
+kalman_and_control:
+  P_kalman: "Kalman controllability matrix [B, A*B, ..., A^(n-1)*B]"
+  Q_kalman: "Kalman observability matrix [C; C*A; ...; C*A^(n-1)]"
+  K_fb: "State-feedback gain matrix/row vector in u = -K*x + r"
+  L_obs: "Luenberger observer gain matrix/column vector in x_hat_dot = A*x_hat + B*u + L*(y - C*x_hat)"
+  e_obs: "Observer estimation error e(t) = x(t) - x_hat(t)"
+  p_cl: "Desired closed-loop characteristic polynomial alpha(s)"

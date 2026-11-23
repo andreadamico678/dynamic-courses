@@ -1,0 +1,136 @@
+---
+title: "24. Pole Placement in Canonical Form"
+description: "Linear Systems Theory — Chapter 24: Pole Placement in Canonical Form"
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 24 Mental Model" markdown={`# Ch. 24: Pole Placement in Canonical Form
+  - Controllable Canonical Form Architecture
+  - Direct Coefficient Synthesis in CCF
+  - Coordinate Transformation to Canonical Form
+    - The Kalman Reachability Invariant
+    - Practical Construction via the Last Row of $\mathbf{T}^{-1}$`} />
+
+When an LTI system is completely controllable, the control engineer possesses complete authority over the system's autonomous dynamics. By feeding back the full state vector through a static gain matrix:
+$$\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$$
+the closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$ can be endowed with **any arbitrary set of eigenvalues**, subject only to the physical requirement that complex poles appear in conjugate pairs.
+
+The most transparent analytical proof and realization of this property uses the **Controllable Canonical Form (CCF)**.
+
+<Divider />
+
+## Controllable Canonical Form Architecture
+
+For a single-input system ($m = 1$), let the open-loop characteristic polynomial of $\mathbf{A} \in \mathbb{R}^{n \times n}$ be:
+$$p(s) = \det(s\mathbf{I} - \mathbf{A}) = s^n + a_{n-1}s^{n-1} + \dots + a_1 s + a_0$$
+
+A system $(\mathbf{A}_c, \mathbf{B}_c)$ is in **Controllable Canonical Form** if its matrices have the companion structure:
+$$\mathbf{A}_c = \begin{bmatrix}
+0 & 1 & 0 & \dots & 0 \\
+0 & 0 & 1 & \dots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & \dots & 1 \\
+-a_0 & -a_1 & -a_2 & \dots & -a_{n-1}
+\end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \\ 1 \end{bmatrix}$$
+
+<figure id="fig-ccf-block-diagram" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-ccf-block-diagram.svg" alt="State-space signal flow in Controllable Canonical Form. Full-state feedback acts in parallel with the open-loop plant dynamics, modifying the characteristic polynomial coefficients directly." />
+  <figcaption>State-space signal flow in Controllable Canonical Form. Full-state feedback acts in parallel with the open-loop plant dynamics, modifying the characteristic polynomial coefficients directly.</figcaption>
+</figure>
+
+<Divider />
+
+## Direct Coefficient Synthesis in CCF
+
+Suppose the design specifications require closed-loop poles at $\{\mu_1, \mu_2, \dots, \mu_n\}$, corresponding to the target characteristic polynomial:
+$$p^*(s) = \prod_{i=1}^n (s - \mu_i) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_1 s + \alpha_0$$
+
+Let $\mathbf{K}_c = \begin{bmatrix} k_{c0} & k_{c1} & \dots & k_{c,n-1} \end{bmatrix}$ be the state feedback gain vector in canonical coordinates $\mathbf{z} = \mathbf{T}^{-1}\mathbf{x}$. The closed-loop matrix is:
+$$\mathbf{A}_{c,\text{cl}} = \mathbf{A}_c - \mathbf{B}_c \mathbf{K}_c = \begin{bmatrix}
+0 & 1 & \dots & 0 \\
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \dots & 1 \\
+-(a_0 + k_{c0}) & -(a_1 + k_{c1}) & \dots & -(a_{n-1} + k_{c,n-1})
+\end{bmatrix}$$
+
+The closed-loop characteristic polynomial is obtained by inspection:
+$$\det(s\mathbf{I} - \mathbf{A}_{c,\text{cl}}) = s^n + (a_{n-1} + k_{c,n-1})s^{n-1} + \dots + (a_1 + k_{c1})s + (a_0 + k_{c0})$$
+
+Equating coefficients with $p^*(s)$:
+$$\alpha_i = a_i + k_{ci} \implies \boxed{k_{ci} = \alpha_i - a_i \quad (i = 0, 1, \dots, n-1)}$$
+
+<Callout type="note" title="Independent Eigenvalue Assignment">
+
+In Controllable Canonical Form, each feedback gain $k_{ci}$ controls **one and only one** coefficient of the characteristic polynomial. There is no algebraic coupling between gains; pole placement is completely decoupled.
+
+</Callout>
+
+<Divider />
+
+## Coordinate Transformation to Canonical Form
+
+To apply this synthesis to a general state-space model $(\mathbf{A}, \mathbf{B})$, we must construct the similarity transformation $\mathbf{x} = \mathbf{T}\mathbf{z}$ such that:
+$$\mathbf{A}_c = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \quad \mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B}$$
+
+### The Kalman Reachability Invariant
+Compute the controllability matrix of the original pair:
+$$\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$$
+and the controllability matrix of the canonical pair:
+$$\mathcal{R}_c = \begin{bmatrix} \mathbf{B}_c & \mathbf{A}_c\mathbf{B}_c & \dots & \mathbf{A}_c^{n-1}\mathbf{B}_c \end{bmatrix} = \begin{bmatrix}
+0 & 0 & \dots & 1 \\
+0 & \dots & 1 & * \\
+\vdots & \ddots & \vdots & \vdots \\
+1 & * & \dots & *
+\end{bmatrix}$$
+
+Because $\mathcal{R} = \mathbf{T} \mathcal{R}_c$, the transformation matrix is:
+$$\mathbf{T} = \mathcal{R} \mathcal{R}_c^{-1}$$
+
+### Practical Construction via the Last Row of $\mathbf{T}^{-1}$
+A numerically direct method constructs $\mathbf{T}^{-1}$ row by row:
+1. Compute $\mathcal{R}^{-1}$.
+2. Let $\mathbf{t}_n^T$ be the **last row** of $\mathcal{R}^{-1}$:
+   $$\mathbf{t}_n^T = \begin{bmatrix} 0 & 0 & \dots & 1 \end{bmatrix} \mathcal{R}^{-1}$$
+3. Generate the remaining rows upward by successive multiplication by $\mathbf{A}$:
+   $$\mathbf{T}^{-1} = \begin{bmatrix} \mathbf{t}_n^T \mathbf{A}^{n-1} \\ \mathbf{t}_n^T \mathbf{A}^{n-2} \\ \vdots \\ \mathbf{t}_n^T \mathbf{A} \\ \mathbf{t}_n^T \end{bmatrix}$$
+4. The physical state feedback gain is then mapped back to original coordinates:
+   $$\mathbf{u} = -\mathbf{K}_c \mathbf{z} = -\mathbf{K}_c \mathbf{T}^{-1}\mathbf{x} \implies \boxed{\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}}$$
+
+<Divider />
+
+<Callout type="bridge" title="SDU Robotics Bridge: Joint Servoing and Robot Arm Decoupling">
+
+In multi-link articulated robots (e.g., UR5 or Franka Emika manipulators running ROS 2 control), feedback linearization decouples the non-linear Euler-Lagrange robot dynamics into $n$ independent double integrators:
+$$\ddot{q}_i(t) = v_i(t), \quad i = 1, \dots, n$$
+Each joint dynamic is already in Controllable Canonical Form with $a_0 = 0, a_1 = 0$:
+$$\mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
+Synthesizing critically damped joint response ($s^2 + 2\zeta\omega_n s + \omega_n^2$) requires gains $k_{c0} = \omega_n^2$ and $k_{c1} = 2\zeta\omega_n$, which are applied directly by the joint servo loop.
+
+</Callout>
+
+<Divider />
+
+### Exercise 24.1: Direct Canonical Pole Placement via Coefficient Matching [LEVEL 1: WARM-UP DRILL]
+Consider a second-order system already expressed in controllable canonical form:
+$$\mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
+
+1. Identify the open-loop characteristic polynomial $p(s)$ and write down its coefficients $a_0, a_1$.
+2. Form the target closed-loop polynomial $p^*(s) = s^2 + \alpha_1 s + \alpha_0$ to assign closed-loop eigenvalues at $\mu_1 = -3$ and $\mu_2 = -4$.
+3. Compute the state feedback gain vector $\mathbf{K}_c = \begin{bmatrix} k_{c0} & k_{c1} \end{bmatrix}$ using direct arithmetic coefficient matching $k_{ci} = \alpha_i - a_i$.
+4. Construct the closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A}_c - \mathbf{B}_c\mathbf{K}_c$ and explicitly compute its eigenvalues to verify the design.
+
+### Exercise 24.2: Transformation to Controllable Canonical Form and Full Feedback Synthesis [LEVEL 2: EXAM BENCHMARK]
+Given the general open-loop state-space model:
+$$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -1 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
+
+1. Find the open-loop characteristic polynomial $p(s) = \det(s\mathbf{I} - \mathbf{A})$ and identify open-loop coefficients $a_0, a_1$.
+2. Compute the controllability matrix $\mathcal{M}_c$ and its inverse $\mathcal{M}_c^{-1}$.
+3. Construct the transformation matrix $\mathbf{T}^{-1}$ using the last row of $\mathcal{M}_c^{-1}$, and verify that $\mathbf{A}_c = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ and $\mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B}$ are in companion controllable form.
+4. Synthesize the feedback gain vector $\mathbf{K}$ in original coordinates to assign the closed-loop poles at $\mu_{1,2} = -4 \pm j2$. Verify that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$.

@@ -1,0 +1,174 @@
+---
+title: "10. Forced Response and Convolution"
+description: "Linear Systems Theory — Chapter 10: Forced Response and Convolution"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 10 Mental Model" markdown={`# Ch. 10: Forced Response and Convolution
+  - The Non-Homogeneous State Evolution Equation
+  - Lagrange's State Response Formula
+  - The Impulse Response Matrix (Weighting Function)
+  - Transient vs. Steady-State Partitioning`} />
+
+<Callout type="note" title="Note">
+
+**Written Exam Strategy:** In UniCT written exams, forced output trajectories are evaluated **100% in the complex frequency domain via Laplace inversion** ($Y_f(s) = W(s)U(s)$ or $\mathbf{X}_f(s) = (s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}U(s)$), as practiced in Exercise 10.2. 
+
+Manual evaluation of time-domain matrix convolution integrals $\int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)d\tau$ is extremely tedious, highly prone to algebraic sign errors under timed conditions, and is never demanded in written papers. For oral exams, you only need to recall Lagrange's formula conceptually: $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}_0 + \int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)d\tau$.
+
+</Callout>
+
+## The Non-Homogeneous State Evolution Equation
+
+While the free response analyzed in [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/) accounts for the dissipation of initial stored energy, practical control systems are driven by active inputs: external control commands $\mathbf{u}(t)$, sensor references, and environmental disturbances. The complete evolution of the state vector is governed by the continuous-time non-homogeneous linear differential equation:
+
+$$\dot{\mathbf{x}}(t) = \mathbf{A} \mathbf{x}(t) + \mathbf{B} \mathbf{u}(t), \quad \mathbf{x}(0) = \mathbf{x}_0$$
+
+$$\mathbf{y}(t) = \mathbf{C} \mathbf{x}(t) + \mathbf{D} \mathbf{u}(t)$$
+
+## Lagrange's State Response Formula
+
+The analytical solution to the non-homogeneous state equation the equation above is given by **Lagrange's Formula**:
+
+$$\mathbf{x}(t) = \underbrace{e^{\mathbf{A}t} \mathbf{x}_0}_{\mathbf{x}_l(t) \text{ (Free State)}} + \underbrace{\int_0^t e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau}_{\mathbf{x}_f(t) \text{ (Forced State)}}$$
+
+Substituting the equation above into output equation $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$ gives the complete output trajectory:
+
+$$\mathbf{y}(t) = \underbrace{\mathbf{C} e^{\mathbf{A}t} \mathbf{x}_0}_{\mathbf{y}_l(t) \text{ (Free Output)}} + \underbrace{\int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau + \mathbf{D} \mathbf{u}(t)}_{\mathbf{y}_f(t) \text{ (Forced Output)}}$$
+
+<Callout type="note" title="The Principle of Superposition">
+
+In any linear time-invariant system, the total dynamic response is the exact additive superposition of:
+1. **The Free Response ($\mathbf{x}_l, \mathbf{y}_l$):** Generated exclusively by the initial state $\mathbf{x}_0$, setting $\mathbf{u}(t) \equiv \mathbf{0}$.
+2. **The Forced Response ($\mathbf{x}_f, \mathbf{y}_f$):** Generated exclusively by the input signal $\mathbf{u}(t)$, setting initial conditions $\mathbf{x}_0 = \mathbf{0}$.
+
+</Callout>
+
+<Divider />
+
+## The Impulse Response Matrix (Weighting Function)
+
+Consider the forced output response from zero initial state ($\mathbf{x}_0 = \mathbf{0}$):
+
+$$\mathbf{y}_f(t) = \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau + \mathbf{D}\mathbf{u}(t)$$
+
+We define the **Impulse Response Matrix** (or kernel weighting function) $\mathbf{W}(t) \in \mathbb{R}^{p \times m}$:
+
+$$\mathbf{W}(t) \triangleq \mathbf{C} e^{\mathbf{A}t} \mathbf{B} \cdot 1(t) + \mathbf{D} \delta(t)$$
+
+where $1(t)$ is the Heaviside unit step and $\delta(t)$ is the Dirac delta distribution.
+The forced response the equation above is recognized as the continuous **convolution integral**:
+
+$$\mathbf{y}_f(t) = \int_0^t \mathbf{W}(t-\tau) \mathbf{u}(\tau) \, d\tau = (\mathbf{W} * \mathbf{u})(t)$$
+
+For a single-input single-output system ($m = 1, p = 1$) with scalar impulse input $u(t) = \delta(t)$:
+
+$$y_f(t) = \int_0^t w(t-\tau) \delta(\tau) \, d\tau = w(t) = C e^{At} B \cdot 1(t) + D \delta(t)$$
+
+The impulse response $w(t)$ is the fundamental time-domain signature of an LTI system.
+
+<Divider />
+
+## Transient vs. Steady-State Partitioning
+
+When the dynamic matrix $\mathbf{A}$ is asymptotically stable ($\operatorname{Re}(\lambda_i) < 0$ for all $i$), the matrix exponential decays to zero as $t \to \infty$:
+
+$$\lim_{t \to \infty} e^{\mathbf{A}t} = \mathbf{0}$$
+
+Consequently, for any bounded input $\mathbf{u}(t)$, the response decomposes asymptotically into:
+
+$$\mathbf{y}(t) = \mathbf{y}_{\text{trans}}(t) + \mathbf{y}_{\text{ss}}(t)$$
+
+* **Transient Response $\mathbf{y}_{\text{trans}}(t)$:** Decays exponentially to zero. It contains the free response $\mathbf{y}_l(t)$ plus the decaying natural modes excited by the input.
+* **Steady-State Response $\mathbf{y}_{\text{ss}}(t)$:** The permanent dynamic regime surviving as $t \to \infty$. For a constant unit step input $\mathbf{u}(t) = \mathbf{u}_0 \cdot 1(t)$:
+  $$\mathbf{x}_{\text{ss}} = \lim_{t \to \infty} \mathbf{x}(t) = -\mathbf{A}^{-1} \mathbf{B} \mathbf{u}_0$$
+  $$\mathbf{y}_{\text{ss}} = \lim_{t \to \infty} \mathbf{y}(t) = \left( -\mathbf{C} \mathbf{A}^{-1} \mathbf{B} + \mathbf{D} \right) \mathbf{u}_0 = \mathbf{W}(0) \mathbf{u}_0$$
+
+<figure id="fig-transient-steady-state" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-transient-steady-state.svg" alt="Time-domain step response illustrating the superposition of the free response, the transient decaying envelope, and the asymptotic steady-state value $y_{\text{ss}}$." />
+  <figcaption>Time-domain step response illustrating the superposition of the free response, the transient decaying envelope, and the asymptotic steady-state value $y_{\text{ss}}$.</figcaption>
+</figure>
+
+<Callout type="bridge" title="SDU Robotics Bridge: Robot Manipulator Joint Trajectory Tracking">
+
+In robotic manipulators (e.g. Universal Robots or Franka Emika arms used in SDU robotics labs), joint positions $\mathbf{q}(t)$ are driven by actuator torque commands $\boldsymbol{\tau}(t)$.
+The forced response integral determines the tracking delay and overshoot when following a step reference position:
+$$\mathbf{e}(t) = \mathbf{q}_{\text{ref}}(t) - \mathbf{q}(t)$$
+Because gravity acts as a constant external disturbance $\mathbf{u}_{\text{dist}} = -\mathbf{g}(\mathbf{q})$, Lagrange's formula proves that proportional-derivative (PD) control without an integrator produces a persistent steady-state error:
+$$\mathbf{e}_{\text{ss}} = -(\mathbf{A} - \mathbf{B}\mathbf{K})^{-1} \mathbf{B} \mathbf{g} \neq \mathbf{0}$$
+Understanding Lagrange's convolution forced response explains why integral action (PID) or feedforward gravity compensation $\boldsymbol{\tau}_{\text{ff}} = \hat{\mathbf{g}}(\mathbf{q})$ is mathematically required to eliminate steady-state droop in physical robotic manipulators.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-10-1" title="Exercise 10.1: Superposition, Step Response & Static Gain" level="LEVEL 1: WARM-UP DRILL">
+
+Consider the first-order dynamic system:
+$$\dot{x}(t) = -3 x(t) + 6 u(t), \quad y(t) = 2 x(t), \quad x(0) = 4$$
+
+1. Determine the free state response $x_l(t) = e^{At}x(0)$.
+2. Determine the transfer function $W(s) = \frac{Y(s)}{U(s)}$ and evaluate the forced step response $Y_f(s) = W(s) \cdot \frac{1}{s}$ via partial fraction expansion.
+3. Apply the Superposition Principle to obtain the complete output trajectory $y(t) = y_l(t) + y_f(t)$.
+4. Compute the steady-state value $y_{\text{ss}} = \lim_{t \to \infty} y(t)$ and verify using the static gain formula $y_{\text{ss}} = -C A^{-1} B = W(0)$.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. For scalar system $\dot{x}(t) = -3 x(t) + 6 u(t)$ with $x(0) = 4$:
+   * Free state response:
+     $$x_l(t) = e^{At} x(0) = 4 e^{-3t} \implies y_l(t) = C x_l(t) = 8 e^{-3t}$$
+2. Transfer function and forced step response via Laplace inversion:
+   $$W(s) = C(sI - A)^{-1}B = 2 \cdot \frac{1}{s + 3} \cdot 6 = \frac{12}{s + 3}$$
+   $$Y_f(s) = W(s) \cdot U(s) = \frac{12}{s(s + 3)} = \frac{R_1}{s} + \frac{R_2}{s + 3}$$
+   $$R_1 = \lim_{s \to 0} s Y_f(s) = \frac{12}{3} = 4, \quad R_2 = \lim_{s \to -3} (s + 3) Y_f(s) = \frac{12}{-3} = -4$$
+   $$y_f(t) = \mathcal{L}^{-1}\left\{ \frac{4}{s} - \frac{4}{s + 3} \right\} = 4(1 - e^{-3t})$$
+3. Complete output response via Superposition:
+   $$y(t) = y_l(t) + y_f(t) = 8 e^{-3t} + 4(1 - e^{-3t}) = 4 + 4 e^{-3t}$$
+4. Steady-state output:
+   $$y_{\text{ss}} = \lim_{t \to \infty} (4 + 4 e^{-3t}) = 4$$
+   Verification using $y_{\text{ss}} = -C A^{-1} B u_0 = W(0) u_0$:
+   $$y_{\text{ss}} = -(2)(-3)^{-1}(6)(1) = 4 = W(0) \quad \checkmark$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-10-2" title="Exercise 10.2: Impulse Response Evaluation ($w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$)" level="LEVEL 2: EXAM BENCHMARK">
+
+Consider the continuous-time system from the UniCT examination paper ($a=1$):
+$$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -5/2 & -2 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1/2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 0 \end{bmatrix}$$
+
+1. Compute the transfer function $G(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$.
+2. Evaluate the unit impulse response $w(t) = \mathcal{L}^{-1}\{G(s)\}$ by completing the square on the quadratic denominator.
+3. Compute the product $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$ directly using the matrix exponential $e^{\mathbf{A}t}$ found in [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/), verifying that both methods yield identical analytical expressions.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Computing transfer function $G(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$:
+   $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{s^2 + 2s + 5}\begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix}$$
+   $$(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} = \frac{1}{s^2 + 2s + 5}\begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix}\begin{bmatrix} 0 \\ 1/2 \end{bmatrix} = \frac{1}{s^2 + 2s + 5}\begin{bmatrix} 1 \\ s/2 \end{bmatrix}$$
+   $$G(s) = \mathbf{C} \begin{bmatrix} \frac{1}{s^2+2s+5} \\ \frac{s/2}{s^2+2s+5} \end{bmatrix} = \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} \frac{1}{s^2+2s+5} \\ \frac{s/2}{s^2+2s+5} \end{bmatrix} = \frac{2}{s^2 + 2s + 5}$$
+2. Unit impulse response via inverse Laplace transform:
+   $$w(t) = \mathcal{L}^{-1}\{G(s)\} = \mathcal{L}^{-1}\left\{ \frac{2}{(s+1)^2 + 2^2} \right\} = e^{-t}\sin(2t) \cdot 1(t)$$
+3. Verification via $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$:
+   From [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/), entry $(1,2)$ of $e^{\mathbf{A}t}$ is $e^{-t}\sin(2t)$.
+   $$e^{\mathbf{A}t}\mathbf{B} = e^{\mathbf{A}t}\begin{bmatrix} 0 \\ 1/2 \end{bmatrix} = \begin{bmatrix} \frac{1}{2}e^{-t}\sin(2t) \\ \dots \end{bmatrix}$$
+   $$w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B} = \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} \frac{1}{2}e^{-t}\sin(2t) \\ \dots \end{bmatrix} = e^{-t}\sin(2t) \cdot 1(t) \quad \checkmark$$
+
+</details>
+
+</Exercise>

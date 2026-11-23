@@ -1,0 +1,35 @@
+---
+title: Dynamic Courses
+description: Interactive, pageless engineering textbooks with Matryoshka mind maps, live simulators, and step-by-step practice.
+template: splash
+hero:
+  title: Dynamic Courses
+  tagline: Pageless engineering textbooks built for physical intuition, oral-proof clarity, and interactive exam mastery.
+  actions:
+    - text: Open Linear Systems Theory
+      link: /dynamic-courses/systems-theory/
+      icon: right-arrow
+    - text: Apri Elettronica (IT)
+      link: /dynamic-courses/elettronica/
+      icon: right-arrow
+    - text: Jump to Bode Diagrams (Ch. 17)
+      link: /dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Matryoshka Mind Maps" icon="open-book">
+    Every chapter opens with a collapsible, zoomable Markmap hierarchy mapping the mental model before diving into algebra.
+  </Card>
+  <Card title="Interactive Simulators" icon="rocket">
+    Explore Bode magnitude and phase plots, sweep Routh feedback gain $K \to K_{\text{crit}}$ on the $s$-plane, and animate $e^{\mathbf{A}t}\mathbf{x}_0$ phase flows.
+  </Card>
+  <Card title="Stateless Active Recall" icon="approve-check">
+    Short inline step checks validate numeric answers with tolerance and reveal step-by-step worked solutions on demand.
+  </Card>
+  <Card title="Instant Search" icon="magnifier">
+    Full-text Pagefind search across every chapter, theorem, formula, and worked exam archetype.
+  </Card>
+</CardGrid>

@@ -1,0 +1,194 @@
+---
+title: "5. Partial Fraction Expansion"
+description: "Linear Systems Theory — Chapter 5: Partial Fraction Expansion"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 5 Mental Model" markdown={`# Ch. 5: Partial Fraction Expansion
+  - Rational Function Decomposition in Dynamic Analysis
+    - Strict Properness Condition and Polynomial Division
+  - Pole Topologies and Residue Formulas
+    - Case 1: Real Simple Poles ($m_i = 1$)
+    - Case 2: Repeated Real Poles with Multiplicity $m$
+    - Case 3: Complex Conjugate Pole Pairs ($\lambda = \sigma \pm j\omega$)`} />
+
+## Rational Function Decomposition in Dynamic Analysis
+
+In linear control systems, differential state equations and transfer functions yield rational algebraic expressions in the complex frequency variable $s$:
+
+$$F(s) = \frac{N(s)}{D(s)} = \frac{b_m s^m + b_{m-1} s^{m-1} + \dots + b_1 s + b_0}{a_n s^n + a_{n-1} s^{n-1} + \dots + a_1 s + a_0}$$
+
+To transform $F(s)$ back into the continuous-time domain $f(t) = \mathcal{L}^{-1}\{F(s)\}$, we must decompose the high-order quotient into a linear sum of elementary, first- and second-order partial fractions whose inverse transforms are known tabulated primitives.
+
+### Strict Properness Condition and Polynomial Division
+The partial fraction expansion technique requires $F(s)$ to be **strictly proper**:
+$$m = \deg(N) < n = \deg(D)$$
+If $m \ge n$ (improper rational function), polynomial Euclidean division must be performed first:
+
+$$F(s) = Q(s) + \frac{R(s)}{D(s)}$$
+
+where $Q(s)$ is a polynomial quotient of degree $m - n$ and $R(s)$ is the remainder with $\deg(R) < n$.
+The polynomial terms in $Q(s)$ generate singular distributions at $t = 0$:
+$$\mathcal{L}^{-1}\{q_0 + q_1 s + q_2 s^2\} = q_0 \delta(t) + q_1 \dot{\delta}(t) + q_2 \ddot{\delta}(t)$$
+The strictly proper remainder $\frac{R(s)}{D(s)}$ is then expanded using Heaviside's residue calculus.
+
+<Divider />
+
+## Pole Topologies and Residue Formulas
+
+By the Fundamental Theorem of Algebra, the monic denominator polynomial factors completely over the field of complex numbers $\mathbb{C}$ into $r$ distinct real roots and $q$ pairs of complex conjugate roots:
+
+$$D(s) = \prod_{i=1}^r (s - p_i)^{m_i} \prod_{k=1}^q \left[ (s - \sigma_k)^2 + \omega_k^2 \right]^{l_k}$$
+
+### Case 1: Real Simple Poles ($m_i = 1$)
+If all poles $p_1, p_2, \dots, p_n$ are distinct and real:
+
+$$F(s) = \frac{R_1}{s - p_1} + \frac{R_2}{s - p_2} + \dots + \frac{R_n}{s - p_n} = \sum_{i=1}^n \frac{R_i}{s - p_i}$$
+
+The residue $R_i$ at pole $p_i$ is extracted by multiplying $F(s)$ by $(s - p_i)$ and evaluating at the limit $s \to p_i$ (**Heaviside Cover-Up Rule**):
+
+$$R_i = \lim_{s \to p_i} (s - p_i) F(s) = \left. \frac{N(s)}{D'(s)} \right|_{s = p_i}$$
+
+Taking the inverse Laplace transform term-by-term:
+
+$$f(t) = \sum_{i=1}^n R_i e^{p_i t} \cdot 1(t)$$
+
+<Divider />
+
+### Case 2: Repeated Real Poles with Multiplicity $m$
+If a real pole $p$ appears with algebraic multiplicity $m > 1$, it contributes $m$ nested fractions:
+
+$$F(s) = \frac{A_m}{(s - p)^m} + \frac{A_{m-1}}{(s - p)^{m-1}} + \dots + \frac{A_1}{s - p} + F_{\text{other}}(s)$$
+
+The coefficients $A_{m-k}$ are evaluated via the **General Heaviside Differential Residue Formula**:
+
+$$A_{m-k} = \frac{1}{k!} \lim_{s \to p} \frac{d^k}{ds^k} \left[ (s - p)^m F(s) \right], \quad k = 0, 1, \dots, m-1$$
+
+* For $k = 0$ (the highest-order pole):
+  $$A_m = \lim_{s \to p} (s - p)^m F(s)$$
+* For $k = 1$:
+  $$A_{m-1} = \lim_{s \to p} \frac{d}{ds} \left[ (s - p)^m F(s) \right]$$
+* For $k = 2$:
+  $$A_{m-2} = \frac{1}{2!} \lim_{s \to p} \frac{d^2}{ds^2} \left[ (s - p)^m F(s) \right]$$
+
+Inverting each term yields secular polynomial-exponential waveforms:
+
+$$\mathcal{L}^{-1}\left\{ \frac{A_{m-k}}{(s - p)^{m-k}} \right\} = A_{m-k} \frac{t^{m-k-1}}{(m-k-1)!} e^{pt} \cdot 1(t)$$
+
+<Divider />
+
+### Case 3: Complex Conjugate Pole Pairs ($\lambda = \sigma \pm j\omega$)
+For an irreducible quadratic factor $(s - \sigma)^2 + \omega^2$ with real coefficients:
+
+$$\frac{B s + C}{(s - \sigma)^2 + \omega^2}$$
+
+To avoid complex residue algebra, we **complete the square** in the numerator:
+$$B s + C = B(s - \sigma) + (C + B\sigma)$$
+Dividing into damped cosine and damped sine canonical forms:
+
+$$\frac{B s + C}{(s - \sigma)^2 + \omega^2} = B \frac{s - \sigma}{(s - \sigma)^2 + \omega^2} + \left( \frac{C + B\sigma}{\omega} \right) \frac{\omega}{(s - \sigma)^2 + \omega^2}$$
+
+Applying the inverse Laplace transform directly:
+
+$$f(t) = e^{\sigma t} \left[ B \cos(\omega t) + \left( \frac{C + B\sigma}{\omega} \right) \sin(\omega t) \right] \cdot 1(t)$$
+
+Using the harmonic addition identity $B\cos(\omega t) + D\sin(\omega t) = M \cos(\omega t - \phi)$:
+
+$$f(t) = M e^{\sigma t} \cos(\omega t - \phi) \cdot 1(t)$$
+where $M = \sqrt{B^2 + \left(\frac{C+B\sigma}{\omega}\right)^2}$ and $\phi = \operatorname{atan2}\left( \frac{C+B\sigma}{\omega}, B \right)$.
+
+<figure id="fig-pole-constellation-modes" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-pole-constellation-modes.svg" alt="Complex $s$-plane pole constellation illustrating the geometric correspondence between pole positions and their time-domain natural mode signatures." />
+  <figcaption>Complex $s$-plane pole constellation illustrating the geometric correspondence between pole positions and their time-domain natural mode signatures.</figcaption>
+</figure>
+
+<Callout type="bridge" title="SDU Robotics Bridge: Airframe Structural Resonances in Drone Autopilots">
+
+In physical quadrotors tested at SDU, the high-speed rotation of carbon-fiber propellers (e.g., 4 blades spinning at $6000\text{ RPM} = 100\text{ Hz}$) injects high-frequency harmonic vibration into the airframe.
+If the elastic airframe exhibits a structural pole pair at $p_{1,2} = -2 \pm j2\pi(100)$, the IMU accelerometer records a damped oscillatory mode:
+$$a_{\text{vib}}(t) \propto e^{-2t} \cos(200\pi t)$$
+Because the damping $\sigma = -2$ is very small compared to the oscillation frequency $\omega = 628\text{ rad/s}$, the residue of this mode creates massive noise spikes that can saturate attitude estimators. Drone control engineers at SDU use partial fraction decomposition to identify modal amplitudes and design digital notch filters:
+$$N(s) = \frac{s^2 + \omega_0^2}{s^2 + 2\zeta\omega_0 s + \omega_0^2}$$
+canceling the resonant complex pole pair in the flight control loop.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-5-1" title="Exercise 5.1" level="LEVEL 1: WARM-UP DRILL">
+
+Given the rational transform with distinct real poles:
+$$F(s) = \frac{5s + 7}{(s + 1)(s + 2)}$$
+1. Set up the partial fraction expansion form $F(s) = \frac{R_1}{s + 1} + \frac{R_2}{s + 2}$.
+2. Compute the residues $R_1$ and $R_2$ using the Heaviside cover-up formula.
+3. Invert $F(s)$ to obtain the continuous-time signal $f(t) = \mathcal{L}^{-1}\{F(s)\}$ for $t \ge 0$.
+4. Verify consistency with the initial value theorem by evaluating $f(0^+)$ directly and via $\lim_{s \to \infty} s F(s)$.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Form of partial fraction expansion:
+   $$F(s) = \frac{5s + 7}{(s + 1)(s + 2)} = \frac{R_1}{s + 1} + \frac{R_2}{s + 2}$$
+2. Evaluating residues by the Heaviside cover-up method:
+   * Residue at $s = -1$:
+     $$R_1 = \left. (s + 1) F(s) \right|_{s = -1} = \left. \frac{5s + 7}{s + 2} \right|_{s = -1} = \frac{5(-1) + 7}{-1 + 2} = \frac{2}{1} = 2$$
+   * Residue at $s = -2$:
+     $$R_2 = \left. (s + 2) F(s) \right|_{s = -2} = \left. \frac{5s + 7}{s + 1} \right|_{s = -2} = \frac{5(-2) + 7}{-2 + 1} = \frac{-3}{-1} = 3$$
+3. Taking the inverse Laplace transform:
+   $$f(t) = \mathcal{L}^{-1}\left\{ \frac{2}{s + 1} + \frac{3}{s + 2} \right\} = \left( 2e^{-t} + 3e^{-2t} \right) \cdot 1(t)$$
+4. Initial value verification:
+   * Direct evaluation: $f(0^+) = 2e^{0} + 3e^{0} = 2 + 3 = 5$.
+   * Via Initial Value Theorem:
+     $$\lim_{s \to \infty} s F(s) = \lim_{s \to \infty} \frac{s(5s + 7)}{(s + 1)(s + 2)} = \lim_{s \to \infty} \frac{5s^2 + 7s}{s^2 + 3s + 2} = 5$$
+   Both calculations match identically, confirming algebraic correctness.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-5-2" title="Exercise 5.2" level="LEVEL 2: EXAM BENCHMARK">
+
+In a UniCT written exam problem, finding the forced response produces the strictly proper transform with a repeated pole:
+$$F(s) = \frac{3s^2 + 14s + 13}{(s + 1)(s + 2)^2}$$
+1. Write the partial fraction expansion:
+   $$F(s) = \frac{R_1}{s + 1} + \frac{A_2}{(s + 2)^2} + \frac{A_1}{s + 2}$$
+2. Calculate the simple pole residue $R_1$.
+3. Calculate the repeated pole residues $A_2$ (order 2) and $A_1$ (order 1) using the differential residue formula.
+4. Compute the analytical inverse Laplace transform $f(t) = \mathcal{L}^{-1}\{F(s)\}$.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. General expansion for repeated poles:
+   $$F(s) = \frac{3s^2 + 14s + 13}{(s + 1)(s + 2)^2} = \frac{R_1}{s + 1} + \frac{A_2}{(s + 2)^2} + \frac{A_1}{s + 2}$$
+2. Simple pole residue at $s = -1$:
+   $$R_1 = \left. (s + 1)F(s) \right|_{s = -1} = \left. \frac{3s^2 + 14s + 13}{(s + 2)^2} \right|_{s = -1} = \frac{3(-1)^2 + 14(-1) + 13}{(-1 + 2)^2} = \frac{3 - 14 + 13}{1} = 2$$
+3. Repeated pole residues at $s = -2$:
+   * Order-2 residue $A_2$:
+     $$A_2 = \left. (s + 2)^2 F(s) \right|_{s = -2} = \left. \frac{3s^2 + 14s + 13}{s + 1} \right|_{s = -2} = \frac{3(4) + 14(-2) + 13}{-2 + 1} = \frac{12 - 28 + 13}{-1} = \frac{-3}{-1} = 3$$
+   * Order-1 residue $A_1$ (differential formula):
+     $$\begin{aligned}
+     A_1 &= \lim_{s \to -2} \frac{d}{ds} \left[ (s + 2)^2 F(s) \right] = \lim_{s \to -2} \frac{d}{ds} \left[ \frac{3s^2 + 14s + 13}{s + 1} \right] \\
+     &= \lim_{s \to -2} \frac{(6s + 14)(s + 1) - (3s^2 + 14s + 13)(1)}{(s + 1)^2} \\
+     &= \frac{(6(-2) + 14)(-2 + 1) - (3(4) - 28 + 13)}{(-2 + 1)^2} = \frac{(2)(-1) - (-3)}{1} = -2 + 3 = 1
+     \end{aligned}$$
+   * Consistency check: $\lim_{s \to \infty} s F(s) = R_1 + A_1 = 2 + 1 = 3$, which matches $\lim_{s \to \infty} \frac{3s^3}{s^3} = 3$.
+4. Reconstructing and anti-transforming term by term:
+   $$F(s) = \frac{2}{s + 1} + \frac{3}{(s + 2)^2} + \frac{1}{s + 2}$$
+   $$f(t) = \mathcal{L}^{-1}\{F(s)\} = \left( 2e^{-t} + 3t e^{-2t} + e^{-2t} \right) \cdot 1(t)$$
+
+</details>
+
+</Exercise>

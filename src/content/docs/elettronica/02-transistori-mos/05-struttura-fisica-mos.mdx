@@ -1,0 +1,199 @@
+---
+title: "5. Struttura Fisica del MOSFET"
+description: "Elettronica — Capitolo 5: Struttura Fisica del MOSFET"
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 5" markdown={`# Cap. 5: Struttura Fisica del MOSFET
+  - 1 · Intuizione Fisica
+  - 2 · Definizione e Dimostrazione (Orale)
+    - Architettura Fisica del Transistore a Quattro Terminali
+    - Il Condensatore MOS: Regioni Operative ed Evoluzione della Carica
+    - Espressione Analitica della Tensione di Soglia $V_{th0}$
+    - L'Effetto Body (Effetto Substrato)
+  - 3 · Algoritmo Operativo (Esercizi)
+  - 4 · Archetipo Svolto ed Esercizi`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+Con questo capitolo si apre l'analisi dei transistori ad effetto di campo (MOSFET), elemento cardine della tecnologia microelettronica CMOS. La trattazione esamina la struttura fisica a quattro terminali del dispositivo, il funzionamento elettrostatico del condensatore MOS attraverso le regioni di accumulazione, svuotamento e inversione, e la derivazione analitica della tensione di soglia $V_{th}$ e dell'effetto Body ($\gamma$).
+
+<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+
+## Architettura Fisica del Transistore a Quattro Terminali
+
+Il transistore **MOSFET (Metal-Oxide-Semiconductor Field-Effect Transistor)** è un dispositivo a stato solido a **quattro terminali**:
+1. **Gate (G - Porta):** Elettrodo di controllo superiore, storicamente in alluminio metallico e successivamente realizzato in silicio policristallino pesantemente drogato (polisilicio degenerato $n^+$ o $p^+$) o metalli a funzione lavoro ingegnerizzata.
+2. **Drain (D - Pozzo):** Regione fortemente drogata di tipo opposto a quello del substrato, destinata alla raccolta dei portatori.
+3. **Source (S - Sorgente):** Regione fortemente drogata omologa al Drain, da cui originano i portatori di carica.
+4. **Body o Substrato (B - Corpo):** La fetta (wafer) massiva di silicio monocristallino debolmente drogata che fa da supporto meccanico ed elettrostatico.
+
+Nel **MOSFET a canale n (NMOS)**, il substrato è drogato di tipo P (accettori $N_A$), mentre Source e Drain sono due pozzetti fortemente drogati di tipo N ($N^+$). Al di sopra della regione di canale compresa tra Source e Drain viene coltivato termicamente uno strato sottilissimo di biossido di silicio ($\text{SiO}_2$), detto **ossido di gate**, di spessore nanometrico $t_{ox}$ (tipicamente tra $1\,\text{nm}$ e $10\,\text{nm}$).
+
+<figure id="fig-nmos-cross-section" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-nmos-cross-section.svg" alt="Sezione trasversale di un transistore NMOS che evidenzia le giunzioni N^+-P di Source e Drain, il dielettrico di Gate (SiO_2) e il canale di inversione." />
+  <figcaption>Sezione trasversale di un transistore NMOS che evidenzia le giunzioni $N^+$-P di Source e Drain, il dielettrico di Gate ($\text{SiO}_2$) e il canale di inversione.</figcaption>
+</figure>
+
+Il parametro tecnologico fondamentale dell'ossido è la **capacità per unità di area ($C_{ox}$)**:
+$$ C_{ox} = \frac{\varepsilon_{ox}}{t_{ox}} \quad [\text{F/cm}^2 \text{ o fF/}\mu\text{m}^2] $$
+dove $\varepsilon_{ox} \approx 3.9 \varepsilon_0 \approx 3.45 \times 10^{-13}\,\text{F/cm}$ è la permettività dielettrica del biossido di silicio.
+
+<Callout type="tip" title="Vantaggio Tecnologico: Il Gate Auto-Allineato in Polisilicio e la Simmetria Source/Drain">
+
+Questa struttura planare ha un vantaggio costruttivo enorme: dal punto di vista fisico, Source e Drain sono due diffusioni $N^+$ identiche e perfettamente simmetriche (il Source in un NMOS è semplicemente il terminale a potenziale più basso da cui partono gli elettroni). Inoltre, nelle fonderie industriali il Gate in polisilicio viene depositato *prima* di impiantare Source e Drain, fungendo direttamente da maschera auto-allineante (*self-aligned gate*) per l'impiantazione ionica. Questa soluzione elimina gli errori di allineamento litografico tra Gate e canale, riduce drasticamente le capacità parassite di sovrapposizione e rende il transistore estremamente compatto, permettendo di integrare miliardi di componenti sulla stessa fetta di silicio.
+
+</Callout>
+
+## Il Condensatore MOS: Regioni Operative ed Evoluzione della Carica
+
+Il cuore operativo del transistore è la struttura unidimensionale Gate-Ossido-Semiconduttore (**condensatore MOS**). Applicando una differenza di potenziale tra il Gate e il Substrato ($V_{GB}$), il campo elettrico verticale attraversa l'ossido e penetra nella superficie del silicio, inducendo una curvatura delle bande energetiche (*band bending*) e alterando la concentrazione locale di portatori.
+
+Prendendo come riferimento un substrato di tipo P ($p_0 \approx N_A$), al variare di $V_{GB}$ il sistema attraversa **tre distinte regioni fisiche**:
+
+### 1. Regione di Accumulazione ($V_{GB} < V_{FB}$)
+Applicando una tensione negativa al Gate rispetto al Body:
+* Il potenziale negativo sul Gate richiama cariche positive maggioritarie (lacune) verso la superficie del silicio e respinge gli elettroni.
+* All'interfaccia $\text{Si}-\text{SiO}_2$ la densità di lacune supera quella nominale del bulk ($p_s > N_A$), formando un foglietto sottilissimo di carica positiva accumulata.
+* Le bande energetiche curvano verso l'alto all'interfaccia.
+* La capacità differenziale della struttura coincide con la pura capacità dell'ossido: $C \approx C_{ox}$.
+
+### 2. Regione di Svuotamento (Depletion) ($V_{FB} < V_{GB} < V_{th}$)
+Applicando una tensione debolmente positiva al Gate ($V_{GB} > 0$):
+* Il potenziale positivo sul Gate respinge le lacune libere lontano dall'interfaccia, verso la profondità del bulk.
+* Sotto l'ossido si forma una **regione di carica spaziale (SCR)** priva di portatori liberi, in cui rimangono scoperti gli ioni accettori negativi ionizzati e fissi nel reticolo ($N_A^-$).
+* La densità di carica per unità di superficie vale:
+  $$ Q_d = -q N_A x_d = -\sqrt{2 q \varepsilon_s N_A \phi_s} \quad [\text{C/cm}^2] $$
+  dove $\phi_s$ è il **potenziale superficiale** (la curvatura delle bande rispetto al bulk) e $\varepsilon_s \approx 11.7 \varepsilon_0 \approx 1.04 \times 10^{-12}\,\text{F/cm}$ è la permettività del silicio.
+* In questa regione la capacità totale è il parallelo della capacità dell'ossido in serie con la capacità di svuotamento del semiconduttore $C_d = \varepsilon_s / x_d$:
+  $$ C = \frac{C_{ox} C_d}{C_{ox} + C_d} < C_{ox} $$
+
+### 3. Regione di Inversione ($V_{GB} \ge V_{th}$)
+Aumentando ulteriormente $V_{GB}$, il potenziale superficiale $\phi_s$ continua a crescere, abbassando la banda di conduzione $E_c$ verso il livello di Fermi $E_F$:
+* **Inversione Debole:** Quando $\phi_s > \phi_F$ (dove $\phi_F = V_T \ln(N_A/n_i)$ è il potenziale di Fermi del bulk), la densità superficiale degli elettroni minoritari supera la concentrazione intrinseca ($n_s > n_i$), iniziando a popolare l'interfaccia.
+* **Forte Inversione (Inversione Piena):** La condizione canonica di forte inversione si definisce nel punto in cui **la concentrazione superficiale di elettroni (minoritari) eguaglia la concentrazione di lacune (maggioritari) nel bulk**:
+  $$ n_s = N_A \iff \phi_s = 2\phi_F $$
+
+Raggiunta la forte inversione, la densità di elettroni cresce esponenzialmente con il potenziale superficiale ($n_s \propto e^{\phi_s / V_T}$). Qualsiasi ulteriore incremento di tensione applicato al Gate non riesce più ad allargare la zona di svuotamento, ma viene completamente convertito in elettroni mobili nel sottilissimo foglietto di inversione bidimensionale (spessore di appena $1\div 5\,\text{nm}$) a contatto con l'ossido.
+
+La larghezza della zona di svuotamento si blocca al suo valore massimo asintotico:
+$$ x_{d,max} = \sqrt{\frac{2 \varepsilon_s (2\phi_F)}{q N_A}} $$
+La carica massima fissa di svuotamento per unità di superficie rimane confinata a:
+$$ Q_{d,max} = -q N_A x_{d,max} = -\sqrt{2 q \varepsilon_s N_A (2\phi_F)} $$
+
+Si è formato il **canale conduttivo di tipo N** che collega fisicamente Source e Drain.
+
+## Espressione Analitica della Tensione di Soglia $V_{th0}$
+
+La **tensione di soglia ($V_{th0}$)** è definita come la tensione Gate-Source (con Source cortocircuitato al Body, $V_{SB} = 0$) necessaria per portare il condensatore MOS alla soglia della forte inversione ($\phi_s = 2\phi_F$). Essa è espressa analiticamente dalla somma di tre contributi elettrostatici:
+$$ V_{th0} = V_{FB} + 2\phi_F + \frac{\sqrt{2 q \varepsilon_s N_A (2\phi_F)}}{C_{ox}} $$
+dove:
+* $V_{FB} = \Phi_{ms} - \frac{Q_{ox}}{C_{ox}}$ è la **tensione di banda piatta (flatband)**, che compensa la differenza di funzione lavoro metallo-semiconduttore $\Phi_{ms}$ e le cariche fisse nell'ossido $Q_{ox}$.
+* $2\phi_F = 2 V_T \ln(N_A / n_i)$ è il potenziale superficiale richiesto per invertire la popolazione di portatori all'interfaccia.
+* $\frac{\sqrt{2 q \varepsilon_s N_A (2\phi_F)}}{C_{ox}}$ è la caduta di potenziale sull'ossido necessaria per bilanciare la carica fissa di svuotamento massima $|Q_{d,max}|$.
+
+### Dimostrazione Matematica: Derivazione della Tensione di Soglia $V_{th0}$
+
+Partiamo dalla KVL elettrostatica lungo la struttura MOS: la tensione applicata tra Gate e Body $V_{GB}$ si ripartisce tra la caduta di potenziale ai capi dell'ossido $V_{ox}$, il potenziale superficiale $\phi_s$ nel silicio e la tensione di banda piatta $V_{FB}$:
+$$ V_{GB} = V_{FB} + V_{ox} + \phi_s $$
+Applicando la legge di Gauss attraverso l'interfaccia Gate-Ossido, la carica superficiale sul Gate $Q_G$ bilancia la carica totale presente nel semiconduttore $Q_s = Q_d + Q_I$:
+$$ Q_G = -(Q_d + Q_I) \implies V_{ox} = \frac{Q_G}{C_{ox}} = -\frac{Q_d + Q_I}{C_{ox}} $$
+dove $Q_I$ è la carica mobile nel canale di inversione e $Q_d$ è la carica fissa di svuotamento. Alla soglia esatta della forte inversione valgono tre condizioni simultanee:
+1. Il canale si è appena formato ma la sua densità mobile è ancora trascurabile rispetto alla carica fissa: $Q_I \approx 0$.
+2. Il potenziale superficiale ha raggiunto la condizione canonica: $\phi_s = 2\phi_F$.
+3. La carica di svuotamento ha raggiunto il valore massimo: $Q_d = Q_{d,max} = -\sqrt{2 q \varepsilon_s N_A (2\phi_F)}$.
+
+Sostituendo queste condizioni nella caduta sull'ossido e nell'equazione di maglia si ottiene:
+$$ V_{ox} = -\frac{Q_{d,max}}{C_{ox}} = \frac{\sqrt{2 q \varepsilon_s N_A (2\phi_F)}}{C_{ox}} \implies V_{th0} = V_{FB} + 2\phi_F + \frac{\sqrt{2 q \varepsilon_s N_A (2\phi_F)}}{C_{ox}} $$
+
+## L'Effetto Body (Effetto Substrato)
+
+Nei circuiti integrati complessi (come le porte logiche NAND in cui più transistori NMOS sono posti in serie, o negli stadi analogici Common Drain), il terminale di Source non è sempre collegato al Body ($V_S \ne V_B$). Tipicamente, il Body è connesso alla tensione più bassa del chip (Massa o $V_{SS}$ per NMOS), per cui il Source si trova a un potenziale positivo rispetto al Body ($V_{SB} = V_S - V_B > 0$), polarizzando **inversamente** la giunzione canale-substrato.
+
+In presenza di una tensione $V_{SB} > 0$, la tensione di soglia aumenta secondo la legge dell'effetto Body:
+$$ V_{th}(V_{SB}) = V_{th0} + \gamma \left( \sqrt{2\phi_F + V_{SB}} - \sqrt{2\phi_F} \right), \qquad \gamma = \frac{\sqrt{2 q \varepsilon_s N_A}}{C_{ox}} \quad [\text{V}^{1/2}] $$
+dove $\gamma$ è il **coefficiente dell'effetto Body** (tipicamente $0.3\div 0.8\,\text{V}^{1/2}$).
+
+### Dimostrazione Matematica: Derivazione della Legge dell'Effetto Body
+
+Quando il Source è a un potenziale positivo $V_{SB} > 0$ rispetto al Body:
+1. Il potenziale del canale di inversione viene innalzato rispetto al bulk di una quota pari a $V_{SB}$. Per raggiungere la forte inversione rispetto al canale ($n_s = N_A$), il potenziale superficiale deve raggiungere:
+   $$ \phi_s = 2\phi_F + V_{SB} $$
+2. Poiché la barriera complessiva di svuotamento è aumentata, la regione di carica spaziale si allarga e la nuova carica fissa di svuotamento per unità di superficie diventa:
+   $$ Q_d(V_{SB}) = -\sqrt{2 q \varepsilon_s N_A (2\phi_F + V_{SB})} \implies V_{ox} = -\frac{Q_d(V_{SB})}{C_{ox}} = \frac{\sqrt{2 q \varepsilon_s N_A (2\phi_F + V_{SB})}}{C_{ox}} $$
+3. Riferendo la tensione di soglia al terminale di Source ($V_{th}(V_{SB}) = V_{GB,th} - V_{SB} = V_{FB} + \phi_s + V_{ox} - V_{SB}$), il termine additivo $V_{SB}$ fuori radice si elide:
+   $$ V_{th}(V_{SB}) = V_{FB} + 2\phi_F + \frac{\sqrt{2 q \varepsilon_s N_A (2\phi_F + V_{SB})}}{C_{ox}} $$
+4. Sommando e sottraendo il termine a $V_{SB} = 0$, si raccoglie $V_{th0}$ e il coefficiente $\gamma = \frac{\sqrt{2 q \varepsilon_s N_A}}{C_{ox}}$:
+   $$ V_{th}(V_{SB}) = \underbrace{V_{FB} + 2\phi_F + \frac{\sqrt{2 q \varepsilon_s N_A (2\phi_F)}}{C_{ox}}}_{V_{th0}} + \gamma \left( \sqrt{2\phi_F + V_{SB}} - \sqrt{2\phi_F} \right) $$
+
+Fisicamente, un potenziale $V_{SB} > 0$ polarizza inversamente la giunzione canale-substrato e allarga la zona di svuotamento, aumentando la carica fissa scoperta $|Q_d|$. Prima che il Gate possa formare il canale conduttivo di elettroni, deve compensare questo volume maggiore di ioni accettori negativi attraverso una caduta di potenziale $V_{ox}$ superiore sull'ossido, **innalzando la tensione di soglia $V_{th}$**.
+
+<Callout type="tip" title="Realtà Integrata: Perché tutti gli NMOS Condividono lo Stesso Substrato">
+
+A differenza di un transistore discreto a tre piedini (in cui il Body è già saldato internamente al Source dal costruttore), in un circuito integrato tutti i transistori NMOS sono scavati sulla **stessa fetta comune di silicio di tipo P** (*p-substrate*). Per evitare che le giunzioni Source-Substrato e Drain-Substrato vadano in conduzione diretta (innescando cortocircuiti distruttivi di *latch-up* tra i componenti adiacenti), il progettista è obbligato a collegare l'intero substrato P alla tensione più negativa del circuito (massa o $V_{SS}$), e tutti i pozzetti *N-well* dei PMOS alla tensione più positiva ($V_{DD}$). Questa condivisione del substrato permette di risparmiare enormi spazi di isolamento e rendere il chip molto più compatto, ma fa sì che ogni transistore il cui Source non si trovi a massa subisca inevitabilmente l'effetto Body.
+
+</Callout>
+
+Nei disegni schematici circuitali, i transistori NMOS e PMOS a arricchimento (*enhancement-mode*) sono rappresentati con i simboli riportati in [la figura](#fig-mosfet-circuit-symbols).
+
+<figure id="fig-mosfet-circuit-symbols" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-mosfet-circuit-symbols.svg" alt="Simboli circuitali standard per il transistore MOSFET a canale n (a) e a canale p (b) con le rispettive convenzioni di corrente." />
+  <figcaption>Simboli circuitali standard per il transistore MOSFET a canale $n$ (a) e a canale $p$ (b) con le rispettive convenzioni di corrente.</figcaption>
+</figure>
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Procedura Operativa — Condensatore MOS e Effetto Body
+
+1. **Identificazione della regione del condensatore MOS (substrato p):**
+   * $V_{GB} &lt; 0 \implies$ **Accumulazione** (lacune attirate sotto l'ossido).
+   * $0 &lt; V_{GB} &lt; V_{th} \implies$ **Svuotamento** (ioni accettori scoperti $N_A^-$).
+   * $V_{GB} \ge V_{th}$ (ossia $\phi_s \ge 2\phi_F$) $\implies$ **Forte Inversione** (canale conduttivo di elettroni).
+2. **Effetto Body su $V_{th}$:**
+   $$ V_{th} = V_{th0} + \gamma \left(\sqrt{2\phi_F + V_{SB}} - \sqrt{2\phi_F}\right) $$
+   Se il Source è collegato al Body ($V_{SB} = 0$), l'effetto body è nullo ($V_{th} = V_{th0}$).
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+<Callout type="warning" title="Trappola d'Esame: Mai Confondere V_T (Termica) con V_th (Soglia MOS)">
+
+Nel silicio a $300\,\text{K}$, $V_T = kT/q \approx 25.9\,\text{mV}$ compare dentro $\phi_F = V_T \ln(N_A/n_i)$, mentre la tensione di soglia del MOSFET si indica con **$V_{th}$** (o $V_{TN}, V_{TP}$). Scambiare i due simboli all'orale genera confusione immediata.
+
+</Callout>
+
+<Exercise client:load lang="it" id="ex-5-1" title="Esercizio 5.1: Calcolo dell'Effetto Body sulla Soglia V_th" level="Livello 1 · Base" hint="Applica V_th = V_th0 + gamma * (sqrt(2*phi_F + V_SB) - sqrt(2*phi_F)).">
+
+Un transistore NMOS ha $V_{th0} = 0.70\,\text{V}$, $\gamma = 0.45\,\text{V}^{1/2}$ e $2\phi_F = 0.70\,\text{V}$. Il potenziale di Source sale a $V_{SB} = 2.0\,\text{V}$ rispetto al substrato.
+
+<StepCheck client:load lang="it" prompt="Calcola la nuova tensione di soglia V_th (in V):" expected={1.063} tolerance={0.015} unit="V" explanation="V_th = 0.70 + 0.45 * (sqrt(2.7) - sqrt(0.7)) ≈ 0.70 + 0.363 = 1.063 V." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+$$ V_{th} = 0.70 + 0.45 \left(\sqrt{0.70 + 2.0} - \sqrt{0.70}\right) = 0.70 + 0.45(1.6432 - 0.8367) \approx 1.063\,\text{V} $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-5-2" title="Esercizio 5.2: Capacità Specifica dell'Ossido C_ox''" level="Livello 2 · Esame" hint="C_ox'' = eps_ox / t_ox con eps_ox = 3.9 * 8.854e-12 F/m. Nota che 1 mF/m^2 = 1 fF/um^2.">
+
+Calcolare la capacità per unità di area $C_{ox}''$ di un ossido di silicio ($arepsilon_{ox} = 3.9\varepsilon_0$, $\varepsilon_0 = 8.854 \times 10^{-12}\,\text{F/m}$) di spessore $t_{ox} = 10\,\text{nm}$.
+
+<StepCheck client:load lang="it" prompt="Calcola C_ox'' in fF/μm²:" expected={3.453} tolerance={0.05} unit="fF/μm²" explanation="C_ox'' = (3.9 * 8.854e-12) / 10e-9 = 3.453 mF/m² = 3.453 fF/μm²." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+$$ C_{ox}'' = \frac{\varepsilon_{ox}}{t_{ox}} = \frac{3.9 \times 8.854\times 10^{-12}\,\text{F/m}}{10\times 10^{-9}\,\text{m}} = 3.453\times 10^{-3}\,\text{F/m}^2 = 3.453\,\text{fF}/\mu\text{m}^2 $$
+
+</details>
+
+</Exercise>

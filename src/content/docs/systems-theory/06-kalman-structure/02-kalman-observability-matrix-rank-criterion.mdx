@@ -1,0 +1,171 @@
+---
+title: "21. Kalman Observability Criterion"
+description: "Linear Systems Theory — Chapter 21: Kalman Observability Criterion"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 21 Mental Model" markdown={`# Ch. 21: Kalman Observability Criterion
+  - Observability and the Sensor Reconstruction Invariant
+  - Derivation of the Kalman Observability Matrix
+  - The Kalman Observability Rank Criterion
+    - The Unobservable Subspace $\mathcal{X}_{no}$
+  - The Principle of Duality (Kalman Duality)
+    - Proof via Matrix Transposition
+  - The PBH Observability Eigenvector Test
+    - Right Eigenvector Modal Test
+  - SDU Robotics Bridge: Sensor Fusion and IMU Bias Observability`} />
+
+## Observability and the Sensor Reconstruction Invariant
+
+While controllability investigates whether actuator inputs can steer internal states, **observability** addresses the dual problem of sensory perception: **can the internal state of a dynamic system be uniquely reconstructed from external sensor measurements?**
+
+Consider the continuous-time linear time-invariant system:
+$$\begin{cases}
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t) \\
+\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)
+\end{cases} \quad \mathbf{x}(t) \in \mathbb{R}^n, \; \mathbf{u}(t) \in \mathbb{R}^m, \; \mathbf{y}(t) \in \mathbb{R}^p$$
+
+Because the input $\mathbf{u}(t)$ and matrices $(\mathbf{B}, \mathbf{D})$ are known, their forced contribution to the output can be subtracted without loss of generality:
+$$\mathbf{y}_{\text{free}}(t) = \mathbf{y}(t) - \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau - \mathbf{D}\mathbf{u}(t) = \mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0)$$
+
+<Callout type="note" title="Definition: Observability">
+
+An initial state $\mathbf{x}(0) \in \mathbb{R}^n$ is **observable** on $[0, t_f]$ if knowledge of the output history $\mathbf{y}(t)$ and input history $\mathbf{u}(t)$ over the finite interval $[0, t_f]$ is sufficient to uniquely determine $\mathbf{x}(0)$.
+A system is **completely observable** if the only initial state that produces an identically zero free output response ($\mathbf{y}_{\text{free}}(t) \equiv \mathbf{0}$ for all $t \in [0, t_f]$) is the trivial state:
+$$\mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0) = \mathbf{0} \quad \forall t \in [0, t_f] \iff \mathbf{x}(0) = \mathbf{0}$$
+
+</Callout>
+
+<Divider />
+
+## Derivation of the Kalman Observability Matrix
+
+Expanding the matrix exponential $\mathbf{C} e^{\mathbf{A}t} \mathbf{x}_0$ in a Taylor power series:
+$$\mathbf{y}_{\text{free}}(t) = \mathbf{C} \left[ \mathbf{I} + \mathbf{A}t + \frac{1}{2}\mathbf{A}^2 t^2 + \dots \right] \mathbf{x}_0 = \mathbf{C}\mathbf{x}_0 + \mathbf{C}\mathbf{A}\mathbf{x}_0 t + \frac{1}{2}\mathbf{C}\mathbf{A}^2\mathbf{x}_0 t^2 + \dots$$
+Evaluating the repeated time derivatives of the output at $t = 0$:
+$$\begin{aligned}
+\mathbf{y}(0) &= \mathbf{C}\mathbf{x}_0 \\
+\dot{\mathbf{y}}(0) &= \mathbf{C}\mathbf{A}\mathbf{x}_0 \\
+\ddot{\mathbf{y}}(0) &= \mathbf{C}\mathbf{A}^2\mathbf{x}_0 \\
+&\;\;\vdots \\
+\mathbf{y}^{(n-1)}(0) &= \mathbf{C}\mathbf{A}^{n-1}\mathbf{x}_0
+\end{aligned}$$
+
+By the **Cayley-Hamilton Theorem**, higher-order derivatives $\mathbf{y}^{(k)}(0)$ for $k \ge n$ are linear combinations of the first $n$ derivative vectors. Stacking these equations yields the linear algebraic system:
+
+$$\begin{bmatrix} \mathbf{y}(0) \\ \dot{\mathbf{y}}(0) \\ \ddot{\mathbf{y}}(0) \\ \vdots \\ \mathbf{y}^{(n-1)}(0) \end{bmatrix} = \underbrace{\begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}}_{\mathcal{O}} \mathbf{x}_0$$
+
+The matrix $\mathcal{O} \in \mathbb{R}^{(n \cdot p) \times n}$ is the **Kalman Observability Matrix**.
+
+<Divider />
+
+## The Kalman Observability Rank Criterion
+
+<Callout type="tip" title="Kalman Observability Rank Criterion">
+
+The continuous-time linear system $(\mathbf{A}, \mathbf{C})$ is completely observable if and only if the Kalman observability matrix has full column rank:
+$$\boxed{\operatorname{rank}(\mathcal{O}) = \operatorname{rank} \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix} = n}$$
+* **SISO Systems ($p = 1$):** $\mathcal{O}$ is an $n \times n$ square matrix. Complete observability is equivalent to:
+  $$\det(\mathcal{O}) \neq 0$$
+* **MIMO Systems ($p > 1$):** $\mathcal{O}$ is a tall rectangular $(np) \times n$ matrix. Complete observability requires finding an $n \times n$ submatrix with non-zero determinant.
+
+</Callout>
+
+### The Unobservable Subspace $\mathcal{X}_{no}$
+The null space (kernel) of $\mathcal{O}$ constitutes the **unobservable subspace**:
+$$\mathcal{X}_{no} = \ker(\mathcal{O}) = \{ \mathbf{x}_0 \in \mathbb{R}^n \;:\; \mathcal{O}\mathbf{x}_0 = \mathbf{0} \}$$
+* Any initial state vector $\mathbf{x}_0 \in \mathcal{X}_{no}$ produces an **identically zero output** $y(t) \equiv 0$ for all $t \ge 0$.
+* The dimension of the unobservable subspace is:
+  $$\operatorname{dim}(\mathcal{X}_{no}) = n - \operatorname{rank}(\mathcal{O})$$
+* $\mathcal{X}_{no}$ is an **$\mathbf{A}$-invariant subspace**:
+  $$\mathbf{A} \mathcal{X}_{no} \subseteq \mathcal{X}_{no}$$
+  If an unobservable mode is excited, its free evolution remains trapped inside the unobservable subspace forever, never leaking any information into the sensor measurements!
+
+<figure id="fig-observability-kernel" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-observability-kernel.svg" alt="Geometric depiction of the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{O})$ in $\mathbb{R}^3$. Any state vector lying along the red line produces zero projection through the sensor mapping $\mathbf{C}$, rendering it entirely invisible to external measurements." />
+  <figcaption>Geometric depiction of the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{O})$ in $\mathbb{R}^3$. Any state vector lying along the red line produces zero projection through the sensor mapping $\mathbf{C}$, rendering it entirely invisible to external measurements.</figcaption>
+</figure>
+
+<Divider />
+
+## The Principle of Duality (Kalman Duality)
+
+Kalman established a mathematical duality between control and observation:
+
+<Callout type="tip" title="Kalman Duality Theorem">
+
+A continuous linear time-invariant system $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ satisfies the following exact dualities:
+1. **Controllability $\iff$ Observability of the Dual System:**
+   $$\text{Pair } (\mathbf{A}, \mathbf{B}) \text{ is controllable} \iff \text{Dual pair } (\mathbf{A}^T, \mathbf{B}^T) \text{ is observable}$$
+2. **Observability $\iff$ Controllability of the Dual System:**
+   $$\text{Pair } (\mathbf{A}, \mathbf{C}) \text{ is observable} \iff \text{Dual pair } (\mathbf{A}^T, \mathbf{C}^T) \text{ is controllable}$$
+
+</Callout>
+
+### Proof via Matrix Transposition
+Transposing the Kalman controllability matrix of the dual system $(\mathbf{A}^T, \mathbf{C}^T)$:
+$$\mathcal{R}_{\text{dual}} = \begin{bmatrix} \mathbf{C}^T & \mathbf{A}^T \mathbf{C}^T & (\mathbf{A}^T)^2 \mathbf{C}^T & \dots & (\mathbf{A}^T)^{n-1} \mathbf{C}^T \end{bmatrix}$$
+Taking the transpose of the entire matrix:
+$$\mathcal{R}_{\text{dual}}^T = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix} = \mathcal{O}$$
+Because a matrix and its transpose share the exact same row rank and column rank:
+$$\operatorname{rank}(\mathcal{R}_{\text{dual}}) = \operatorname{rank}(\mathcal{O})$$
+This duality guarantees that **every mathematical theorem, synthesis algorithm, and proof developed for controllability applies immediately to observability by substituting $\mathbf{A} \to \mathbf{A}^T$ and $\mathbf{B} \to \mathbf{C}^T$**.
+
+<Divider />
+
+## The PBH Observability Eigenvector Test
+
+<Callout type="tip" title="PBH Observability Criterion">
+
+The pair $(\mathbf{A}, \mathbf{C})$ is completely observable if and only if the partitioned matrix has full column rank for **every eigenvalue** $\lambda \in \sigma(\mathbf{A})$:
+$$\boxed{\operatorname{rank} \begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} \\ \mathbf{C} \end{bmatrix} = n \quad \forall \lambda \in \mathbb{C}}$$
+
+### Right Eigenvector Modal Test
+An eigenvalue $\lambda$ of $\mathbf{A}$ is **unobservable** if and only if there exists a non-zero right eigenvector $\mathbf{v} \neq \mathbf{0}$ satisfying:
+$$\mathbf{A}\mathbf{v} = \lambda \mathbf{v} \quad \text{and} \quad \boxed{\mathbf{C}\mathbf{v} = \mathbf{0}}$$
+Physical meaning: If a right eigenvector $\mathbf{v}$ lies in the null space of $\mathbf{C}$, the natural mode $e^{\lambda t}\mathbf{v}$ produces zero sensor output ($\mathbf{C} e^{\lambda t}\mathbf{v} = e^{\lambda t} \mathbf{C}\mathbf{v} = \mathbf{0}$), making the mode completely invisible to the measurement instruments.
+
+</Callout>
+
+<Divider />
+
+## SDU Robotics Bridge: Sensor Fusion and IMU Bias Observability
+
+<Callout type="bridge" title="SDU Robotics Bridge: Extended Kalman Filter (EKF) Observability">
+
+In autonomous drone navigation (PX4 / ROS 2 EKF2 module), a critical problem is estimating gyroscope sensor bias $b_g$ alongside angular orientation $\theta$ using only an inclinometer/accelerometer measurement $y = \theta$:
+$$\begin{bmatrix} \dot{\theta} \\ \dot{b}_g \end{bmatrix} = \begin{bmatrix} 0 & -1 \\ 0 & 0 \end{bmatrix} \begin{bmatrix} \theta \\ b_g \end{bmatrix} + \begin{bmatrix} 1 \\ 0 \end{bmatrix} \omega_{\text{gyro}}, \quad y = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} \theta \\ b_g \end{bmatrix}$$
+Let us check Kalman observability for estimating the hidden bias $b_g$:
+$$\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} 0 & -1 \\ 0 & 0 \end{bmatrix} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$$
+$$\det(\mathcal{O}) = (1)(-1) - (0)(0) = -1 \neq 0 \implies \operatorname{rank}(\mathcal{O}) = 2 = n$$
+Because $\operatorname{rank}(\mathcal{O}) = 2$, **the gyroscope bias $b_g$ is fully observable from angle measurements**!
+Even though there is no direct sensor measuring bias, the Kalman filter is mathematically guaranteed to converge to the exact drift value, enabling automatic bias compensation during autonomous flight.
+
+</Callout>
+
+<Divider />
+
+### Exercise 21.1: Kalman Observability Matrix Computation [LEVEL 1: WARM-UP DRILL]
+Given the continuous-time LTI system:
+$$\mathbf{A} = \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}$$
+
+1. State the state dimension $n$ and the structure of the Kalman observability matrix $\mathcal{M}_o$.
+2. Compute the row vectors $\mathbf{C}\mathbf{A}$ and $\mathbf{C}\mathbf{A}^2$.
+3. Construct the observability matrix $\mathcal{M}_o = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix}$.
+4. Compute the determinant $\det(\mathcal{M}_o)$ and determine whether the pair $(\mathbf{A}, \mathbf{C})$ is completely observable.
+
+### Exercise 21.2: Parametric Observability Analysis and Unobservable Subspace [LEVEL 2: EXAM BENCHMARK]
+A third-order system depends on an unknown real measurement parameter $\beta \in \mathbb{R}$:
+$$\mathbf{A} = \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix}$$
+
+1. Compute the Kalman observability matrix $\mathcal{M}_o(\beta)$.
+2. Calculate the determinant $\det(\mathcal{M}_o(\beta))$ as an explicit function of $\beta$.
+3. Determine the critical value(s) of $\beta$ for which complete observability is lost.
+4. For the critical value of $\beta$, evaluate the rank of $\mathcal{M}_o$ and find an explicit basis for the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{M}_o)$. Identify which eigenvalue mode is unobservable.

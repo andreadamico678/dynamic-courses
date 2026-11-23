@@ -1,0 +1,138 @@
+---
+title: "14. Amplificatore Common Drain"
+description: "Elettronica — Capitolo 14: Amplificatore Common Drain"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+import SingleStageExplorer from "@components/SingleStageExplorer.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 14" markdown={`# Cap. 14: Amplificatore Common Drain
+  - 1 · Intuizione Fisica
+  - 2 · Definizione e Dimostrazione (Orale)
+    - Architettura Circuitale dello Stadio Common Drain
+    - Analisi a Piccolo Segnale del Source Follower
+    - Resistenza d'Uscita ($R_{out}$)
+  - 3 · Algoritmo Operativo (Esercizi)
+  - 4 · Archetipo Svolto ed Esercizi`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+Il **Common Drain (o Source Follower)** è il buffer di tensione per eccellenza in tecnologia MOS: applica il segnale sul Gate (altissima impedenza d'ingresso) e preleva l'uscita dal Source, che 'insegue' quasi fedelmente l'ingresso ($A_v \lesssim 1$) ma offre una **bassissima impedenza d'uscita** ($pprox 1/g_m$). Questo lo rende perfetto per pilotare carichi resistivi bassi $R_L$ senza attenuare il guadagno degli stadi precedenti.
+
+<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+
+## Architettura Circuitale dello Stadio Common Drain
+
+Nella configurazione Common Drain ([la figura](#fig-cd-amplifier)), il segnale d'ingresso viene applicato al terminale di Gate attraverso un condensatore di accoppiamento $C_C$, mentre il segnale d'uscita viene prelevato direttamente sul terminale di Source. Il terminale di Drain è collegato direttamente all'alimentazione continua positiva $V_{DD}$.
+
+Poiché per il segnale dinamico alternato (AC) la linea di alimentazione $V_{DD}$ costituisce un cortocircuito ideale verso massa, **il Drain funge da morsetto comune di riferimento per le porte d'ingresso e di uscita**.
+
+<figure id="fig-cd-amplifier" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-cd-amplifier.svg" alt="Circuito dell'amplificatore Common Drain (Source Follower) a singola alimentazione." />
+  <figcaption>Circuito dell'amplificatore Common Drain (Source Follower) a singola alimentazione.</figcaption>
+</figure>
+
+## Analisi a Piccolo Segnale del Source Follower
+
+Applichiamo le regole di linearizzazione a centro banda ([la figura](#fig-cd-small-signal)):
+1. $V_{DD}$ cortocircuitato a massa AC.
+2. Condensatori di accoppiamento cortocircuitati.
+3. Il substrato (Body) è connesso alla massa dell'integrato ($V_B = 0$). Poiché il segnale d'uscita è prelevato sul Source ($v_s = v_{out}$), si instaura una tensione dinamica Body-Source non nulla:
+   $$ v_{bs} = v_b - v_s = 0 - v_{out} = -v_{out} $$
+   Il generatore dipendente dell'effetto Body $g_{mb} v_{bs} = -g_{mb} v_{out}$ deve essere obbligatoriamente incluso nell'analisi.
+
+<figure id="fig-cd-small-signal" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-cd-small-signal.svg" alt="Circuito equivalente di piccolo segnale dello stadio Common Drain con effetto Body (g_mb) e carichi al Source." />
+  <figcaption>Circuito equivalente di piccolo segnale dello stadio Common Drain con effetto Body ($g_{mb}$) e carichi al Source.</figcaption>
+</figure>
+
+### 1. Resistenza d'Ingresso ($R_{in}$)
+A frequenze basse e intermedie, la porta di Gate è un circuito aperto. La resistenza d'ingresso vista dal generatore coincide con il partitore di polarizzazione:
+$$ R_{in} = R_1 \parallel R_2 $$
+
+### 2. Guadagno di Tensione ($A_v$)
+Definendo la resistenza totale equivalente collegata tra il nodo di Source e massa AC come $R_L' = R_S \parallel r_o \parallel R_L$, il **guadagno di tensione** dello stadio Common Drain vale:
+$$ A_v = \frac{v_{out}}{v_i} = \frac{g_m R_L'}{1 + (g_m + g_{mb}) R_L'} = \frac{g_m}{g_m + g_{mb} + \frac{1}{R_L'}} $$
+
+### Dimostrazione Matematica: Derivazione di $A_v$ mediante KCL al Nodo di Source
+
+Esprimiamo le tensioni di controllo in funzione dell'ingresso $v_i$ e dell'uscita $v_{out}$: $v_{gs} = v_i - v_{out}$ e $v_{bs} = 0 - v_{out} = -v_{out}$. Applicando la KCL al nodo di Source, la corrente che fluisce nel carico equivalente $R_L'$ eguaglia la somma delle correnti dei generatori controllati:
+$$ \frac{v_{out}}{R_L'} = g_m v_{gs} + g_{mb} v_{bs} = g_m (v_i - v_{out}) - g_{mb} v_{out} $$
+Raccogliendo $v_{out}$ al primo membro e moltiplicando per $R_L'$:
+$$ v_{out} \left( \frac{1}{R_L'} + g_m + g_{mb} \right) = g_m v_i \implies A_v = \frac{v_{out}}{v_i} = \frac{g_m R_L'}{1 + (g_m + g_{mb}) R_L'} $$
+
+#### Caso Ideale Senza Effetto Body ($g_{mb} = 0$)
+Nel caso in cui il Body sia cortocircuitato al Source ($V_{SB} = 0$, come nei processi con pozzetto isolato *Twin-Well*):
+$$ A_v = \frac{g_m R_L'}{1 + g_m R_L'} < 1 \quad \xrightarrow{g_m R_L' \gg 1} \quad A_v \approx 1 \quad (0\text{ dB}) $$
+La tensione sul Source "insegue" fedelmente il potenziale applicato al Gate con guadagno prossimo all'unità e senza inversione di fase (fase $0^\circ$).
+
+#### Impatto dell'Effetto Body ($g_{mb} \ne 0$)
+Nei processi standard a substrato condiviso ($V_B = 0$), $g_{mb} = \chi g_m$ con $\chi \approx 0.1\div 0.25$:
+$$ A_v \approx \frac{g_m}{g_m + \chi g_m} = \frac{1}{1 + \chi} \approx 0.80 \div 0.90\,\text{V/V} $$
+L'effetto Body introduce una degradazione sistematica del guadagno pari al $10\%\div 20\%$ e costituisce la causa primaria di non-linearità armonica dello stadio buffer.
+
+## Resistenza d'Uscita ($R_{out}$)
+
+Spegnendo il generatore di segnale d'ingresso ($v_{sig} = 0 \implies v_i = 0$) e applicando un generatore ausiliario di prova $v_x$ al Source (escludendo il carico esterno $R_L$, [la figura](#fig-cd-rout)), la resistenza d'uscita vista dal carico vale:
+$$ R_{out} = \frac{1}{g_m} \parallel \frac{1}{g_{mb}} \parallel r_o \parallel R_S \approx \frac{1}{g_m + g_{mb}} \approx \frac{1}{g_m} $$
+
+<figure id="fig-cd-rout" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-cd-rout.svg" alt="Circuito con generatore di prova v_x per il calcolo analitico della resistenza d'uscita R_out." />
+  <figcaption>Circuito con generatore di prova $v_x$ per il calcolo analitico della resistenza d'uscita $R_{out}$.</figcaption>
+</figure>
+
+### Dimostrazione Matematica: Calcolo di $R_{out}$ col Generatore di Prova
+
+Con il Gate a massa AC ($v_g = 0$) e il Source forzato a $v_x$, risultano $v_{gs} = -v_x$ e $v_{bs} = -v_x$. Applicando la KCL al nodo di Source:
+$$ i_x = -g_m v_{gs} - g_{mb} v_{bs} + \frac{v_x}{r_o} + \frac{v_x}{R_S} = v_x \left( g_m + g_{mb} + \frac{1}{r_o} + \frac{1}{R_S} \right) $$
+Poiché la conduttanza $g_m + g_{mb}$ domina largamente su $1/r_o$ e $1/R_S$, risulta $R_{out} = \frac{v_x}{i_x} \approx \frac{1}{g_m + g_{mb}}$.
+
+<Callout type="tip" title="Vantaggio Pratico del Source Follower: Un Buffer Compatto a Singolo Transistore">
+
+Il Source Follower offre una soluzione estremamente compatta quando all'interno di un circuito integrato uno stadio ad alto guadagno (come un Common Source, che ha un'alta resistenza d'uscita $R_D \parallel r_o$) deve pilotare un carico a bassa resistenza $R_L$ o un pad d'uscita fortemente capacitivo. Anziché costruire un intero amplificatore operazionale a decine di transistori configurato a buffer, basta aggiungere **un singolo MOSFET in configurazione Common Drain**: la sua resistenza d'ingresso infinita non carica lo stadio a monte, mentre la sua bassissima resistenza d'uscita $R_{out} \approx 1/g_m$ (poche decine o centinaia di ohm) pilota agevolmente il carico finale.
+
+</Callout>
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Sintesi Operativa — Source Follower (Common Drain)
+
+1. **Resistenza d'ingresso:** $R_{in} = R_1 \parallel R_2$ (elevata).
+2. **Resistenza di carico equivalente sul Source:** $R_{Leq} = R_S \parallel R_L \parallel r_o$.
+3. **Guadagno di tensione (non invertente):** $A_v = \frac{g_m R_{Leq}}{1 + g_m R_{Leq}} &lt; 1$ (trascurando $g_{mb}$; includendo l'effetto body compare $(g_m + g_{mb})$ al denominatore).
+4. **Resistenza d'uscita:** $R_{out} = \frac{1}{g_m} \parallel R_S \parallel r_o \approx \frac{1}{g_m}$.
+
+<SingleStageExplorer client:load />
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+<Callout type="warning" title="Trappola d'Esame: Scambiare il Source Follower per uno Stadio Invertente">
+
+Nel Common Drain l'uscita è sul Source e segue in fase il segnale di Gate ($A_v &gt; 0$, sempre inferiore a $1$). Usarlo da solo non amplifica in tensione, ma evita il crollo di guadagno di uno stadio CS quando $R_L$ è piccolo.
+
+</Callout>
+
+<Exercise client:load lang="it" id="ex-14-1" title="Esercizio 14.1: Buffer Common Drain (Source Follower)" level="Livello 1 · Base" hint="Calcola R_Leq = R_S || R_L || r_o, poi A_v = g_m*R_Leq / (1 + g_m*R_Leq) e R_out = (1/g_m) || R_S || r_o.">
+
+Un Source Follower opera con $g_m = 5\,\text{mA/V}$, $R_S = 2\,\text{k}\Omega$, $R_L = 2\,\text{k}\Omega$ e $r_o = 40\,\text{k}\Omega$ ($g_{mb} = 0$).
+
+<StepCheck client:load lang="it" prompt="Calcola il guadagno di tensione A_v:" expected={0.830} tolerance={0.015} unit="V/V" explanation="R_Leq = 2 || 2 || 40 = 0.9756 kΩ; A_v = (5*0.9756)/(1 + 5*0.9756) ≈ 0.830." />
+
+<StepCheck client:load lang="it" prompt="Calcola la resistenza d'uscita R_out dello stadio (in Ω):" expected={181.0} tolerance={2.0} unit="Ω" explanation="1/g_m = 200 Ω; R_out = 200 || 2000 || 40000 ≈ 181.0 Ω." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. $R_{Leq} = 2\,\text{k}\Omega \parallel 2\,\text{k}\Omega \parallel 40\,\text{k}\Omega = 1\,\text{k}\Omega \parallel 40\,\text{k}\Omega \approx 0.9756\,\text{k}\Omega$.
+2. $A_v = \frac{5(0.9756)}{1 + 5(0.9756)} = \frac{4.878}{5.878} \approx 0.830\,\text{V/V}$.
+3. $R_{out} = \frac{1}{5\,\text{mA/V}} \parallel 2000\,\Omega \parallel 40000\,\Omega = 200 \parallel 1904.8 \approx 181.0\,\Omega$.
+
+</details>
+
+</Exercise>

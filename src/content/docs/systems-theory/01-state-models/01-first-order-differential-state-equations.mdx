@@ -1,0 +1,375 @@
+---
+title: "1. First Order Differential State Equations"
+description: "Linear Systems Theory — Chapter 1: First Order Differential State Equations"
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 1 Mental Model" markdown={`# Ch. 1: First Order Differential State Equations
+  - Mathematical Formulation of Dynamical State
+  - State Space Architecture & Structural Block Topology
+  - Canonical Conversion from High-Order ODEs
+  - Non-Uniqueness of State Coordinates
+  - Physical Modeling of Mechanical Systems (Exam Archetype 1)
+    - Problem Formulation: Coupled Two-Cart Mechanical System
+    - Dynamic Equations via Newton's Second Law
+    - State-Space Representation
+    - Output Equation Variants`} />
+
+## Mathematical Formulation of Dynamical State
+
+A dynamical system is fundamentally defined by its capacity to store energy, matter, or information across time. In classical input-output formulations, such systems are often modeled using high-order differential equations relating an external excitation $u(t)$ to an observed output $y(t)$. However, modern control engineering and state estimation rely upon the **state-space representation**, where the internal condition of the system is encapsulated by a finite-dimensional state vector $\mathbf{x}(t) \in \mathbb{R}^n$.
+
+<Callout type="note" title="Definition: State of a Dynamical System">
+
+The state $\mathbf{x}(t_0)$ of a dynamical system at an initial time instant $t_0$ is the minimal set of physical or mathematical variables $\{x_1(t_0), x_2(t_0), \dots, x_n(t_0)\}$ such that the knowledge of these variables, together with the knowledge of the input trajectory $\mathbf{u}(t)$ for all $t \ge t_0$, uniquely and completely determines the future state trajectory $\mathbf{x}(t)$ and output trajectory $\mathbf{y}(t)$ for all $t \ge t_0$.
+
+</Callout>
+
+For continuous-time, linear, time-invariant (LTI) systems, the physical interactions governing the evolution of the state variables are formalized as a system of coupled, first-order ordinary differential equations:
+
+$$\dot{\mathbf{x}}(t) = \mathbf{A} \mathbf{x}(t) + \mathbf{B} \mathbf{u}(t)$$
+
+$$\mathbf{y}(t) = \mathbf{C} \mathbf{x}(t) + \mathbf{D} \mathbf{u}(t)$$
+
+where:
+* $\mathbf{x}(t) = \begin{bmatrix} x_1(t) & x_2(t) & \dots & x_n(t) \end{bmatrix}^T \in \mathbb{R}^n$ is the **state vector**, whose dimension $n$ defines the *order* of the system.
+* $\mathbf{u}(t) = \begin{bmatrix} u_1(t) & u_2(t) & \dots & u_m(t) \end{bmatrix}^T \in \mathbb{R}^m$ is the **control input vector**.
+* $\mathbf{y}(t) = \begin{bmatrix} y_1(t) & y_2(t) & \dots & y_p(t) \end{bmatrix}^T \in \mathbb{R}^p$ is the **measured output vector**.
+* $\mathbf{A} \in \mathbb{R}^{n \times n}$ is the **dynamic matrix** (or system matrix), characterizing the internal coupling between state variables in the absence of external inputs.
+* $\mathbf{B} \in \mathbb{R}^{n \times m}$ is the **input matrix**, defining how the actuators inject control energy into the internal state coordinates.
+* $\mathbf{C} \in \mathbb{R}^{p \times n}$ is the **output matrix**, mapping internal states to observable sensor measurements.
+* $\mathbf{D} \in \mathbb{R}^{p \times m}$ is the **direct transmission matrix** (or feedthrough matrix), representing algebraic feedthrough from input directly to output. In strictly proper physical systems with non-zero inertia, $\mathbf{D} = \mathbf{0}$.
+
+<Divider />
+
+## State Space Architecture & Structural Block Topology
+
+The algebraic structure of the equation above and the equation above corresponds directly to an analog computing network comprising an integrator bank, gain amplifiers, and summing nodes.
+
+<figure id="fig-state-space-architecture" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-state-space-architecture.svg" alt="Continuous-time LTI state-space architectural topology illustrating the integrator core $\int dt$, dynamic feedback matrix $\mathbf{A}$, input distribution matrix $\mathbf{B}$, sensor matrix $\mathbf{C}$, and direct algebraic feedthrough $\mathbf{D}$." />
+  <figcaption>Continuous-time LTI state-space architectural topology illustrating the integrator core $\int dt$, dynamic feedback matrix $\mathbf{A}$, input distribution matrix $\mathbf{B}$, sensor matrix $\mathbf{C}$, and direct algebraic feedthrough $\mathbf{D}$.</figcaption>
+</figure>
+
+As revealed in [the figure](#fig-state-space-architecture), the state vector $\mathbf{x}(t)$ represents the **outputs of the integrators**. Integrators are the only memory elements in continuous-time physical systems; algebraic gains ($\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$) perform static transformations without storing historical energy.
+
+<Divider />
+
+## Canonical Conversion from High-Order ODEs
+
+Consider an arbitrary single-input single-output (SISO) linear physical system described by an $n$-th order scalar ordinary differential equation:
+
+$$y^{(n)}(t) + a_{n-1} y^{(n-1)}(t) + \dots + a_1 \dot{y}(t) + a_0 y(t) = b_0 u(t)$$
+
+where $y^{(k)}(t) = \frac{d^k y(t)}{dt^k}$. To express the equation above in the standard state-space form, we define the **phase variables** (canonical state assignment):
+
+$$\begin{aligned}
+x_1(t) &= y(t) \\
+x_2(t) &= \dot{y}(t) = \dot{x}_1(t) \\
+x_3(t) &= \ddot{y}(t) = \dot{x}_2(t) \\
+&\;\;\vdots \\
+x_n(t) &= y^{(n-1)}(t) = \dot{x}_{n-1}(t)
+\end{aligned}$$
+
+Differentiating the $n$-th state variable $x_n(t)$ and substituting from the equation above yields:
+
+$$\dot{x}_n(t) = y^{(n)}(t) = -a_0 x_1(t) - a_1 x_2(t) - \dots - a_{n-1} x_n(t) + b_0 u(t)$$
+
+Stacking these relations into matrix notation produces the **Frobenius Companion Canonical Form**:
+
+$$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \\ \vdots \\ \dot{x}_{n-1}(t) \\ \dot{x}_n(t) \end{bmatrix} = \begin{bmatrix}
+0 & 1 & 0 & \dots & 0 \\
+0 & 0 & 1 & \dots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & \dots & 1 \\
+-a_0 & -a_1 & -a_2 & \dots & -a_{n-1}
+\end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ \vdots \\ x_{n-1}(t) \\ x_n(t) \end{bmatrix} + \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \\ b_0 \end{bmatrix} u(t)$$
+
+$$y(t) = \begin{bmatrix} 1 & 0 & 0 & \dots & 0 \end{bmatrix} \mathbf{x}(t)$$
+
+<Callout type="bridge" title="SDU Robotics Bridge: Drone Multirotor Equations of Motion">
+
+In autonomous aerial robotics (such as the PX4 autopilot and SDU's drone testbeds in Odense), multirotor quadcopter dynamics are modeled around hover equilibrium. For example, the pitch rate dynamics $\theta(t)$ driven by differential propeller thrust $\Delta T(t)$ follow:
+$$J_{yy} \ddot{\theta}(t) + d_r \dot{\theta}(t) = l \Delta T(t)$$
+where $J_{yy}$ is the pitch moment of inertia, $d_r$ is the aerodynamic rotational damping coefficient, and $l$ is the rotor arm length. Assigning state coordinates $x_1 = \theta$ (pitch angle) and $x_2 = \dot{\theta} = q$ (pitch rate) produces the continuous state-space model:
+$$\begin{bmatrix} \dot{x}_1 \\ \dot{x}_2 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ 0 & -\frac{d_r}{J_{yy}} \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} + \begin{bmatrix} 0 \\ \frac{l}{J_{yy}} \end{bmatrix} u(t)$$
+This state-space representation forms the exact foundation upon which inner angular-rate controllers and Extended Kalman Filters (EKF) are implemented in ROS 2 flight navigation packages.
+
+</Callout>
+
+<Divider />
+
+## Non-Uniqueness of State Coordinates
+
+While the input-output behavior ($u(t) \to y(t)$) of a physical system is invariant, its state-space representation is **not unique**. Any invertible linear transformation of the state vector:
+
+$$\mathbf{z}(t) = \mathbf{T}^{-1} \mathbf{x}(t) \iff \mathbf{x}(t) = \mathbf{T} \mathbf{z}(t), \quad \det(\mathbf{T}) \neq 0$$
+
+yields an entirely equivalent state-space model in the new coordinate basis $\mathbf{z}(t)$:
+
+$$\dot{\mathbf{z}}(t) = \tilde{\mathbf{A}} \mathbf{z}(t) + \tilde{\mathbf{B}} \mathbf{u}(t), \quad \mathbf{y}(t) = \tilde{\mathbf{C}} \mathbf{z}(t) + \tilde{\mathbf{D}} \mathbf{u}(t)$$
+
+where:
+$$\tilde{\mathbf{A}} = \mathbf{T}^{-1} \mathbf{A} \mathbf{T}, \quad \tilde{\mathbf{B}} = \mathbf{T}^{-1} \mathbf{B}, \quad \tilde{\mathbf{C}} = \mathbf{C} \mathbf{T}, \quad \tilde{\mathbf{D}} = \mathbf{D}$$
+
+The systemic invariants under similarity transformations will be established rigorously in [Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/).
+
+<Divider />
+
+## Physical Modeling of Mechanical Systems (Exam Archetype 1)
+
+In university examinations (specifically matching the UniCT L-8 Automatica syllabus), state differential equations are frequently derived directly from mechanical multi-body systems rather than abstract ODEs.
+
+### Problem Formulation: Coupled Two-Cart Mechanical System
+
+Consider the horizontal translational system depicted in [the figure](#fig-two-mass-system). It consists of two rigid carts of masses $m_1$ and $m_2$ translating horizontally on a frictionless surface, interconnected by a linear spring of stiffness $k$. Mass $m_1$ is attached to a rigid fixed wall through a linear viscous damper of coefficient $B_1$ and is driven by an external horizontal control force $F(t) = u(t)$.
+
+<figure id="fig-two-mass-system" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-two-mass-system.svg" alt="Horizontal two-body translational mechanical system with coupling spring $k$, wall damper $B_1$, and control force $u(t)$." />
+  <figcaption>Horizontal two-body translational mechanical system with coupling spring $k$, wall damper $B_1$, and control force $u(t)$.</figcaption>
+</figure>
+
+### Dynamic Equations via Newton's Second Law
+
+Let $p_1(t)$ and $p_2(t)$ denote the absolute horizontal displacements of masses $m_1$ and $m_2$ measured from static equilibrium.
+
+1. **Free-Body Diagram for Mass $m_1$:**
+   Mass $m_1$ is acted upon by:
+   - External driving force: $+u(t)$
+   - Viscous damping force opposing velocity $\dot{p}_1$: $-B_1 \dot{p}_1(t)$
+   - Elastic restoring force from spring elongation $(p_2 - p_1)$: $+k(p_2(t) - p_1(t))$
+
+   Applying $\sum F = m_1 \ddot{p}_1$:
+   $$m_1 \ddot{p}_1(t) = u(t) - B_1 \dot{p}_1(t) + k(p_2(t) - p_1(t))$$
+   $$\ddot{p}_1(t) = -\frac{k}{m_1} p_1(t) - \frac{B_1}{m_1} \dot{p}_1(t) + \frac{k}{m_1} p_2(t) + \frac{1}{m_1} u(t)$$
+
+2. **Free-Body Diagram for Mass $m_2$:**
+   Mass $m_2$ is acted upon solely by the coupling spring force in the opposite direction:
+   Applying $\sum F = m_2 \ddot{p}_2$:
+   $$m_2 \ddot{p}_2(t) = -k(p_2(t) - p_1(t)) = k p_1(t) - k p_2(t)$$
+   $$\ddot{p}_2(t) = \frac{k}{m_2} p_1(t) - \frac{k}{m_2} p_2(t)$$
+
+### State-Space Representation
+
+Since the system contains two independent mechanical degrees of freedom (each governed by a second-order ODE), the state dimension is $n = 4$. We define the state variables as the physical positions and velocities of the two masses:
+$$\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \\ x_4(t) \end{bmatrix} = \begin{bmatrix} p_1(t) \\ \dot{p}_1(t) \\ p_2(t) \\ \dot{p}_2(t) \end{bmatrix}$$
+
+Evaluating the first-order time derivatives:
+$$\dot{x}_1(t) = \dot{p}_1(t) = x_2(t)$$
+$$\dot{x}_2(t) = \ddot{p}_1(t) = -\frac{k}{m_1} x_1(t) - \frac{B_1}{m_1} x_2(t) + \frac{k}{m_1} x_3(t) + \frac{1}{m_1} u(t)$$
+$$\dot{x}_3(t) = \dot{p}_2(t) = x_4(t)$$
+$$\dot{x}_4(t) = \ddot{p}_2(t) = \frac{k}{m_2} x_1(t) - \frac{k}{m_2} x_3(t)$$
+
+Arranging into the continuous-time matrix state equation $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B} u(t)$:
+$$\begin{bmatrix} \dot{x}_1 \\ \dot{x}_2 \\ \dot{x}_3 \\ \dot{x}_4 \end{bmatrix} = \begin{bmatrix}
+0 & 1 & 0 & 0 \\
+-\frac{k}{m_1} & -\frac{B_1}{m_1} & \frac{k}{m_1} & 0 \\
+0 & 0 & 0 & 1 \\
+\frac{k}{m_2} & 0 & -\frac{k}{m_2} & 0
+\end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ x_3 \\ x_4 \end{bmatrix} + \begin{bmatrix} 0 \\ \frac{1}{m_1} \\ 0 \\ 0 \end{bmatrix} u(t)$$
+
+### Output Equation Variants
+
+Depending on the specific measurement required in the exam problem:
+- **Case A: Output is Position of Mass $m_2$ ($y(t) = p_2(t)$):**
+  $$y(t) = x_3(t) \implies \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix}, \quad D = 0$$
+- **Case B: Output is Velocity of Mass $m_2$ ($y(t) = \dot{p}_2(t)$):**
+  $$y(t) = x_4(t) \implies \mathbf{C} = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix}, \quad D = 0$$
+- **Case C: Output is Relative Elongation of the Coupling Spring ($y(t) = p_2(t) - p_1(t)$):**
+  $$y(t) = -x_1(t) + x_3(t) \implies \mathbf{C} = \begin{bmatrix} -1 & 0 & 1 & 0 \end{bmatrix}, \quad D = 0$$
+
+In all cases, because physical accelerations cannot produce instantaneous jump discontinuities in position or velocity, the direct transmission term is strictly zero: $D = 0$.
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-1-1" title="Exercise 1.1: Decoupled First-Order Equations" level="LEVEL 1: WARM-UP DRILL">
+
+Consider a system with two independent state variables and a single input $u(t)$:
+$$\dot{x}_1(t) = -3 x_1(t) + 2 u(t)$$
+$$\dot{x}_2(t) = -7 x_2(t) - u(t)$$
+with observed output:
+$$y(t) = x_1(t) + 4 x_2(t)$$
+
+1. Formulate the state vector $\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix}$ and write the state and output equations in standard matrix form.
+2. Identify the matrices $\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$ and their respective matrix dimensions.
+3. Why are all off-diagonal entries in $\mathbf{A}$ equal to zero? What does this mean physically for the coupling between $x_1$ and $x_2$?
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. In vector-matrix form, stacking the state variables $\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix}$:
+   $$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \end{bmatrix} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + \begin{bmatrix} 2 \\ -1 \end{bmatrix} u(t)$$
+   The output equation is:
+   $$y(t) = \begin{bmatrix} 1 & 4 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + [0] u(t)$$
+2. Reading off the matrix definitions:
+   * $\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \in \mathbb{R}^{2 \times 2}$
+   * $\mathbf{B} = \begin{bmatrix} 2 \\ -1 \end{bmatrix} \in \mathbb{R}^{2 \times 1}$
+   * $\mathbf{C} = \begin{bmatrix} 1 & 4 \end{bmatrix} \in \mathbb{R}^{1 \times 2}$
+   * $\mathbf{D} = 0 \in \mathbb{R}^{1 \times 1}$
+3. All off-diagonal elements in $\mathbf{A}$ are zero ($a_{12} = a_{21} = 0$). Physically, this indicates that the two states are completely uncoupled: the rate of change $\dot{x}_1$ depends only on $x_1$ and $u$, with zero influence from $x_2$, and vice versa. Each state behaves as an isolated first-order dynamic subsystem.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-1-2" title="Exercise 1.2: Coupled Modes & Algebraic Feedthrough" level="LEVEL 1: WARM-UP DRILL">
+
+Consider the coupled dynamic system:
+$$\dot{x}_1(t) = -2 x_1(t) + 4 x_2(t) + u(t)$$
+$$\dot{x}_2(t) = -x_1(t) - 5 x_2(t) + 3 u(t)$$
+with observed output:
+$$y(t) = 2 x_1(t) - x_2(t) + 0.5 u(t)$$
+
+1. Identify the system matrices $\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$.
+2. State the physical meaning of a non-zero feedthrough term $D = 0.5$.
+3. Describe the block diagram topology: identify the integrator outputs, the feedback branches from each state, and the direct feedforward path from input to output.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. The system matrices are extracted directly from the coefficients:
+   $$\mathbf{A} = \begin{bmatrix} -2 & 4 \\ -1 & -5 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 3 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & -1 \end{bmatrix}, \quad \mathbf{D} = [0.5]$$
+2. A non-zero direct feedthrough $D = 0.5$ represents an instantaneous, algebraic transmission of control energy to the output terminal without passing through an integrator. While ideal physical mechanical and electrical systems with mass or inductance have $D = 0$, approximations or sensor-level proportional bypasses introduce non-zero $D$.
+3. Block diagram structural description:
+   * Two integrator blocks whose outputs are $x_1(t)$ and $x_2(t)$ and whose inputs are $\dot{x}_1(t)$ and $\dot{x}_2(t)$.
+   * Input $u(t)$ injects into $\dot{x}_1$ via gain $1$ and into $\dot{x}_2$ via gain $3$, while simultaneously feeding through directly to the output summer via gain $0.5$.
+   * State feedback loops: $x_1$ feeds back to $\dot{x}_1$ with gain $-2$ and to $\dot{x}_2$ with gain $-1$. $x_2$ feeds back to $\dot{x}_2$ with gain $-5$ and couples into $\dot{x}_1$ with gain $+4$.
+   * Output summing node combines $2x_1$, $-x_2$, and $0.5u$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-1-3" title="Exercise 1.3: Second-Order ODE to Phase-Variable Companion Form" level="LEVEL 1: INTERMEDIATE STEP">
+
+A physical system governed by Newton's law with viscous friction is described by:
+$$\ddot{y}(t) + 5\dot{y}(t) + 6 y(t) = 2 u(t)$$
+
+1. Choose phase canonical state variables $x_1(t) = y(t)$ and $x_2(t) = \dot{y}(t)$.
+2. Express $\dot{x}_1(t)$ in terms of $x_2(t)$.
+3. Express $\dot{x}_2(t)$ in terms of $x_1(t)$, $x_2(t)$, and $u(t)$.
+4. Construct the standard companion matrices $\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$. Notice how the coefficients of the ODE appear directly in the bottom row of $\mathbf{A}$.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Choosing phase canonical state variables:
+   $$x_1(t) = y(t), \quad x_2(t) = \dot{y}(t)$$
+2. The derivative of the first state is:
+   $$\dot{x}_1(t) = \dot{y}(t) = x_2(t)$$
+3. Differentiating $x_2(t)$ and solving the ODE for the highest derivative:
+   $$\dot{x}_2(t) = \ddot{y}(t) = -6 y(t) - 5\dot{y}(t) + 2u(t) = -6 x_1(t) - 5 x_2(t) + 2u(t)$$
+4. Writing in matrix form:
+   $$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + \begin{bmatrix} 0 \\ 2 \end{bmatrix} u(t)$$
+   $$y(t) = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + [0] u(t)$$
+   The bottom row of $\mathbf{A}$ contains the negated ODE coefficients $[-a_0, -a_1] = [-6, -5]$ in ascending derivative order.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-1-4" title="Exercise 1.4: Third-Order Companion Form Realization" level="LEVEL 2: EXAM BENCHMARK">
+
+A continuous-time dynamic process is described by the third-order scalar differential equation:
+$$\dddot{y}(t) + 6\ddot{y}(t) + 11\dot{y}(t) + 6 y(t) = 4 u(t)$$
+
+1. Select phase variables $x_1(t) = y(t)$, $x_2(t) = \dot{y}(t)$, and $x_3(t) = \ddot{y}(t)$ to transform the scalar ODE into a set of first-order differential equations.
+2. Formulate the Frobenius companion canonical state-space model:
+   $$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B} u(t), \quad y(t) = \mathbf{C}\mathbf{x}(t) + D u(t)$$
+3. Identify the state matrices $\mathbf{A} \in \mathbb{R}^{3 \times 3}$, $\mathbf{B} \in \mathbb{R}^{3 \times 1}$, $\mathbf{C} \in \mathbb{R}^{1 \times 3}$, and $D \in \mathbb{R}$.
+4. Verify the state dimension $n$ and explain why $D = 0$ for this physical system.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Choosing phase canonical state variables:
+   $$x_1(t) = y(t), \quad x_2(t) = \dot{y}(t), \quad x_3(t) = \ddot{y}(t)$$
+   Their time derivatives are:
+   $$\dot{x}_1(t) = x_2(t), \quad \dot{x}_2(t) = x_3(t)$$
+   $$\dot{x}_3(t) = \dddot{y}(t) = -6 y(t) - 11\dot{y}(t) - 6\ddot{y}(t) + 4u(t) = -6 x_1(t) - 11 x_2(t) - 6 x_3(t) + 4 u(t)$$
+2. Expressing in Frobenius companion canonical form:
+   $$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \\ \dot{x}_3(t) \end{bmatrix} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \end{bmatrix} + \begin{bmatrix} 0 \\ 0 \\ 4 \end{bmatrix} u(t)$$
+   $$y(t) = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \end{bmatrix} + [0] u(t)$$
+3. The extracted state matrices are:
+   $$\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 4 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}, \quad D = 0$$
+4. The system order is $n = 3$, equal to the order of the highest derivative in the ODE. The direct feedthrough scalar is $D = 0$ because $y(t) = x_1(t)$ depends purely on the integrator state, meaning the physical system has strictly proper dynamics (non-zero inertial delay) with zero instantaneous feedthrough.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-1-5" title="Exercise 1.5: Direct Linear Coordinate Rescaling" level="LEVEL 2: EXAM BENCHMARK">
+
+Consider the system from Exercise 1.1:
+$$\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 2 \\ -1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 4 \end{bmatrix}, \quad D = 0$$
+Suppose we rescale the state variables by changing units (e.g. from meters to millimeters for $x_1$, and radians to degrees for $x_2$) via the transformation $\mathbf{x} = \mathbf{T}\mathbf{z}$ where:
+$$\mathbf{T} = \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix}$$
+
+1. Invert $\mathbf{T}$ by inspection.
+2. Compute the transformed system matrices $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$.
+3. Verify that $\tilde{\mathbf{A}} = \mathbf{A}$. Explain why diagonal similarity transformations leave diagonal matrices invariant while re-weighting the input and output matrices.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. For any diagonal matrix, the inverse is obtained by inverting each diagonal entry:
+   $$\mathbf{T}^{-1} = \begin{bmatrix} 1/10 & 0 \\ 0 & 1/2 \end{bmatrix} = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix}$$
+2. Computing the transformed state matrices:
+   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix} \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} = \mathbf{A}$$
+   $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix} \begin{bmatrix} 2 \\ -1 \end{bmatrix} = \begin{bmatrix} 0.2 \\ -0.5 \end{bmatrix}$$
+   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 4 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} 10 & 8 \end{bmatrix}$$
+3. Because diagonal matrices commute under multiplication ($\mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \mathbf{T}^{-1}\mathbf{T}\mathbf{A} = \mathbf{A}$), diagonal coordinate rescaling preserves diagonal system matrices unchanged. However, rescaling state variables re-weights how input control effort is distributed into the state ($\tilde{\mathbf{B}}$) and how states are observed at the sensors ($\tilde{\mathbf{C}}$), leaving the input-output transmission product invariant ($\tilde{c}_1 \tilde{b}_1 = 10 \cdot 0.2 = 2 = c_1 b_1$).
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-1-6" title="Exercise 1.6: Mechanical Cart-Spring-Damper State-Space Formulation" level="LEVEL 2: EXAM BENCHMARK">
+
+Consider the horizontal mechanical system from [the figure](#fig-two-mass-system) with two carts of masses $m_1$ and $m_2$, a coupling spring of constant $k$, a wall damper of constant $B_1$, and external force $F(t) = u(t)$. Let $m_1 = 2\text{ kg}$, $m_2 = 1\text{ kg}$, $k = 4\text{ N/m}$, and $B_1 = 6\text{ N}\cdot\text{s/m}$.
+
+1. Formulate the dynamic state vector $\mathbf{x} = \begin{bmatrix} p_1 & \dot{p}_1 & p_2 & \dot{p}_2 \end{bmatrix}^T$.
+2. Substitute the physical parameters into the differential equations and write down the numerical matrices $\mathbf{A} \in \mathbb{R}^{4 \times 4}$ and $\mathbf{B} \in \mathbb{R}^{4 \times 1}$.
+3. Formulate the output vector matrix $\mathbf{C}$ when the measured sensor output is the velocity of cart 2 ($y(t) = \dot{p}_2(t)$).
+4. What is the value of the direct feedthrough scalar $D$? Justify your answer physically.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Defining the state vector with position and velocity coordinates:
+   $$\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \\ x_4(t) \end{bmatrix} = \begin{bmatrix} p_1(t) \\ \dot{p}_1(t) \\ p_2(t) \\ \dot{p}_2(t) \end{bmatrix}$$
+2. Substituting the numerical parameters $m_1 = 2$, $m_2 = 1$, $k = 4$, $B_1 = 6$:
+   $$\frac{k}{m_1} = \frac{4}{2} = 2, \quad \frac{B_1}{m_1} = \frac{6}{2} = 3, \quad \frac{1}{m_1} = 0.5$$
+   $$\frac{k}{m_2} = \frac{4}{1} = 4$$
+   The resulting linear first-order differential state equations are:
+   $$\dot{x}_1 = x_2$$
+   $$\dot{x}_2 = -2 x_1 - 3 x_2 + 2 x_3 + 0.5 u$$
+   $$\dot{x}_3 = x_4$$
+   $$\dot{x}_4 = 4 x_1 - 4 x_3$$
+   In matrix notation:
+   $$\mathbf{A} = \begin{bmatrix}
+   0 & 1 & 0 & 0 \\
+   -2 & -3 & 2 & 0 \\
+   0 & 0 & 0 & 1 \\
+   4 & 0 & -4 & 0
+   \end{bmatrix}, \quad
+   \mathbf{B} = \begin{bmatrix} 0 \\ 0.5 \\ 0 \\ 0 \end{bmatrix}$$
+3. For output $y(t) = \dot{p}_2(t) = x_4(t)$:
+   $$y(t) = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix} \mathbf{x}(t) \implies \mathbf{C} = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix}$$
+4. The direct transmission feedthrough scalar is $D = 0$. In translational mechanical bodies, applied forces directly produce finite accelerations through Newton's second law ($\ddot{p} = F/m$), while velocity and position require single and double time integrations. Consequently, applied input forces cannot cause an instantaneous finite step discontinuity in velocity, ensuring $D \equiv 0$.
+
+</details>
+
+</Exercise>

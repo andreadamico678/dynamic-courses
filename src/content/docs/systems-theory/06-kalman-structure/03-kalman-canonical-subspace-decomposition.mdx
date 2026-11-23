@@ -1,0 +1,149 @@
+---
+title: "22. Kalman Canonical Decomposition"
+description: "Linear Systems Theory — Chapter 22: Kalman Canonical Decomposition"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 22 Mental Model" markdown={`# Ch. 22: Kalman Canonical Decomposition
+  - The Four-Fold Structural Partitioning of State Space
+  - Canonical Block Matrix Representation
+  - Controllability-Only Kalman Canonical Form
+    - Step-by-Step Algorithm
+  - Observability-Only Kalman Canonical Form
+    - Step-by-Step Algorithm`} />
+
+<Callout type="note" title="Note">
+
+**Oral Exam Focus:** At the oral exam, professors expect you to reproduce the **4-subspace block diagram** ([the figure](#fig-kalman-decomposition)) and state clearly that the external transfer function depends **solely** on the controllable and observable subsystem: 
+$$W(s) = \mathbf{C}_{co}(s\mathbf{I} - \mathbf{A}_{co})^{-1}\mathbf{B}_{co}$$
+You do **not** need to manually compute the full 4-subspace coordinate transformation matrix $\mathbf{T} \in \mathbb{R}^{4 \times 4}$ on the blackboard. That calculation is purely a 30 e Lode written benchmark.
+
+</Callout>
+
+## The Four-Fold Structural Partitioning of State Space
+
+Rudolf Kalman proved a foundational structural theorem of linear systems theory: **any finite-dimensional linear time-invariant system can be decomposed via a coordinate basis transformation into four mutually exclusive, orthogonal dynamic subspaces** characterized by their controllability and observability properties.
+
+Consider the state-space system:
+$$\begin{cases}
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t) \\
+\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)
+\end{cases} \quad \mathbf{x} \in \mathbb{R}^n$$
+
+<Callout type="note" title="Definition: The Four Kalman Subspaces">
+
+The state space $\mathbb{R}^n$ is partitioned into the direct sum of four subspaces:
+$$\mathbb{R}^n = \mathcal{X}_{co} \oplus \mathcal{X}_{c\bar{o}} \oplus \mathcal{X}_{\bar{c}o} \oplus \mathcal{X}_{\bar{c}\bar{o}}$$
+1. $\mathcal{X}_{co}$: Controllable and Observable Subspace ($\operatorname{dim} = n_{co}$).
+2. $\mathcal{X}_{c\bar{o}}$: Controllable and Unobservable Subspace ($\operatorname{dim} = n_{c\bar{o}}$).
+3. $\mathcal{X}_{\bar{c}o}$: Uncontrollable and Observable Subspace ($\operatorname{dim} = n_{\bar{c}o}$).
+4. $\mathcal{X}_{\bar{c}\bar{o}}$: Uncontrollable and Unobservable Subspace ($\operatorname{dim} = n_{\bar{c}\bar{o}}$).
+
+</Callout>
+
+<figure id="fig-kalman-decomposition" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-kalman-decomposition.svg" alt="Information flow in the Kalman Canonical Decomposition. Inputs $u(t)$ can only excite controllable states ($\mathbf{x}_{co}, \mathbf{x}_{c\bar{o}}$); outputs $y(t)$ can only measure observable states ($\mathbf{x}_{co}, \mathbf{x}_{\bar{c}o}$). Only subsystem $\mathbf{x}_{co}$ participates in the input-output transfer function." />
+  <figcaption>Information flow in the Kalman Canonical Decomposition. Inputs $u(t)$ can only excite controllable states ($\mathbf{x}_{co}, \mathbf{x}_{c\bar{o}}$); outputs $y(t)$ can only measure observable states ($\mathbf{x}_{co}, \mathbf{x}_{\bar{c}o}$). Only subsystem $\mathbf{x}_{co}$ participates in the input-output transfer function.</figcaption>
+</figure>
+
+<Divider />
+
+## Canonical Block Matrix Representation
+
+Under a similarity transformation $\mathbf{x} = \mathbf{T}\mathbf{z}$ with transformation matrix formed by grouping basis vectors of each subspace:
+$$\mathbf{T} = \begin{bmatrix} \mathbf{T}_{co} & \mathbf{T}_{c\bar{o}} & \mathbf{T}_{\bar{c}o} & \mathbf{T}_{\bar{c}\bar{o}} \end{bmatrix}$$
+the transformed state-space matrices $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$ adopt the exact canonical block triangular structure:
+
+$$\hat{\mathbf{A}} = \begin{bmatrix}
+\mathbf{A}_{co} & \mathbf{0} & \mathbf{A}_{13} & \mathbf{0} \\
+\mathbf{A}_{21} & \mathbf{A}_{c\bar{o}} & \mathbf{A}_{23} & \mathbf{A}_{24} \\
+\mathbf{0} & \mathbf{0} & \mathbf{A}_{\bar{c}o} & \mathbf{0} \\
+\mathbf{0} & \mathbf{0} & \mathbf{A}_{43} & \mathbf{A}_{\bar{c}\bar{o}}
+\end{bmatrix}, \quad
+\hat{\mathbf{B}} = \begin{bmatrix} \mathbf{B}_{co} \\ \mathbf{B}_{c\bar{o}} \\ \mathbf{0} \\ \mathbf{0} \end{bmatrix}, \quad
+\hat{\mathbf{C}} = \begin{bmatrix} \mathbf{C}_{co} & \mathbf{0} & \mathbf{C}_{\bar{c}o} & \mathbf{0} \end{bmatrix}$$
+
+<Callout type="tip" title="Fundamental Structural Invariants of the Kalman Form">
+
+1. **The Uncontrollable Zero Block in $\hat{\mathbf{B}}$:**
+   The bottom blocks of $\hat{\mathbf{B}}$ are identically zero ($\mathbf{0}$). No actuator signal can enter the dynamics of $\mathbf{z}_{\bar{c}o}$ or $\mathbf{z}_{\bar{c}\bar{o}}$.
+2. **The Unobservable Zero Block in $\hat{\mathbf{C}}$:**
+   The second and fourth block columns of $\hat{\mathbf{C}}$ are identically zero ($\mathbf{0}$). States $\mathbf{z}_{c\bar{o}}$ and $\mathbf{z}_{\bar{c}\bar{o}}$ have zero projection into sensor measurements.
+3. **The Transfer Function Invariant:**
+   Evaluating the input-output transfer function $W(s) = \hat{\mathbf{C}}(s\mathbf{I} - \hat{\mathbf{A}})^{-1}\hat{\mathbf{B}} + \mathbf{D}$:
+   $$\boxed{W(s) = \mathbf{C}_{co}(s\mathbf{I} - \mathbf{A}_{co})^{-1}\mathbf{B}_{co} + \mathbf{D}}$$
+   **Subsystems 2, 3, and 4 vanish completely from the input-output transfer function.**
+   The transfer function represents solely the controllable and observable core $\mathcal{X}_{co}$.
+4. **Minimal Realization:**
+   A state-space realization $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ is minimal (has smallest possible state dimension $n = n_{\text{McMillan}}$) if and only if:
+   $$n = n_{co} \iff \text{Pair } (\mathbf{A}, \mathbf{B}) \text{ is controllable AND } (\mathbf{A}, \mathbf{C}) \text{ is observable}$$
+
+</Callout>
+
+<Divider />
+
+## Controllability-Only Kalman Canonical Form
+
+In exam problems, students are most frequently required to perform a **controllability decomposition** into two blocks: controllable states $\mathbf{x}_c \in \mathbb{R}^{r_c}$ and uncontrollable states $\mathbf{x}_{\bar{c}} \in \mathbb{R}^{n - r_c}$, where $r_c = \operatorname{rank}(\mathcal{R}) < n$.
+
+### Step-by-Step Algorithm
+1. Compute the Kalman controllability matrix:
+   $$\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$$
+2. Select $r_c = \operatorname{rank}(\mathcal{R})$ linearly independent columns of $\mathcal{R}$ to form the basis matrix:
+   $$\mathbf{T}_c \in \mathbb{R}^{n \times r_c}$$
+3. Choose $(n - r_c)$ linearly independent column vectors $\mathbf{T}_{\bar{c}} \in \mathbb{R}^{n \times (n - r_c)}$ such that the full matrix $\mathbf{T}$ is invertible:
+   $$\mathbf{T} = \begin{bmatrix} \mathbf{T}_c & \mathbf{T}_{\bar{c}} \end{bmatrix}, \quad \det(\mathbf{T}) \neq 0$$
+   *(Tip: Use standard basis vectors $\mathbf{e}_k$ from the identity matrix).*
+4. Compute the transformation inverse $\mathbf{T}^{-1}$ and evaluate:
+   $$\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \begin{bmatrix} \mathbf{A}_c & \mathbf{A}_{12} \\ \mathbf{0} & \mathbf{A}_{\bar{c}} \end{bmatrix}, \quad \hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} \mathbf{B}_c \\ \mathbf{0} \end{bmatrix}$$
+
+The bottom block row of $\hat{\mathbf{A}}$ is guaranteed to be zero ($\mathbf{0}$) because the controllable subspace $\mathcal{X}_c = \operatorname{Im}(\mathbf{T}_c)$ is $\mathbf{A}$-invariant ($\mathbf{A} \mathcal{X}_c \subseteq \mathcal{X}_c$).
+
+<Divider />
+
+## Observability-Only Kalman Canonical Form
+
+Dually, if $\operatorname{rank}(\mathcal{O}) = r_o < n$, the state space can be decomposed into an unobservable block $\mathbf{x}_{\bar{o}} \in \mathbb{R}^{n - r_o}$ and an observable block $\mathbf{x}_o \in \mathbb{R}^{r_o}$.
+
+### Step-by-Step Algorithm
+1. Compute the unobservable subspace basis vectors by solving:
+   $$\mathcal{O} \mathbf{v} = \mathbf{0} \implies \mathbf{T}_{\bar{o}} \in \mathbb{R}^{n \times (n - r_o)}$$
+2. Complete the basis by choosing $r_o$ independent vectors $\mathbf{T}_o$:
+   $$\mathbf{T} = \begin{bmatrix} \mathbf{T}_o & \mathbf{T}_{\bar{o}} \end{bmatrix}, \quad \det(\mathbf{T}) \neq 0$$
+3. Transforming yields:
+   $$\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \begin{bmatrix} \mathbf{A}_o & \mathbf{0} \\ \mathbf{A}_{21} & \mathbf{A}_{\bar{o}} \end{bmatrix}, \quad \hat{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} \mathbf{C}_o & \mathbf{0} \end{bmatrix}$$
+
+<Callout type="bridge" title="SDU Robotics Bridge: Flexible Joint Dynamics vs. End-Effector Vision">
+
+In high-precision collaborative robotics (e.g., Universal Robots arms researched in SDU robotic automation laboratories), joint gearboxes exhibit torsional elasticity. The true dynamic model includes motor angles $\boldsymbol{\theta}_m$ and joint link angles $\boldsymbol{q}$, coupled through spring-damper compliance.
+If an external camera (e.g., an OptiTrack motion capture system mounted in the lab) measures only the end-effector tool position $\mathbf{y} = \mathbf{f}(\boldsymbol{q})$, the internal high-frequency torsional oscillations between motor and link lie within the unobservable subspace $\mathcal{X}_{c\bar{o}}$ or $\mathcal{X}_{\bar{c}\bar{o}}$.
+The camera-to-tool transfer function $W(s) = \mathbf{C}_{co}(s\mathbf{I} - \mathbf{A}_{co})^{-1}\mathbf{B}_{co}$ looks completely smooth and decoupled. However, because the unobservable flexible mode is hidden from the vision feedback, commanding fast movements excites persistent, invisible mechanical vibration that wears out the gears. Kalman decomposition proves that visual servoing alone is mathematically insufficient: internal motor shaft encoders must be added to make all flexible modes observable.
+
+</Callout>
+
+<Divider />
+
+### Exercise 22.1: Controllability Kalman Decomposition [LEVEL 1: WARM-UP DRILL]
+Given the continuous-time state-space system:
+$$\mathbf{A} = \begin{bmatrix} 1 & 2 \\ 0 & 3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 1 \end{bmatrix}$$
+
+1. Compute the Kalman controllability matrix $\mathcal{M}_c$ and determine its rank $r_c$.
+2. Choose a basis vector $\mathbf{t}_1 \in \operatorname{Im}(\mathcal{M}_c)$ and complete the basis with an independent vector $\mathbf{t}_2$ to construct $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$. Compute $\mathbf{T}^{-1}$.
+3. Calculate the transformed matrices $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ and $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$.
+4. Verify the block-triangular structure $\hat{\mathbf{A}} = \begin{bmatrix} A_c & A_{12} \\ 0 & A_{\bar{c}} \end{bmatrix}$ and identify the uncontrollable eigenvalue mode.
+
+### Exercise 22.2: Observability Kalman Decomposition and Transfer Function Minimality [LEVEL 2: EXAM BENCHMARK]
+Given the state-space model:
+$$\mathbf{A} = \begin{bmatrix} 2 & 0 \\ 1 & -1 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
+
+1. Compute the Kalman observability matrix $\mathcal{M}_o$ and verify that $\operatorname{rank}(\mathcal{M}_o) = 1$.
+2. Determine the unobservable subspace $\mathcal{X}_{\bar{o}} = \ker(\mathcal{M}_o)$ and select basis vector $\mathbf{t}_2 \in \ker(\mathcal{M}_o)$. Choose $\mathbf{t}_1$ to complete the basis, forming $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$.
+3. Compute $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$.
+4. Compute the transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$ directly and from the observable subsystem $(\hat{A}_o, \hat{B}_o, \hat{C}_o)$. Explain why the eigenvalue mode $\lambda = -1$ is absent from $W(s)$.

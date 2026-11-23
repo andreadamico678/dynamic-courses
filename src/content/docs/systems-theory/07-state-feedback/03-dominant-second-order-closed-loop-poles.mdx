@@ -1,0 +1,137 @@
+---
+title: "26. Dominant Closed-Loop Dynamics"
+description: "Linear Systems Theory — Chapter 26: Dominant Closed-Loop Dynamics"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 26 Mental Model" markdown={`# Ch. 26: Dominant Closed-Loop Dynamics
+  - Second-Order Dynamic Specifications
+    - Transient Metrics
+  - The Rule of Five (Pole Separation Ratio)
+    - Time-Domain Justification
+  - The Danger of Excessive Pole Separation`} />
+
+While state feedback enables the arbitrary placement of all $n$ closed-loop eigenvalues in any controllable system, arbitrary placement does not mean arbitrary choice. In high-order systems ($n \ge 3$), choosing all $n$ pole locations independently without a physical guiding principle often results in erratic step responses, unexpected oscillations, or severe actuator saturation.
+
+The **Dominant Pole Principle** solves this design challenge by mapping transient time-domain performance specifications (such as settling time $T_s$, peak overshoot $\hat{s}$, and damping ratio $\zeta$) onto a primary complex conjugate pair of **dominant second-order poles**, while placing the remaining $n-2$ poles sufficiently far to the left in the complex plane that their transient modes decay almost instantaneously.
+
+<Divider />
+
+## Second-Order Dynamic Specifications
+
+Consider the standard second-order prototype transfer function:
+$$W_2(s) = \frac{\omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2}$$
+where $\zeta$ is the damping ratio and $\omega_n$ is the undamped natural frequency.
+
+For an underdamped system ($0 < \zeta < 1$), the characteristic roots form a complex conjugate pair:
+$$\mu_{1,2} = -\zeta\omega_n \pm j\omega_n\sqrt{1 - \zeta^2} = -\sigma \pm j\omega_d$$
+where $\sigma = \zeta\omega_n$ is the exponential decay rate and $\omega_d = \omega_n\sqrt{1 - \zeta^2}$ is the damped natural oscillation frequency.
+
+<figure id="fig-s-plane-dominant-poles" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-s-plane-dominant-poles.svg" alt="Complex $s$-plane partition under the Dominant Pole Principle. The dominant pair dictates the transient envelope, overshoot, and settling time; the non-dominant poles are relegated to the deep left-half plane ($\operatorname{Re}(s) \le -5\sigma$)." />
+  <figcaption>Complex $s$-plane partition under the Dominant Pole Principle. The dominant pair dictates the transient envelope, overshoot, and settling time; the non-dominant poles are relegated to the deep left-half plane ($\operatorname{Re}(s) \le -5\sigma$).</figcaption>
+</figure>
+
+### Transient Metrics
+1. **Maximum Percent Overshoot ($\hat{s}$):**
+   The peak overshoot of the step response depends strictly on the damping ratio $\zeta$:
+   $$\hat{s} = e^{-\frac{\pi\zeta}{\sqrt{1 - \zeta^2}}} \iff \zeta = \frac{|\ln \hat{s}|}{\sqrt{\pi^2 + \ln^2 \hat{s}}}$$
+   * Common benchmark: $\hat{s} \le 10\% \implies \zeta \ge 0.59 \approx 0.6$.
+   * Critical damping: $\hat{s} = 0 \implies \zeta \ge 1$.
+
+2. **Settling Time ($T_s$ or $T_a$):**
+   The envelope of the damped oscillation decays as $e^{-\zeta\omega_n t}$.
+   * **$5\%$ settling criterion:** $e^{-\zeta\omega_n T_{s,5\%}} = 0.05 \implies T_{s,5\%} \approx \frac{3}{\zeta\omega_n} = \frac{3}{\sigma}$.
+   * **$2\%$ settling criterion:** $e^{-\zeta\omega_n T_{s,2\%}} = 0.02 \implies T_{s,2\%} \approx \frac{4}{\zeta\omega_n} = \frac{4}{\sigma}$.
+
+3. **Peak Time ($T_p$):**
+   The time required to reach the first maximum overshoot:
+   $$T_p = \frac{\pi}{\omega_d} = \frac{\pi}{\omega_n\sqrt{1 - \zeta^2}}$$
+
+<Divider />
+
+## The Rule of Five (Pole Separation Ratio)
+
+When placing poles for an $n$-th order system ($n \ge 3$):
+1. **Synthesize the dominant pair:**
+   Determine $\sigma = \zeta\omega_n$ and $\omega_d$ from the required $T_s$ and $\hat{s}$:
+   $$\mu_{1,2} = -\sigma \pm j\omega_d$$
+2. **Assign the remaining $n-2$ auxiliary poles:**
+   Place each non-dominant pole $\mu_k$ ($k = 3, \dots, n$) such that its real part is at least $5$ times further into the left-half plane than the dominant real part:
+   $$\operatorname{Re}(\mu_k) \le -5 \sigma = -5 \zeta\omega_n \quad (k = 3, \dots, n)$$
+
+### Time-Domain Justification
+The free or forced time-domain response consists of a linear combination of exponential modes:
+$$y(t) = c_1 e^{-\sigma t} \cos(\omega_d t + \phi) + \sum_{k=3}^n c_k e^{\mu_k t}$$
+
+If $\mu_k = -5\sigma$, its time constant is:
+$$\tau_k = \frac{1}{|\mu_k|} = \frac{1}{5\sigma} = \frac{\tau_{\text{dominant}}}{5}$$
+By the time the dominant mode has progressed through just $20\%$ of its transient, the auxiliary mode has already decayed by:
+$$e^{-5} \approx 0.0067 \quad (< 0.7\% \text{ of its initial value})$$
+Hence, the non-dominant modes vanish before the peak overshoot occurs, ensuring the output $y(t)$ matches the standard 2nd-order step response with exceptional fidelity.
+
+<Divider />
+
+## The Danger of Excessive Pole Separation
+
+While placing auxiliary poles far to the left ensures ideal second-order dynamics, pushing them arbitrarily far ($\ge 20\sigma$) introduces severe physical failure modes:
+
+1. **Actuator High-Gain Saturation:**
+   The feedback gain vector $\mathbf{K}$ scales with the product of the pole locations ($\alpha_0 = \prod |\mu_i|$). Setting auxiliary poles to $-100$ or $-500$ demands enormous gains, driving control actuators into immediate saturation.
+2. **Sensor Noise Amplification:**
+   High state feedback gains multiply high-frequency measurement noise from gyroscopes, encoders, or current sensors, causing rapid actuator chattering and severe mechanical fatigue.
+3. **Excitation of Unmodeled High-Frequency Dynamics:**
+   Every physical structure has high-frequency parasitic dynamics (structural flexure, motor coil delays, digital sampler delays). Pushing closed-loop poles near these unmodeled frequencies triggers closed-loop instability.
+
+<Callout type="tip" title="Balanced Engineering Rule">
+
+Keep auxiliary poles in the **balanced band**:
+$$3 \zeta\omega_n \le |\operatorname{Re}(\mu_k)| \le 6 \zeta\omega_n$$
+This provides complete modal decoupling without triggering actuator saturation or noise amplification.
+
+</Callout>
+
+<Divider />
+
+<Callout type="bridge" title="SDU Robotics Bridge: Drone Attitude Rate and Angle Inner-Outer Loops">
+
+In the PX4 autopilot attitude control architecture, the quadrotor rotational dynamics are 3rd-order per axis:
+$$\frac{\Theta(s)}{U(s)} = \frac{K_{\text{motor}}}{s(s + \frac{1}{\tau_m})(s + \frac{1}{\tau_e})}$$
+where $\Theta$ is the roll/pitch angle, $\tau_m \approx 30\text{ ms}$ is the ESC motor time constant, and $\tau_e$ is the sensor filter delay.
+
+To ensure rapid tracking without overshoot when navigating through tight inspection corridors, the flight control software assigns:
+* Dominant pair: $\mu_{1,2} = -\zeta\omega_n \pm j\omega_d$ with $\zeta = 0.707$ and $\omega_n = 15\text{ rad/s}$ ($\sigma \approx 10.6$).
+* Auxiliary motor pole: $\mu_3 = -55\text{ rad/s} \approx -5.2\sigma$.
+This guarantees that propeller thrust transients settle within $20\text{ ms}$, leaving the drone's spatial attitude tracking governed purely by the well-behaved 2nd-order dominant dynamics.
+
+</Callout>
+
+<Divider />
+
+### Exercise 26.1: Transient Step Specifications to Dominant Complex Poles [LEVEL 1: WARM-UP DRILL]
+A control system must satisfy the following time-domain step response specifications:
+* Peak overshoot: $\hat{s} \le 5\%$ ($\hat{s} \le 0.05$).
+* Settling time ($5\%$ criterion): $T_{s,5\%} \le 0.6\text{ s}$.
+
+1. Calculate the minimum damping ratio $\zeta$ required to meet the overshoot specification using the exact formula $\zeta = \frac{|\ln \hat{s}|}{\sqrt{\pi^2 + \ln^2 \hat{s}}}$.
+2. Using the settling time relationship $T_{s,5\%} \approx \frac{3}{\zeta\omega_n}$, calculate the required real-part decay rate $\sigma = \zeta\omega_n$ and natural frequency $\omega_n$.
+3. Compute the damped natural frequency $\omega_d = \omega_n \sqrt{1 - \zeta^2}$ and state the dominant complex conjugate pole pair $\mu_{1,2} = -\sigma \pm j\omega_d$.
+4. Write out the monic second-order dominant polynomial factor $p_{\text{dom}}^*(s) = s^2 + 2\zeta\omega_n s + \omega_n^2$.
+
+### Exercise 26.2: Third-Order State Feedback Synthesis with Auxiliary Pole Placement [LEVEL 2: EXAM BENCHMARK]
+A third-order positioning system in controllable companion canonical form:
+$$\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$$
+is to be stabilized with state feedback $\mathbf{u} = -\mathbf{K}\mathbf{x}$.
+Transient design specifications dictate dominant poles with damping ratio $\zeta = 0.6$ and natural frequency $\omega_n = 5\text{ rad/s}$.
+
+1. Determine the dominant closed-loop pole locations $\mu_{1,2}$ and form the dominant quadratic factor $s^2 + 2\zeta\omega_n s + \omega_n^2$.
+2. Using the standard 5-times separation rule $|\operatorname{Re}(\mu_3)| = 5 \zeta\omega_n$, select the real auxiliary pole $\mu_3$.
+3. Form the full third-order target polynomial $p^*(s) = (s - \mu_3)(s^2 + 2\zeta\omega_n s + \omega_n^2)$ and find its coefficients $\alpha_0, \alpha_1, \alpha_2$.
+4. Compute the state feedback gain vector $\mathbf{K} = \begin{bmatrix} k_0 & k_1 & k_2 \end{bmatrix}$ via coefficient matching.

@@ -1,0 +1,230 @@
+---
+title: "12. Non-Idealità dell'Op-Amp Reale"
+description: "Elettronica — Capitolo 12: Non-Idealità dell'Op-Amp Reale"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 12" markdown={`# Cap. 12: Non-Idealità dell'Op-Amp Reale
+  - 1 · Intuizione Fisica
+  - 2 · Definizione e Dimostrazione (Orale)
+    - Guadagno Finito ad Anello Aperto ed Errore Statico di Guadagno
+    - Parametri DC: Tensione di Offset e Correnti di Polarizzazione
+    - Tecnica di Compensazione Resistiva delle Correnti di Polarizzazione ($R_3 = R_1 \parallel R_2$)
+    - Risposta in Frequenza e il Prodotto Guadagno-Banda ($GBW$)
+    - Comportamento Non Lineare a Grande Segnale: Slew-Rate e Frequenza di Piena Potenza
+  - 3 · Algoritmo Operativo (Esercizi)
+  - 4 · Archetipo Svolto ed Esercizi`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+
+
+<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+
+## Guadagno Finito ad Anello Aperto ed Errore Statico di Guadagno
+
+Negli amplificatori operazionali reali integrati, il guadagno differenziale ad anello aperto $A_0$ è molto elevato ma finito, compreso tipicamente tra $10^4$ e $10^6\,\text{V/V}$ ($80\text{--}120\,\text{dB}$).
+
+### Configurazione Non Invertente con $A_0 < \infty$
+Consideriamo la configurazione non invertente con rete di retroazione $R_1 - R_2$. Il potenziale al morsetto invertente vale per partizione:
+$$ v^- = v_o \frac{R_1}{R_1 + R_2} = \beta v_o $$
+dove $\beta = \frac{R_1}{R_1 + R_2}$ è il **fattore di retroazione**.
+
+Poiché $A_0$ non è infinito, la tensione differenziale $v_{id} = v^+ - v^-$ vale $v_o / A_0$ anziché zero:
+$$ v_o = A_0 (v^+ - v^-) = A_0 (v_{in} - \beta v_o) $$
+
+Riorganizzando i termini:
+$$ v_o (1 + A_0 \beta) = A_0 v_{in} \implies A_v = \frac{v_o}{v_{in}} = \frac{A_0}{1 + A_0 \beta} = \frac{1 + \frac{R_2}{R_1}}{1 + \frac{1 + R_2/R_1}{A_0}} $$
+
+### Configurazione Invertente con $A_0 < \infty$
+Nella configurazione invertente il morsetto non invertente è a massa ($v^+ = 0$), per cui $v^- = -v_o / A_0$. Applicando la KCL al nodo invertente ($i^- = 0$):
+$$ \frac{v_{in} - v^-}{R_1} = \frac{v^- - v_o}{R_2} \implies v^- = v_{in}\frac{R_2}{R_1 + R_2} + v_o\frac{R_1}{R_1 + R_2} $$
+Sostituendo $v^- = -v_o / A_0$ e risolvendo per il guadagno ad anello chiuso $A_v = v_o / v_{in}$:
+$$ A_v = \frac{v_o}{v_{in}} = -\frac{R_2 / R_1}{1 + \frac{1 + R_2/R_1}{A_0}} = -\frac{R_2 / R_1}{1 + \frac{1}{A_0 \beta}} $$
+dove compare al denominatore il medesimo fattore correttivo $1 + \frac{1}{A_0 \beta}$ con $\beta = \frac{R_1}{R_1 + R_2}$.
+
+### Calcolo dell'Errore di Guadagno
+Se il guadagno d'anello è sufficientemente elevato ($T = A_0 \beta \gg 1$), sviluppando in serie:
+$$ A_v \approx A_{v,ideale} \left( 1 - \frac{1}{A_0 \beta} \right) = A_{v,ideale} (1 - \epsilon) $$
+L'**errore percentuale di guadagno statico** vale:
+$$ \epsilon = \frac{A_{v,ideale} - A_v}{A_{v,ideale}} \approx \frac{1}{A_0 \beta} = \frac{1}{T} $$
+
+Per un Op-Amp con $A_0 = 10^4$ configurato per un guadagno nominale $A_{v,ideale} = 100$ ($\beta = 1/100$):
+$$ T = 10^4 \times 0.01 = 100 \implies \epsilon = \frac{1}{100} = 1\% $$
+Il guadagno effettivo vale $A_v = 99.01\,\text{V/V}$.
+
+## Parametri DC: Tensione di Offset e Correnti di Polarizzazione
+
+A causa di inevitabili asimmetrie geometriche microscopiche e disadattamenti di drogaggio tra i due transistori che costituiscono la coppia differenziale d'ingresso dell'Op-Amp, il circuito presenta errori continui intrinseci.
+
+### 1. Tensione di Offset d'Ingresso ($V_{OS}$)
+Se cortocircuitiamo i due ingressi a massa ($v^+ = v^- = 0$), l'uscita reale non è zero ma assume un valore continuo diverso da zero.
+Definiamo la **tensione di offset d'ingresso ($V_{OS}$)** come la tensione continua che occorre applicare tra i morsetti d'ingresso per azzerare l'uscita. Essa viene modellata come una piccola batteria DC ideale di valore $V_{OS}$ (tipicamente da $0.5\,\text{mV}$ a $5\,\text{mV}$ per BJT, e fino a $10\,\text{mV}$ per CMOS convenzionali) collegata in serie a uno dei morsetti d'ingresso.
+
+In qualsiasi configurazione (sia invertente che non invertente), applicando il generatore $V_{OS}$ al morsetto non invertente, la tensione di errore che si manifesta sull'uscita vale:
+$$ V_{o,OS} = \left( 1 + \frac{R_2}{R_1} \right) V_{OS} $$
+
+L'offset viene amplificato del **guadagno di rumore (noise gain)** $A_n = 1 + R_2 / R_1$.
+
+### 2. Correnti di Polarizzazione ($I_B$) e Corrente di Offset ($I_{OS}$)
+Affinché i transistori d'ingresso conducano, le loro porte devono assorbire correnti continue di bias:
+* $I_{B1}$: corrente continua entrante nel morsetto non invertente ($+$).
+* $I_{B2}$: corrente continua entrante nel morsetto invertente ($-$).
+
+Definiamo:
+* **Corrente di polarizzazione d'ingresso (Input Bias Current):**
+  $$ I_B = \frac{I_{B1} + I_{B2}}{2} $$
+  (tipicamente $10\div 100\,\text{nA}$ per BJT, e inferiore a $1\,\text{pA}$ per ingressi MOSFET).
+* **Corrente di offset d'ingresso (Input Offset Current):**
+  $$ I_{OS} = |I_{B1} - I_{B2}| $$
+  (tipicamente il $5\%\div 20\%$ di $I_B$).
+
+<figure id="fig-opamp-bias-compensation" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-opamp-bias-compensation.svg" alt="Circuito per la compensazione degli errori indotti dalle correnti di polarizzazione mediante il resistore R_3 = R_1 ∥ R_2." />
+  <figcaption>Circuito per la compensazione degli errori indotti dalle correnti di polarizzazione mediante il resistore $R_3 = R_1 \parallel R_2$.</figcaption>
+</figure>
+
+## Tecnica di Compensazione Resistiva delle Correnti di Polarizzazione ($R_3 = R_1 \parallel R_2$)
+
+Consideriamo la configurazione invertente (o non invertente) con ingresso a massa ($v_{in} = 0$): le correnti di bias $I_{B1}, I_{B2}$ attraversano la rete resistiva producendo un errore di tensione continua in uscita. Inserendo un resistore di compensazione $R_3$ sul morsetto non invertente scelto pari al **parallelo delle resistenze viste dal morsetto invertente** ([la figura](#fig-opamp-bias-compensation)):
+$$ R_3 = R_1 \parallel R_2 = \frac{R_1 R_2}{R_1 + R_2} $$
+la caduta di tensione prodotta da $I_B$ sui due ingressi si bilancia esattamente per modo comune, riducendo l'errore d'uscita al solo contributo della minuscola corrente di offset $I_{OS} = |I_{B1} - I_{B2}|$:
+$$ v_{o,residuo} = \pm R_2 I_{OS} $$
+
+### Dimostrazione Matematica: Derivazione della Condizione $R_3 = R_1 \parallel R_2$
+
+Facendo riferimento a [la figura](#fig-opamp-bias-compensation) con $v_{in} = 0$:
+1. **Potenziale al morsetto non invertente ($v^+$):** La corrente $I_{B1}$ fluisce attraverso $R_3$ verso l'Op-Amp, generando $v^+ = -R_3 I_{B1}$.
+2. **Potenziale al morsetto invertente ($v^-$):** Per il corto circuito virtuale, $v^- = v^+ = -R_3 I_{B1}$.
+3. **KCL al nodo invertente:**
+   $$ \frac{v^-}{R_1} + \frac{v^- - v_o}{R_2} + I_{B2} = 0 \implies v_o = R_2 I_{B2} + v^- \left( 1 + \frac{R_2}{R_1} \right) = R_2 I_{B2} - R_3 I_{B1} \left( \frac{R_1 + R_2}{R_1} \right) $$
+4. **Condizione di annullamento per $I_{B1} = I_{B2} = I_B$:**
+   $$ v_o = I_B \left[ R_2 - R_3 \left( \frac{R_1 + R_2}{R_1} \right) \right] = 0 \implies R_3 = \frac{R_1 R_2}{R_1 + R_2} = R_1 \parallel R_2 $$
+   Sostituendo $R_3 = R_1 \parallel R_2$ nel caso generale con $I_{B1} \ne I_{B2}$, risulta $v_o = R_2 (I_{B2} - I_{B1}) = \pm R_2 I_{OS}$.
+
+<Callout type="tip" title="Realtà dei Componenti: Op-Amp a Ingresso BJT vs Op-Amp a Ingresso CMOS">
+
+Questa tecnica del resistore $R_3 = R_1 \parallel R_2$ nasce storicamente per gli amplificatori operazionali a **transistori bipolari (BJT)**, le cui basi assorbono correnti $I_B$ significative (decine o centinaia di nanoampere) ma molto ben accoppiate tra loro. Negli amplificatori operazionali moderni con **stadio d'ingresso MOSFET (CMOS)**, il Gate è isolato dall'ossido e la corrente $I_B$ è inferiore al picoampere (dovuta solo alle correnti di perdita dei diodi di protezione ESD): in quel caso la caduta su resistenze di qualche decina di $\text{k}\Omega$ è talmente irrisoria che aggiungere $R_3$ non porta alcun beneficio pratico, anzi peggiora il rumore termico e occupa spazio inutile sulla scheda.
+
+</Callout>
+
+## Risposta in Frequenza e il Prodotto Guadagno-Banda ($GBW$)
+
+Negli Op-Amp con compensazione interna, la stabilità dell'anello di retroazione viene garantita introducendo un condensatore di Miller integrato che crea un **polo dominante** a bassissima frequenza ($f_b \approx 5\div 10\,\text{Hz}$).
+
+La funzione di trasferimento ad anello aperto nel dominio di Laplace vale:
+$$ A(s) = \frac{A_0}{1 + \frac{s}{\omega_b}} $$
+dove $\omega_b = 2\pi f_b$ è la frequenza di taglio ad anello aperto.
+
+Per frequenze ben superiori al polo dominante ($\omega \gg \omega_b$):
+$$ A(j\omega) \approx \frac{A_0}{j\omega / \omega_b} = \frac{A_0 \omega_b}{j\omega} = \frac{\omega_T}{j\omega} $$
+
+La frequenza angolare $\omega_T$ a cui il guadagno scende a $1$ ($0\text{ dB}$) vale:
+$$ \omega_T = A_0 \cdot \omega_b \implies f_T = A_0 \cdot f_b = GBW $$
+dove $GBW$ è il **Prodotto Guadagno-Banda (Gain-Bandwidth Product)**, una costante intrinseca fondamentale del componente.
+
+<figure id="fig-opamp-bode" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-opamp-bode.svg" alt="Diagramma di Bode dell'Op-Amp che illustra il trade-off guadagno-banda costante (GBW)." />
+  <figcaption>Diagramma di Bode dell'Op-Amp che illustra il trade-off guadagno-banda costante ($GBW$).</figcaption>
+</figure>
+
+### Risposta ad Anello Chiuso e Trade-Off Guadagno-Banda
+Inserendo l'Op-Amp in una retroazione con fattore $\beta$, la funzione di trasferimento ad anello chiuso diventa ([la figura](#fig-opamp-bode)):
+$$ A_f(s) = \frac{A(s)}{1 + \beta A(s)} = \frac{\frac{A_0}{1 + s/\omega_b}}{1 + \beta \frac{A_0}{1 + s/\omega_b}} = \frac{A_0}{(1 + A_0 \beta) + \frac{s}{\omega_b}} = \frac{\frac{A_0}{1 + A_0 \beta}}{1 + \frac{s}{\omega_b (1 + A_0 \beta)}} $$
+
+Esplicitando i parametri:
+* **Guadagno ad anello chiuso in continua:**
+  $$ A_{f0} = \frac{A_0}{1 + A_0 \beta} \approx \frac{1}{\beta} = 1 + \frac{R_2}{R_1} $$
+* **Nuova frequenza di taglio a $-3\text{ dB}$ ad anello chiuso:**
+  $$ f_{3dB} = f_b (1 + A_0 \beta) \approx f_b (A_0 \beta) = (A_0 f_b) \beta = f_T \cdot \beta $$
+
+Poiché $\beta = \frac{1}{A_{f0}}$:
+$$ A_{f0} \cdot f_{3dB} = f_T = GBW = \text{costante} $$
+
+Questo è il ferreo **trade-off Guadagno-Banda**: raddoppiare il guadagno di tensione ad anello chiuso dimezza istantaneamente la banda passante del circuito.
+
+## Comportamento Non Lineare a Grande Segnale: Slew-Rate e Frequenza di Piena Potenza
+
+Quando all'ingresso viene applicato un segnale rapido di grande ampiezza (es. un'onda quadra di ampiezza $> 0.5\text{ V}$), l'Op-Amp non opera più in regime lineare a piccolo segnale.
+
+### Definizione Fisica dello Slew-Rate
+Lo **Slew-Rate ($SR$)** è definito come la massima velocità di variazione temporale possibile della tensione di uscita:
+$$ SR = \max \left| \frac{dv_o(t)}{dt} \right| \quad [\text{V/}\mu\text{s}] $$
+
+Il limite di Slew-Rate ha origine nella massima corrente finita $I_{\max}$ che gli stadi interni dell'operazionale possono erogare per caricare o scaricare il condensatore di compensazione interno $C_c$:
+$$ \left| \frac{dv_o}{dt} \right|_{\max} = \frac{I_{\max}}{C_c} = SR $$
+Applicando in ingresso un gradino di tensione di grande ampiezza, l'uscita non compie una transizione esponenziale del primo ordine (governata da $f_{3dB}$), bensì evolve secondo una **rampa lineare** a pendenza costante pari a $\pm SR$.
+
+### Distorsione da Slew-Rate e Frequenza di Piena Potenza ($f_M$)
+Consideriamo un segnale sinusoidale puro di picco $V_p$ ad alta frequenza:
+$$ v_o(t) = V_p \sin(\omega t) $$
+
+La derivata temporale vale:
+$$ \frac{dv_o(t)}{dt} = \omega V_p \cos(\omega t) $$
+Il massimo tasso di variazione si verifica al passaggio per lo zero ($t = 0$):
+$$ \left. \frac{dv_o}{dt} \right|_{max} = \omega V_p = 2\pi f V_p $$
+
+Affinché la sinusoide non venga deformata in una forma d'onda triangolare distorta per effetto dello Slew-Rate, la pendenza deve rimanere entro il limite fisico:
+$$ 2\pi f V_p \le SR $$
+
+Definiamo la **Frequenza di Piena Potenza (Full-Power Bandwidth - $f_M$)** come la massima frequenza a cui l'Op-Amp può erogare una sinusoide al massimo voltaggio nominale di uscita $V_{o,max}$ senza incorrere in distorsione da Slew-Rate:
+$$ f_M = \frac{SR}{2\pi V_{o,max}} $$
+
+Per frequenze superiori a $f_M$, l'ampiezza massima non distorta della sinusoide decresce come $V_{p,max} = \frac{SR}{2\pi f}$.
+
+<Callout type="tip" title="Distinzione Pratica: Banda di Piccolo Segnale (f_3dB) vs Limite di Slew-Rate (f_M)">
+
+In laboratorio è fondamentale non confondere l'effetto della banda finita $f_{3dB}$ con quello dello Slew-Rate:
+* La **banda a $-3\text{ dB}$ ($f_{3dB} = GBW / A_{f0}$)** è un fenomeno **lineare di piccolo segnale**: se si supera $f_{3dB}$ con un segnale piccolo (es. $20\,\text{mV}$), la sinusoide in uscita rimane perfettamente sinusoidale, ma vede ridursi la propria ampiezza e sfasarsi.
+* Lo **Slew-Rate ($SR$)** è invece un limite **non lineare di grande segnale** dovuto alla corrente massima finita dello stadio d'ingresso: se si supera $f_M$ con un segnale ampio (es. $5\,\text{V}$), l'Op-Amp non riesce a caricare abbastanza in fretta il condensatore di compensazione e **trasforma la sinusoide in un'onda triangolare** a pendenza fissa $\pm SR$.
+
+</Callout>
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Tabella Operativa delle Non-Idealità dell'Op-Amp
+
+| Effetto Reale | Formula di Progetto | Rimedio / Limite |
+| :--- | :--- | :--- |
+| Guadagno finito $A_0$ | $A_{reale} = \frac{A_0}{1 + A_0 \beta} \approx \frac{1}{\beta}\left(1 - \frac{1}{A_0 \beta}\right)$ | Errore relativo $\approx 1 / (A_0 \beta)$ |
+| Offset $V_{OS}$ | $V_{out,OS} = \pm V_{OS}\left(1 + \frac{R_2}{R_1}\right)$ | Amplificato dal **guadagno di rumore** $1 + R_2/R_1$ |
+| Correnti di bias $I_B$ | Compensazione: $R_3 = R_1 \parallel R_2$ | L'errore residuo dipende solo da $I_{OS} R_2$ |
+| Banda finita ($	ext{GBW}$) | $f_{-3\,\text{dB}} = \frac{\text{GBW}}{1 + R_2/R_1}$ | Scambio lineare guadagno-banda |
+| Slew-Rate ($SR$) | $f_M = \frac{SR}{2\pi V_p}$ | Distorsione triangolare se $2\pi f V_p &gt; SR$ |
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+<Callout type="warning" title="Trappola d'Esame: Usare |A_v| invece di (1 + R₂/R₁) nel Calcolo della Banda e dell'Offset">
+
+Sia per l'amplificazione della tensione di offset $V_{OS}$ sia per il calcolo della banda a $-3\,\text{dB}$ tramite $\text{GBW}$, **anche nello stadio invertente** il fattore di retroazione è $\beta = \frac{R_1}{R_1 + R_2}$, quindi si divide per il guadagno di rumore $(1 + R_2/R_1)$, non per $|R_2/R_1|$!
+
+</Callout>
+
+<Exercise client:load lang="it" id="ex-12-1" title="Esercizio 12.1: Guadagno Finito, GBW e Slew-Rate" level="Livello 2 · Esame" hint="Usa A_reale = A_0 / (1 + A_0 / A_id), f_3dB = GBW / A_cl e f_M = SR / (2*pi*V_p).">
+
+1. Un amplificatore non invertente progettato per guadagno ideale $A_{id} = 10$ usa un Op-Amp con $A_0 = 1000$.
+2. Un secondo stadio non invertente con $A_{cl} = 20$ impiega un Op-Amp con $\text{GBW} = 4\,\text{MHz}$ e $SR = 5\,\text{V}/\mu\text{s}$ per erogare una sinusoide di ampiezza $V_p = 4\,\text{V}$.
+
+<StepCheck client:load lang="it" prompt="Calcola il guadagno reale ad anello chiuso nel primo caso:" expected={9.901} tolerance={0.02} explanation="A_reale = 1000 / (1 + 1000/10) = 1000 / 101 ≈ 9.901 (errore ≈ 0.99%)." />
+
+<StepCheck client:load lang="it" prompt="Calcola la banda a -3 dB del secondo stadio (in kHz):" expected={200.0} tolerance={1.0} unit="kHz" explanation="f_3dB = 4 MHz / 20 = 200 kHz." />
+
+<StepCheck client:load lang="it" prompt="Calcola la banda a piena potenza f_M per V_p = 4 V (in kHz):" expected={198.94} tolerance={1.5} unit="kHz" explanation="f_M = 5e6 / (2*pi*4) ≈ 198.94 kHz." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Errore da guadagno finito:** $\beta = 1/10 = 0.1$, $A_{reale} = \frac{1000}{1 + 100} \approx 9.901$ (scostamento relativo $-0.99\%$).
+2. **Banda lineare:** $f_{-3\,\text{dB}} = \frac{\text{GBW}}{A_{cl}} = \frac{4\,\text{MHz}}{20} = 200\,\text{kHz}$.
+3. **Limite non lineare di Slew-Rate:** $f_M = \frac{SR}{2\pi V_p} = \frac{5\times 10^6\,\text{V/s}}{2\pi (4\,\text{V})} \approx 198.94\,\text{kHz}$.
+
+</details>
+
+</Exercise>

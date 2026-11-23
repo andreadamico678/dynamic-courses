@@ -1,0 +1,172 @@
+---
+title: "20. Porte Logiche Combinatorie"
+description: "Elettronica — Capitolo 20: Porte Logiche Combinatorie"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 20" markdown={`# Cap. 20: Porte Logiche Combinatorie
+  - 1 · Intuizione Fisica
+  - 2 · Definizione e Dimostrazione (Orale)
+    - Regole di Sintesi Topologica e Principio di Dualità
+    - Criterio di Dimensionamento per Invertitore Equivalente
+    - Porte Logiche Complesse: Architetture AOI e OAI
+    - Porte di Trasmissione CMOS (Transmission Gate / Pass-Transistor)
+  - 3 · Algoritmo Operativo (Esercizi)
+  - 4 · Archetipo Svolto ed Esercizi`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+Le porte logiche combinatorie in tecnologia CMOS statico estendono l'architettura complementare dell'invertitore per implementare funzioni booleane arbitrarie a più variabili di ingresso $A, B, C, \dots$
+Una porta logica generica si compone di due sottoreti interconnesse al nodo comune di uscita $Y$:
+1. **Pull-Down Network (PDN):** costituita esclusivamente da transistori NMOS collegati tra il nodo di uscita $Y$ e il riferimento di massa GND. La PDN conduce quando la funzione logica non invertita $f(A,B,\dots)$ è vera, portando l'uscita a zero logico ($Y = 0$).
+2. **Pull-Up Network (PUN):** costituita esclusivamente da transistori PMOS collegati tra la linea di alimentazione $V_{DD}$ e il nodo di uscita $Y$. La PUN conduce quando la funzione logica è falsa, portando l'uscita a uno logico ($Y = 1$).
+
+Poiché la PDN conduce a massa quando la condizione logica sugli ingressi è verificata, l'uscita $Y$ risulta intrinsecamente negata: la logica CMOS statico è una logica **intrinsecamente invertente** che sintetizza nativamente funzioni del tipo $Y = \overline{f(A, B, \dots)}$.
+
+<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+
+## Regole di Sintesi Topologica e Principio di Dualità
+
+Le connessioni elementari dei transistori all'interno delle due reti rispondono a precise corrispondenze con gli operatori dell'algebra di Boole:
+
+### 1. Regole per la Pull-Down Network (NMOS)
+I transistori NMOS si accendono quando il rispettivo gate riceve una tensione alta ($V_{GS} = V_{DD}$). Di conseguenza:
+- **Connessione in Serie:** Affinché la corrente scorra verso massa attraverso due o più NMOS in serie, **tutti** i transistori devono essere accesi simultaneamente. La serie implementa l'operatore booleano **AND**:
+  $$ \text{Conduzione PDN} \iff A \cdot B $$
+- **Connessione in Parallelo:** È sufficiente che **almeno uno** dei transistori in parallelo sia acceso affinché l'uscita venga tirata a massa. Il parallelo implementa l'operatore booleano **OR**:
+  $$ \text{Conduzione PDN} \iff A + B $$
+
+### 2. Regole di Dualità per la Pull-Up Network (PMOS)
+Affinché il circuito operi correttamente in regime statico, devono essere garantiti due vincoli irrinunciabili:
+1. **Assenza di Contesa di Corrente (*No Contention*):** La PUN e la PDN non devono mai condurre simultaneamente in condizioni statiche, per evitare un cortocircuito a bassa resistenza tra $V_{DD}$ e massa.
+2. **Assenza di Nodi Flottanti (*No High-Impedance State*):** Per qualsiasi combinazione stabile di ingressi, almeno una delle due reti deve essere in conduzione, evitando che il nodo $Y$ rimanga isolato ad alta impedenza ($Z$) suscettibile al rumore elettrostatico.
+
+Questi vincoli impongono che la PUN sia il **grafo duale topologico** della PDN:
+- A ogni connessione in **serie** di due transistori nella PDN corrisponde una connessione in **parallelo** dei rispettivi transistori PMOS nella PUN.
+- A ogni connessione in **parallelo** di due transistori nella PDN corrisponde una connessione in **serie** dei rispettivi transistori PMOS nella PUN.
+
+Formalmente, applicando i teoremi di De Morgan all'espressione booleana:
+$$
+\overline{A \cdot B} = \overline{A} + \overline{B} \quad (\text{AND in PDN} \implies \text{OR in PUN})
+$$
+$$
+\overline{A + B} = \overline{A} \cdot \overline{B} \quad (\text{OR in PDN} \implies \text{AND in PUN})
+$$
+
+<figure id="fig-nand-nor-schematics" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-nand-nor-schematics.svg" alt="Schemi circuitali delle porte fondamentali complementari CMOS: (a) NAND a due ingressi e (b) NOR a due ingressi." />
+  <figcaption>Schemi circuitali delle porte fondamentali complementari CMOS: (a) NAND a due ingressi e (b) NOR a due ingressi.</figcaption>
+</figure>
+
+## Criterio di Dimensionamento per Invertitore Equivalente
+
+Per garantire che una porta logica complessa mantenga la medesima velocità operativa (ossia la stessa corrente di scarica e carica del carico $C_L$) dell'invertitore simmetrico di riferimento ($W_n$, $W_p = r_0 W_n$ con $r_0 = \mu_n/\mu_p \approx 2.5$), i transistori devono essere dimensionati sul **cammino di conduzione di caso peggiore** (*worst-case path*): se un ramo di caso pessimo contiene $k$ transistori in serie, ciascun transistore di quel ramo deve avere larghezza moltiplicata per $k$ (in modo che la somma delle resistenze serie valga $k \cdot (R/k) = R$).
+
+* **Porta NAND a 2 ingressi:**
+  $$ W_{n,NAND} = 2 W_n, \qquad W_{p,NAND} = W_p = 2.5 W_n \implies \sum W_{NAND2} = 9 W_n $$
+* **Porta NOR a 2 ingressi:**
+  $$ W_{n,NOR} = W_n, \qquad W_{p,NOR} = 2 W_p = 5 W_n \implies \sum W_{NOR2} = 12 W_n $$
+
+### Sviluppo Matematico: Calcolo delle Larghezze di Caso Pessimo per NAND2 e NOR2
+
+1. **NAND2:** Nella PDN i due NMOS sono in serie ($R_{PDN} = R_{nA} + R_{nB} = R_n \implies W_{n,NAND} = 2 W_n$). Nella PUN i due PMOS sono in parallelo: nel caso peggiore conduce un solo PMOS ($A=0, B=1$), per cui basta $W_{p,NAND} = W_p = 2.5 W_n$. L'area attiva totale è proporzionale a $2(2 W_n) + 2(2.5 W_n) = 9 W_n$.
+2. **NOR2:** Nella PDN i due NMOS sono in parallelo, quindi basta $W_{n,NOR} = W_n$. Nella PUN i due PMOS sono in serie ($R_{PUN} = R_{pA} + R_{pB} = R_p$), obbligando a raddoppiare ciascun PMOS: $W_{p,NOR} = 2 W_p = 5 W_n$. L'area attiva totale sale a $2(W_n) + 2(5 W_n) = 12 W_n$.
+
+<Callout type="tip" title="Vantaggio Pratico di Layout: Perché le Librerie Standard Digitali Preferiscono le Porte NAND">
+
+Questa asimmetria spiega una regola pratica universale della microelettronica digitale: **una porta NAND è molto più compatta e veloce di una porta NOR**. Mettere in serie dei transistori PMOS (come avviene nella NOR) è penalizzante perché le lacune hanno già una mobilità quasi tre volte inferiore agli elettroni: per compensare la serie bisogna disegnare dei PMOS giganteschi ($5 W_n$), che sprecano preziosa area di silicio e presentano una capacità di Gate enorme che rallenta anche lo stadio precedente. Nella progettazione industriale si trasformano perciò le reti logiche (tramite i teoremi di De Morgan) per usare prevalentemente porte NAND.
+
+</Callout>
+
+## Porte Logiche Complesse: Architetture AOI e OAI
+
+Le porte complesse integrano multiple operazioni AND, OR e NOT all'interno di un unico stadio logico a singolo livello invertente, evitando l'introduzione di invertitori intermedi che aumenterebbero area, ritardo di propagazione e consumo di potenza dinamica.
+
+### Sintesi di una Porta AOI21 (*AND-OR-Invert 2-1*)
+
+Si consideri la funzione booleana:
+$$
+Y = \overline{(A \cdot B) + C}
+$$
+1. **Sintesi PDN:**
+   - La sotto-espressione $A \cdot B$ impone una connessione in **serie** tra i transistori $M_{nA}$ e $M_{nB}$.
+   - L'operazione di somma logica $+ C$ impone che il ramo serie $(A, B)$ sia posto in **parallelo** al transistore $M_{nC}$.
+2. **Sintesi PUN (Dualità Topologica):**
+   - Il parallelo tra il ramo $(A, B)$ e il ramo $C$ della PDN si trasforma in una **serie** tra il sottoblocco $(A, B)$ e il transistore $M_{pC}$.
+   - La serie interna $(A, B)$ della PDN si trasforma nel **parallelo** tra $M_{pA}$ e $M_{pB}$.
+   - Pertanto, la PUN è formata dal parallelo di $M_{pA}$ e $M_{pB}$, posto in serie con $M_{pC}$.
+
+<figure id="fig-aoi21-schematic" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-aoi21-schematic.svg" alt="Schema circuitale della porta logica complessa AOI21 (Y = overlineAcdot B + C)." />
+  <figcaption>Schema circuitale della porta logica complessa AOI21 ($Y = \overline{A\cdot B + C}$).</figcaption>
+</figure>
+
+### Dimensionamento del Cammino Critico nella Porta AOI21
+
+Per eguagliare la resistenza di conduzione dell'invertitore di riferimento:
+- **PDN:** Il ramo serie $M_{nA}, M_{nB}$ richiede $W_{nA} = W_{nB} = 2 W_n$, mentre il ramo singolo $M_{nC}$ richiede $W_{nC} = W_n$.
+- **PUN:** Qualsiasi percorso di carica attraversa in serie $M_{pC}$ e almeno uno tra $M_{pA}, M_{pB}$ ($2$ PMOS in serie), richiedendo $W_{pA} = W_{pB} = W_{pC} = 2 W_p = 5 W_n$.
+
+<Callout type="tip" title="Vantaggio delle Porte Complesse AOI/OAI: Meno Transistori, Minore Area e Singolo Ritardo">
+
+Realizzare la funzione $Y = \overline{A \cdot B + C}$ con una singola cella complessa **AOI21** ha un vantaggio strutturale notevole rispetto a collegare porte elementari separate: usando porte discrete servirebbero una NAND2 seguita da un NOT (per fare l'AND) e poi una NOR2, per un totale di **$10$ transistori** e **$3$ stadi di ritardo** in cascata. La porta AOI21 risolve l'intera equazione booleana in **un unico stadio** impiegando appena **$6$ transistori** ($3$ NMOS e $3$ PMOS): il circuito è molto più compatto, consuma meno potenza dinamica e commuta in un terzo del tempo.
+
+</Callout>
+
+## Porte di Trasmissione CMOS (Transmission Gate / Pass-Transistor)
+
+Oltre alle porte complementari statiche (PUN + PDN), la tecnologia CMOS impiega diffusamente la **porta di trasmissione (Transmission Gate, TG)** come interruttore bidirezionale controllato per realizzare multiplexer, porte XOR compatte e circuiti sequenziali (latch e flip-flop).
+
+Un singolo transistore NMOS impiegato come *pass-transistor* conduce perfettamente lo zero logico ($V_{OL} = 0\text{ V}$), ma degrada la trasmissione dell'uno logico: quando il Gate è a $V_{DD}$ e l'ingresso è a $V_{DD}$, il transistore NMOS si spegne non appena il potenziale di Source/uscita raggiunge $V_{OH} = V_{DD} - V_{Tn}$ (**soglia degradata**). Dualisticamente, un singolo PMOS trasmette perfettamente l'uno logico ($V_{OH} = V_{DD}$), ma degrada lo zero logico a $V_{OL} = |V_{Tp}|$.
+
+<figure id="fig-cmos-transmission-gate" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-cmos-transmission-gate.svg" alt="Porta di trasmissione CMOS (*Transmission Gate*): (a) connessione in parallelo di un NMOS (comandato da C) e di un PMOS (comandato da overlineC); (b) simbolo circuitale compatto." />
+  <figcaption>Porta di trasmissione CMOS (*Transmission Gate*): (a) connessione in parallelo di un NMOS (comandato da $C$) e di un PMOS (comandato da $\overline{C}$); (b) simbolo circuitale compatto.</figcaption>
+</figure>
+
+Connettendo in parallelo un transistore NMOS (pilotato dal segnale di controllo $C$) e un transistore PMOS (pilotato dal segnale negato $\overline{C}$), come illustrato in [la figura](#fig-cmos-transmission-gate):
+* Quando $C = 0$ ($\overline{C} = V_{DD}$), entrambi i transistori sono interdetti e la porta presenta un'impedenza virtualmente infinita (**stato di alta impedenza, Hi-Z**) tra $A$ e $B$.
+* Quando $C = V_{DD}$ ($\overline{C} = 0$), entrambi i transistori conducono in parallelo garantendo una trasmissione **rail-to-rail senza degradazione di soglia** ($0 \le V_{AB} \le V_{DD}$) e una resistenza equivalente di conduzione $R_{eq} = R_n \parallel R_p$ pressoché costante sull'intera dinamica di tensione.
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Regole Rapide di Sintesi e Dimensionamento CMOS (Caso Peggiore)
+
+1. **Topologia duale:** PDN (solo NMOS verso `GND`, attiva con ingressi `1`, **serie = AND**, **parallelo = OR**); PUN (solo PMOS verso $V_{DD}$, duale della PDN per De Morgan).
+2. **Dimensionamento equivalente all'invertitore di riferimento ($(W/L)_n, (W/L)_p$):**
+   * Per **$k$ transistori in serie** lungo il cammino critico, moltiplicare la larghezza per **$k$** ($k\,(W/L)$) per mantenere la stessa resistenza di conduzione.
+   * Per transistori in **parallelo**, mantenere la larghezza unitaria ($1\,(W/L)$) poiché nel caso peggiore conduce un solo ramo.
+3. **Confronto NAND vs NOR:** la porta **NAND** mette in serie i veloci NMOS (area minore) e in parallelo i lenti PMOS, risultando tecnologicamente preferibile alla **NOR**.
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+<Callout type="warning" title="Trappola d'Esame: Perché la NAND Batte la NOR in Area e Velocità">
+
+In una porta NOR a $k$ ingressi i $k$ PMOS (già $2.5\text{--}3\times$ più larghi per via di $\mu_p$) si trovano **in serie** e vanno ulteriormente allargati di un fattore $k$, esplodendo in area e capacità parassita!
+
+</Callout>
+
+<Exercise client:load lang="it" id="ex-20-1" title="Esercizio 20.1: Dimensionamento Caso Peggiore NAND3 e NOR3" level="Livello 1 · Base" hint="Moltiplica per 3 la larghezza dei soli transistori in serie.">
+
+Dato un invertitore CMOS simmetrico di riferimento con $(W/L)_n = 2$ e $(W/L)_p = 5$, dimensionare per uguali ritardi di caso peggiore una porta **NAND3** e una porta **NOR3**.
+
+<StepCheck client:load lang="it" prompt="Qual è il rapporto (W/L) di ciascun NMOS nella porta NAND3?" expected={6} tolerance={0.05} explanation="I 3 NMOS sono in serie nella PDN della NAND3: (W/L)_n,NAND3 = 3 * 2 = 6." />
+
+<StepCheck client:load lang="it" prompt="Qual è il rapporto (W/L) di ciascun PMOS nella porta NOR3?" expected={15} tolerance={0.05} explanation="I 3 PMOS sono in serie nella PUN della NOR3: (W/L)_p,NOR3 = 3 * 5 = 15." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **NAND3:** 3 NMOS in serie $\implies (W/L)_n = 3 \times 2 = 6$; 3 PMOS in parallelo $\implies (W/L)_p = 5$.
+2. **NOR3:** 3 NMOS in parallelo $\implies (W/L)_n = 2$; 3 PMOS in serie $\implies (W/L)_p = 3 \times 5 = 15$.
+
+</details>
+
+</Exercise>

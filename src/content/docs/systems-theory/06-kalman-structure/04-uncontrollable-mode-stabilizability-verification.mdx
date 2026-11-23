@@ -1,0 +1,122 @@
+---
+title: "23. Stabilizability and Detectability"
+description: "Linear Systems Theory — Chapter 23: Stabilizability and Detectability"
+sidebar:
+  order: 4
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 23 Mental Model" markdown={`# Ch. 23: Stabilizability and Detectability
+  - The Stabilizability Invariant
+    - Invariance of Uncontrollable Eigenvalues
+  - The PBH Spectral Stabilizability Criterion
+    - Operational Testing Procedure
+  - Dual Concept: Detectability`} />
+
+A common misconception in control engineering is that an uncontrollable system is entirely unviable. In physical systems, from satellite reaction wheels to quadrotor avionics, many internal states cannot be directly steered by available actuators. However, the system may still operate safely if all states that escape active actuation are naturally self-damping.
+
+This engineering boundary is captured by **stabilizability**: an LTI system is stabilizable if and only if all of its uncontrollable dynamic modes are asymptotically stable.
+
+<Divider />
+
+## The Stabilizability Invariant
+
+Consider a linear time-invariant system:
+$$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t), \quad \mathbf{x} \in \mathbb{R}^n, \; \mathbf{u} \in \mathbb{R}^m$$
+
+Applying linear state feedback $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$ yields the closed-loop autonomous dynamics:
+$$\dot{\mathbf{x}}(t) = (\mathbf{A} - \mathbf{B}\mathbf{K})\mathbf{x}(t) + \mathbf{B}\mathbf{v}(t)$$
+
+### Invariance of Uncontrollable Eigenvalues
+Under the Kalman controllability decomposition, the state vector is partitioned into controllable coordinates $\mathbf{x}_c \in \mathbb{R}^{r}$ and uncontrollable coordinates $\mathbf{x}_{\bar{c}} \in \mathbb{R}^{n-r}$:
+$$\begin{bmatrix} \dot{\mathbf{x}}_c \\ \dot{\mathbf{x}}_{\bar{c}} \end{bmatrix} = \begin{bmatrix} \mathbf{A}_c & \mathbf{A}_{12} \\ \mathbf{0} & \mathbf{A}_{\bar{c}} \end{bmatrix} \begin{bmatrix} \mathbf{x}_c \\ \mathbf{x}_{\bar{c}} \end{bmatrix} + \begin{bmatrix} \mathbf{B}_c \\ \mathbf{0} \end{bmatrix} \mathbf{u}$$
+
+Applying arbitrary state feedback $\mathbf{u} = -\begin{bmatrix} \mathbf{K}_c & \mathbf{K}_{\bar{c}} \end{bmatrix} \begin{bmatrix} \mathbf{x}_c \\ \mathbf{x}_{\bar{c}} \end{bmatrix}$:
+$$\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K} = \begin{bmatrix} \mathbf{A}_c - \mathbf{B}_c \mathbf{K}_c & \mathbf{A}_{12} - \mathbf{B}_c \mathbf{K}_{\bar{c}} \\ \mathbf{0} & \mathbf{A}_{\bar{c}} \end{bmatrix}$$
+
+Because the block lower-triangular structure is preserved (the zero block in the bottom row remains untouched since $\mathbf{B}_{\bar{c}} = \mathbf{0}$), the closed-loop characteristic polynomial factors identically:
+$$\det(s\mathbf{I} - \mathbf{A}_{\text{cl}}) = \det(s\mathbf{I} - (\mathbf{A}_c - \mathbf{B}_c \mathbf{K}_c)) \cdot \det(s\mathbf{I} - \mathbf{A}_{\bar{c}})$$
+
+<Callout type="tip" title="Fundamental Invariant of Linear State Feedback">
+
+Linear state feedback $\mathbf{u} = -\mathbf{K}\mathbf{x}$ has mathematical authority **only** over the eigenvalues of $\mathbf{A}_c$. The eigenvalues of $\mathbf{A}_{\bar{c}}$ (the uncontrollable modes) are strictly invariant under any choice of gain matrix $\mathbf{K} \in \mathbb{R}^{m \times n}$.
+
+</Callout>
+
+<Divider />
+
+## The PBH Spectral Stabilizability Criterion
+
+Rather than computing coordinate transformations $\mathbf{T}$ to isolate $\mathbf{A}_{\bar{c}}$, the **Popov-Belevitch-Hautus (PBH) test** evaluates stabilizability directly from $(\mathbf{A}, \mathbf{B})$.
+
+<Callout type="note" title="Theorem: PBH Stabilizability Criterion">
+
+The pair $(\mathbf{A}, \mathbf{B})$ is stabilizable if and only if:
+$$\operatorname{rank}\begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} & \mathbf{B} \end{bmatrix} = n \quad \forall \lambda \in \mathbb{C} \text{ such that } \operatorname{Re}(\lambda) \ge 0$$
+
+</Callout>
+
+### Operational Testing Procedure
+1. Compute the open-loop spectrum $\sigma(\mathbf{A}) = \{\lambda_1, \lambda_2, \dots, \lambda_n\}$.
+2. Filter the eigenvalues: discard all eigenvalues with $\operatorname{Re}(\lambda_i) < 0$. These are naturally stable modes; whether controllable or not, they decay asymptotically to zero.
+3. For each unstable or critically stable eigenvalue $\lambda_u$ ($\operatorname{Re}(\lambda_u) \ge 0$):
+   $$\mathbf{M}_{\text{PBH}}(\lambda_u) = \begin{bmatrix} \lambda_u \mathbf{I} - \mathbf{A} & \mathbf{B} \end{bmatrix} \in \mathbb{C}^{n \times (n+m)}$$
+4. Check rank:
+   * If $\operatorname{rank}(\mathbf{M}_{\text{PBH}}(\lambda_u)) = n$, the unstable mode $\lambda_u$ is controllable and can be stabilized by feedback.
+   * If $\operatorname{rank}(\mathbf{M}_{\text{PBH}}(\lambda_u)) < n$, the unstable mode $\lambda_u$ is uncontrollable. The system is **unstabilizable**.
+
+<figure id="fig-stabilizability-partition" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-stabilizability-partition.svg" alt="Eigenvalue placement authority under linear state feedback. Controllable eigenvalues can be shifted arbitrarily across the imaginary axis; uncontrollable eigenvalues are fixed invariant points." />
+  <figcaption>Eigenvalue placement authority under linear state feedback. Controllable eigenvalues can be shifted arbitrarily across the imaginary axis; uncontrollable eigenvalues are fixed invariant points.</figcaption>
+</figure>
+
+<Divider />
+
+## Dual Concept: Detectability
+
+By transposition duality, state reconstruction via observers mirrors state feedback:
+$$(\mathbf{A}, \mathbf{C}) \text{ is detectable} \iff (\mathbf{A}^T, \mathbf{C}^T) \text{ is stabilizable}$$
+
+<Callout type="note" title="Theorem: PBH Detectability Criterion">
+
+The pair $(\mathbf{A}, \mathbf{C})$ is detectable if and only if all unobservable modes are asymptotically stable:
+$$\operatorname{rank}\begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} \\ \mathbf{C} \end{bmatrix} = n \quad \forall \lambda \in \mathbb{C} \text{ such that } \operatorname{Re}(\lambda) \ge 0$$
+
+</Callout>
+
+If an unobservable mode has $\operatorname{Re}(\lambda) \ge 0$, no linear observer $\dot{\hat{\mathbf{x}}} = \mathbf{A}\hat{\mathbf{x}} + \mathbf{B}\mathbf{u} + \mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ can drive the estimation error $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$ to zero.
+
+<Divider />
+
+<Callout type="bridge" title="SDU Robotics Bridge: Actuator Saturation and Underactuation">
+
+In multirotor drones (e.g., PX4 attitude control) and robotic manipulators, an actuator failure (such as a seized quadrotor ESC or jammed tilt rotor) drops the input matrix rank: $\mathbf{B}_{\text{nominal}} \to \mathbf{B}_{\text{fault}}$. 
+
+Before executing reconfigurable control allocation, the flight computer must perform an immediate **PBH stabilizability test** on the damaged model $(\mathbf{A}, \mathbf{B}_{\text{fault}})$. If the failed actuator renders an unstable rigid-body mode uncontrollable (e.g., inverted pendulum pitch unstable mode with zero pitch torque authority), the aircraft is provably unstabilizable. The autopilot must immediately abort aggressive trajectory tracking and command emergency parachute deployment or controlled autorotation.
+
+</Callout>
+
+<Divider />
+
+### Exercise 23.1: PBH Stabilizability Rank Verification [LEVEL 1: WARM-UP DRILL]
+Consider a 3rd-order continuous-time system:
+$$\mathbf{A} = \begin{bmatrix} 2 & 0 & 0 \\ 0 & -3 & 1 \\ 0 & 0 & -1 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}$$
+
+1. Determine all eigenvalues of $\mathbf{A}$ and identify all unstable or marginally stable modes ($\operatorname{Re}(\lambda) \ge 0$).
+2. Assemble the PBH test matrix $[\lambda \mathbf{I} - \mathbf{A} \;|\; \mathbf{B}]$ at the unstable eigenvalue $\lambda = 2$.
+3. Evaluate $\operatorname{rank}[2\mathbf{I} - \mathbf{A} \;|\; \mathbf{B}]$ and compare it to the state dimension $n = 3$.
+4. Conclude whether the system is stabilizable. Can any linear state feedback gain $\mathbf{K}$ stabilize the closed-loop system?
+
+### Exercise 23.2: Parametric Stabilizability and Uncontrollable Stable Modes [LEVEL 2: EXAM BENCHMARK]
+A third-order system depends on a real parameter $\gamma \in \mathbb{R}$:
+$$\mathbf{A} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & -2 & 0 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \\ \gamma - 2 \end{bmatrix}$$
+
+1. Identify all open-loop eigenvalues of $\mathbf{A}$ and determine which modes require active feedback stabilization.
+2. Assemble the PBH test matrix for each unstable eigenvalue ($\lambda_1 = 1$ and $\lambda_3 = 3$).
+3. Find the condition on $\gamma$ under which the system is stabilizable.
+4. Show that mode $\lambda_2 = -2$ is uncontrollable for all $\gamma \in \mathbb{R}$. Explain why its uncontrollability does not prevent the system from being stabilizable.

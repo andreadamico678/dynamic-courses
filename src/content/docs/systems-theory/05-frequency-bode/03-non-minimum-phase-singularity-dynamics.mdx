@@ -1,0 +1,234 @@
+---
+title: "19. Non-Minimum Phase Systems"
+description: "Linear Systems Theory — Chapter 19: Non-Minimum Phase Systems"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 19 Mental Model" markdown={`# Ch. 19: Non-Minimum Phase Systems
+  - Minimum vs. Non-Minimum Phase Classifications
+  - Bode's Phase-Magnitude Theorem and the RHP Zero Paradox
+    - The Right-Half Plane Zero: A Structural Conflict
+  - Time-Domain Signature: Initial Undershoot
+    - Mathematical Proof of Initial Undershoot via Initial Value Theorem
+  - Fundamental Feedback Limitations: Bandwidth Bounds`} />
+
+## Minimum vs. Non-Minimum Phase Classifications
+
+In classical and modern frequency domain synthesis, systems are categorized based on the spatial distribution of their complex singularities in the Laplace $s$-plane:
+
+<Callout type="note" title="Definition: Minimum Phase System">
+
+A linear time-invariant continuous transfer function $W(s)$ is strictly **minimum phase** if and only if:
+1. All of its poles lie in the open left-half complex plane: $\operatorname{Re}(p_k) < 0$ for all $k$.
+2. All of its finite transmission zeros lie in the open left-half complex plane: $\operatorname{Re}(z_i) < 0$ for all $i$.
+3. It contains zero pure time delays: $T_d = 0$.
+
+</Callout>
+
+If a system is open-loop stable ($\operatorname{Re}(p_k) < 0$), but possesses:
+* One or more zeros in the open right-half complex plane ($\operatorname{Re}(z_i) > 0$), or
+* Pure transport / propagation delays ($e^{-s T_d}$ with $T_d > 0$),
+
+it is designated as a **non-minimum phase (NMP)** system.
+
+<Divider />
+
+## Bode's Phase-Magnitude Theorem and the RHP Zero Paradox
+
+Hendrik Bode proved a profound mathematical theorem connecting the magnitude and phase of rational transfer functions:
+
+<Callout type="tip" title="Bode's Phase Area Formula">
+
+For any minimum phase rational system, the phase angle at any frequency $\omega_0$ is uniquely and uniquely determined by an integral over the entire frequency spectrum of the logarithmic slope of the magnitude:
+$$\arg(W(j\omega_0)) = \frac{1}{\pi} \int_{-\infty}^{+\infty} \frac{d \ln |W(j\omega)|}{d \ln \omega} \ln \left| \frac{\omega + \omega_0}{\omega - \omega_0} \right| d \ln \omega$$
+Locally, if the magnitude slope is roughly constant over a decade around $\omega_0$, the phase is well approximated by:
+$$\arg(W(j\omega_0)) \approx \left( \frac{d |W|_{\text{dB}}}{d \log_{10}\omega} \right) \times \frac{90^\circ}{20\text{ dB/dec}}$$
+
+</Callout>
+
+For non-minimum phase systems, **this relationship breaks down completely**. Non-minimum phase systems exhibit the absolute minimum phase property in reverse: **among all systems possessing the exact same magnitude curve $|W(j\omega)|$, the minimum phase system possesses the minimum possible phase lag (least negative phase). A non-minimum phase system incurs excess phase lag.**
+
+### The Right-Half Plane Zero: A Structural Conflict
+
+Consider two transfer functions with identical magnitude curves:
+$$W_{\text{MP}}(s) = \frac{1 + s\tau}{1 + s T}, \quad W_{\text{NMP}}(s) = \frac{1 - s\tau}{1 + s T} \quad (\tau > 0, \; T > 0)$$
+
+Evaluating the frequency response factors along $s = j\omega$:
+1. **Magnitude:**
+   $$|1 - j\omega \tau| = \sqrt{1^2 + (-\omega \tau)^2} = \sqrt{1 + \omega^2 \tau^2} = |1 + j\omega \tau|$$
+   The magnitude curves of $W_{\text{MP}}(j\omega)$ and $W_{\text{NMP}}(j\omega)$ are **identically equal across all frequencies**:
+   $$|W_{\text{NMP}}(j\omega)| \equiv |W_{\text{MP}}(j\omega)| \quad \forall \omega \in [0, \infty)$$
+
+2. **Phase:**
+   * For the LHP zero $(1 + j\omega \tau)$:
+     $$\arg(1 + j\omega \tau) = +\arctan(\omega \tau) > 0 \quad (\text{Phase Lead: } 0^\circ \to +90^\circ)$$
+   * For the RHP zero $(1 - j\omega \tau)$:
+     $$\arg(1 - j\omega \tau) = \operatorname{atan2}(-\omega \tau, 1) = -\arctan(\omega \tau) < 0 \quad (\text{Phase Lag: } 0^\circ \to -90^\circ)$$
+
+The difference in phase between the two systems is:
+$$\Delta \varphi(\omega) = \arg(W_{\text{NMP}}(j\omega)) - \arg(W_{\text{MP}}(j\omega)) = -2 \arctan(\omega \tau)$$
+At high frequencies ($\omega \gg 1/\tau$), the RHP zero introduces an additional **$-180^\circ$ of phase lag** compared to its minimum-phase counterpart, while simultaneously **boosting high-frequency magnitude at $+20\text{ dB/decade}$**!
+
+This combination is devastating to feedback control loops:
+* A pole adds phase lag ($-90^\circ$) but attenuates gain ($-20\text{ dB/dec}$), which helps loop gain cross $0\text{ dB}$.
+* A standard zero boosts gain ($+20\text{ dB/dec}$) but provides phase lead ($+90^\circ$), stabilizing the phase margin.
+* An RHP zero **boosts gain** ($+20\text{ dB/dec}$) while **destroying phase margin** ($-90^\circ$).
+
+<Divider />
+
+## Time-Domain Signature: Initial Undershoot
+
+The defining time-domain characteristic of a system with an odd number of positive real RHP zeros is **initial undershoot** (also called inverse response).
+
+When excited by a positive unit step setpoint $u(t) = 1(t)$, the initial physical response moves in the **negative direction** before reversing direction to track the positive steady state.
+
+<figure id="fig-nmp-step" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-nmp-step.svg" alt="Step response comparison between minimum-phase and non-minimum-phase transfer functions. The RHP zero forces the initial derivative $\dot{y}(0^+)$ to point in the opposite direction of the steady-state target." />
+  <figcaption>Step response comparison between minimum-phase and non-minimum-phase transfer functions. The RHP zero forces the initial derivative $\dot{y}(0^+)$ to point in the opposite direction of the steady-state target.</figcaption>
+</figure>
+
+### Mathematical Proof of Initial Undershoot via Initial Value Theorem
+
+Consider a strictly proper system with a single positive real zero at $s = +z$ ($z > 0$):
+$$W(s) = \frac{-s + z}{s^2 + a_1 s + a_0} = \frac{z\left(1 - \frac{s}{z}\right)}{s^2 + a_1 s + a_0}$$
+Subjecting the system to a unit step input $U(s) = \frac{1}{s}$, the output transform is:
+$$Y(s) = W(s) U(s) = \frac{-s + z}{s(s^2 + a_1 s + a_0)}$$
+
+1. **Initial Output Value $y(0^+)$:**
+   $$y(0^+) = \lim_{s \to \infty} s Y(s) = \lim_{s \to \infty} \frac{-s + z}{s^2 + a_1 s + a_0} = 0$$
+
+2. **Initial Derivative $\dot{y}(0^+)$:**
+   By the Initial Value Theorem applied to $\dot{y}(t) \leftrightarrow s Y(s) - y(0^-)$:
+   $$\dot{y}(0^+) = \lim_{s \to \infty} s [s Y(s)] = \lim_{s \to \infty} \frac{s^2(-s + z)}{s(s^2 + a_1 s + a_0)} = \lim_{s \to \infty} \frac{-s^2 + z s}{s^2 + a_1 s + a_0} = -1 < 0$$
+
+Because $\dot{y}(0^+) = -1 < 0$, the response moves strictly downward below zero immediately after $t = 0$. However, by the Final Value Theorem, the steady-state output is:
+$$y(\infty) = \lim_{s \to 0} s Y(s) = \frac{z}{a_0} > 0$$
+Since $y(0^+) = 0$, $\dot{y}(0^+) < 0$, and $y(\infty) > 0$, the trajectory is mathematically forced to cross below zero into the negative plane before turning around and crossing zero again toward its positive target.
+
+<Divider />
+
+## Fundamental Feedback Limitations: Bandwidth Bounds
+
+In control synthesis, the presence of an RHP zero establishes an absolute, inviolable physical limit on feedback performance:
+
+<Callout type="warning" title="Middle-Frequency Bandwidth Limitation">
+
+If a plant has an RHP zero at $s = z_{\text{RHP}} > 0$, the closed-loop gain crossover frequency $\omega_c$ must be constrained strictly below the zero frequency to maintain closed-loop stability and reasonable phase margin:
+$$\boxed{\omega_c < \frac{z_{\text{RHP}}}{2}}$$
+Attempting to push the closed-loop bandwidth beyond $\frac{z_{\text{RHP}}}{2}$ inevitably drives the open-loop phase lag below $-180^\circ$ at crossover, triggering closed-loop instability.
+
+</Callout>
+
+<Callout type="note" title="Note">
+
+**Exam Scope:** In Bachelor exams, you only need to know that an RHP zero constrains feedback crossover frequency ($\omega_c < z_{\text{RHP}}/2$) and creates initial undershoot. Advanced sensitivity integral formulas (Poisson integral and waterbed sensitivity tradeoffs) are Master's-level robust control topics omitted from this syllabus.
+
+</Callout>
+
+<Callout type="bridge" title="SDU Robotics Bridge: Physical Origin of RHP Zeros in Autonomous Systems">
+
+Non-minimum phase dynamics appear constantly in physical robotic and aerospace systems due to spatial non-colocation of actuators and sensors:
+1. **Fixed-Wing Drone Pitch and Altitude:** To climb upward ($+h$), the autopilot deflects the rear elevator upward. This instantly produces a **downward aerodynamic force on the tail**, pitching the nose up. Because the downward tail force occurs immediately while the aircraft lift builds gradually with angle of attack, the drone initial vertical acceleration is downward ($\ddot{h}(0) < 0$).
+2. **Inverted Pendulum Cart Position:** To accelerate the pendulum cart to the right ($+x$), the wheels must first accelerate to the **left** ($-x$) to tip the center of mass to the right. The transfer function from wheel motor torque to cart position possesses an RHP zero.
+3. **VTOL Transition:** When transitioning from hover to forward flight, tilt-rotor thrust vectoring creates an instantaneous pitch-down moment before wing lift is established.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-19-1" title="Exercise 19.1" level="LEVEL 1: WARM-UP DRILL">
+
+Consider the all-pass transfer function and its minimum-phase counterpart:
+$$W_1(s) = \frac{2 - s}{s + 2}, \quad W_2(s) = \frac{2 + s}{s + 2}$$
+1. Evaluate the magnitude functions $|W_1(j\omega)|$ and $|W_2(j\omega)|$ for all frequencies $\omega \ge 0$. Explain why $W_1(s)$ is termed an "all-pass filter".
+2. Compute the exact phase angles $\arg(W_1(j\omega))$ and $\arg(W_2(j\omega))$ at $\omega = 0$, $2\text{ rad/s}$, and $\omega \to \infty$.
+3. Compute the unit step response $y_1(t) = \mathcal{L}^{-1}\left\{ \frac{W_1(s)}{s} \right\}$ using partial fraction decomposition.
+4. Verify that $y_1(0^+) = -1$ and $y_1(\infty) = +1$, illustrating the initial inverted direction characteristic of Right-Half Plane zeros.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Frequency response magnitude:
+   $$|W_1(j\omega)| = \frac{|2 - j\omega|}{|2 + j\omega|} = \frac{\sqrt{4 + \omega^2}}{\sqrt{4 + \omega^2}} = 1 \implies |W_1(j\omega)|_{\text{dB}} = 0\text{ dB}$$
+   $$|W_2(j\omega)| = \frac{|2 + j\omega|}{|2 + j\omega|} = 1 \implies |W_2(j\omega)|_{\text{dB}} = 0\text{ dB}$$
+   Both transfer functions maintain an identical, completely flat unity gain across the entire frequency axis $\omega \in [0, \infty)$.
+   Transfer function $W_1(s)$ is an **all-pass filter**: it transmits all spectral components with zero amplitude attenuation, but introduces pure frequency-dependent phase lag.
+2. Phase angles:
+   * For $W_1(j\omega) = \frac{2 - j\omega}{2 + j\omega}$:
+     $$\arg(W_1(j\omega)) = \arg(2 - j\omega) - \arg(2 + j\omega) = -\arctan(\omega/2) - \arctan(\omega/2) = -2\arctan(\omega/2)$$
+     * At $\omega = 0$: $\arg = -2\arctan(0) = 0^\circ$.
+     * At $\omega = 2\text{ rad/s}$: $\arg = -2\arctan(1) = -2(45^\circ) = -90^\circ$.
+     * At $\omega \to \infty$: $\arg = -2\arctan(\infty) = -180^\circ$.
+   * For $W_2(j\omega) = 1$: $\arg(W_2(j\omega)) \equiv 0^\circ$ for all $\omega$.
+3. Step response $y_1(t)$ via partial fractions:
+   $$Y_1(s) = \frac{W_1(s)}{s} = \frac{2 - s}{s(s + 2)} = \frac{A}{s} + \frac{B}{s + 2}$$
+   $$A = \lim_{s \to 0} s Y_1(s) = \frac{2}{2} = 1, \quad B = \lim_{s \to -2} (s + 2)Y_1(s) = \frac{2 - (-2)}{-2} = -2$$
+   $$Y_1(s) = \frac{1}{s} - \frac{2}{s + 2} \implies y_1(t) = \left( 1 - 2e^{-2t} \right) \cdot 1(t)$$
+4. Undershoot / inverse response verification:
+   * At $t = 0^+$: $y_1(0^+) = 1 - 2 = -1 < 0$.
+   * As $t \to \infty$: $y_1(\infty) = 1 - 0 = +1 > 0$.
+   The output jumps immediately to $-1$, pointing in the negative direction, before reversing course and rising toward the steady-state target of $+1$.
+   The zero crossing occurs when:
+   $$1 - 2e^{-2t^*} = 0 \implies e^{-2t^*} = 0.5 \implies t^* = \frac{\ln 2}{2} \approx 0.3466\text{ s}$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-19-2" title="Exercise 19.2" level="LEVEL 2: EXAM BENCHMARK">
+
+In a UniCT written examination problem, consider the strictly proper plant with an RHP zero:
+$$W(s) = \frac{-s + 4}{(s + 1)(s + 2)}$$
+1. Identify the system poles and zero, confirming that $W(s)$ is asymptotically stable but non-minimum phase.
+2. Evaluate the static DC gain $W(0)$ and determine the steady-state output $y(\infty)$ for a unit step input $u(t) = 1(t)$.
+3. Use the Initial Value Theorem to calculate the initial output $y(0^+)$ and the initial slope $\dot{y}(0^+)$. Show that the initial response moves in the direction opposite to the steady-state target (undershoot).
+4. Compute the exact analytical step response $y(t) = \mathcal{L}^{-1}\left\{ \frac{W(s)}{s} \right\}$ for $t \ge 0$, and find the exact time instant $t^* > 0$ where the response crosses through zero.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Singularity classification:
+   * Poles: roots of $(s + 1)(s + 2) = 0 \implies p_1 = -1, \; p_2 = -2$. Since $\operatorname{Re}(p_i) < 0$, the system is **asymptotically stable**.
+   * Zero: root of $-s + 4 = 0 \implies z = +4 > 0$. Because the transmission zero lies in the open Right-Half Plane (RHP), the system is strictly **non-minimum phase**.
+2. Static DC gain and steady-state step output:
+   $$W(0) = \left. \frac{-s + 4}{(s + 1)(s + 2)} \right|_{s = 0} = \frac{4}{(1)(2)} = 2$$
+   For a unit step excitation $u(t) = 1(t)$, the steady-state value is:
+   $$y(\infty) = \lim_{t \to \infty} y(t) = W(0) = 2$$
+3. Initial Value Theorem analysis:
+   With $Y(s) = \frac{-s + 4}{s(s + 1)(s + 2)}$:
+   * Initial output $y(0^+)$:
+     $$y(0^+) = \lim_{s \to \infty} s Y(s) = \lim_{s \to \infty} \frac{-s + 4}{s^2 + 3s + 2} = 0$$
+   * Initial slope $\dot{y}(0^+)$:
+     $$\dot{y}(0^+) = \lim_{s \to \infty} s [s Y(s) - y(0^+)] = \lim_{s \to \infty} \frac{s(-s + 4)}{s^2 + 3s + 2} = \lim_{s \to \infty} \frac{-s^2 + 4s}{s^2 + 3s + 2} = -1$$
+   *Undershoot interpretation:* Although the system ultimately reaches a positive steady-state target ($y(\infty) = +2$), the initial velocity is negative ($\dot{y}(0^+) = -1 < 0$). The trajectory initially dips into the negative half-plane before recovering, displaying classic non-minimum phase undershoot.
+4. Analytical step response and zero-crossing time:
+   Decomposing $Y(s)$:
+   $$Y(s) = \frac{-s + 4}{s(s + 1)(s + 2)} = \frac{R_0}{s} + \frac{R_1}{s + 1} + \frac{R_2}{s + 2}$$
+   * $R_0 = \lim_{s \to 0} s Y(s) = \frac{4}{2} = 2$
+   * $R_1 = \left. \frac{-s + 4}{s(s + 2)} \right|_{s = -1} = \frac{-(-1) + 4}{(-1)(-1 + 2)} = \frac{5}{-1} = -5$
+   * $R_2 = \left. \frac{-s + 4}{s(s + 1)} \right|_{s = -2} = \frac{-(-2) + 4}{(-2)(-2 + 1)} = \frac{6}{2} = 3$
+   Taking the inverse Laplace transform:
+   $$y(t) = \left( 2 - 5e^{-t} + 3e^{-2t} \right) \cdot 1(t)$$
+   Finding the zero crossing $t^* > 0$:
+   $$2 - 5e^{-t^*} + 3e^{-2t^*} = 0$$
+   Substituting $u = e^{-t^*}$:
+   $$3u^2 - 5u + 2 = 0 \implies (3u - 2)(u - 1) = 0$$
+   Discarding $u = 1$ (which corresponds to $t = 0$), we take $u = \frac{2}{3}$:
+   $$e^{-t^*} = \frac{2}{3} \implies t^* = \ln\left(\frac{3}{2}\right) \approx 0.4055\text{ s}$$
+   For $t \in (0, 0.4055\text{ s})$, the output is strictly negative (undershoot), crossing zero at $t^* \approx 0.41\text{ s}$ and asymptoting monotonically to $+2$.
+
+</details>
+
+</Exercise>

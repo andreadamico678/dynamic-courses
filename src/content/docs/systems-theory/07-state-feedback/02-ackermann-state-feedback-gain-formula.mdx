@@ -1,0 +1,93 @@
+---
+title: "25. Ackermann Feedback Formula"
+description: "Linear Systems Theory — Chapter 25: Ackermann Feedback Formula"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 25 Mental Model" markdown={`# Ch. 25: Ackermann Feedback Formula
+  - The Formula and Matrix Polynomial
+  - Practical Execution Protocol`} />
+
+In [Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/), we established that arbitrary pole placement for a single-input controllable system can be computed by transforming the state coordinates into Controllable Canonical Form. While conceptually illuminating, calculating the canonical similarity transformation $\mathbf{T} = \mathcal{R}\mathcal{R}_c^{-1}$ and inverting it adds unnecessary symbolic and numerical overhead.
+
+The **Ackermann formula** provides a direct closed-form expression for the state feedback gain vector $\mathbf{K}$ using only the controllability matrix $\mathcal{R}$ and the matrix polynomial evaluation of the desired characteristic equation.
+
+<Divider />
+
+## The Formula and Matrix Polynomial
+
+Let $(\mathbf{A}, \mathbf{B})$ be a completely controllable single-input pair with $\mathbf{A} \in \mathbb{R}^{n \times n}$ and $\mathbf{B} \in \mathbb{R}^{n \times 1}$. Let $\{\mu_1, \mu_2, \dots, \mu_n\}$ be the desired closed-loop poles, yielding the target characteristic polynomial:
+$$p^*(s) = \prod_{i=1}^n (s - \mu_i) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_1 s + \alpha_0$$
+
+<Callout type="note" title="Theorem: Ackermann's Gain Formula">
+
+The unique state feedback gain vector $\mathbf{K} \in \mathbb{R}^{1 \times n}$ such that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$ is:
+$$\boxed{\mathbf{K} = \begin{bmatrix} 0 & 0 & \dots & 0 & 1 \end{bmatrix} \mathcal{R}^{-1} p^*(\mathbf{A})}$$
+where $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$ is the Kalman controllability matrix, and $p^*(\mathbf{A})$ is the matrix polynomial:
+$$p^*(\mathbf{A}) = \mathbf{A}^n + \alpha_{n-1}\mathbf{A}^{n-1} + \dots + \alpha_1 \mathbf{A} + \alpha_0 \mathbf{I}_n$$
+
+</Callout>
+
+<figure id="fig-ackermann-synthesis-flow" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-ackermann-synthesis-flow.svg" alt="Algorithmic data flow of Ackermann's formula. Synthesis factors cleanly into a spectral branch ($p^*(\mathbf{A})$) and a geometric controllability branch ($\mathbf{e}_n^T \mathcal{R}^{-1}$)." />
+  <figcaption>Algorithmic data flow of Ackermann's formula. Synthesis factors cleanly into a spectral branch ($p^*(\mathbf{A})$) and a geometric controllability branch ($\mathbf{e}_n^T \mathcal{R}^{-1}$).</figcaption>
+</figure>
+
+<Divider />
+
+<Callout type="note" title="Note">
+
+**Exam Synthesis Protocol:** In both written and oral examinations, you are **only** evaluated on applying Ackermann's formula $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ to place closed-loop poles, and stating the prerequisite condition $\operatorname{rank}(\mathcal{R}) = n$. The formal Cayley-Hamilton algebraic proof is a distinction topic that oral examiners do not request on the blackboard.
+
+</Callout>
+
+<Divider />
+
+## Practical Execution Protocol
+
+When applying Ackermann's formula by hand or in code:
+
+1. **Verify Complete Controllability:** Always compute $\det(\mathcal{R}) \neq 0$ first. If $\operatorname{rank}(\mathcal{R}) < n$, $\mathcal{R}^{-1}$ does not exist and Ackermann's formula cannot be applied.
+2. **Compute Matrix Powers Systematically:** Compute $\mathbf{A}^2, \mathbf{A}^3, \dots, \mathbf{A}^n$ once and store them.
+3. **Remember the Identity Matrix:** A universal student error is writing $\alpha_0$ instead of $\alpha_0 \mathbf{I}_n$. In a matrix polynomial, scalar terms must multiply the identity matrix.
+4. **Isolate $\mathbf{t}_n^T$ Before Multiplying:** Rather than computing the full matrix inverse $\mathcal{R}^{-1}$, solve the linear system:
+   $$\mathbf{t}_n^T \mathcal{R} = \begin{bmatrix} 0 & \dots & 1 \end{bmatrix} \iff \mathcal{R}^T \mathbf{t}_n = \begin{bmatrix} 0 \\ \vdots \\ 1 \end{bmatrix}$$
+   This reduces the computational complexity from matrix inversion ($\mathcal{O}(n^3)$) to a single backward/forward substitution.
+
+<Divider />
+
+<Callout type="bridge" title="SDU Robotics Bridge: Fast Embedded Gain Scheduling">
+
+In dynamic UAV flight (e.g. PX4 transitions from vertical hover to fast forward cruise), aerodynamic control derivatives change continuously as a function of dynamic pressure $\bar{q} = \frac{1}{2}\rho V_\infty^2$. The plant model $\mathbf{A}(V_\infty), \mathbf{B}(V_\infty)$ is parametrized by airspeed $V_\infty$.
+
+Because Ackermann's formula involves only closed-form matrix products without iterative root-finding, an autopilot flight computer running on an ARM Cortex-M7 can recompute the optimal state feedback gain vector $\mathbf{K}(V_\infty)$ at $100\text{ Hz}$ in real time as the aircraft accelerates, guaranteeing invariant handling qualities across the entire flight envelope.
+
+</Callout>
+
+<Divider />
+
+### Exercise 25.1: Second-Order Ackermann Synthesis for an Unstable Plant [LEVEL 1: WARM-UP DRILL]
+Given the linearized inverted pendulum model:
+$$\mathbf{A} = \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
+
+1. Compute the open-loop eigenvalues of $\mathbf{A}$ and confirm that the unforced plant is exponentially unstable.
+2. Construct the controllability matrix $\mathcal{M}_c$ and find the last row of its inverse $\mathbf{t}_2^T = \begin{bmatrix} 0 & 1 \end{bmatrix} \mathcal{M}_c^{-1}$.
+3. Form the desired characteristic polynomial $p^*(s)$ to place both closed-loop poles at $\mu_1 = \mu_2 = -3$.
+4. Evaluate the matrix polynomial $p^*(\mathbf{A})$ and compute the feedback gain vector $\mathbf{K} = \mathbf{t}_2^T p^*(\mathbf{A})$.
+5. Verify that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = (s + 3)^2$.
+
+### Exercise 25.2: Third-Order Ackermann Synthesis for an Unstructured Plant [LEVEL 2: EXAM BENCHMARK]
+A third-order continuous-time system is described by:
+$$\mathbf{A} = \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$$
+
+1. Compute the open-loop characteristic polynomial $p(s) = \det(s\mathbf{I} - \mathbf{A})$ and show that the system possesses an unstable open-loop pole at $s = 1$.
+2. Construct the controllability matrix $\mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} \end{bmatrix}$ and compute its inverse to extract the last row $\mathbf{t}_3^T = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} \mathcal{M}_c^{-1}$.
+3. Form the desired polynomial $p^*(s)$ to place the closed-loop poles at $\mu_1 = -2$ and $\mu_{2,3} = -1 \pm j1$.
+4. Evaluate the matrix polynomial $p^*(\mathbf{A})$ and calculate the state feedback gain vector $\mathbf{K} = \mathbf{t}_3^T p^*(\mathbf{A})$. Verify that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$.

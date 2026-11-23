@@ -1,0 +1,198 @@
+---
+title: "15. Parametric Stability Bounds"
+description: "Linear Systems Theory — Chapter 15: Parametric Stability Bounds"
+sidebar:
+  order: 5
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+import RouthExplorer from "@components/RouthExplorer.tsx";
+
+<MindMap client:load title="Chapter 15 Mental Model" markdown={`# Ch. 15: Parametric Stability Bounds
+  - Intuition and Physical Meaning
+  - Formal Definition and Derivation (Oral Core)
+    - Derivation / Oral Proof: Critical Gain and Oscillation Frequency
+  - Operational Algorithm (Written Exam Core)
+  - Worked Exam Archetype and Pitfalls
+    - Worked Example: Third-Order Feedback Loop`} />
+
+## Intuition and Physical Meaning
+
+In control design, the physical plant $G(s) = N(s)/D(s)$ is fixed by hardware, while the controller introduces a tunable parameter—most commonly a proportional gain $K$ ([the figure](#fig-parametric-gain)). Raising $K$ speeds up the response, but pushing $K$ too high typically drives closed-loop poles across the imaginary axis into the right-half plane. The practical design question is: **for what interval $(K_{\min}, K_{\max})$ is the closed-loop system asymptotically stable, and at what frequency does it oscillate when $K$ hits the stability boundary?**
+
+<figure id="fig-parametric-gain" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-parametric-gain.svg" alt="Unity negative-feedback loop with adjustable gain $K$. The closed-loop poles are the roots of $p(s, K) = D(s) + K N(s) = 0$." />
+  <figcaption>Unity negative-feedback loop with adjustable gain $K$. The closed-loop poles are the roots of $p(s, K) = D(s) + K N(s) = 0$.</figcaption>
+</figure>
+
+<Divider />
+
+## Formal Definition and Derivation (Oral Core)
+
+For a unity negative-feedback loop with $G(s) = N(s)/D(s)$ and proportional gain $K$, the closed-loop transfer function is:
+$$W_{CL}(s) = \frac{K G(s)}{1 + K G(s)} = \frac{K N(s)}{D(s) + K N(s)}$$
+Assuming no pole-zero cancellations between $N(s)$ and $D(s)$, the closed-loop poles are the roots of the **parameterized characteristic polynomial**:
+$$\boxed{p(s, K) = D(s) + K N(s) = a_n(K) s^n + \dots + a_1(K) s + a_0(K) = 0}$$
+
+### Derivation / Oral Proof: Critical Gain and Oscillation Frequency
+
+By Routh's criterion, $p(s, K)$ is strictly Hurwitz if and only if all $(n+1)$ entries $c_{k,1}(K)$ of the first column of its Routh array are strictly positive. At a stability boundary $K = K_{\text{crit}}$, an interior first-column entry vanishes—most commonly row $s^1$ vanishes identically while row $s^2$ remains non-zero.
+
+Let the two entries of **row $s^2$** evaluated at $K = K_{\text{crit}}$ be denoted $[\alpha_1(K_{\text{crit}}),\; \alpha_2(K_{\text{crit}})]$. Then the auxiliary polynomial from row $s^2$ is:
+$$A(s) = \alpha_1(K_{\text{crit}}) s^2 + \alpha_2(K_{\text{crit}}) = 0$$
+Substituting $s = j\omega_{\text{osc}}$ ($s^2 = -\omega_{\text{osc}}^2$) yields the exact **sustained oscillation frequency**:
+$$-\alpha_1(K_{\text{crit}})\omega_{\text{osc}}^2 + \alpha_2(K_{\text{crit}}) = 0 \implies \boxed{\omega_{\text{osc}} = \sqrt{\frac{\alpha_2(K_{\text{crit}})}{\alpha_1(K_{\text{crit}})}}}$$
+
+*(Note: In [Routh-Hurwitz Stability Criterion](/dynamic-courses/systems-theory/04-stability-routh/03-routh-hurwitz-tabular-array-construction/), $b_1, b_2$ denote row $s^{n-2}$; here we write row $s^2$ explicitly as $[\alpha_1, \alpha_2]$ so the formula applies uniformly to any polynomial degree $n \ge 3$.)*
+
+<Divider />
+
+## Operational Algorithm (Written Exam Core)
+
+1. **Form $p(s, K)$:** Expand $D(s) + K N(s) = 0$ and collect powers of $s$ (ensuring leading coefficient $a_n(K) > 0$).
+2. **Apply Stodola's Necessary Bounds:** Require $a_i(K) > 0$ for all $i = 0, \dots, n$.
+3. **Build the Symbolic Routh Table:** Compute all rows down to $s^0$ as functions of $K$. (When a first-column entry is a fraction $f(K)/g(K)$, remember that $g(K) > 0$ is already enforced by the preceding row, so $f(K)/g(K) > 0 \iff f(K) > 0$.)
+4. **Intersect All First-Column Inequalities:** Solve $c_{k,1}(K) > 0$ for every row and intersect the intervals to obtain $K \in (K_{\min}, K_{\max})$.
+5. **Evaluate Boundary Oscillations:** At $K = K_{\text{crit}}$, substitute $K_{\text{crit}}$ into **row $s^2$** ($[\alpha_1, \alpha_2]$) to compute $\omega_{\text{osc}} = \sqrt{\alpha_2 / \alpha_1}$.
+
+<Divider />
+
+## Worked Exam Archetype and Pitfalls
+
+### Worked Example: Third-Order Feedback Loop
+
+Consider $G(s) = \frac{1}{(s+1)(s+2)(s+4)}$ under proportional unity feedback $u(t) = K(r(t) - y(t))$:
+
+1. **Characteristic Polynomial:**
+   $$D(s) = (s+1)(s^2 + 6s + 8) = s^3 + 7s^2 + 14s + 8$$
+   $$p(s, K) = s^3 + 7s^2 + 14s + (8 + K) = 0$$
+2. **Stodola Check:** $a_0 = 8 + K > 0 \implies K > -8$.
+3. **Routh Table:**
+   $$\begin{array}{c|ll}
+   s^3 & 1 & 14 \\
+   s^2 & 7 & 8 + K \\
+   s^1 & \frac{90 - K}{7} & 0 \\
+   s^0 & 8 + K & 0
+   \end{array}$$
+4. **First-Column Inequalities:**
+   $$\frac{90 - K}{7} > 0 \implies K < 90, \qquad 8 + K > 0 \implies K > -8$$
+   Hence $\boxed{-8 < K < 90}$ (for positive physical gains, $0 < K < 90$).
+5. **Oscillation Frequency at $K_{\text{crit}} = 90$:**
+   Row $s^2$ at $K = 90$ is $[\alpha_1, \alpha_2] = [7,\; 8 + 90] = [7,\; 98]$, giving:
+   $$A(s) = 7s^2 + 98 = 0 \implies \omega_{\text{osc}} = \sqrt{\frac{98}{7}} = \sqrt{14} \approx 3.74\text{ rad/s}$$
+
+<Callout type="warning" title="Exam Pitfall: Substituting $K_{\text{crit}}$ into the Wrong Row">
+
+When computing $\omega_{\text{osc}}$ for a 4th-order system, students sometimes grab row $s^{n-2} = s^2$ blindly, which happens to work for $n=4$, or grab row $s^3$ for $n=5$. Always extract the auxiliary equation from **the row immediately above the vanishing row**—which for a complex-conjugate crossing is row $s^2$.
+
+</Callout>
+
+<Callout type="bridge" title="SDU Robotics Bridge: PX4 Roll Loop Tuning & Ziegler-Nichols">
+
+In industrial PID tuning (Ziegler-Nichols), $K_{\text{crit}}$ is the **ultimate gain** $K_u$ and $T_u = 2\pi / \omega_{\text{osc}}$ is the **ultimate period**. Routh's array computes $K_u$ and $T_u$ analytically before ever spinning a drone's propellers.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Lab" />
+
+<RouthExplorer client:load />
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-15-1" title="Exercise 15.1" level="LEVEL 1: WARM-UP DRILL">
+
+A plant $G(s) = \frac{10}{s(s + 3)(s + 5)}$ is placed in a negative unity feedback loop with proportional controller $C(s) = K > 0$.
+1. Derive the closed-loop characteristic polynomial $p(s, K) = 0$.
+2. Construct the complete Routh table in terms of $K$.
+3. Determine the exact interval of $K > 0$ that guarantees closed-loop asymptotic stability.
+4. Calculate $K_{\text{crit}}$ and the sustained oscillation frequency $\omega_{\text{osc}}$ at the stability boundary.
+
+<StepCheck client:load prompt="For G(s) = 10 / [s(s+3)(s+5)], find the upper critical gain K_crit:" expected={12} tolerance={0.05} explanation="p(s,K) = s³ + 8s² + 15s + 10K ⇒ 8·15 > 10K ⇒ K < 12." />
+
+<StepCheck client:load prompt="Find the sustained oscillation frequency ω_osc at K = K_crit:" expected={3.873} tolerance={0.05} unit="rad/s" explanation="Row s² gives 8s² + 120 = 0 ⇒ ω_osc = √15 ≈ 3.87 rad/s." />
+
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Closed-loop characteristic polynomial:
+   The open-loop denominator is:
+   $$D(s) = s(s + 3)(s + 5) = s(s^2 + 8s + 15) = s^3 + 8s^2 + 15s$$
+   The closed-loop characteristic polynomial with unity feedback $C(s) = K$ is:
+   $$p(s, K) = D(s) + K N(s) = s^3 + 8s^2 + 15s + 10K = 0$$
+2. Symbolic Routh array:
+   $$\begin{array}{c|ll}
+   s^3 & 1 & 15 \\
+   s^2 & 8 & 10K \\
+   s^1 & \frac{8(15) - 10K}{8} = \frac{120 - 10K}{8} = 15 - 1.25K & 0 \\
+   s^0 & 10K & 0
+   \end{array}$$
+3. Asymptotic stability positivity conditions:
+   All entries in the first column must be strictly positive ($> 0$):
+   $$\begin{cases}
+   15 - 1.25K > 0 \implies 1.25K < 15 \implies K < 12 \\
+   10K > 0 \implies K > 0
+   \end{cases}$$
+   Allowable stability range:
+   $$\boxed{0 < K < 12}$$
+4. Critical gain and sustained oscillation frequency:
+   The stability boundary occurs at:
+   $$K_{\text{crit}} = 12$$
+   At $K = 12$, row $s^1$ vanishes identically. Formulating the auxiliary equation from row $s^2$:
+   $$8s^2 + 10(12) = 8s^2 + 120 = 0 \implies s^2 = -\frac{120}{8} = -15 \implies s = \pm j\sqrt{15}$$
+   The sustained oscillation frequency at marginal stability is:
+   $$\omega_{\text{osc}} = \sqrt{15} \approx 3.87\text{ rad/s}$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-15-2" title="Exercise 15.2" level="LEVEL 2: EXAM BENCHMARK">
+
+Consider the 4th-order closed-loop characteristic polynomial:
+$$p(s, K) = s^4 + 4s^3 + 7s^2 + 6s + K = 0$$
+1. State the lower bound on $K$ imposed by Stodola's necessary condition.
+2. Construct the full Routh tabular array from row $s^4$ down to row $s^0$ as functions of $K$.
+3. Formulate the first-column inequalities and solve for the stability range $K \in (K_{\min}, K_{\max})$.
+4. At $K = K_{\max}$, extract the auxiliary polynomial $A(s)$ from row $s^2$, calculate the purely imaginary poles $s = \pm j\omega_0$, and determine the remaining LHP poles from the quotient polynomial $Q(s)$.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Stodola's condition on $p(s, K) = s^4 + 4s^3 + 7s^2 + 6s + K$:
+   All polynomial coefficients must be strictly positive $\implies K > 0$.
+2. Full Routh table construction:
+   * Row $s^4$: $1, \quad 7, \quad K$
+   * Row $s^3$: $4, \quad 6, \quad 0 \xrightarrow{\div 2} [2, \; 3, \; 0]$
+   * Row $s^2$:
+     $$b_1 = \frac{2(7) - 1(3)}{2} = \frac{11}{2} = 5.5, \quad b_2 = \frac{2(K) - 1(0)}{2} = K \implies [5.5, \; K]$$
+   * Row $s^1$:
+     $$c_1 = \frac{5.5(3) - 2(K)}{5.5} = \frac{16.5 - 2K}{5.5} \implies \left[\frac{16.5 - 2K}{5.5}, \; 0\right]$$
+   * Row $s^0$: $K$
+3. First-column inequalities and stability range:
+   $$\begin{cases}
+   c_1 > 0 \implies 16.5 - 2K > 0 \implies K < 8.25 \\
+   K > 0
+   \end{cases} \implies \boxed{0 < K < 8.25}$$
+   The upper bound is $K_{\max} = 8.25 = \frac{33}{4}$.
+4. Pole locations at critical threshold $K = 8.25$:
+   At $K = 8.25$, row $s^1$ vanishes. Auxiliary polynomial from row $s^2$:
+   $$A(s) = 5.5s^2 + 8.25 = 0 \implies s^2 = -\frac{8.25}{5.5} = -1.5 \implies s_{1,2} = \pm j\sqrt{1.5} \approx \pm j1.225$$
+   Dividing $p(s, 8.25)$ by $(s^2 + 1.5)$ yields the quotient polynomial:
+   $$Q(s) = \frac{s^4 + 4s^3 + 7s^2 + 6s + 8.25}{s^2 + 1.5} = s^2 + 4s + 5.5 = 0$$
+   Roots of $Q(s)$:
+   $$s_{3,4} = \frac{-4 \pm \sqrt{16 - 22}}{2} = -2 \pm j\frac{\sqrt{6}}{2} \approx -2 \pm j1.225$$
+   The closed-loop spectrum consists of 2 purely imaginary poles at $\pm j\sqrt{1.5}$ and 2 stable LHP poles at $-2 \pm j\sqrt{1.5}$.
+
+</details>
+
+</Exercise>

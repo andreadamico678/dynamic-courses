@@ -1,0 +1,154 @@
+---
+title: "20. Kalman Controllability Criterion"
+description: "Linear Systems Theory — Chapter 20: Kalman Controllability Criterion"
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 20 Mental Model" markdown={`# Ch. 20: Kalman Controllability Criterion
+  - Reachability and Controllability in Continuous State Space
+  - Cayley-Hamilton Derivation of the Kalman Matrix
+  - The Kalman Controllability Rank Criterion
+    - The Controllability Subspace Invariant
+  - The Popov-Belevitch-Hautus (PBH) Controllability Eigenvector Test
+    - Left Eigenvector Modal Test
+  - SDU Robotics Bridge: Multi-Rotor Actuator Allocation`} />
+
+## Reachability and Controllability in Continuous State Space
+
+Before synthesizing feedback control laws, an engineer must answer a foundational structural question: **can the available actuators steer the internal state of the system to any desired destination in state space?**
+
+Consider the continuous-time linear time-invariant state equation:
+$$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t), \quad \mathbf{x}(t) \in \mathbb{R}^n, \; \mathbf{u}(t) \in \mathbb{R}^m$$
+
+<Callout type="note" title="Definition: Reachability vs. Controllability">
+
+1. **Reachability:** A state $\mathbf{x}^* \in \mathbb{R}^n$ is **reachable from the origin** if there exists a finite time $t_f < \infty$ and a piecewise continuous control input $\mathbf{u}(t)$ on $[0, t_f]$ that transfers the state from $\mathbf{x}(0) = \mathbf{0}$ to $\mathbf{x}(t_f) = \mathbf{x}^*$.
+2. **Controllability:** An initial state $\mathbf{x}_0 \in \mathbb{R}^n$ is **controllable to the origin** if there exists a finite time $t_f < \infty$ and an input $\mathbf{u}(t)$ on $[0, t_f]$ that transfers the state from $\mathbf{x}(0) = \mathbf{x}_0$ to $\mathbf{x}(t_f) = \mathbf{0}$.
+3. **Equivalence in Continuous-Time:**
+   Because the continuous-time state transition matrix $e^{\mathbf{A}t}$ is **strictly non-singular and invertible for all $t$** ($\det(e^{\mathbf{A}t}) = e^{\operatorname{Tr}(\mathbf{A})t} \neq 0$), **reachability and controllability are mathematically equivalent**:
+   $$\boxed{\text{Reachability} \equiv \text{Controllability} \quad \text{for all continuous LTI systems}}$$
+
+</Callout>
+
+The set of all reachable states forms a linear vector subspace of $\mathbb{R}^n$, denoted as the **controllability subspace** $\mathcal{X}_r \subseteq \mathbb{R}^n$. The pair $(\mathbf{A}, \mathbf{B})$ is **completely controllable** if $\mathcal{X}_r = \mathbb{R}^n$.
+
+<Divider />
+
+## Cayley-Hamilton Derivation of the Kalman Matrix
+
+By Lagrange's forced response formula, the state reached at time $t_f$ starting from $\mathbf{x}(0) = \mathbf{0}$ is:
+$$\mathbf{x}(t_f) = \int_0^{t_f} e^{\mathbf{A}(t_f - \tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau$$
+
+Using the Taylor power series expansion of the matrix exponential:
+$$e^{\mathbf{A}(t_f - \tau)} = \sum_{k=0}^\infty \frac{\mathbf{A}^k (t_f - \tau)^k}{k!}$$
+It appears that computing reachable states requires evaluating an infinite sequence of matrix powers $\mathbf{A}^k \mathbf{B}$.
+
+However, the **Cayley-Hamilton Theorem** establishes that every square matrix $\mathbf{A} \in \mathbb{R}^{n \times n}$ satisfies its own characteristic equation:
+$$p(\mathbf{A}) = \mathbf{A}^n + a_{n-1}\mathbf{A}^{n-1} + \dots + a_1 \mathbf{A} + a_0 \mathbf{I} = \mathbf{0}$$
+Consequently, every matrix power $\mathbf{A}^k$ for $k \ge n$ can be expressed as a linear combination of the first $n$ powers $\{\mathbf{I}, \mathbf{A}, \mathbf{A}^2, \dots, \mathbf{A}^{n-1}\}$:
+$$\mathbf{A}^k = \sum_{j=0}^{n-1} \alpha_{k,j} \mathbf{A}^j \quad \forall k \ge n$$
+
+Substituting this reduction into the convolution integral demonstrates that any state $\mathbf{x}(t_f)$ reachable by any control signal is strictly constrained to the linear column space of the finite matrix:
+
+$$\boxed{\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} \in \mathbb{R}^{n \times (n \cdot m)}}$$
+
+This matrix $\mathcal{R}$ (often designated as $\mathcal{M}_c$ or $\mathcal{C}$) is the **Kalman Controllability Matrix**.
+
+<Divider />
+
+## The Kalman Controllability Rank Criterion
+
+<Callout type="tip" title="Kalman Rank Criterion">
+
+The continuous-time linear system $(\mathbf{A}, \mathbf{B})$ is completely controllable if and only if the Kalman controllability matrix has full row rank:
+$$\boxed{\operatorname{rank}(\mathcal{R}) = \operatorname{rank} \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} = n}$$
+* **SISO Systems ($m = 1$):** $\mathcal{R}$ is an $n \times n$ square matrix. Complete controllability is equivalent to:
+  $$\det(\mathcal{R}) \neq 0$$
+* **MIMO Systems ($m > 1$):** $\mathcal{R}$ is an $n \times (nm)$ wide rectangular matrix. Complete controllability requires finding at least one non-zero $n \times n$ minor determinant.
+
+</Callout>
+
+### The Controllability Subspace Invariant
+The column space of $\mathcal{R}$ defines the reachable subspace:
+$$\mathcal{X}_r = \operatorname{Im}(\mathcal{R}) = \operatorname{span}\{\text{columns of } \mathcal{R}\}$$
+The dimension of the reachable subspace is:
+$$\operatorname{dim}(\mathcal{X}_r) = \operatorname{rank}(\mathcal{R}) = r_c \le n$$
+
+Furthermore, $\mathcal{X}_r$ is an **$\mathbf{A}$-invariant subspace**:
+$$\mathbf{A} \mathcal{X}_r \subseteq \mathcal{X}_r$$
+If a trajectory is initialized in $\mathcal{X}_r$, the matrix dynamics $\mathbf{A}$ can never transport it outside $\mathcal{X}_r$. Conversely, if $r_c < n$, there exists an $(n - r_c)$-dimensional subspace of state space that **no control input $u(t)$ can ever reach or influence**.
+
+<figure id="fig-controllability-subspace" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-controllability-subspace.svg" alt="Geometric representation of a non-controllable system in $\mathbb{R}^3$ with $\operatorname{rank}(\mathcal{R}) = 2$. Control inputs can steer the state to any coordinate on the 2D plane $\operatorname{Im}(\mathcal{R})$, but can never produce motion along the orthogonal $x_3$ direction." />
+  <figcaption>Geometric representation of a non-controllable system in $\mathbb{R}^3$ with $\operatorname{rank}(\mathcal{R}) = 2$. Control inputs can steer the state to any coordinate on the 2D plane $\operatorname{Im}(\mathcal{R})$, but can never produce motion along the orthogonal $x_3$ direction.</figcaption>
+</figure>
+
+<Divider />
+
+## The Popov-Belevitch-Hautus (PBH) Controllability Eigenvector Test
+
+While Kalman's matrix test determines the total rank of $\mathcal{R}$, it does not directly identify **which specific dynamic modes are uncontrollable**. The PBH test provides an eigenvalue-by-eigenvalue algebraic diagnosis:
+
+<Callout type="tip" title="PBH Controllability Criterion">
+
+The pair $(\mathbf{A}, \mathbf{B})$ is completely controllable if and only if the partitioned matrix has full row rank for **every eigenvalue** $\lambda \in \sigma(\mathbf{A})$:
+$$\boxed{\operatorname{rank} \begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} & \mathbf{B} \end{bmatrix} = n \quad \forall \lambda \in \mathbb{C}}$$
+
+### Left Eigenvector Modal Test
+An eigenvalue $\lambda$ of $\mathbf{A}$ is **uncontrollable** if and only if there exists a non-zero left eigenvector $\mathbf{v}^T \neq \mathbf{0}^T$ satisfying:
+$$\mathbf{v}^T \mathbf{A} = \lambda \mathbf{v}^T \quad \text{and} \quad \boxed{\mathbf{v}^T \mathbf{B} = \mathbf{0}^T}$$
+Physical meaning: If the input matrix $\mathbf{B}$ is orthogonal to a left eigenvector $\mathbf{v}$, the control input $u(t)$ has zero projection onto that modal coordinate; the mode evolves purely autonomously and cannot be influenced by any actuator signal.
+
+</Callout>
+
+<Divider />
+
+## SDU Robotics Bridge: Multi-Rotor Actuator Allocation
+
+<Callout type="bridge" title="SDU Robotics Bridge: Controllability Loss Under Rotor Failure">
+
+Consider an autonomous hexacopter (6 rotors) versus a quadcopter (4 rotors) in PX4 autopilot firmware.
+The linearized attitude and altitude dynamics have state $\mathbf{x} = [\phi, \theta, \psi, z, \dot{\phi}, \dot{\theta}, \dot{\psi}, \dot{z}]^T \in \mathbb{R}^8$ with motor thrust vector $\mathbf{u} = [f_1, \dots, f_m]^T \in \mathbb{R}^m$:
+$$\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$$
+The input matrix $\mathbf{B}$ is determined by the geometric rotor allocation matrix $\mathbf{B} = \begin{bmatrix} \mathbf{0}_{4 \times m} \\ \mathbf{J}^{-1} \mathbf{M}_{\text{alloc}} \end{bmatrix}$.
+1. **Quadcopter ($m = 4$):**
+   $\operatorname{rank}(\mathcal{R}) = 8$ under all 4 motors operational.
+   If Rotor 1 fails ($f_1 = 0$), the effective input matrix $\mathbf{B}_{\text{fail}}$ drops to $m = 3$ actuators for 4 physical degrees of freedom.
+   Recomputing Kalman rank: $\operatorname{rank}(\mathcal{R}_{\text{fail}}) = 6 < 8$. The yaw rotation mode $\psi$ and vertical thrust become linearly coupled; the quadcopter loses independent controllability and tumbles from the sky.
+2. **Hexacopter ($m = 6$):**
+   Under 1 rotor failure ($m = 5$), $\operatorname{rank}(\mathcal{R}_{\text{fail}}) = 8$ remains full rank!
+   Because $\operatorname{rank}(\mathcal{R}) = 8$, the remaining 5 rotors span the entire 8-dimensional state space. The PX4 control allocator automatically re-weights motor mixing gains to retain complete controllability, enabling safe emergency landing.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+### Exercise 20.1: Kalman Controllability Matrix Computation [LEVEL 1: WARM-UP DRILL]
+Given the continuous-time LTI state-space system:
+$$\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$$
+
+1. State the state dimension $n$ and the structure of the Kalman controllability matrix $\mathcal{M}_c$.
+2. Compute the matrix-vector products $\mathbf{A}\mathbf{B}$ and $\mathbf{A}^2\mathbf{B}$.
+3. Construct the controllability matrix $\mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} \end{bmatrix}$.
+4. Compute the determinant $\det(\mathcal{M}_c)$ and conclude whether the pair $(\mathbf{A}, \mathbf{B})$ is completely controllable.
+
+### Exercise 20.2: Parametric Controllability Analysis and Controllable Subspace [LEVEL 2: EXAM BENCHMARK]
+A third-order system depends on an unknown real design parameter $\alpha \in \mathbb{R}$:
+$$\mathbf{A} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & -2 & 1 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ \alpha \\ 2 \end{bmatrix}$$
+
+1. Compute the Kalman controllability matrix $\mathcal{M}_c(\alpha)$.
+2. Calculate the determinant $\det(\mathcal{M}_c(\alpha))$ as an explicit function of $\alpha$.
+3. Determine the critical value(s) of $\alpha$ for which complete controllability is lost.
+4. For the critical value of $\alpha$, determine the rank of $\mathcal{M}_c$ and provide an explicit basis for the controllable subspace $\mathcal{X}_c = \operatorname{Im}(\mathcal{M}_c)$.

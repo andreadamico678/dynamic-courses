@@ -1,0 +1,185 @@
+---
+title: "21. Buffer Scalati in Cascata"
+description: "Elettronica — Capitolo 21: Buffer Scalati in Cascata"
+sidebar:
+  order: 4
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 21" markdown={`# Cap. 21: Buffer Scalati in Cascata
+  - 1 · Intuizione Fisica
+  - 2 · Definizione e Dimostrazione (Orale)
+    - Il Limite del Singolo Stadio di Pilotaggio
+    - Derivazione Analitica del Fattore di Scalamento Ottimo
+    - Influenza delle Capacità Parassite Intrinseche e Pratica Industriale
+    - Vincolo di Polarità Logica
+  - 3 · Algoritmo Operativo (Esercizi)
+  - 4 · Archetipo Svolto ed Esercizi`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+Nei circuiti integrati digitali ad alta densità (VLSI), i nodi interni di calcolo operano con porte logiche a dimensione geometrica minima ($W_{min}, L_{min}$) al fine di minimizzare l'occupazione d'area di silicio e la potenza dinamica locale dissipata. La capacità di ingresso di tali stadi interni è tipicamente dell'ordine di pochi femtofarad ($C_{in} \approx 1\div 5\text{ fF}$).
+
+Tuttavia, quando un segnale logico generato nel cuore computazionale del chip (*core*) deve essere trasmesso a destinazioni macroscopiche — quali i bus di interconnessione globali, le reti di distribuzione del clock, o i *bonding pad* di ingresso/uscita (I/O) collegati ai pin esterni del package — il carico capacitivo effettivo $C_L$ raggiunge valori compresi tra centinaia di femtofarad e decine di picofarad ($C_L \approx 1\div 50\text{ pF}$).
+
+Il rapporto tra la capacità di carico finale e la capacità d'ingresso del primo stadio definisce il **fattore di carico globale** (*overall capacitive fan-out*):
+$$
+F \triangleq \frac{C_L}{C_{in}} \approx 10^3 \div 10^5
+$$
+
+<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+
+## Il Limite del Singolo Stadio di Pilotaggio
+
+Se si utilizzasse un singolo invertitore di dimensioni minime per pilotare direttamente il carico $C_L$, il ritardo di propagazione $t_p$ risulterebbe:
+$$
+t_p = t_{p0} \frac{C_L}{C_{in}} = t_{p0} \cdot F
+$$
+dove $t_{p0}$ è il ritardo intrinseco della cella elementare caricata da una porta identica a sé stessa ($C_L = C_{in}$).
+Con $t_{p0} \approx 20\text{ ps}$ e $F = 2000$:
+$$
+t_p = 20\text{ ps} \times 2000 = 40\text{ ns}
+$$
+Un ritardo di $40\text{ ns}$ limiterebbe la frequenza massima di clock a meno di $25\text{ MHz}$, vanificando le prestazioni gigahertz del silicio. Inoltre, una transizione estremamente lenta genera enormi correnti di cortocircuito ($P_{sc}$) e rende il nodo d'uscita vulnerabile al rumore da *cross-talk*.
+
+La soluzione strutturale consiste nell'interporre tra il nodo sorgente e il carico finale una **catena rastremata di $N$ invertitori in cascata** (*tapered buffer chain*), dimensionati con capacità progressivamente crescenti.
+
+<figure id="fig-tapered-buffer" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-tapered-buffer.svg" alt="Catena di N invertitori rastremati con fattore di moltiplicazione geometrico f." />
+  <figcaption>Catena di $N$ invertitori rastremati con fattore di moltiplicazione geometrico $f$.</figcaption>
+</figure>
+
+## Derivazione Analitica del Fattore di Scalamento Ottimo
+
+Sia una catena di $N$ invertitori in cui ogni stadio $j$ presenta dimensioni geometriche moltiplicate per un fattore costante $f$ rispetto allo stadio precedente:
+$$
+W_j = f \cdot W_{j-1} \implies C_{in,j} = f \cdot C_{in, j-1} = f^{j-1} C_{in}
+$$
+La resistenza di canale equivalente $R_j$ decresce proporzionalmente alla larghezza:
+$$
+R_j = \frac{R_1}{f^{j-1}}
+$$
+Il carico capacitivo visto dallo stadio $j$ è la capacità d'ingresso dello stadio successivo $j+1$:
+$$
+C_{load,j} = C_{in,j+1} = f^j C_{in}
+$$
+Il ritardo di propagazione del singolo stadio $j$ è indipendente dall'indice $j$:
+$$
+t_{p,j} \approx 0.69 \, R_j C_{load,j} = 0.69 \left(\frac{R_1}{f^{j-1}}\right) \left(f^j C_{in}\right) = 0.69 \, R_1 C_{in} \cdot f = t_{p0} \cdot f
+$$
+dove $t_{p0} = 0.69 R_1 C_{in}$ rappresenta il ritardo intrinseco dell'invertitore elementare unitario caricato da una replica identica.
+
+### Vincolo Globale del Carico
+
+L'ultimo stadio $N$ pilota il carico effettivo $C_L$. Imponendo che il rapporto di carico tra l'ultimo stadio e il carico finale coincida con il medesimo fattore $f$:
+$$
+C_L = f \cdot C_{in,N} = f \cdot (f^{N-1} C_{in}) = f^N C_{in}
+$$
+Si ottiene la relazione fondamentale che correla il fattore di scalamento $f$, il numero di stadi $N$ e il guadagno di carico $F$:
+$$
+f^N = \frac{C_L}{C_{in}} = F \implies f = F^{1/N}
+$$
+Prendendo il logaritmo naturale di entrambi i membri:
+$$
+N \ln(f) = \ln(F) \implies N = \frac{\ln(F)}{\ln(f)}
+$$
+
+### Minimizzazione del Ritardo Complessivo
+
+Il ritardo di propagazione totale della catena di $N$ stadi è dato dalla somma dei singoli ritardi $t_{p,tot} = N \cdot t_{p0} \cdot f$. Il fattore di rastremazione teorico ottimale che minimizza il ritardo globale è pari alla **base dei logaritmi naturali (numero di Eulero $e \approx 2.718$)**, a cui corrisponde un numero ottimo di stadi $N_{opt} = \ln(F) = \ln(C_L/C_{in})$ e un ritardo minimo teorico:
+$$
+t_{p,min} = N_{opt} \cdot t_{p0} \cdot e = e \, t_{p0} \ln\left(\frac{C_L}{C_{in}}\right)
+$$
+
+### Dimostrazione Matematica: Minimizzazione Analitica del Ritardo Totale rispetto a $f$
+
+Sostituendo l'espressione $N = \ln(F)/\ln(f)$ nel ritardo complessivo $t_{p,tot} = N \cdot t_{p0} \cdot f$:
+$$
+t_{p,tot}(f) = t_{p0} \frac{\ln(F)}{\ln(f)} f = t_{p0} \ln(F) \left[ \frac{f}{\ln(f)} \right]
+$$
+Per individuare il valore di $f$ che minimizza $t_{p,tot}$, calcoliamo la derivata prima della funzione $g(f) = \frac{f}{\ln(f)}$ rispetto a $f$ e imponiamola uguale a zero:
+$$
+\frac{dg(f)}{df} = \frac{1 \cdot \ln(f) - f \cdot \left(\frac{1}{f}\right)}{[\ln(f)]^2} = \frac{\ln(f) - 1}{[\ln(f)]^2} = 0
+$$
+Affinché la derivata si annulli (essendo il denominatore non nullo per $f \neq 1$):
+$$
+\ln(f) - 1 = 0 \implies \ln(f) = 1 \iff f_{opt} = e \approx 2.71828\dots
+$$
+Sostituendo $f_{opt} = e$ nell'equazione di $N$:
+$$
+N_{opt} = \frac{\ln(F)}{\ln(e)} = \ln(F) = \ln\left(\frac{C_L}{C_{in}}\right)
+$$
+Se invece si include anche la **capacità parassita intrinseca di drain** di ciascuno stadio $C_{int} = \gamma C_{in}$ (con $\gamma \approx 1$), il ritardo di stadio diventa $t_{p,j} = t_{p0}(\gamma + f)$ e il ritardo totale vale:
+$$
+t_{p,tot} = N t_{p0} (\gamma + f) = t_{p0} \ln(F) \left[ \frac{\gamma + f}{\ln(f)} \right]
+$$
+Annullando nuovamente la derivata prima rispetto a $f$:
+$$
+\frac{d}{df} \left[ \frac{\gamma + f}{\ln(f)} \right] = \frac{1 \cdot \ln(f) - (\gamma + f)\frac{1}{f}}{[\ln(f)]^2} = 0 \implies f \left( \ln(f) - 1 \right) = \gamma
+$$
+Per $\gamma = 1$, la risoluzione numerica fornisce $f_{opt} \approx 3.6$.
+
+## Influenza delle Capacità Parassite Intrinseche e Pratica Industriale
+
+La trattazione ideale assume che la capacità vista da ciascuno stadio sia puramente quella di gate del transistore a valle ($C_{load} = C_{in}$). Nei dispositivi reali, ogni invertitore contribuisce al nodo di uscita con una propria **capacità parassita di diffusione di drain** $C_{int} = \gamma C_{in}$ (dove $\gamma \approx 1$ nei processi CMOS sub-micronici), spostando l'ottimo reale verso $f_{opt} \approx 3.6$ ([la figura](#fig-buffer-scaling-tradeoff)).
+
+<figure id="fig-buffer-scaling-tradeoff" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-buffer-scaling-tradeoff.svg" alt="Andamento del ritardo globale normalizzato al variare del fattore di rastremazione f." />
+  <figcaption>Andamento del ritardo globale normalizzato al variare del fattore di rastremazione $f$.</figcaption>
+</figure>
+
+<Callout type="tip" title="Scelta Industriale: Perché si Progetta con f = 3 div 4 (Regola FO4) invece di f = e = 2.72">
+
+Anche se la derivata matematica pura fornisce $f = e \approx 2.72$, nessun progettista di circuiti integrati utilizza davvero $f = 2.72$: in ambito industriale si sceglie sistematicamente un fattore di scalamento **$f = 3 \div 4$** (la celebre regola del *Fan-Out-of-4*, FO4).
+
+Questa scelta ha un vantaggio pratico enorme: come mostra la [la figura](#fig-buffer-scaling-tradeoff), la curva del ritardo ha un fondo estremamente piatto tra $f = 2.7$ e $f = 4$ (scegliere $f = 4$ comporta una penalità di velocità inferiore al $3\%$, o addirittura nulla considerando le capacità di drain $\gamma \approx 1$), ma permette di **tagliare drasticamente il numero di stadi $N$, l'area di silicio occupata e la potenza dinamica dissipata** ($\text{Area}_{tot} \propto \sum f^{j-1} = \frac{f^N - 1}{f - 1}$). Ad esempio, per pilotare un carico $F = 1000$, passare da $f = e$ ($N = 7$ stadi) a $f = 4$ ($N = 5$ stadi) elimina due interi stadi di buffering, risparmiando oltre il $35\%$ di area di silicio sul pad-ring di uscita del chip.
+
+</Callout>
+
+## Vincolo di Polarità Logica
+
+Un ulteriore vincolo di progetto riguarda la **polarità logica** del segnale:
+- Se il segnale finale sul carico $C_L$ deve avere la **stessa polarità** del segnale generato dalla porta interna, il numero di stadi deve essere rigorosamente **pari** ($N \in \{2, 4, 6, \dots\}$).
+- Se il segnale deve essere **invertito**, $N$ deve essere **dispari** ($N \in \{1, 3, 5, \dots\}$).
+- Qualora $N_{opt}$ non soddisfi la parità richiesta, si arrotonda $N$ al numero pari o dispari più vicino e si ricalcola il fattore di scalamento:
+  $$ f = F^{1/N} $$
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Procedura di Dimensionamento Ottimo dei Buffer Rastremati
+
+1. **Rapporto capacitivo totale:** $F = \frac{C_L}{C_{in}}$ (dove $C_{in}$ è la capacità d'ingresso dello stadio minimo).
+2. **Numero ottimo teorico di stadi:** $N_{\text{opt}} = \ln\left(\frac{C_L}{C_{in}}\right)$ (corrispondente al fattore di scala teorico $f_{\text{opt}} = e \approx 2.718$).
+3. **Scelta intera e vincolo di parità:** arrotondare $N$ all'intero più vicino rispettando il segno logico richiesto (**$N$ pari** per un buffer non invertente) e ricalcolare il fattore effettivo $f = F^{1/N}$ (in pratica industriale si usa $f = 3 \div 4$ per ridurre area e consumi).
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+<Callout type="warning" title="Trappola d'Esame: Dimenticare il Vincolo di Parità di N">
+
+Ogni stadio della catena è un invertitore! Se il calcolo continuo fornisce $N_{\text{opt}} \approx 5.1$ ma serve un buffer **non invertente** ($V_{out} = V_{in}$), non è lecito scegliere $N = 5$: occorre arrotondare a **$N = 4$** o **$N = 6$**.
+
+</Callout>
+
+<Exercise client:load lang="it" id="ex-21-1" title="Esercizio 21.1: Progetto di un Buffer Non Invertente Ottimizzato" level="Livello 2 · Esame" hint="Calcola N_opt = ln(C_L / C_in), arrotonda all'intero pari e trova f = (C_L / C_in)^(1/N).">
+
+Un invertitore minimo con capacità d'ingresso $C_{in} = 50\,\text{fF}$ deve pilotare un bus di uscita $C_L = 20\,\text{pF}$ mantenendo la stessa polarità logica (buffer non invertente).
+
+<StepCheck client:load lang="it" prompt="Calcola il numero ottimo continuo di stadi N_opt = ln(C_L / C_in):" expected={5.991} tolerance={0.05} explanation="C_L / C_in = 20e-12 / 50e-15 = 400; ln(400) ≈ 5.991 ⇒ N = 6 stadi (pari!)." />
+
+<StepCheck client:load lang="it" prompt="Con N = 6 stadi, calcola il fattore di rastremazione effettivo f = 400^(1/6):" expected={2.714} tolerance={0.03} explanation="f = 400^(1/6) ≈ 2.714 ≈ e." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. $F = \frac{C_L}{C_{in}} = \frac{20\,\text{pF}}{50\,\text{fF}} = 400$.
+2. $N_{\text{opt}} = \ln(400) \approx 5.991$: scegliendo **$N = 6$** si rispetta sia l'ottimalità di ritardo sia la parità non invertente.
+3. $f = 400^{1/6} \approx 2.714$.
+
+</details>
+
+</Exercise>

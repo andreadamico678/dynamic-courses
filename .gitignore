@@ -1,0 +1,23 @@
+# Dependencies & build outputs
+node_modules/
+dist/
+.astro/
+_site/
+dist-llm/
+
+# Python caches
+__pycache__/
+*.pyc
+.venv/
+
+# Raw private/course materials (keep local only, never push to public GitHub Pages)
+courses/**/context/exam_papers/
+courses/**/context/past year material/
+courses/**/context/student_profile.md
+courses/**/context/transcripts/
+courses/**/context/sources/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/

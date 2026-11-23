@@ -1,0 +1,183 @@
+---
+title: "4. Unilateral Laplace Transform"
+description: "Linear Systems Theory — Chapter 4: Unilateral Laplace Transform"
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 4 Mental Model" markdown={`# Ch. 4: Unilateral Laplace Transform
+  - Mathematical Definition and Region of Convergence
+  - Canonical Operational Signals and Transform Pairs
+  - Fundamental Operational Theorems
+    - 1. Linearity
+    - 2. Time Translation (Pure Delay)
+    - 3. Complex Frequency Translation (Exponential Modulation)
+    - 4. Time Differentiation
+    - 5. Time Integration
+    - 6. Complex Frequency Differentiation (Multiplication by $t$)
+    - 7. Initial and Final Value Theorems`} />
+
+## Mathematical Definition and Region of Convergence
+
+The Laplace transform is the operational bridge converting continuous-time differential equations into algebraic polynomials in the complex frequency variable $s \in \mathbb{C}$. In causal engineering systems where excitations and states are initialized at $t = 0^-$, we employ the **Unilateral Laplace Transform**.
+
+<Callout type="note" title="Definition: Unilateral Laplace Transform">
+
+Let $f(t): [0, \infty) \to \mathbb{R}$ be a piecewise continuous function of exponential order, such that $|f(t)| \le M e^{\sigma_0 t}$ for all $t \ge 0$ with constants $M > 0, \sigma_0 \in \mathbb{R}$. The unilateral Laplace transform of $f(t)$ is defined as:
+$$F(s) \triangleq \mathcal{L}\{f(t)\} = \int_{0^-}^\infty f(t) e^{-st} \, dt$$
+where $s = \sigma + j\omega \in \mathbb{C}$ is the complex frequency variable.
+
+</Callout>
+
+The integral the equation above converges in an open right half-plane of the complex plane termed the **Region of Convergence (ROC)**:
+
+$$\operatorname{ROC} = \left\{ s \in \mathbb{C} \;\middle|\; \operatorname{Re}(s) = \sigma > \sigma_0 \right\}$$
+
+where $\sigma_0$ is the **abscissa of absolute convergence**.
+
+<figure id="fig-laplace-roc" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-laplace-roc.svg" alt="The complex $s$-plane showing the abscissa of convergence $\sigma_0$ and the semi-infinite Region of Convergence (ROC) guaranteeing absolute convergence $\int_0^\infty |f(t)e^{-st}|dt < \infty$." />
+  <figcaption>The complex $s$-plane showing the abscissa of convergence $\sigma_0$ and the semi-infinite Region of Convergence (ROC) guaranteeing absolute convergence $\int_0^\infty |f(t)e^{-st}|dt < \infty$.</figcaption>
+</figure>
+
+<Divider />
+
+## Canonical Operational Signals and Transform Pairs
+
+Evaluating the equation above across standard testing signals yields the foundational transformation dictionary:
+
+| Signal Name | Time-Domain Function $f(t)$ ($t \ge 0^-$) | Laplace Transform $F(s)$ | Abscissa of Convergence $\sigma_0$ |
+| :--- | :--- | :--- | :--- |
+| **Dirac Delta** | $\delta(t)$ | $1$ | $-\infty$ (entire complex plane $\mathbb{C}$) |
+| **Heaviside Step** | $1(t)$ | $\dfrac{1}{s}$ | $\operatorname{Re}(s) > 0$ |
+| **Unit Ramp** | $t \cdot 1(t)$ | $\dfrac{1}{s^2}$ | $\operatorname{Re}(s) > 0$ |
+| **Polynomial Monomial** | $\dfrac{t^n}{n!} \cdot 1(t)$ ($n \in \mathbb{N}$) | $\dfrac{1}{s^{n+1}}$ | $\operatorname{Re}(s) > 0$ |
+| **Real Exponential** | $e^{at} \cdot 1(t)$ ($a \in \mathbb{R}$) | $\dfrac{1}{s - a}$ | $\operatorname{Re}(s) > a$ |
+| **Cosine Harmonic** | $\cos(\omega t) \cdot 1(t)$ | $\dfrac{s}{s^2 + \omega^2}$ | $\operatorname{Re}(s) > 0$ |
+| **Sine Harmonic** | $\sin(\omega t) \cdot 1(t)$ | $\dfrac{\omega}{s^2 + \omega^2}$ | $\operatorname{Re}(s) > 0$ |
+| **Damped Cosine** | $e^{-\alpha t}\cos(\omega t) \cdot 1(t)$ | $\dfrac{s + \alpha}{(s+\alpha)^2 + \omega^2}$ | $\operatorname{Re}(s) > -\alpha$ |
+| **Damped Sine** | $e^{-\alpha t}\sin(\omega t) \cdot 1(t)$ | $\dfrac{\omega}{(s+\alpha)^2 + \omega^2}$ | $\operatorname{Re}(s) > -\alpha$ |
+
+<Divider />
+
+## Fundamental Operational Theorems
+
+The power of the Laplace transform lies in its operational properties, which convert calculus operations (derivatives, integrals, convolutions) into simple algebra.
+
+### 1. Linearity
+$$\mathcal{L}\{\alpha f_1(t) + \beta f_2(t)\} = \alpha F_1(s) + \beta F_2(s), \quad \forall \alpha, \beta \in \mathbb{C}$$
+
+### 2. Time Translation (Pure Delay)
+Shifting a causal waveform by $\tau > 0$:
+$$\mathcal{L}\{f(t - \tau) 1(t - \tau)\} = \int_\tau^\infty f(t - \tau) e^{-st} \, dt = e^{-s\tau} \int_0^\infty f(\sigma) e^{-s\sigma} \, d\sigma = e^{-s\tau} F(s)$$
+
+### 3. Complex Frequency Translation (Exponential Modulation)
+$$\mathcal{L}\{e^{at} f(t)\} = \int_0^\infty f(t) e^{-(s-a)t} \, dt = F(s - a)$$
+
+### 4. Time Differentiation
+Integrating by parts:
+$$\mathcal{L}\{\dot{f}(t)\} = \int_{0^-}^\infty \dot{f}(t) e^{-st} \, dt = \left[ f(t) e^{-st} \right]_{0^-}^\infty - \int_{0^-}^\infty f(t) (-s e^{-st}) \, dt = s F(s) - f(0^-)$$
+
+For higher-order derivatives:
+$$\mathcal{L}\{\ddot{f}(t)\} = s^2 F(s) - s f(0^-) - \dot{f}(0^-)$$
+$$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - \sum_{k=1}^n s^{n-k} f^{(k-1)}(0^-)$$
+
+At **zero initial conditions** ($f(0^-) = \dot{f}(0^-) = \dots = 0$), differentiation is equivalent to multiplication by $s$:
+$$\frac{d}{dt} \iff s$$
+
+### 5. Time Integration
+$$\mathcal{L}\left\{ \int_{0^-}^t f(\tau) \, d\tau \right\} = \frac{1}{s} F(s)$$
+Integration in the time domain is equivalent to division by $s$ in the complex frequency domain.
+
+### 6. Complex Frequency Differentiation (Multiplication by $t$)
+Differentiating the equation above under the integral with respect to $s$:
+$$\frac{d}{ds} F(s) = \frac{d}{ds} \int_0^\infty f(t) e^{-st} \, dt = \int_0^\infty (-t) f(t) e^{-st} \, dt = -\mathcal{L}\{t f(t)\}$$
+$$\mathcal{L}\{t^n f(t)\} = (-1)^n \frac{d^n}{ds^n} F(s)$$
+
+### 7. Initial and Final Value Theorems
+* **Initial Value Theorem:** If $f(t)$ and $\dot{f}(t)$ are Laplace-transformable, the initial state is recovered by the high-frequency limit:
+  $$f(0^+) = \lim_{s \to \infty} s F(s)$$
+* **Final Value Theorem:** If all poles of $s F(s)$ lie strictly in the open left-half complex plane ($\operatorname{Re}(s) < 0$), the asymptotic steady state is:
+  $$\lim_{t \to \infty} f(t) = \lim_{s \to 0} s F(s)$$
+
+<Callout type="warning" title="Precondition of the Final Value Theorem">
+
+The final value theorem is **invalid** if $s F(s)$ possesses any poles on the imaginary axis or in the right-half plane. For example, for $f(t) = \sin(\omega t)$, $F(s) = \frac{\omega}{s^2 + \omega^2}$. Evaluating $\lim_{s \to 0} s F(s) = \lim_{s \to 0} \frac{s\omega}{s^2 + \omega^2} = 0$. However, $\lim_{t \to \infty} \sin(\omega t)$ does not exist; it oscillates perpetually between $-1$ and $+1$!
+
+</Callout>
+
+<Callout type="bridge" title="SDU Robotics Bridge: Telemetry Latency in Drone Network Links">
+
+In robotic UAS operations (such as remote control of drones over 4G/5G or Wi-Fi links at SDU's drone test facility), communication latency $\tau$ between the ground station and the vehicle introduces a pure transport delay.
+According to the equation above, this delay introduces a factor of $e^{-s\tau}$ into the open-loop transfer function.
+On the imaginary axis $s = j\omega$:
+$$e^{-j\omega\tau} = 1 \cdot e^{-j\omega\tau}$$
+This delay maintains unit gain $|e^{-j\omega\tau}| = 1$ but introduces a phase lag:
+$$\phi_{\text{delay}}(\omega) = -\omega \tau \text{ radians} = -\frac{180^\circ}{\pi} \omega \tau$$
+Because phase lag increases linearly with frequency $\omega$, excessive transport delay degrades the phase margin and causes drone position loops to oscillate or become unstable.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-4-1" title="Exercise 4.1: Elementary Laplace Transform Pairs" level="LEVEL 1: WARM-UP DRILL">
+
+Compute the unilateral Laplace transform $F(s) = \mathcal{L}\{f(t)\}$ for the following fundamental test signals:
+
+1. $f_1(t) = \left( 3e^{-2t} - 5e^{-4t} \right) 1(t)$
+2. $f_2(t) = t e^{-3t} 1(t)$ using the frequency shift theorem $\mathcal{L}\{e^{-at}g(t)\} = G(s+a)$.
+3. $f_3(t) = \cos(4t) 1(t)$ using Euler's identity.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Applying linearity and standard exponential transforms:
+   $$F_1(s) = \mathcal{L}\{3e^{-2t} - 5e^{-4t}\} = \frac{3}{s + 2} - \frac{5}{s + 4} = \frac{3(s + 4) - 5(s + 2)}{(s + 2)(s + 4)} = \frac{-2s + 2}{(s + 2)(s + 4)}$$
+2. Using the frequency shift theorem $\mathcal{L}\{e^{-at}g(t)\} = G(s+a)$ with $g(t) = t \leftrightarrow \frac{1}{s^2}$:
+   $$F_2(s) = \mathcal{L}\{t e^{-3t}\} = \frac{1}{(s + 3)^2}$$
+3. Using Euler's identity $\cos(4t) = \frac{e^{j4t} + e^{-j4t}}{2}$:
+   $$F_3(s) = \frac{1}{2}\left( \frac{1}{s - j4} + \frac{1}{s + j4} \right) = \frac{1}{2}\frac{2s}{s^2 + 16} = \frac{s}{s^2 + 16}$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-4-2" title="Exercise 4.2: Time-Shifted Waveforms and Initial Value ODEs" level="LEVEL 2: EXAM BENCHMARK">
+
+1. Compute the Laplace transform of the delayed quadratic signal $g_1(t) = (t - 2)^2 1(t - 2)$ using the time delay theorem $\mathcal{L}\{f(t-t_0)1(t-t_0)\} = e^{-s t_0} F(s)$.
+2. Compute the Laplace transform of the damped sinusoid $g_2(t) = e^{-2t}\sin(3t) 1(t)$ using completion of the square.
+3. Given the second-order differential equation with non-zero initial conditions:
+   $$\ddot{y}(t) + 4\dot{y}(t) + 3y(t) = 2 u(t), \quad y(0^-) = 1, \; \dot{y}(0^-) = -2$$
+   Apply the derivative operational theorem $\mathcal{L}\{\dot{y}(t)\} = sY(s) - y(0^-)$ and $\mathcal{L}\{\ddot{y}(t)\} = s^2Y(s) - sy(0^-) - \dot{y}(0^-)$ to express $Y(s)$ in algebraic form, separating the free response and forced response terms.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Applying the time translation theorem $\mathcal{L}\{f(t - \tau) 1(t - \tau)\} = e^{-s\tau} F(s)$ with $\tau = 2$ and $f(t) = t^2 \leftrightarrow \frac{2}{s^3}$:
+   $$G_1(s) = \mathcal{L}\{(t - 2)^2 1(t - 2)\} = e^{-2s} \frac{2}{s^3} = \frac{2 e^{-2s}}{s^3}$$
+2. Using the frequency-shifted damped sine pair:
+   $$G_2(s) = \mathcal{L}\{e^{-2t}\sin(3t)\} = \frac{3}{(s + 2)^2 + 3^2} = \frac{3}{s^2 + 4s + 13}$$
+3. Applying Laplace differentiation with initial conditions $y(0^-) = 1, \dot{y}(0^-) = -2$:
+   $$\mathcal{L}\{\ddot{y}(t)\} = s^2 Y(s) - s y(0^-) - \dot{y}(0^-) = s^2 Y(s) - s - (-2) = s^2 Y(s) - s + 2$$
+   $$\mathcal{L}\{4\dot{y}(t)\} = 4[s Y(s) - y(0^-)] = 4s Y(s) - 4(1) = 4s Y(s) - 4$$
+   $$\mathcal{L}\{3y(t)\} = 3 Y(s)$$
+   Substituting into the ODE:
+   $$(s^2 Y(s) - s + 2) + (4s Y(s) - 4) + 3 Y(s) = 2 U(s)$$
+   $$(s^2 + 4s + 3) Y(s) - (s + 2) = 2 U(s) \implies (s^2 + 4s + 3) Y(s) = (s + 2) + 2 U(s)$$
+   Solving for $Y(s)$:
+   $$Y(s) = \underbrace{\frac{s + 2}{s^2 + 4s + 3}}_{Y_{\text{free}}(s)} + \underbrace{\frac{2}{s^2 + 4s + 3} U(s)}_{Y_{\text{forced}}(s)}$$
+
+</details>
+
+</Exercise>

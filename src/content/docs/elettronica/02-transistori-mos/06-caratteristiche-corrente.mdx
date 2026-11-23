@@ -1,0 +1,227 @@
+---
+title: "6. Caratteristiche Statiche di Corrente"
+description: "Elettronica — Capitolo 6: Caratteristiche Statiche di Corrente"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+import MosfetExplorer from "@components/MosfetExplorer.tsx";
+
+<MindMap client:load lang="it" title="Mappa del Capitolo 6" markdown={`# Cap. 6: Caratteristiche Statiche di Corrente
+  - 1 · Intuizione Fisica
+  - 2 · Definizione e Dimostrazione (Orale)
+    - Il Meccanismo Fisico di Conduzione nel Canale NMOS
+    - Caratteristica di Corrente in Regione di Triodo
+    - Il Meccanismo del Pinch-Off e la Regione di Saturazione
+    - Modulazione della Lunghezza di Canale ($\lambda$) e Resistenza Differenziale $r_o$
+    - Il Transistore PMOS
+  - 3 · Algoritmo Operativo (Esercizi)
+  - 4 · Archetipo Svolto ed Esercizi`} />
+
+<Divider label="1 · Intuizione Fisica" />
+
+Questo capitolo sviluppa la deduzione analitica della corrente di Drain $I_D$ in regione di triodo a partire dalla distribuzione della carica di inversione nel canale e dal campo elettrico longitudinale, nonché la derivazione fisica della saturazione per strozzamento del canale (*pinch-off*) e dell'effetto di modulazione della lunghezza di canale ($\lambda, r_o$).
+
+<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+
+## Il Meccanismo Fisico di Conduzione nel Canale NMOS
+
+Consideriamo un transistore NMOS polarizzato con una tensione Gate-Source superiore alla tensione di soglia ($V_{GS} > V_{th}$), in modo da instaurare il canale conduttivo di elettroni tra Source ($x = 0$) e Drain ($x = L$). 
+
+Definiamo la **tensione di overdrive ($V_{OV}$)**:
+$$ V_{OV} = V_{GS} - V_{th} $$
+Essa rappresenta l'eccesso di tensione applicato al Gate rispetto al valore minimo indispensabile per innescare la forte inversione: maggiore è $V_{OV}$, maggiore è la densità di carica mobile disponibile per la conduzione.
+
+Quando applichiamo una tensione positiva tra Drain e Source ($V_{DS} > 0$), la corrente entra dal terminale di Drain ed esce dal Source. Il potenziale elettrostatico lungo il canale non è più uniforme, ma cresce con continuità dal Source ($V(0) = 0$) fino al Drain ($V(L) = V_{DS}$).
+
+Di conseguenza, la caduta di potenziale efficace tra il Gate e il canale alla generica coordinata $x$ vale:
+$$ V_{ox}(x) = V_{GS} - V(x) $$
+
+All'aumentare di $x$, $V(x)$ cresce, per cui la caduta di tensione sull'ossido $V_{ox}(x)$ diminuisce progressivamente muovendosi da Source verso Drain. La densità superficiale di carica mobile nel canale di inversione vale localmente:
+$$ Q_I(x) = -C_{ox} [V_{ox}(x) - V_{th}] = -C_{ox} [V_{GS} - V_{th} - V(x)] \quad [\text{C/cm}^2] $$
+
+Moltiplicando per la larghezza geometrica $W$ del transistore, otteniamo la **carica mobile per unità di lunghezza del canale**:
+$$ q'(x) = W \cdot Q_I(x) = -W C_{ox} [V_{GS} - V_{th} - V(x)] \quad [\text{C/cm}] $$
+
+Il canale presenta dunque una forma a cuneo: la profondità e la carica sono massime al Source ($V(0)=0$) e minime all'estremità di Drain ($V(L)=V_{DS}$).
+
+<figure id="fig-mos-testbench" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-mos-testbench.svg" alt="Banchi di prova DC per il tracciamento delle curve I_D-V_DS di NMOS e PMOS." />
+  <figcaption>Banchi di prova DC per la caratterizzazione statica di NMOS e PMOS.</figcaption>
+</figure>
+
+## Caratteristica di Corrente in Regione di Triodo
+
+Quando la tensione Drain-Source è inferiore alla tensione di overdrive ($V_{DS} < V_{GS} - V_{th} = V_{OV}$), il canale di inversione è continuo da Source a Drain e il transistore opera nella **regione di Triodo (o regione lineare/ohmica)**. Integrando il trasporto per deriva lungo la lunghezza del canale $L$ e definendo il **parametro di transconduttanza di processo** $k_n' = \mu_n C_{ox}$ ($\text{A/V}^2$ o $\mu\text{A/V}^2$), si ottiene l'equazione fondamentale del MOSFET in regione di Triodo:
+$$ I_D = k_n' \frac{W}{L} \left[ (V_{GS} - V_{th}) V_{DS} - \frac{1}{2} V_{DS}^2 \right] $$
+
+Il fattore adimensionale $W/L$ è detto **rapporto di aspetto (aspect ratio)** del transistore ed è il principale grado di libertà geometrico a disposizione del progettista microelettronico.
+
+### Dimostrazione Matematica: Integrazione Lungo il Canale della Corrente in Triodo
+
+Consideriamo una sezione infinitesima di canale compresa tra la coordinata $x$ e $x + dx$:
+1. **Equazione di trasporto per deriva:** Gli elettroni nel canale si muovono sotto l'azione del campo elettrico longitudinale $\mathcal{E}_x(x) = -\frac{dV(x)}{dx}$. Nel regime di mobilità costante, la velocità di deriva vale $u(x) = -\mu_n \mathcal{E}_x(x) = \mu_n \frac{dV(x)}{dx}$.
+2. **Continuità della corrente:** La corrente di elettroni nella sezione $x$ vale $i(x) = q'(x) \cdot u(x)$. Poiché la corrente convenzionale di Drain $I_D = -i(x)$ è costante lungo tutto il canale per conservazione della carica ($\frac{di}{dx} = 0$):
+   $$ I_D = W \mu_n C_{ox} [V_{GS} - V_{th} - V(x)] \frac{dV(x)}{dx} \implies I_D \, dx = W \mu_n C_{ox} [V_{GS} - V_{th} - V(x)] \, dV(x) $$
+3. **Integrazione da Source ($x=0, V=0$) a Drain ($x=L, V=V_{DS}$):**
+   $$ \int_0^L I_D \, dx = W \mu_n C_{ox} \int_0^{V_{DS}} [ (V_{GS} - V_{th}) - V ] \, dV \implies I_D \cdot L = W \mu_n C_{ox} \left[ (V_{GS} - V_{th}) V_{DS} - \frac{1}{2} V_{DS}^2 \right] $$
+   Dividendo ambo i membri per $L$ e ponendo $k_n' = \mu_n C_{ox}$, si ottiene l'equazione del triodo.
+
+<figure id="fig-mosfet-curves" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-mosfet-curves.svg" alt="Famiglia di curve caratteristiche d'uscita I_D - V_DS al variare di V_GS, evidenziante il confine di pinch-off e l'estrapolazione della tensione di Early V_A." />
+  <figcaption>Famiglia di curve caratteristiche d'uscita $I_D - V_{DS}$ al variare di $V_{GS}$, evidenziante il confine di pinch-off e l'estrapolazione della tensione di Early $V_A$.</figcaption>
+</figure>
+
+### Limite per Piccoli Segnali: La Resistenza $R_{on}$
+Se la tensione Drain-Source è sufficientemente piccola da rendere trascurabile il termine quadratico ($V_{DS} \ll 2(V_{GS} - V_{th})$):
+$$ I_D \approx k_n' \frac{W}{L} (V_{GS} - V_{th}) V_{DS} $$
+
+La relazione corrente-tensione diventa puramente lineare (Ohmica). Il MOSFET si comporta come un **resistore controllato in tensione dal Gate**, di valore:
+$$ R_{on} = \left. \frac{V_{DS}}{I_D} \right|_{V_{DS} \to 0} = \frac{1}{k_n' \frac{W}{L} (V_{GS} - V_{th})} = \frac{1}{k_n' \frac{W}{L} V_{OV}} $$
+
+<Callout type="tip" title="Vantaggio Progettuale: Il MOSFET in Triodo come Resistore Compatto Regolabile">
+
+Questa proprietà offre un vantaggio enorme nei circuiti integrati: realizzare un resistore passivo tradizionale in polisilicio da poche decine di $\text{k}\Omega$ occupa un'area di silicio gigantesca e soffre di tolleranze produttive fino al $\pm 20\%$. Utilizzando invece un MOSFET polarizzato in triodo profondo, si ottiene un resistore $R_{on}$ centinaia di volte più compatto, il cui valore ohmico può essere tarato elettronicamente in tempo reale semplicemente variando la tensione di controllo sul Gate $V_{GS}$ (oltre che usandolo come interruttore chiuso a bassa resistenza nelle porte logiche e nei *transmission gates*).
+
+</Callout>
+
+## Il Meccanismo del Pinch-Off e la Regione di Saturazione
+
+All'aumentare di $V_{DS}$, la carica di inversione all'estremità di Drain $Q_I(L) = -C_{ox}[V_{GS} - V_{th} - V_{DS}]$ diminuisce progressivamente.
+
+### La Condizione di Strozzamento (Pinch-Off)
+Quando la tensione $V_{DS}$ raggiunge esattamente la tensione di overdrive:
+$$ V_{DS} = V_{DS,sat} = V_{GS} - V_{th} = V_{OV} $$
+la differenza di potenziale locale sull'ossido al Drain eguaglia la soglia:
+$$ V_{ox}(L) = V_{GS} - V_{DS,sat} = V_{th} $$
+In questo punto, la carica mobile nel canale di inversione al Drain si annulla:
+$$ Q_I(L) = 0 $$
+
+Questo fenomeno prende il nome di **strozzamento del canale o pinch-off**. La tensione $V_{DS} = V_{OV}$ demarca il confine geometrico tra la regione di triodo e la regione di saturazione ([la figura](#fig-mosfet-curves)).
+
+### Dimostrazione dell'Equazione di Saturazione
+Per $V_{DS} \ge V_{OV}$, la caduta di potenziale lungo la porzione conduttiva del canale rimane fissa al valore critico di pinch-off $V_{OV}$. Sostituendo $V_{DS} = V_{GS} - V_{th}$ nell'equazione del triodo:
+$$ I_{D,sat} = k_n' \frac{W}{L} \left[ (V_{GS} - V_{th})(V_{GS} - V_{th}) - \frac{1}{2}(V_{GS} - V_{th})^2 \right] $$
+$$ I_{D,sat} = \frac{1}{2} k_n' \frac{W}{L} (V_{GS} - V_{th})^2 = \frac{1}{2} k_n' \frac{W}{L} V_{OV}^2 $$
+
+In un transistore ideale, **la corrente in saturazione è totalmente indipendente dalla tensione di Drain $V_{DS}$**: il componente si comporta come un generatore ideale di corrente controllato dalla tensione di Gate $V_{GS}$ (**VCCS ideale**).
+
+È importante chiarire perché la corrente di Drain non si annulli al pinch-off nonostante la densità superficiale di elettroni mobili all'estremità di Drain tenda a zero ($Q_I(L) \to 0$). La corrente è infatti data dal prodotto tra densità lineare di carica e velocità di deriva ($I_D = q'(x) \cdot u(x)$): man mano che il canale si assottiglia verso il Drain, il campo elettrico longitudinale $\mathcal{E}_x$ cresce rapidamente. Gli elettroni che giungono dal Source fino al punto di pinch-off vengono immediatamente accelerati e spazzati verso il Drain dall'intenso campo elettrico presente nella zona di svuotamento adiacente al Drain, viaggiando alla velocità di saturazione $v_{sat}$ e mantenendo la corrente continua e costante lungo il dispositivo.
+
+## Modulazione della Lunghezza di Canale ($\lambda$) e Resistenza Differenziale $r_o$
+
+Nei transistori reali, incrementando ulteriormente $V_{DS}$ oltre il valore di pinch-off ($V_{DS} > V_{OV}$), il punto in cui la tensione di canale tocca $V_{OV}$ si sposta fisicamente all'indietro verso il Source. La lunghezza effettiva del canale conduttivo si riduce da $L$ a:
+$$ L_{eff} = L - \Delta L $$
+
+Poiché la corrente di saturazione è inversamente proporzionale alla lunghezza del canale conduttivo ($I_D \propto 1/L_{eff}$):
+$$ I_D \propto \frac{1}{L - \Delta L} \approx \frac{1}{L} \left( 1 + \frac{\Delta L}{L} \right) $$
+
+Poiché l'allargamento della zona di svuotamento $\Delta L$ cresce approssimativamente in modo lineare con l'eccesso di potenziale $(V_{DS} - V_{OV})$, introduciamo il **parametro empirico di modulazione della lunghezza di canale ($\lambda$)**:
+$$ I_D = \frac{1}{2} k_n' \frac{W}{L} (V_{GS} - V_{th})^2 (1 + \lambda V_{DS}) $$
+dove $\lambda$ si misura in $\text{V}^{-1}$.
+
+### La Tensione di Early $V_A$ e la Resistenza d'Uscita $r_o$
+Il parametro $\lambda$ è inversamente proporzionale alla tensione di Early $V_A$:
+$$ \lambda = \frac{1}{V_A} $$
+
+La tensione di Early è una grandezza tecnologica direttamente proporzionale alla lunghezza nominale del canale $L$:
+$$ V_A = V_A' \cdot L $$
+dove $V_A'$ è espresso in $\text{V/}\mu\text{m}$. Canali più lunghi sono molto meno sensibili all'effetto di modulazione, presentando un $\lambda$ inferiore e una corrente più piatta.
+
+A causa della modulazione di canale, le curve d'uscita in saturazione presentano una pendenza finita e positiva. Prolungando all'indietro tali rette nel secondo quadrante, esse convergono tutte verso il medesimo punto sull'asse delle tensioni: $V_{DS} = -V_A = -1/\lambda$ ([la figura](#fig-mosfet-curves)).
+
+La pendenza della curva in saturazione definisce la **resistenza differenziale d'uscita a piccolo segnale ($r_o$)**:
+$$ r_o = \left( \left. \frac{\partial I_D}{\partial V_{DS}} \right|_Q \right)^{-1} = \frac{1}{\lambda \cdot \left[ \frac{1}{2} k_n' \frac{W}{L} (V_{GS} - V_{th})^2 \right]} \approx \frac{1}{\lambda I_{DQ}} = \frac{V_A}{I_{DQ}} $$
+
+Nei circuiti analogici integrati, $r_o$ rappresenta il limite fondamentale al guadagno di tensione ottenibile da un singolo stadio amplificatore.
+
+## Il Transistore PMOS
+
+Il **transistore MOSFET a canale p (PMOS)** è il complemento duale dell'NMOS:
+* Substrato (o pozzetto N-well) drogato di tipo N ($N_D$).
+* Pozzetti di Source e Drain drogati $P^+$.
+* I portatori mobili nel canale di inversione superficiale sono **lacune** ($p$).
+
+### Regole di Segno e Formule Duali
+Per accendere un PMOS, il potenziale di Gate deve essere sufficientemente negativo rispetto al Source:
+$$ V_{GS} < V_{th,p} \quad (\text{dove } V_{th,p} < 0) $$
+La tensione di overdrive per un PMOS vale:
+$$ |V_{OV}| = |V_{GS}| - |V_{th,p}| = -(V_{GS} - V_{th,p}) $$
+
+1. **Regione di Interdizione:** $|V_{GS}| < |V_{th,p}| \implies I_D = 0$.
+2. **Regione di Triodo:** $|V_{GS}| \ge |V_{th,p}|$ e $|V_{DS}| < |V_{OV}|$:
+   $$ |I_D| = k_p' \frac{W}{L} \left[ (|V_{GS}| - |V_{th,p}|) |V_{DS}| - \frac{1}{2} |V_{DS}|^2 \right] $$
+   dove $k_p' = \mu_p C_{ox}$. Poiché $\mu_p \approx \mu_n / 2.5$, a parità di geometria $k_p'$ è inferiore a $k_n'$.
+3. **Regione di Saturazione:** $|V_{GS}| \ge |V_{th,p}|$ e $|V_{DS}| \ge |V_{OV}|$:
+   $$ |I_D| = \frac{1}{2} k_p' \frac{W}{L} (|V_{GS}| - |V_{th,p}|)^2 (1 + |\lambda| |V_{DS}|) $$
+
+<Callout type="tip" title="Prospettiva del Progettista: Parametri di Fonderia Fissi vs Leve Geometriche">
+
+Quando si progetta un circuito integrato (ad esempio nei flussi CAD industriali), i parametri tecnologici $k_n' = \mu_n C_{ox}$, $V_{th}$ e $V_A'$ sono fissati dalla fisica del processo di fonderia e non possono essere alterati. Le uniche vere manopole progettuali nelle mani dell'ingegnere sono le dimensioni geometriche **$W$ e $L$** disegnate a layout e la corrente (o tensione di overdrive) di polarizzazione: si sceglie $L$ per fissare la resistenza d'uscita $r_o$ e la velocità, e si dimensiona $W$ per ottenere la corrente $I_D$ o la transconduttanza richiesta.
+
+</Callout>
+
+<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+
+### Tabella di Decisione Rapida — Regioni Operative MOSFET (NMOS)
+
+| Condizione sulle tensioni | Regione | Equazione $I_D$ |
+| :--- | :--- | :--- |
+| $V_{GS} &lt; V_{th}$ | **Interdizione** | $I_D = 0$ |
+| $V_{GS} \ge V_{th}$ e $V_{DS} &lt; V_{GS} - V_{th}$ | **Triodo (Lineare)** | $I_D = K_n \left[(V_{GS} - V_{th})V_{DS} - \frac{1}{2}V_{DS}^2\right](1 + \lambda V_{DS})$ |
+| $V_{GS} \ge V_{th}$ e $V_{DS} \ge V_{GS} - V_{th}$ | **Saturazione** | $I_D = \frac{1}{2} K_n (V_{GS} - V_{th})^2 (1 + \lambda V_{DS})$ |
+
+Dove $K_n = k_n' \frac{W}{L} = \mu_n C_{ox}'' \frac{W}{L}$ e $V_{OV} = V_{GS} - V_{th}$.
+
+<MosfetExplorer client:load />
+
+<Divider label="4 · Archetipo Svolto ed Esercizi" />
+
+<Callout type="warning" title="Trappola d'Esame: Usare l'Equazione di Saturazione in Triodo">
+
+Non dare mai per scontata la saturazione! Dopo aver calcolato le tensioni ai morsetti, è **obbligatorio** verificare la disuguaglianza $V_{DS} \ge V_{GS} - V_{th}$ (per NMOS) o $V_{SD} \ge V_{SG} - |V_{TP}|$ (per PMOS).
+
+</Callout>
+
+<Exercise client:load lang="it" id="ex-6-1" title="Esercizio 6.1: Corrente di Saturazione e Modulazione di Canale" level="Livello 1 · Base" hint="Verifica prima V_OV = V_GS - V_th rispetto a V_DS, poi applica il fattore (1 + lambda * V_DS).">
+
+Un NMOS ha $k_n' = 200\,\mu\text{A/V}^2$, $W/L = 20$, $V_{th} = 0.8\,\text{V}$, $\lambda = 0.02\,\text{V}^{-1}$, ed è polarizzato a $V_{GS} = 2.3\,\text{V}$, $V_{DS} = 2.0\,\text{V}$.
+
+<StepCheck client:load lang="it" prompt="Calcola la tensione di overdrive V_OV = V_GS - V_th (in V):" expected={1.5} tolerance={0.02} unit="V" explanation="V_OV = 2.3 - 0.8 = 1.5 V. Poiché V_DS = 2.0 V >= 1.5 V, il dispositivo è in saturazione." />
+
+<StepCheck client:load lang="it" prompt="Calcola la corrente I_D includendo λ (in mA):" expected={4.68} tolerance={0.05} unit="mA" explanation="K_n = 4 mA/V^2; I_D0 = 0.5*4*(1.5)^2 = 4.5 mA; I_D = 4.5 * (1 + 0.02*2.0) = 4.68 mA." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. $K_n = k_n' \frac{W}{L} = 200\,\mu\text{A/V}^2 \times 20 = 4\,\text{mA/V}^2$.
+2. $V_{OV} = 2.3 - 0.8 = 1.5\,\text{V} \le V_{DS} = 2.0\,\text{V} \implies$ **Saturazione**.
+3. $I_D = \frac{1}{2}(4)(1.5)^2 (1 + 0.02 \cdot 2.0) = 4.5 \times 1.04 = 4.68\,\text{mA}$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-6-2" title="Esercizio 6.2: Regione di Triodo e Resistenza di Canale R_on" level="Livello 2 · Esame" hint="Con V_DS = 0.5 V < V_OV = 1.5 V siamo in triodo; per R_on usa 1 / (K_n * V_OV).">
+
+Per lo stesso NMOS dell'esercizio precedente ($K_n = 4\,\text{mA/V}^2$, $V_{OV} = 1.5\,\text{V}$, $\lambda = 0$), si riduce la tensione Drain-Source a $V_{DS} = 0.5\,\text{V}$.
+
+<StepCheck client:load lang="it" prompt="Calcola la corrente di Drain I_D in regione di triodo (in mA):" expected={2.5} tolerance={0.03} unit="mA" explanation="I_D = 4 * (1.5*0.5 - 0.5*0.25) = 4 * 0.625 = 2.5 mA." />
+
+<StepCheck client:load lang="it" prompt="Calcola la resistenza di canale in triodo profondo R_on (in Ω):" expected={166.67} tolerance={2} unit="Ω" explanation="R_on = 1 / (K_n * V_OV) = 1 / (4e-3 * 1.5) = 166.67 Ω." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. Poiché $V_{DS} = 0.5\,\text{V} &lt; V_{OV} = 1.5\,\text{V}$, il MOSFET opera in **triodo**:
+   $$ I_D = 4\left(1.5 \cdot 0.5 - \frac{0.5^2}{2}\right) = 4(0.75 - 0.125) = 2.5\,\text{mA} $$
+2. Per $V_{DS} \ll V_{OV}$, $R_{on} = \frac{1}{K_n V_{OV}} = \frac{1}{4\times 10^{-3} \cdot 1.5} \approx 166.67\,\Omega$.
+
+</details>
+
+</Exercise>

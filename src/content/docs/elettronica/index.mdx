@@ -1,0 +1,64 @@
+---
+title: "Elettronica (Microelettronica)"
+description: "Fisica dei Dispositivi, Transistori MOS, Amplificatori Analogici e Logica CMOS — L-8 UniCT"
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load lang="it" title="Mappa Generale del Corso" markdown={`# Elettronica (L-8)
+  - Parte I: Fondamenti dei Dispositivi
+  - Parte II: Transistori MOS
+  - Parte III: Amplificatori Operazionali
+  - Parte IV: Amplificatori e Frequenza
+  - Parte V: Logica Combinatoria CMOS
+  - Parte VI: Sequenziali, Memorie e CAD`} />
+
+## Scopo e Doppio Obiettivo
+
+Questo textbook dinamico è progettato per accompagnare le slide del corso di **Elettronica A-L** (Prof. Gianluca Giustolisi, ING-INF/01, 9 CFU) del terzo anno di Ingegneria Informatica presso l'Università di Catania.
+
+Le slide del corso forniscono le **immagini, gli schemi circuitali e i concetti chiave** in formato visivo. Questo testo fornisce il **contesto, il dettaglio analitico, l'intuizione fisica e la preparazione specifica all'esame orale** che le slide da sole non possono garantire.
+
+Il textbook soddisfa simultaneamente due obiettivi:
+
+1. **Superare il Colloquio Orale:** Copertura completa dei 40 minuti di colloquio articolati sulle tre macro-aree del programma (Fisica dei dispositivi e diodi, Circuiti analogici e transistori MOS, Circuiti digitali CMOS e memorie), unendo il rigore formale richiesto dal docente a un taglio concreto e orientato alle scelte progettuali.
+2. **Fondazione Ingegneristica a Lungo Termine:** Collegamento dei concetti teorici alla realtà industriale dei circuiti integrati CMOS (con particolare riferimento al tessuto microelettronico della *Etna Valley* catanese), alla progettazione di sistemi embedded e all'ingegneria dei sistemi elettronici moderni.
+
+---
+
+## Impatto dell'AI e degli LLM sulla Disciplina
+
+I Large Language Models e gli agenti autonomi di progettazione circuitale stanno trasformando l'elettronica:
+
+- **Automatizzato:** Sintesi logica RTL da specifiche ad alto livello, generazione automatica di layout, ottimizzazione parametrica tramite algoritmi genetici, verifica DRC/LVS automatizzata.
+- **Insostituibile:** Intuizione fisica dei meccanismi di trasporto nei semiconduttori, comprensione delle non-idealità dei dispositivi sotto condizioni operative estreme, scelte architetturali di compromesso tra velocità, consumo e area (il triangolo PPA: *Power, Performance, Area*), debugging di circuiti analogici in cui la convergenza numerica fallisce.
+
+Questo testo si concentra sullo sviluppo dell'intuizione fisica e del rigore analitico che nessun modello linguistico può sostituire.
+
+---
+
+## Prerequisiti
+
+Prima di affrontare questo testo, lo studente deve padroneggiare i seguenti prerequisiti fondamentali:
+
+- **Analisi Matematica I ed Equazioni Differenziali:** Studio di funzioni, limiti, derivate, integrali, equazioni differenziali lineari del primo ordine e trasformata di Laplace.
+- **Fisica II:** Grandezze elettromagnetiche, campo elettrico, potenziale elettrostatico e legge di Gauss.
+- **Elettrotecnica:** Leggi di Kirchhoff alle maglie e ai nodi (LKT, LKC), teoremi di Thévenin e Norton, partitori di tensione e di corrente, principio di sovrapposizione degli effetti, circuiti lineari tempo-invarianti (LTI) in regime stazionario, sinusoidale e transitorio.
+
+---
+
+## Struttura dell'Esame e Strategia di Studio
+
+Il colloquio orale dura circa **40 minuti** ed è articolato su tre macro-aree:
+
+1. **Fisica dei dispositivi, semiconduttori e diodi** — Meccanismi di trasporto, modello a bande, giunzione p-n, diodo Schottky, modelli del diodo, circuiti raddrizzatori a singola/doppia semionda e regolatori a diodo Zener.
+2. **Circuiti analogici e transistori MOS** — Struttura e modelli del MOSFET, polarizzazione a 3 e 4 resistori, Op-Amp ideale e reale, amplificatori a singolo stadio MOSFET (Common Source, Common Drain, Common Gate), specchi di corrente e risposta in frequenza (metodi SCTC e OCTC).
+3. **Circuiti digitali e memorie** — Invertitore CMOS, porte logiche combinatorie, buffer scalati, circuiti sequenziali (latch, flip-flop, registri, contatori) e memorie a semiconduttore (SRAM 6-T, DRAM 1-T, ROM, EPROM, EEPROM, Flash).
+
+Il docente ha dichiarato esplicitamente che **non viene richiesto nulla al di fuori della mappa degli argomenti d'esame orale** riportata nel syllabus. La mappa degli argomenti inizia da **Fisica dello Stato Solido** (Capitolo 2), mentre il Capitolo 1 funge da richiamo operativo dei prerequisiti circuitali indispensabili.
+
+Per rispecchiare lo stile didattico del corso — rigoroso nelle definizioni ma fortemente ancorato alla realtà fisica e industriale dei componenti — il testo utilizza due tipologie di riquadri (*callout*):
+
+- **Riquadri Blu (`Nota` / Dimostrazione Matematica):** Racchiudono le dimostrazioni analitiche passo-passo, gli sviluppi in serie e i passaggi puramente algebrici, separandoli dal flusso principale in modo da non appesantire la lettura concettuale pur mantenendo a disposizione l'intera catena deduttiva.
+- **Riquadri Verdi (`Suggerimento` / Prospettiva Pratica e Vantaggi Circuitali):** Evidenziano le osservazioni progettuali "grounded" tipiche delle lezioni: il perché una configurazione è vantaggiosa rispetto a un'altra, la compattezza su silicio, il risparmio di componenti e i compromessi reali di progettazione microelettronica.

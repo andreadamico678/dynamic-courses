@@ -1,0 +1,256 @@
+---
+title: "6. State Resolvent Matrix"
+description: "Linear Systems Theory — Chapter 6: State Resolvent Matrix"
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load title="Chapter 6 Mental Model" markdown={`# Ch. 6: State Resolvent Matrix
+  - The Complex Frequency Resolvent Operator
+  - Adjugate Matrix Inversion Algorithm
+  - Explicit Closed-Form Computational Templates
+    - 1. Second-Order Systems ($2 \times 2$)
+    - 2. Third-Order Systems ($3 \times 3$) — The University Exam Standard
+  - Complete Exam Derivation Case Study
+    - Step 1: Form $(s\mathbf{I} - \mathbf{A})$
+    - Step 2: Compute Characteristic Polynomial
+    - Step 3: Compute Adjugate Matrix Elements`} />
+
+## The Complex Frequency Resolvent Operator
+
+In continuous-time state-space analysis, taking the unilateral Laplace transform of the homogeneous state equation $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t)$ with initial state $\mathbf{x}(0^-) = \mathbf{x}_0$ gives:
+
+$$s \mathbf{X}(s) - \mathbf{x}_0 = \mathbf{A} \mathbf{X}(s) \iff (s\mathbf{I} - \mathbf{A}) \mathbf{X}(s) = \mathbf{x}_0$$
+
+Isolating the complex state vector $\mathbf{X}(s)$:
+
+$$\mathbf{X}(s) = (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{x}_0$$
+
+<Callout type="note" title="Definition: The State Resolvent Matrix">
+
+The matrix function of the complex variable $s$:
+$$\mathbf{\Phi}(s) \triangleq (s\mathbf{I} - \mathbf{A})^{-1} \in \mathbb{C}^{n \times n}$$
+is termed the **State Resolvent Matrix** (or complex frequency transition matrix). It is the exact Laplace transform of the continuous-time state transition matrix:
+$$\mathbf{\Phi}(s) = \mathcal{L}\left\{ e^{\mathbf{A}t} \right\} \iff e^{\mathbf{A}t} = \mathcal{L}^{-1}\left\{ \mathbf{\Phi}(s) \right\}$$
+
+</Callout>
+
+The resolvent matrix $\mathbf{\Phi}(s)$ is defined for all $s \in \mathbb{C}$ except at the finite set of points where $\det(s\mathbf{I} - \mathbf{A}) = 0$. These singularities are precisely the **eigenvalues of $\mathbf{A}$** (the natural poles of the system).
+
+<Divider />
+
+## Adjugate Matrix Inversion Algorithm
+
+For hand calculations in university examinations and embedded analytical formulations, matrix inversion is performed via the **Classical Adjugate Formula**:
+
+$$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{\operatorname{adj}(s\mathbf{I} - \mathbf{A})}{\det(s\mathbf{I} - \mathbf{A})} = \frac{\mathbf{C}_{\text{cof}}^T(s\mathbf{I} - \mathbf{A})}{p(s)}$$
+
+where:
+1. $p(s) = \det(s\mathbf{I} - \mathbf{A})$ is the scalar **characteristic polynomial** of degree $n$.
+2. $\mathbf{C}_{\text{cof}}(s\mathbf{I} - \mathbf{A}) \in \mathbb{R}^{n \times n}[s]$ is the **cofactor matrix**, whose $(i, j)$-th entry is the signed minor:
+   $$C_{ij}(s) = (-1)^{i+j} M_{ij}(s)$$
+   where $M_{ij}(s)$ is the determinant of the $(n-1) \times (n-1)$ submatrix obtained by deleting row $i$ and column $j$ of $(s\mathbf{I} - \mathbf{A})$.
+3. $\operatorname{adj}(s\mathbf{I} - \mathbf{A}) \triangleq \mathbf{C}_{\text{cof}}^T$ is the **adjugate matrix** (the transpose of the cofactor matrix). Every entry of $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ is a polynomial in $s$ of degree at most $n - 1$.
+
+Consequently, every element of $(s\mathbf{I} - \mathbf{A})^{-1}$ is a strictly proper rational function:
+
+$$\left[ (s\mathbf{I} - \mathbf{A})^{-1} \right]_{ij} = \frac{C_{ji}(s)}{p(s)}, \quad \deg(C_{ji}) \le n-1 < n = \deg(p)$$
+
+<Divider />
+
+## Explicit Closed-Form Computational Templates
+
+### 1. Second-Order Systems ($2 \times 2$)
+For an arbitrary $2 \times 2$ dynamic matrix:
+$$\mathbf{A} = \begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix} \implies s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s - a_{11} & -a_{12} \\ -a_{21} & s - a_{22} \end{bmatrix}$$
+
+The determinant is:
+$$p(s) = (s - a_{11})(s - a_{22}) - a_{12} a_{21} = s^2 - \operatorname{Tr}(\mathbf{A}) s + \det(\mathbf{A})$$
+
+The adjugate matrix is formed by swapping diagonal elements and negating off-diagonal elements:
+
+$$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{s^2 - \operatorname{Tr}(\mathbf{A})s + \det(\mathbf{A})} \begin{bmatrix} s - a_{22} & a_{12} \\ a_{21} & s - a_{11} \end{bmatrix}$$
+
+<figure id="fig-resolvent-inversion-pipeline" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-resolvent-inversion-pipeline.svg" alt="Algorithmic execution pipeline for analytical resolvent computation and time-domain inversion." />
+  <figcaption>Algorithmic execution pipeline for analytical resolvent computation and time-domain inversion.</figcaption>
+</figure>
+
+<Divider />
+
+### 2. Third-Order Systems ($3 \times 3$) — The University Exam Standard
+For a $3 \times 3$ system matrix:
+$$s\mathbf{I} - \mathbf{A} = \begin{bmatrix}
+s - a_{11} & -a_{12} & -a_{13} \\
+-a_{21} & s - a_{22} & -a_{23} \\
+-a_{31} & -a_{32} & s - a_{33}
+\end{bmatrix}$$
+
+The 9 entries of $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ are computed systematically as transposed cofactors:
+
+$$\operatorname{adj}(s\mathbf{I} - \mathbf{A}) = \begin{bmatrix}
+C_{11} & C_{21} & C_{31} \\
+C_{12} & C_{22} & C_{32} \\
+C_{13} & C_{23} & C_{33}
+\end{bmatrix}$$
+
+where:
+$$\begin{aligned}
+C_{11} &= (s - a_{22})(s - a_{33}) - a_{23} a_{32} \\
+C_{21} &= - \left[ (-a_{12})(s - a_{33}) - (-a_{13})(-a_{32}) \right] = a_{12}(s - a_{33}) + a_{13} a_{32} \\
+C_{31} &= (-a_{12})(-a_{23}) - (-a_{13})(s - a_{22}) = a_{12} a_{23} + a_{13}(s - a_{22}) \\
+C_{12} &= - \left[ (-a_{21})(s - a_{33}) - (-a_{23})(-a_{31}) \right] = a_{21}(s - a_{33}) + a_{23} a_{31} \\
+C_{22} &= (s - a_{11})(s - a_{33}) - a_{13} a_{31} \\
+C_{32} &= - \left[ (s - a_{11})(-a_{23}) - (-a_{13})(-a_{21}) \right] = a_{23}(s - a_{11}) + a_{13} a_{21} \\
+C_{13} &= (-a_{21})(-a_{32}) - (s - a_{22})(-a_{31}) = a_{21} a_{32} + a_{31}(s - a_{22}) \\
+C_{23} &= - \left[ (s - a_{11})(-a_{32}) - (-a_{12})(-a_{31}) \right] = a_{32}(s - a_{11}) + a_{12} a_{31} \\
+C_{33} &= (s - a_{11})(s - a_{22}) - a_{12} a_{21}
+\end{aligned}$$
+
+<Callout type="tip" title="Critical Exam Pitfall: The Transpose Step">
+
+The most frequent point deduction in written exams occurs when students calculate the cofactor matrix $\mathbf{C}_{\text{cof}}$ but **forget to transpose** it. Notice that entry $(1, 2)$ of $(s\mathbf{I} - \mathbf{A})^{-1}$ is $\frac{C_{21}(s)}{p(s)}$, **not** $\frac{C_{12}(s)}{p(s)}$.
+
+</Callout>
+
+<Divider />
+
+## Complete Exam Derivation Case Study
+
+We solve the analytical matrix inversion from the 2024 UniCT examination:
+
+**Given:**
+$$\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -8 & -5 \end{bmatrix}$$
+Compute $(s\mathbf{I} - \mathbf{A})^{-1}$.
+
+### Step 1: Form $(s\mathbf{I} - \mathbf{A})$
+$$s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s & -1 & 0 \\ 0 & s & -1 \\ 6 & 8 & s + 5 \end{bmatrix}$$
+
+### Step 2: Compute Characteristic Polynomial
+Expanding along the first row:
+$$p(s) = s \det\begin{bmatrix} s & -1 \\ 8 & s + 5 \end{bmatrix} - (-1) \det\begin{bmatrix} 0 & -1 \\ 6 & s + 5 \end{bmatrix} + 0 = s(s^2 + 5s + 8) + 1(0 - (-6)) = s^3 + 5s^2 + 8s + 6$$
+Factoring: testing $s = -3$:
+$$(-3)^3 + 5(-3)^2 + 8(-3) + 6 = -27 + 45 - 24 + 6 = 0 \implies (s + 3)\text{ is a factor}$$
+Dividing: $s^3 + 5s^2 + 8s + 6 = (s + 3)(s^2 + 2s + 2)$.
+The roots are $\lambda_1 = -3$ and $\lambda_{2,3} = -1 \pm j1$.
+
+### Step 3: Compute Adjugate Matrix Elements
+$$\begin{aligned}
+C_{11} &= s(s + 5) - (-1)(8) = s^2 + 5s + 8 \\
+C_{21} &= - [(-1)(s + 5) - 0] = s + 5 \\
+C_{31} &= (-1)(-1) - 0 = 1 \\
+C_{12} &= - [0(s + 5) - (-1)(6)] = -6 \\
+C_{22} &= s(s + 5) - 0 = s^2 + 5s \\
+C_{32} &= - [s(-1) - 0] = s \\
+C_{13} &= 0 - 6s = -6s \\
+C_{23} &= - [s(8) - (-1)(6)] = -8s - 6 \\
+C_{33} &= s(s) - 0 = s^2
+\end{aligned}$$
+
+Assembling into the adjugate matrix:
+
+$$\operatorname{adj}(s\mathbf{I} - \mathbf{A}) = \begin{bmatrix}
+s^2 + 5s + 8 & s + 5 & 1 \\
+-6 & s^2 + 5s & s \\
+-6s & -8s - 6 & s^2
+\end{bmatrix}$$
+
+Dividing by $p(s) = s^3 + 5s^2 + 8s + 6$ produces the exact state resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$.
+
+<Callout type="bridge" title="SDU Robotics Bridge: Resolvent Operators in Continuous-Discrete Kalman Filtering">
+
+In autonomous drone state estimation at SDU, the onboard navigation computer executes a continuous-discrete Extended Kalman Filter (EKF).
+The state error covariance matrix $\mathbf{P}(t)$ propagates between sensor measurement arrivals via the differential Lyapunov equation:
+$$\dot{\mathbf{P}}(t) = \mathbf{A}\mathbf{P}(t) + \mathbf{P}(t)\mathbf{A}^T + \mathbf{Q}$$
+The discrete transition of covariance over sample time $T_s$ is given by:
+$$\mathbf{P}[k+1] = \mathbf{\Phi}(T_s) \mathbf{P}[k] \mathbf{\Phi}^T(T_s) + \mathbf{Q}_d$$
+Evaluating $\mathbf{\Phi}(s) = (s\mathbf{I} - \mathbf{A})^{-1}$ analytically enables embedded software to compute closed-form symbolic covariance update formulas, bypassing computationally heavy numerical ODE Runge-Kutta integrators in real-time firmware.
+
+</Callout>
+
+<Divider />
+
+
+<Divider label="Interactive Practice & Exam Drills" />
+
+## Chapter Exercises
+
+<Exercise client:load id="ex-6-1" title="Exercise 6.1" level="LEVEL 1: WARM-UP DRILL">
+
+Given the lower triangular system matrix:
+$$\mathbf{A} = \begin{bmatrix} -1 & 0 \\ 2 & -3 \end{bmatrix}$$
+1. Formulate the characteristic matrix $(s\mathbf{I} - \mathbf{A})$ and compute $p(s) = \det(s\mathbf{I} - \mathbf{A})$.
+2. Compute the adjugate matrix $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$.
+3. Construct the state resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$.
+4. Expand the non-zero off-diagonal rational entry into partial fractions and compute the state transition matrix $\mathbf{\Phi}(t) = \mathcal{L}^{-1}\{(s\mathbf{I} - \mathbf{A})^{-1}\}$ for $t \ge 0$.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Characteristic matrix and polynomial:
+   $$s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s + 1 & 0 \\ -2 & s + 3 \end{bmatrix}$$
+   $$p(s) = \det(s\mathbf{I} - \mathbf{A}) = (s + 1)(s + 3) - 0 = s^2 + 4s + 3$$
+2. Adjugate matrix using the $2 \times 2$ formula (swapping diagonal entries and negating off-diagonal):
+   $$\operatorname{adj}(s\mathbf{I} - \mathbf{A}) = \begin{bmatrix} s + 3 & 0 \\ 2 & s + 1 \end{bmatrix}$$
+3. State resolvent matrix:
+   $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{(s + 1)(s + 3)} \begin{bmatrix} s + 3 & 0 \\ 2 & s + 1 \end{bmatrix} = \begin{bmatrix} \frac{1}{s + 1} & 0 \\ \frac{2}{(s + 1)(s + 3)} & \frac{1}{s + 3} \end{bmatrix}$$
+4. Partial fraction expansion of entry $(2,1)$:
+   $$\frac{2}{(s + 1)(s + 3)} = \frac{R_1}{s + 1} + \frac{R_2}{s + 3}$$
+   $$R_1 = \left. \frac{2}{s + 3} \right|_{s = -1} = \frac{2}{2} = 1, \quad R_2 = \left. \frac{2}{s + 1} \right|_{s = -3} = \frac{2}{-2} = -1$$
+   $$\frac{2}{(s + 1)(s + 3)} = \frac{1}{s + 1} - \frac{1}{s + 3}$$
+   Inverting element-wise to obtain the state transition matrix $\mathbf{\Phi}(t)$:
+   $$\mathbf{\Phi}(t) = \mathcal{L}^{-1}\{(s\mathbf{I} - \mathbf{A})^{-1}\} = \begin{bmatrix} e^{-t} & 0 \\ e^{-t} - e^{-3t} & e^{-3t} \end{bmatrix} \cdot 1(t)$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-6-2" title="Exercise 6.2" level="LEVEL 2: EXAM BENCHMARK">
+
+In a UniCT written exam problem (Problem 1 archetype), consider the state space model with parameter $a = 1$:
+$$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -\frac{5}{2} & -2 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
+1. Compute the characteristic polynomial $p(s) = \det(s\mathbf{I} - \mathbf{A})$ and determine the system eigenvalues $\lambda_{1,2}$.
+2. Compute the adjugate matrix $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ and formulate the complete state resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$.
+3. Calculate the transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$.
+4. Calculate the analytical unit impulse response $w(t) = \mathcal{L}^{-1}\{W(s)\}$ in real sinusoidal form for $t \ge 0$.
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Characteristic polynomial and roots:
+   $$s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s & -2 \\ 5/2 & s + 2 \end{bmatrix}$$
+   $$p(s) = \det(s\mathbf{I} - \mathbf{A}) = s(s + 2) - (-2)(5/2) = s^2 + 2s + 5$$
+   $$s = \frac{-2 \pm \sqrt{4 - 20}}{2} = \frac{-2 \pm j4}{2} = -1 \pm j2$$
+   The eigenvalues are complex conjugates: $\lambda_{1,2} = -1 \pm j2$.
+2. Adjugate and resolvent matrices:
+   $$\operatorname{adj}(s\mathbf{I} - \mathbf{A}) = \begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix}$$
+   $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{s^2 + 2s + 5} \begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix}$$
+3. Input-to-output transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$:
+   $$\begin{aligned}
+   W(s) &= \begin{bmatrix} 1 & 0 \end{bmatrix} \frac{1}{s^2 + 2s + 5} \begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} \\
+   &= \frac{1}{s^2 + 2s + 5} \begin{bmatrix} s + 2 & 2 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \frac{2}{s^2 + 2s + 5}
+   \end{aligned}$$
+4. Unit impulse response $w(t) = \mathcal{L}^{-1}\{W(s)\}$:
+   Completing the square on the denominator:
+   $$s^2 + 2s + 5 = (s + 1)^2 + 2^2 \implies \sigma = 1, \quad \omega = 2$$
+   $$W(s) = \frac{2}{(s + 1)^2 + 2^2}$$
+   Taking the standard inverse Laplace transform:
+   $$w(t) = e^{-t} \sin(2t) \cdot 1(t)$$
+
+Zero identification and impulse response:
+   * Setting $-2s + 2 = 0 \implies s = +1$. The zero lies at $z = +1 > 0$ in the Right-Half Plane; the transfer function is **non-minimum phase**.
+   * Taking the inverse Laplace transform:
+     $$W(s) = -\frac{2}{s + 2} + \frac{6}{(s + 2)^2}$$
+     $$w(t) = \mathcal{L}^{-1}\{W(s)\} = \left( -2e^{-2t} + 6t e^{-2t} \right) \cdot 1(t)$$
+
+---
+
+</details>
+
+</Exercise>
