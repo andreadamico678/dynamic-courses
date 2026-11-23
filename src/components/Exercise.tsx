@@ -46,7 +46,7 @@ export default function Exercise({
                 : 'Show Hint'}
           </button>
           {showHint && (
-            <div className="dc-step-box" style={{ borderLeft: '3px solid #6366f1' }}>
+            <div className="dc-step-box" style={{ borderLeft: '3px solid var(--sl-color-accent)' }}>
               <strong>{isIt ? 'Suggerimento:' : 'Hint:'}</strong> {hint}
             </div>
           )}

@@ -1,152 +1,237 @@
-/* Dynamic Courses — Widescreen-First Typography, High-Contrast Palette & Interactive Widget Styling */
+/* Dynamic Courses — Wide-Format Academic Textbook Style, Disciplined Palette & Sharp Geometry */
 
 :root,
 ::backdrop {
-  /* Crisp engineering typography */
+  /* Editorial & Engineering Typography */
   --sl-font: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sl-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --dc-font-serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --dc-radius: 2px;
 
-  /* Large-monitor-first layout widths */
-  --sl-sidebar-width: 21.5rem;
-  --sl-content-width: 76rem;
-  --sl-content-pad-x: 3rem;
-  --sl-nav-height: 4rem;
+  /* Disciplined Heading Scale (proportional to 16.5px prose) */
+  --sl-text-base: 1.03rem;
+  --sl-text-body: 1.03rem;
+  --sl-text-h1: 1.72rem;
+  --sl-text-h2: 1.32rem;
+  --sl-text-h3: 1.12rem;
+  --sl-text-h4: 1.02rem;
+  --sl-text-h5: 0.96rem;
+  --sl-line-height: 1.66;
+  --sl-line-height-headings: 1.25;
 
-  /* High-contrast Dark Theme (default) */
-  --sl-color-white: #ffffff;
-  --sl-color-gray-1: #f8fafc;
-  --sl-color-gray-2: #e2e8f0;
-  --sl-color-gray-3: #b8c7dc;
-  --sl-color-gray-4: #64748b;
-  --sl-color-gray-5: #293548;
-  --sl-color-gray-6: #131b29;
-  --sl-color-black: #090d16;
+  /* Large-Monitor-First Layout Dimensions */
+  --sl-nav-height: 3.5rem;
+  --sl-sidebar-width: 17.5rem;
+  --sl-content-width: 100%;
+  --sl-content-pad-x: 2.5rem;
 
-  --sl-color-accent-low: #102a4c;
-  --sl-color-accent: #2563eb;
-  --sl-color-accent-high: #7dd3fc;
+  /* Imposed Palette — Dark Mode (Neutral Charcoal + Cobalt Accent) */
+  --sl-color-white: #f3f4f6;
+  --sl-color-gray-1: #e5e7eb;
+  --sl-color-gray-2: #d1d5db;
+  --sl-color-gray-3: #9ca3af;
+  --sl-color-gray-4: #6b7280;
+  --sl-color-gray-5: #2c313a;
+  --sl-color-gray-6: #181b20;
+  --sl-color-black: #111317;
 
-  --sl-color-text: #eef2f8;
-  --sl-color-text-accent: #7dd3fc;
-  --sl-color-text-invert: #090d16;
-  --sl-color-bg: #090d16;
-  --sl-color-bg-nav: #111827;
-  --sl-color-bg-sidebar: #0e1420;
-  --sl-color-bg-inline-code: #1e293b;
-  --sl-color-hairline: #2b3950;
-  --sl-color-hairline-light: #3b4e6d;
-  --sl-color-hairline-shade: #05080e;
+  --sl-color-accent-low: #17253b;
+  --sl-color-accent: #3b82f6;
+  --sl-color-accent-high: #93c5fd;
+
+  --sl-color-text: #e2e5ea;
+  --sl-color-text-accent: #93c5fd;
+  --sl-color-text-invert: #111317;
+  --sl-color-bg: #111317;
+  --sl-color-bg-nav: #181b20;
+  --sl-color-bg-sidebar: #14171c;
+  --sl-color-bg-inline-code: #1f242c;
+  --sl-color-hairline: #2b303a;
+  --sl-color-hairline-light: #363c48;
+  --sl-color-hairline-shade: #0b0d10;
+
+  --dc-ok: #3fb950;
+  --dc-warn: #d29922;
+  --dc-err: #f85149;
+}
+
+@media (min-width: 50em) {
+  :root {
+    --sl-nav-height: 3.5rem;
+    --sl-text-h1: 1.78rem;
+    --sl-text-h2: 1.34rem;
+    --sl-text-h3: 1.14rem;
+    --sl-text-h4: 1.03rem;
+  }
 }
 
 :root[data-theme='light'],
 [data-theme='light'] ::backdrop {
-  /* High-contrast Light Theme */
-  --sl-color-white: #090d16;
-  --sl-color-gray-1: #0f172a;
-  --sl-color-gray-2: #1e293b;
-  --sl-color-gray-3: #334155;
-  --sl-color-gray-4: #64748b;
-  --sl-color-gray-5: #cbd5e1;
-  --sl-color-gray-6: #edf2f7;
-  --sl-color-gray-7: #f8fafc;
-  --sl-color-black: #ffffff;
+  /* Imposed Palette — Light Mode (Warm Paper + Deep Ink + Oxford Cobalt) */
+  --sl-color-white: #111827;
+  --sl-color-gray-1: #1f2937;
+  --sl-color-gray-2: #374151;
+  --sl-color-gray-3: #4b5563;
+  --sl-color-gray-4: #6b7280;
+  --sl-color-gray-5: #d1d5db;
+  --sl-color-gray-6: #f3f4f6;
+  --sl-color-gray-7: #f9fafb;
+  --sl-color-black: #fcfcfd;
 
-  --sl-color-accent-low: #dbeafe;
-  --sl-color-accent: #1d4ed8;
-  --sl-color-accent-high: #1e3a8a;
+  --sl-color-accent-low: #eff4fb;
+  --sl-color-accent: #1e4e8c;
+  --sl-color-accent-high: #173b6b;
 
-  --sl-color-text: #0f172a;
-  --sl-color-text-accent: #1d4ed8;
+  --sl-color-text: #181c24;
+  --sl-color-text-accent: #1e4e8c;
   --sl-color-text-invert: #ffffff;
-  --sl-color-bg: #ffffff;
-  --sl-color-bg-nav: #f8fafc;
-  --sl-color-bg-sidebar: #f8fafc;
-  --sl-color-bg-inline-code: #e2e8f0;
-  --sl-color-hairline: #cbd5e1;
-  --sl-color-hairline-light: #94a3b8;
-  --sl-color-hairline-shade: #cbd5e1;
+  --sl-color-bg: #fcfcfd;
+  --sl-color-bg-nav: #f4f5f7;
+  --sl-color-bg-sidebar: #f6f7f9;
+  --sl-color-bg-inline-code: #eceff3;
+  --sl-color-hairline: #d5d9e0;
+  --sl-color-hairline-light: #bfc6d0;
+  --sl-color-hairline-shade: #d5d9e0;
+
+  --dc-ok: #1a7f37;
+  --dc-warn: #9a6700;
+  --dc-err: #cf222e;
 }
 
-/* Widescreen desktop container priority */
+/* ============================================================
+   TRUE WIDE-FORMAT LARGE-MONITOR LAYOUT (Override Starlight caps)
+   ============================================================ */
 @media (min-width: 72rem) {
-  .main-pane {
-    width: 100%;
+  .lg\:sl-flex {
+    display: flex !important;
+    width: 100% !important;
   }
 
-  .sl-container {
-    max-width: var(--sl-content-width) !important;
-    margin-inline: auto;
+  [data-has-sidebar][data-has-toc] .main-pane,
+  .main-pane {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
   }
 
   .right-sidebar-container {
-    width: 18.5rem;
+    flex: 0 0 14.5rem !important;
+    width: 14.5rem !important;
+  }
+
+  .right-sidebar {
+    width: 14.5rem !important;
+  }
+
+  .content-panel {
+    padding: 1.5rem 3rem !important;
+  }
+
+  .content-panel > .sl-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-inline: 0 !important;
   }
 }
 
-@media (min-width: 110rem) {
-  :root {
-    --sl-content-width: 86rem;
-    --sl-sidebar-width: 23rem;
-  }
-}
-
-/* KaTeX display math scroll safety */
-.katex-display {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 0.55rem 0.25rem;
-  margin: 1rem 0;
-}
-
-/* Crisp typography & pageless rhythm */
+/* ============================================================
+   TEXTBOOK TYPOGRAPHY & HEADING DISCIPLINE
+   ============================================================ */
 .sl-markdown-content {
-  font-size: 1.06rem;
-  line-height: 1.74;
+  font-family: var(--dc-font-serif);
+  font-size: 1.03rem;
+  line-height: 1.66;
   color: var(--sl-color-text);
 }
 
 .sl-markdown-content h1,
 .sl-markdown-content h2,
 .sl-markdown-content h3,
-.sl-markdown-content h4 {
+.sl-markdown-content h4,
+#_top {
+  font-family: var(--dc-font-serif);
   color: var(--sl-color-white);
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+#_top {
+  font-size: var(--sl-text-h1) !important;
+  line-height: 1.22;
 }
 
 .sl-markdown-content h2 {
-  margin-top: 2.5rem;
-  padding-bottom: 0.45rem;
+  font-size: var(--sl-text-h2) !important;
+  margin-top: 2.1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--sl-color-hairline-light);
 }
 
+.sl-markdown-content h3 {
+  font-size: var(--sl-text-h3) !important;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sl-markdown-content h4 {
+  font-size: var(--sl-text-h4) !important;
+}
+
+/* UI & Interactive elements keep crisp Sans */
+.dc-widget,
+.dc-exercise,
+.dc-callout,
+.dc-divider,
+.dc-step-box,
+details.dc-solution,
+.sl-markdown-content table {
+  font-family: var(--sl-font);
+}
+
+/* KaTeX math sizing & safety */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.45rem 0.2rem;
+  margin: 0.85rem 0;
+}
+
+/* Tables: sharp textbook rules */
 .sl-markdown-content table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1.35rem 0;
+  margin: 1.2rem 0;
+  font-size: 0.94rem;
 }
 
 .sl-markdown-content th,
 .sl-markdown-content td {
   border: 1px solid var(--sl-color-hairline-light);
-  padding: 0.65rem 0.9rem;
+  padding: 0.5rem 0.8rem;
+  text-align: left;
 }
 
 .sl-markdown-content th {
   background: var(--sl-color-bg-nav);
   color: var(--sl-color-white);
-  font-weight: 700;
+  font-weight: 600;
 }
 
-/* Section Divider component */
+/* ============================================================
+   SHARP STRUCTURAL ELEMENTS (2px radius, disciplined palette)
+   ============================================================ */
+
+/* Section Divider (Textbook Rule, no round pills) */
 .dc-divider {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin: 2.75rem 0 1.8rem;
-  color: var(--sl-color-accent-high);
-  font-size: 0.82rem;
+  gap: 0.9rem;
+  margin: 2.25rem 0 1.4rem;
+  color: var(--sl-color-text-accent);
+  font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
@@ -159,20 +244,22 @@
 }
 
 .dc-divider-pill {
-  padding: 0.28rem 0.9rem;
-  border: 1px solid var(--sl-color-accent);
-  border-radius: 999px;
-  background: var(--sl-color-accent-low);
-  color: var(--sl-color-accent-high);
+  padding: 0.18rem 0.65rem;
+  border: 1px solid var(--sl-color-hairline-light);
+  border-left: 3px solid var(--sl-color-accent);
+  border-radius: var(--dc-radius);
+  background: var(--sl-color-bg-nav);
+  color: var(--sl-color-white);
   white-space: nowrap;
 }
 
 /* Interactive Card / Widget Shell */
 .dc-widget {
-  margin: 1.75rem 0;
-  padding: 1.35rem 1.5rem;
+  margin: 1.4rem 0;
+  padding: 1.15rem 1.35rem;
   border: 1px solid var(--sl-color-hairline-light);
-  border-radius: 0.85rem;
+  border-top: 3px solid var(--sl-color-accent);
+  border-radius: var(--dc-radius);
   background: var(--sl-color-bg-nav);
 }
 
@@ -182,96 +269,120 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--sl-color-hairline);
 }
 
 .dc-widget-title {
-  font-weight: 700;
-  font-size: 1.02rem;
+  font-weight: 600;
+  font-size: 0.98rem;
   color: var(--sl-color-white);
 }
 
 .dc-badge {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
+  padding: 0.16rem 0.5rem;
+  border-radius: var(--dc-radius);
   background: var(--sl-color-accent-low);
-  color: var(--sl-color-accent-high);
+  color: var(--sl-color-text-accent);
   border: 1px solid var(--sl-color-accent);
 }
 
-/* Callout cards (Pitfall / Tip / Bridge) */
+/* Wide-format 2-column layout inside Interactive Explorers */
+.dc-explorer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .dc-explorer-grid {
+    grid-template-columns: minmax(260px, 320px) 1fr;
+  }
+}
+
+.dc-explorer-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Callout cards (strictly neutral surface + 3px semantic left rule) */
 .dc-callout {
-  margin: 1.5rem 0;
-  padding: 1.1rem 1.35rem;
-  border-radius: 0.7rem;
+  margin: 1.25rem 0;
+  padding: 0.9rem 1.15rem;
+  border-radius: var(--dc-radius);
   border: 1px solid var(--sl-color-hairline);
-  border-left: 5px solid var(--sl-color-accent);
+  border-left: 3px solid var(--sl-color-accent);
   background: var(--sl-color-bg-nav);
   color: var(--sl-color-text);
+  font-size: 0.95rem;
 }
 
 .dc-callout-warning {
-  border-left-color: #f59e0b;
+  border-left-color: var(--dc-warn);
 }
 
 .dc-callout-tip {
-  border-left-color: #10b981;
+  border-left-color: var(--dc-ok);
 }
 
 .dc-callout-bridge {
-  border-left-color: #818cf8;
+  border-left-color: var(--sl-color-accent);
 }
 
 .dc-callout-title {
   font-weight: 700;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   color: var(--sl-color-white);
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.35rem;
 }
 
-/* Exercise & StepCheck styling */
+/* Exercise & StepCheck */
 .dc-exercise {
-  margin: 2rem 0;
-  padding: 1.4rem 1.6rem;
+  margin: 1.5rem 0;
+  padding: 1.2rem 1.4rem;
   border: 1px solid var(--sl-color-hairline-light);
-  border-radius: 0.9rem;
+  border-radius: var(--dc-radius);
   background: var(--sl-color-bg-nav);
 }
 
 .dc-step-box {
-  margin-top: 1rem;
-  padding: 1rem 1.15rem;
-  border-radius: 0.65rem;
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--dc-radius);
   border: 1px solid var(--sl-color-hairline-light);
   background: var(--sl-color-bg);
   color: var(--sl-color-text);
+  font-size: 0.94rem;
 }
 
 .dc-btn {
   cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
-  padding: 0.46rem 0.95rem;
-  border-radius: 0.5rem;
+  padding: 0.38rem 0.8rem;
+  border-radius: var(--dc-radius);
   border: 1px solid var(--sl-color-hairline-light);
   background: var(--sl-color-gray-5);
   color: var(--sl-color-white);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.12s ease, background 0.12s ease;
 }
 
 [data-theme='light'] .dc-btn {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .dc-btn:hover {
-  border-color: var(--sl-color-accent-high);
+  border-color: var(--sl-color-accent);
 }
 
 .dc-btn-primary {
@@ -282,41 +393,34 @@
 
 .dc-input {
   font: inherit;
-  padding: 0.42rem 0.75rem;
-  border-radius: 0.5rem;
+  font-family: var(--sl-font-mono);
+  padding: 0.36rem 0.65rem;
+  border-radius: var(--dc-radius);
   border: 1px solid var(--sl-color-hairline-light);
   background: var(--sl-color-bg);
   color: var(--sl-color-text);
-  width: 12rem;
+  width: 11rem;
 }
 
 .dc-feedback-ok {
-  color: #34d399;
-  font-weight: 700;
-  font-size: 0.92rem;
-}
-
-[data-theme='light'] .dc-feedback-ok {
-  color: #047857;
+  color: var(--dc-ok);
+  font-weight: 600;
+  font-size: 0.88rem;
 }
 
 .dc-feedback-err {
-  color: #f87171;
-  font-weight: 700;
-  font-size: 0.92rem;
+  color: var(--dc-err);
+  font-weight: 600;
+  font-size: 0.88rem;
 }
 
-[data-theme='light'] .dc-feedback-err {
-  color: #b91c1c;
-}
-
-/* Markmap container */
+/* Markmap container (compact height for wide scannability) */
 .dc-mindmap-svg {
   width: 100%;
-  height: 450px;
+  height: 300px;
   display: block;
   background: var(--sl-color-bg);
-  border-radius: 0.6rem;
+  border-radius: var(--dc-radius);
   border: 1px solid var(--sl-color-hairline-light);
 }
 
@@ -325,66 +429,78 @@
   font-family: var(--sl-font) !important;
 }
 
-/* Controls row inside interactive simulators */
+/* Controls row inside legacy single-column simulators */
 .dc-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
+  gap: 0.9rem 1.25rem;
   align-items: center;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.86rem;
 }
 
-.dc-controls label {
+.dc-controls label,
+.dc-explorer-sidebar label {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  min-width: 155px;
+  gap: 0.22rem;
+  font-size: 0.85rem;
   color: var(--sl-color-text);
 }
 
-/* Static SVG / CircuiTikZ diagram wrappers — crisp paper card in both themes */
+/* Static SVG / CircuiTikZ diagram wrappers */
 .dc-svg-wrap {
-  margin: 1.6rem 0;
+  margin: 1.4rem 0;
   text-align: center;
 }
 
 .dc-svg-wrap img,
 .dc-svg-wrap svg {
   display: inline-block;
-  max-width: min(960px, 100%);
+  max-width: min(920px, 100%);
   width: auto;
   height: auto;
   background: #ffffff;
   border: 1px solid var(--sl-color-hairline-light);
-  border-radius: 0.65rem;
-  padding: 1rem 1.25rem;
+  border-radius: var(--dc-radius);
+  padding: 0.9rem 1.1rem;
 }
 
 .dc-svg-wrap figcaption {
-  margin-top: 0.55rem;
-  font-size: 0.88rem;
+  margin-top: 0.45rem;
+  font-family: var(--sl-font);
+  font-size: 0.86rem;
   color: var(--sl-color-gray-3);
 }
 
 details.dc-solution {
-  margin-top: 1rem;
-  padding: 0.85rem 1.15rem;
-  border-radius: 0.6rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--dc-radius);
   border: 1px solid var(--sl-color-hairline-light);
-  border-left: 4px solid #10b981;
+  border-left: 3px solid var(--dc-ok);
   background: var(--sl-color-bg);
 }
 
 details.dc-solution summary {
   cursor: pointer;
-  font-weight: 700;
-  color: var(--sl-color-accent-high);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--sl-color-text-accent);
   user-select: none;
 }
 
 details.dc-solution[open] summary {
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.45rem;
   border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+/* Enforce sharp corners on Starlight cards/asides/code blocks */
+.sl-link-card,
+.card,
+.starlight-aside,
+.expressive-code pre,
+.expressive-code .frame {
+  border-radius: var(--dc-radius) !important;
 }

@@ -60,8 +60,8 @@ export default function StepCheck(props: StepCheckProps) {
                 borderColor:
                   selected === idx
                     ? status === 'ok'
-                      ? '#10b981'
-                      : '#ef4444'
+                      ? 'var(--dc-ok)'
+                      : 'var(--dc-err)'
                     : undefined,
               }}
               onClick={() => pickChoice(idx)}

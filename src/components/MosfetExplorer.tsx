@@ -97,84 +97,80 @@ export default function MosfetExplorer() {
         <span className="dc-badge">{data.region}</span>
       </div>
 
-      <div className="dc-controls">
-        <label>
-          <strong>V_GS = {vgs.toFixed(1)} V</strong>
-          <br />
-          <input type="range" min={0.5} max={4.0} step={0.1} value={vgs} onChange={(e) => setVgs(Number(e.target.value))} />
-        </label>
-        <label>
-          <strong>V_th = {vth.toFixed(1)} V</strong>
-          <br />
-          <input type="range" min={0.5} max={1.5} step={0.1} value={vth} onChange={(e) => setVth(Number(e.target.value))} />
-        </label>
-        <label>
-          <strong>K_n = {knMa.toFixed(1)} mA/V²</strong>
-          <br />
-          <input type="range" min={0.5} max={5.0} step={0.25} value={knMa} onChange={(e) => setKnMa(Number(e.target.value))} />
-        </label>
-        <label>
-          <strong>λ = {lambda.toFixed(2)} V⁻¹</strong>
-          <br />
-          <input type="range" min={0} max={0.1} step={0.01} value={lambda} onChange={(e) => setLambda(Number(e.target.value))} />
-        </label>
-        <label>
-          <strong>V_DD = {vdd.toFixed(1)} V</strong>
-          <br />
-          <input type="range" min={3.0} max={10.0} step={0.5} value={vdd} onChange={(e) => setVdd(Number(e.target.value))} />
-        </label>
-        <label>
-          <strong>R_D = {rdK.toFixed(1)} kΩ</strong>
-          <br />
-          <input type="range" min={0.4} max={4.0} step={0.1} value={rdK} onChange={(e) => setRdK(Number(e.target.value))} />
-        </label>
-      </div>
+      <div className="dc-explorer-grid">
+        <div className="dc-explorer-sidebar">
+          <div className="dc-controls" style={{ marginBottom: 0 }}>
+            <label>
+              <strong>V_GS = {vgs.toFixed(1)} V</strong>
+              <input type="range" min={0.5} max={4.0} step={0.1} value={vgs} onChange={(e) => setVgs(Number(e.target.value))} />
+            </label>
+            <label>
+              <strong>V_th = {vth.toFixed(1)} V</strong>
+              <input type="range" min={0.5} max={1.5} step={0.1} value={vth} onChange={(e) => setVth(Number(e.target.value))} />
+            </label>
+            <label>
+              <strong>K_n = {knMa.toFixed(1)} mA/V²</strong>
+              <input type="range" min={0.5} max={5.0} step={0.25} value={knMa} onChange={(e) => setKnMa(Number(e.target.value))} />
+            </label>
+            <label>
+              <strong>λ = {lambda.toFixed(2)} V⁻¹</strong>
+              <input type="range" min={0} max={0.1} step={0.01} value={lambda} onChange={(e) => setLambda(Number(e.target.value))} />
+            </label>
+            <label>
+              <strong>V_DD = {vdd.toFixed(1)} V</strong>
+              <input type="range" min={3.0} max={10.0} step={0.5} value={vdd} onChange={(e) => setVdd(Number(e.target.value))} />
+            </label>
+            <label>
+              <strong>R_D = {rdK.toFixed(1)} kΩ</strong>
+              <input type="range" min={0.4} max={4.0} step={0.1} value={rdK} onChange={(e) => setRdK(Number(e.target.value))} />
+            </label>
+          </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-        <line x1={padL} y1={toY(0)} x2={W - padR} y2={toY(0)} stroke="var(--sl-color-hairline)" strokeWidth={1.3} />
-        <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--sl-color-hairline)" strokeWidth={1.3} />
-        <text x={W - padR} y={H - 8} textAnchor="end" fontSize="11" fill="var(--sl-color-gray-3)">V_DS [V]</text>
-        <text x={padL - 8} y={padT + 10} textAnchor="end" fontSize="11" fill="var(--sl-color-gray-3)">I_D [mA]</text>
+          <div className="dc-step-box" style={{ marginTop: 0, display: 'grid', gap: '0.35rem', fontSize: '0.86rem' }}>
+            <span><strong>V_OV = V_GS − V_th:</strong> {data.vov.toFixed(2)} V</span>
+            <span><strong>I_D(Q):</strong> {data.idQ.toFixed(2)} mA</span>
+            <span><strong>V_DS(Q):</strong> {data.vdsQ.toFixed(2)} V</span>
+            <span><strong>g_m:</strong> {data.gmMaV.toFixed(2)} mA/V</span>
+            <span><strong>r_o:</strong> {Number.isFinite(data.roK) ? `${data.roK.toFixed(1)} kΩ` : '∞'}</span>
+          </div>
+        </div>
 
-        {data.curves.map((c) => {
-          const d = c.pts
-            .split(' ')
-            .map((pair, idx) => {
-              const [xv, yv] = pair.split(',').map(Number);
-              return `${idx === 0 ? 'M' : 'L'} ${toX(xv).toFixed(1)} ${toY(Math.min(yv, data.iMax)).toFixed(1)}`;
-            })
-            .join(' ');
-          return <path key={c.vg} d={d} fill="none" stroke="var(--sl-color-hairline)" strokeWidth={1.2} />;
-        })}
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+          <line x1={padL} y1={toY(0)} x2={W - padR} y2={toY(0)} stroke="var(--sl-color-hairline-light)" strokeWidth={1.3} />
+          <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--sl-color-hairline-light)" strokeWidth={1.3} />
+          <text x={W - padR} y={H - 8} textAnchor="end" fontSize="11" fill="var(--sl-color-gray-3)">V_DS [V]</text>
+          <text x={padL - 8} y={padT + 10} textAnchor="end" fontSize="11" fill="var(--sl-color-gray-3)">I_D [mA]</text>
 
-        {pinchPath && (
-          <path d={pinchPath} fill="none" stroke="#f59e0b" strokeWidth={1.6} strokeDasharray="5 4" />
-        )}
-        <path d={activePath} fill="none" stroke="var(--sl-color-accent)" strokeWidth={2.8} />
+          {data.curves.map((c) => {
+            const d = c.pts
+              .split(' ')
+              .map((pair, idx) => {
+                const [xv, yv] = pair.split(',').map(Number);
+                return `${idx === 0 ? 'M' : 'L'} ${toX(xv).toFixed(1)} ${toY(Math.min(yv, data.iMax)).toFixed(1)}`;
+              })
+              .join(' ');
+            return <path key={c.vg} d={d} fill="none" stroke="var(--sl-color-hairline-light)" strokeWidth={1.1} />;
+          })}
 
-        {/* Load line */}
-        <line
-          x1={toX(0)}
-          y1={toY(Math.min(vdd / rdK, data.iMax))}
-          x2={toX(vdd)}
-          y2={toY(0)}
-          stroke="#10b981"
-          strokeWidth={2}
-        />
+          {pinchPath && (
+            <path d={pinchPath} fill="none" stroke="var(--dc-warn)" strokeWidth={1.5} strokeDasharray="5 4" />
+          )}
+          <path d={activePath} fill="none" stroke="var(--sl-color-accent)" strokeWidth={2.5} />
 
-        {/* Q-point */}
-        <circle cx={toX(data.vdsQ)} cy={toY(data.idQ)} r={5.5} fill="#ef4444" stroke="#fff" strokeWidth={1.5} />
-        <text x={toX(data.vdsQ) + 9} y={toY(data.idQ) - 8} fontSize="11" fontWeight="700" fill="#ef4444">
-          Q ({data.vdsQ.toFixed(2)}V, {data.idQ.toFixed(2)}mA)
-        </text>
-      </svg>
+          <line
+            x1={toX(0)}
+            y1={toY(Math.min(vdd / rdK, data.iMax))}
+            x2={toX(vdd)}
+            y2={toY(0)}
+            stroke="var(--dc-ok)"
+            strokeWidth={1.9}
+          />
 
-      <div className="dc-step-box" style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', fontSize: '0.88rem' }}>
-        <span><strong>V_OV = V_GS − V_th:</strong> {data.vov.toFixed(2)} V</span>
-        <span><strong>I_D(Q):</strong> {data.idQ.toFixed(2)} mA</span>
-        <span><strong>V_DS(Q):</strong> {data.vdsQ.toFixed(2)} V</span>
-        <span><strong>g_m:</strong> {data.gmMaV.toFixed(2)} mA/V</span>
-        <span><strong>r_o:</strong> {Number.isFinite(data.roK) ? `${data.roK.toFixed(1)} kΩ` : '∞'}</span>
+          <circle cx={toX(data.vdsQ)} cy={toY(data.idQ)} r={5} fill="var(--dc-err)" stroke="#fff" strokeWidth={1.5} />
+          <text x={toX(data.vdsQ) + 9} y={toY(data.idQ) - 8} fontSize="11" fontWeight="700" fill="var(--dc-err)">
+            Q ({data.vdsQ.toFixed(2)}V, {data.idQ.toFixed(2)}mA)
+          </text>
+        </svg>
       </div>
     </div>
   );
