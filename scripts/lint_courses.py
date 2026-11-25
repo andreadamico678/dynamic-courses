@@ -94,9 +94,9 @@ def main() -> int:
 
         # Skip platform root index.mdx and part introductions for chapter-only checks
         rel_parts = mdx.relative_to(DOCS_ROOT).parts
-        is_master_shell = len(rel_parts) >= 2 and rel_parts[0] == "master"
+        is_master_shell = rel_parts[0] == "master" and mdx.name == "index.mdx"
         is_part_intro = mdx.name in ("00-introduction.mdx", "00-introduzione.mdx")
-        is_course_chapter = mdx.parent.parent != DOCS_ROOT and mdx.name != "index.mdx" and not is_part_intro and not is_master_shell
+        is_course_chapter = mdx.parent.parent != DOCS_ROOT and mdx.name != "index.mdx" and not is_part_intro
 
         # Unresolved Quarto tokens
         for m in re.finditer(r"\?@[A-Za-z0-9_-]+|(?<![A-Za-z0-9_])@(sec|fig|tbl|eq|exr)-[A-Za-z0-9_-]+", txt):

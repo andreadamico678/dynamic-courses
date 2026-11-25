@@ -4,107 +4,53 @@ import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import {
+  BACHELOR_COURSES,
+  MASTER_COURSES,
+  MASTER_PROGRAM_LABEL,
+} from './src/lib/courseRegistry.mjs';
 
 const scope = process.env.COURSE_SCOPE || 'all';
 const isSubCourse = scope !== 'all' && scope !== 'hub';
 
-const COURSES = {
-  'systems-theory': {
-    label: 'Linear Systems Theory',
-    prefaceLabel: 'Preface & Exam Scope',
-    parts: [
-      { label: 'Part I — Dynamic State Models', collapsed: true, dir: '01-state-models' },
-      { label: 'Part II — Laplace & State Resolvent', collapsed: true, dir: '02-laplace-resolvent' },
-      { label: 'Part III — Matrix Exponential & Response', collapsed: true, dir: '03-time-response' },
-      { label: 'Part IV — Stability & Routh-Hurwitz', collapsed: true, dir: '04-stability-routh' },
-      { label: 'Part V — Frequency Response & Bode', collapsed: false, dir: '05-frequency-bode' },
-      { label: 'Part VI — Kalman Structure', collapsed: true, dir: '06-kalman-structure' },
-      { label: 'Part VII — State Feedback Control', collapsed: true, dir: '07-state-feedback' },
-      { label: 'Part VIII — Observers & Compensation', collapsed: true, dir: '08-observers-compensation' },
-    ],
-  },
-  elettronica: {
-    label: 'Elettronica (Microelettronica)',
-    prefaceLabel: 'Prefazione e Programma d’Esame',
-    parts: [
-      { label: 'Parte I — Fondamenti dei Dispositivi', collapsed: true, dir: '01-fondamenti-dispositivi' },
-      { label: 'Parte II — Transistori MOS', collapsed: true, dir: '02-transistori-mos' },
-      { label: 'Parte III — Amplificatori Operazionali', collapsed: true, dir: '03-amplificatori-operazionali' },
-      { label: 'Parte IV — Amplificatori e Frequenza', collapsed: true, dir: '04-amplificatori-frequenza' },
-      { label: 'Parte V — Logica Combinatoria CMOS', collapsed: true, dir: '05-logica-cmos' },
-      { label: 'Parte VI — Sequenziali, Memorie e CAD', collapsed: true, dir: '06-sequenziali-memorie' },
-    ],
-  },
-  'computer-architecture': {
-    label: 'Computer Architecture',
-    prefaceLabel: 'Preface & Exam Scope',
-    parts: [
-      { label: 'Part I — Synchronous Digital Systems', collapsed: true, dir: '01-synchronous-digital-systems' },
-      { label: 'Part II — Computer Performance', collapsed: true, dir: '02-computer-performance' },
-      { label: 'Part III — RISC-V Instruction Set', collapsed: true, dir: '03-riscv-instructions' },
-      { label: 'Part IV — RISC-V Subroutines & Systems', collapsed: true, dir: '04-riscv-subroutines' },
-      { label: 'Part V — Pipelined Processor', collapsed: true, dir: '05-pipelined-processor' },
-      { label: 'Part VI — Cache Memory Systems', collapsed: true, dir: '06-cache-memory' },
-    ],
-  },
-  master: {
-    label: 'MSc Robot Systems — Drones & Autonomous Systems (SDU)',
-    prefaceLabel: 'Program Overview & SDU Guide',
-    parts: [
-      { label: 'Semester 1 — Foundations (30 ECTS)', collapsed: false, dir: '01-semester-1' },
-      { label: 'Semester 2 — Drone Systems (30 ECTS)', collapsed: false, dir: '02-semester-2' },
-      { label: 'Semester 3 — Projects & Electives (30 ECTS)', collapsed: false, dir: '03-semester-3-and-electives' },
-      { label: 'Semester 4 — Master Thesis (30–40 ECTS)', collapsed: false, dir: '04-semester-4-thesis' },
-    ],
-  },
-};
+function bachelorSidebarItems(slug, course) {
+  return [
+    { label: course.prefaceLabel, link: scope === 'all' ? `/${slug}/` : '/' },
+    ...course.parts.map((part) => ({
+      label: part.label,
+      collapsed: part.collapsed,
+      autogenerate: { directory: `${slug}/${part.dir}` },
+    })),
+  ];
+}
+
+function masterSidebarGroups() {
+  return MASTER_COURSES.map((course) => ({
+    label: course.label,
+    collapsed: false,
+    autogenerate: { directory: `master/${course.slug}` },
+  }));
+}
 
 function buildSidebar() {
   if (scope === 'hub') {
-    return [
-      { label: 'Platform Home', link: '/' },
-      {
-        label: 'Bachelor (UniCT L-8)',
-        items: [
-          { label: 'Linear Systems Theory', link: '/systems-theory/' },
-          { label: 'Elettronica (Microelettronica)', link: '/elettronica/' },
-          { label: 'Computer Architecture', link: '/computer-architecture/' },
-        ],
-      },
-      {
-        label: 'Master (SDU Odense)',
-        items: [
-          { label: 'Robot Systems: Drones & Autonomous Systems', link: '/master/' },
-        ],
-      },
-    ];
+    return [{ label: 'Platform Home', link: '/' }];
   }
 
-  if (isSubCourse && COURSES[scope]) {
-    const course = COURSES[scope];
-    return [
-      { label: course.prefaceLabel, link: '/' },
-      ...course.parts.map((part) => ({
-        label: part.label,
-        collapsed: part.collapsed,
-        autogenerate: { directory: `${scope}/${part.dir}` },
-      })),
-    ];
+  if (BACHELOR_COURSES[scope]) {
+    return bachelorSidebarItems(scope, BACHELOR_COURSES[scope]);
+  }
+
+  if (scope === 'master') {
+    return masterSidebarGroups();
   }
 
   return [
-    { label: 'Platform Home', link: '/' },
-    ...Object.entries(COURSES).map(([slug, course]) => ({
+    ...Object.entries(BACHELOR_COURSES).map(([slug, course]) => ({
       label: course.label,
-      items: [
-        { label: course.prefaceLabel, link: `/${slug}/` },
-        ...course.parts.map((part) => ({
-          label: part.label,
-          collapsed: part.collapsed,
-          autogenerate: { directory: `${slug}/${part.dir}` },
-        })),
-      ],
+      items: bachelorSidebarItems(slug, course),
     })),
+    ...masterSidebarGroups(),
   ];
 }
 
@@ -118,6 +64,10 @@ const courseThemeScript = `
 })();
 `;
 
+const resolvedTitle =
+  BACHELOR_COURSES[scope]?.label ||
+  (scope === 'master' ? MASTER_PROGRAM_LABEL : 'Dynamic Courses');
+
 export default defineConfig({
   site: 'https://andreadamico678.github.io',
   base: isSubCourse ? `/dynamic-courses/${scope}` : '/dynamic-courses',
@@ -126,7 +76,7 @@ export default defineConfig({
   cacheDir: `./.astro/cache-${scope}`,
   integrations: [
     starlight({
-      title: isSubCourse && COURSES[scope] ? COURSES[scope].label : 'Dynamic Courses',
+      title: resolvedTitle,
       description: 'Interactive, pageless engineering textbooks and MSc course shells with live math simulators.',
       head: [
         {
@@ -155,6 +105,8 @@ export default defineConfig({
       ],
       components: {
         Footer: './src/components/CustomFooter.astro',
+        Pagination: './src/components/Pagination.astro',
+        Sidebar: './src/components/Sidebar.astro',
         SiteTitle: './src/components/SiteTitle.astro',
       },
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },

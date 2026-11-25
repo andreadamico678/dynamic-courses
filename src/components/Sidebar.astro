@@ -1,0 +1,30 @@
+---
+import DefaultSidebar from '@astrojs/starlight/components/Sidebar.astro';
+import { getCourseContext, normalizeRoutePath } from '../lib/courseRegistry.mjs';
+
+const scope = process.env.COURSE_SCOPE || 'all';
+const ctx = getCourseContext(Astro.url.pathname, scope);
+
+function subtreeMatchesPrefix(entry: any, prefix: string): boolean {
+  if (entry.type === 'link') {
+    return normalizeRoutePath(entry.href).startsWith(prefix);
+  }
+  return Array.isArray(entry.entries) && entry.entries.some((child: any) => subtreeMatchesPrefix(child, prefix));
+}
+
+const currentSidebar = Astro.locals.starlightRoute.sidebar;
+
+if (ctx.layer === 'bachelor' && scope === 'all') {
+  const matched = currentSidebar.find((entry: any) => entry.type === 'group' && subtreeMatchesPrefix(entry, ctx.prefix));
+  if (matched && matched.type === 'group') {
+    Astro.locals.starlightRoute.sidebar = matched.entries;
+  }
+} else if (ctx.layer === 'master-course') {
+  const matched = currentSidebar.find((entry: any) => entry.type === 'group' && subtreeMatchesPrefix(entry, ctx.prefix));
+  if (matched && matched.type === 'group') {
+    Astro.locals.starlightRoute.sidebar = [{ ...matched, collapsed: false }];
+  }
+}
+---
+
+<DefaultSidebar {...Astro.props} />

@@ -1,6 +1,8 @@
 ---
 title: "SDU MSc Robot Systems — Drones & Autonomous Systems"
-description: "Master's layer overview, semester map, Problem-Based Learning lab expectations, and Bachelor-to-Master transition guide."
+description: "Master's program hub: 14 standalone course shells across 4 semesters, Problem-Based Learning lab expectations, and Bachelor-to-Master transition guide."
+template: splash
+tableOfContents: false
 ---
 
 import Callout from "@components/Callout.astro";
@@ -8,13 +10,13 @@ import Divider from "@components/Divider.astro";
 
 ## Program Overview & How It Differs From a Bachelor's
 
-This Master layer houses **course shells** (rich Preambles and Introductions with zero chapter pages yet) for the **MSc in Engineering in Robot Systems — Drones and Autonomous Systems (DAS)** at the **University of Southern Denmark (SDU), Odense**, hosted by the Mærsk Mc-Kinney Møller Institute and the SDU UAS Centre.
+This **Master layer** hosts **14 standalone course containers** (currently preface-only course shells, ready to grow into full syllabi independently) for the **MSc in Engineering in Robot Systems — Drones and Autonomous Systems (DAS)** at the **University of Southern Denmark (SDU), Odense**, hosted by the Mærsk Mc-Kinney Møller Institute and the SDU UAS Centre.
 
 Unlike an Italian Bachelor's curriculum centered on individual closed-book written algebra exams, SDU runs on **Problem-Based Learning (PBL)**:
 
 - **Team Build + Individual Oral Defense:** In nearly every technical course, teams of 3–4 build and validate a working simulation or physical hardware pipeline, submit mandatory lab/project reports by strict semester deadlines, and then face an **individual oral exam** (Danish **7-point scale**: `-3, 00, 02, 4, 7, 10, 12`, pass $\ge 02$) defending both the team's design decisions and the underlying theory.
 - **No Waiting Until Exam Week:** Missing mandatory lab report deadlines usually disqualifies you from sitting the oral exam—work is paced continuously across the semester.
-- **Shell Purpose:** Each course page here gives you the concrete mental model, expected software/hardware deliverables, exam structure, and links back to your UniCT Bachelor textbooks so you arrive prepared—and acts as a ready container when full syllabi from `odin.sdu.dk` and `itslearning` are integrated later.
+- **Standalone Course Shells:** Opening any course card below takes you into its own isolated course workspace with an independent sidebar, expected hardware/software deliverables, exam format, and links back to your UniCT Bachelor textbooks.
 
 <figure id="fig-drone-flight-overview" className="dc-img-wrap">
   <img src="/dynamic-courses/images/master/drone-flight-overview.webp" alt="Multirotor UAV in outdoor flight demonstrating real-time flight control, sensing, and autonomous navigation." />
@@ -27,25 +29,179 @@ Official cohort-specific codes and exam schedules on `odin.sdu.dk/sitecore/index
 
 </Callout>
 
-<Divider label="Semester Structure (120 ECTS)" />
+<Divider label="Standalone Course Shells (120 ECTS)" />
 
-| Semester | Shell Course | Code | ECTS | Primary Assessment |
+<div id="semester-1" className="dc-semester-label">Semester 1 &mdash; Foundations &amp; Subsystems (30 ECTS &middot; Fall)</div>
+<div className="dc-shell-grid">
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/introduction-to-drone-technology/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; T550063101</span>
+    </div>
+    <h3>Introduction to Drone Technology</h3>
+    <p>Multirotor hardware subsystems, Pixhawk/PX4 bring-up, GNSS, telemetry, and UAS safety labs.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/control-of-autonomous-systems/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; Lab + Oral</span>
+    </div>
+    <h3>Control of Autonomous Systems</h3>
+    <p>Motion models, PID/state-space/MPC controllers, sensor fusion, and MATLAB/ROS SITL tuning.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/embedded-systems/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; Project + Oral</span>
+    </div>
+    <h3>Embedded Systems</h3>
+    <p>HDL/FPGA-to-CPU co-design, UART/SPI/I2C buses, real-time constraints, and Edge AI with ROS 2.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/introduction-to-embodied-ai/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; Report + Oral</span>
+    </div>
+    <h3>Introduction to Embodied AI</h3>
+    <p>Behavior-based robotics, sensorimotor loops, state representation, and autonomous planning.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/multivariate-statistics/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; Oral</span>
+    </div>
+    <h3>Multivariate Statistics</h3>
+    <p>Covariance structures, multivariate estimation, and statistical validation for robotics experiments.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/scientific-method/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; Portfolio + Exam</span>
+    </div>
+    <h3>Scientific Method</h3>
+    <p>Experimental design, reproducibility, hypothesis testing, and technical engineering writing.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+</div>
+
+<div id="semester-2" className="dc-semester-label">Semester 2 &mdash; Core Drone Systems (30 ECTS &middot; Spring)</div>
+<div className="dc-shell-grid">
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/guidance-navigation-and-control/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; T550012101</span>
+    </div>
+    <h3>Guidance, Navigation &amp; Control</h3>
+    <p>End-to-end UAV trajectory planning, state estimation, Gazebo PX4 SITL, and live autopilot flight.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/large-scale-drone-perception/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; T550060101</span>
+    </div>
+    <h3>Large-scale Drone Perception</h3>
+    <p>Aerial 3D reconstruction, orthomosaics, optical flow, fiducial tracking, and UAV SLAM.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/mechanical-aerial-systems/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; T550076101</span>
+    </div>
+    <h3>Mechanical Aerial Systems</h3>
+    <p>Aerodynamics, rotor stability, CAD modeling, 3D-printed rapid prototyping, and flight testing.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/bio-inspired-autonomous-systems/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; Report + Oral</span>
+    </div>
+    <h3>Bio-Inspired Autonomous Systems</h3>
+    <p>Biological sensory models, non-visual perception, and embodied nature-inspired autonomy.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/tools-of-artificial-intelligence/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5 ECTS &middot; Project Report</span>
+    </div>
+    <h3>Tools of Artificial Intelligence</h3>
+    <p>Neural networks, evolutionary algorithms, reinforcement learning, and experimental benchmarking.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+</div>
+
+<div id="semester-3" className="dc-semester-label">Semester 3 &mdash; Flagship Project &amp; Electives (30 ECTS &middot; Fall)</div>
+<div className="dc-shell-grid">
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/engineering-of-innovative-robotic-technologies/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>15 ECTS &middot; Flagship Project</span>
+    </div>
+    <h3>Innovative Robotic Technologies</h3>
+    <p>Multidisciplinary startup-style drone/robot prototype, usability validation, pitch, and oral defense.</p>
+    <div className="dc-course-links"><span>Open Course Shell &rarr;</span></div>
+  </a>
+
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/electives-and-in-company-track/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>5&ndash;15 ECTS &middot; Flex Track</span>
+    </div>
+    <h3>Electives &amp; In-Company Track</h3>
+    <p>Embedded Linux (T550077101), 3D Vision, Soft Robotics, Study Abroad, or 15 ECTS Industry Project.</p>
+    <div className="dc-course-links"><span>Open Electives Catalog &rarr;</span></div>
+  </a>
+</div>
+
+<div id="semester-4" className="dc-semester-label">Semester 4 &mdash; Thesis Research (30 or 40 ECTS &middot; Spring)</div>
+<div className="dc-shell-grid">
+  <a className="dc-course-card" data-course="master" href="/dynamic-courses/master/masters-thesis/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">COURSE</span>
+      <span>30 or 40 ECTS &middot; Thesis</span>
+    </div>
+    <h3>Master&rsquo;s Thesis</h3>
+    <p>Experimental UAS/autonomy research inside SDU UAS Centre, OptiTrack cages, and HCA Airport.</p>
+    <div className="dc-course-links"><span>Open Thesis Preface &rarr;</span></div>
+  </a>
+</div>
+
+<Divider label="Quick-Reference Curriculum Matrix" />
+
+| Semester | Course Container | Code | ECTS | Primary Assessment |
 | :--- | :--- | :--- | :---: | :--- |
-| **1 · Fall** | [Introduction to Drone Technology](/dynamic-courses/master/01-semester-1/01-introduction-to-drone-technology/) | `T550063101` | 5 | Mandatory lab reports + individual oral |
-| **1 · Fall** | [Control of Autonomous Systems](/dynamic-courses/master/01-semester-1/02-control-of-autonomous-systems/) | — | 5 | Mandatory exercises/report + individual oral |
-| **1 · Fall** | [Embedded Systems](/dynamic-courses/master/01-semester-1/03-embedded-systems/) | — | 5 | Assignments + lab group project / oral |
-| **1 · Fall** | [Introduction to Embodied AI](/dynamic-courses/master/01-semester-1/04-introduction-to-embodied-ai/) | — | 5 | Group report + individual oral |
-| **1 · Fall** | [Multivariate Statistics](/dynamic-courses/master/01-semester-1/05-multivariate-statistics/) | — | 5 | Individual oral (data exercises) |
-| **1 · Fall** | [Scientific Method](/dynamic-courses/master/01-semester-1/06-scientific-method/) | — | 5 | Portfolio (50%) + written/MCQ (50%) |
-| **2 · Spring** | [Guidance, Navigation and Control](/dynamic-courses/master/02-semester-2/01-guidance-navigation-and-control/) | `T550012101` | 5 | Group GNC project + individual oral |
-| **2 · Spring** | [Large-scale Drone Perception](/dynamic-courses/master/02-semester-2/02-large-scale-drone-perception/) | `T550060101` | 5 | Exercises/project reports + individual oral |
-| **2 · Spring** | [Mechanical Aerial Systems](/dynamic-courses/master/02-semester-2/03-mechanical-aerial-systems/) | `T550076101` | 5 | Compulsory design/prototype reports + oral |
-| **2 · Spring** | [Bio-Inspired Autonomous Systems](/dynamic-courses/master/02-semester-2/04-bio-inspired-autonomous-systems/) | — | 5 | Group project report + individual oral |
-| **2 · Spring** | [Tools of Artificial Intelligence](/dynamic-courses/master/02-semester-2/05-tools-of-artificial-intelligence/) | — | 5 | Individual written report (or portfolio + oral) |
-| **2 · Spring** | *Elective Course* ([Catalog](/dynamic-courses/master/03-semester-3-and-electives/02-electives-and-in-company-track/)) | — | 5 | Varies (lab/project + oral) |
-| **3 · Fall** | [Engineering of Innovative Robotic Technologies](/dynamic-courses/master/03-semester-3-and-electives/01-engineering-of-innovative-robotic-technologies/) | — | 15 | Group prototype + report + pitch + oral |
-| **3 · Fall** | [Electives / Mobility / In-Company Track](/dynamic-courses/master/03-semester-3-and-electives/02-electives-and-in-company-track/) | — | 15 | Abroad, In-Company (15), Electives, or +10 Thesis |
-| **4 · Spring** | [Master's Thesis](/dynamic-courses/master/04-semester-4-thesis/01-masters-thesis/) | — | 30 / 40 | Written thesis + demo + oral defense |
+| **1 · Fall** | [Introduction to Drone Technology](/dynamic-courses/master/introduction-to-drone-technology/) | `T550063101` | 5 | Mandatory lab reports + individual oral |
+| **1 · Fall** | [Control of Autonomous Systems](/dynamic-courses/master/control-of-autonomous-systems/) | — | 5 | Mandatory exercises/report + individual oral |
+| **1 · Fall** | [Embedded Systems](/dynamic-courses/master/embedded-systems/) | — | 5 | Assignments + lab group project / oral |
+| **1 · Fall** | [Introduction to Embodied AI](/dynamic-courses/master/introduction-to-embodied-ai/) | — | 5 | Group report + individual oral |
+| **1 · Fall** | [Multivariate Statistics](/dynamic-courses/master/multivariate-statistics/) | — | 5 | Individual oral (data exercises) |
+| **1 · Fall** | [Scientific Method](/dynamic-courses/master/scientific-method/) | — | 5 | Portfolio (50%) + written/MCQ (50%) |
+| **2 · Spring** | [Guidance, Navigation and Control](/dynamic-courses/master/guidance-navigation-and-control/) | `T550012101` | 5 | Group GNC project + individual oral |
+| **2 · Spring** | [Large-scale Drone Perception](/dynamic-courses/master/large-scale-drone-perception/) | `T550060101` | 5 | Exercises/project reports + individual oral |
+| **2 · Spring** | [Mechanical Aerial Systems](/dynamic-courses/master/mechanical-aerial-systems/) | `T550076101` | 5 | Compulsory design/prototype reports + oral |
+| **2 · Spring** | [Bio-Inspired Autonomous Systems](/dynamic-courses/master/bio-inspired-autonomous-systems/) | — | 5 | Group project report + individual oral |
+| **2 · Spring** | [Tools of Artificial Intelligence](/dynamic-courses/master/tools-of-artificial-intelligence/) | — | 5 | Individual written report (or portfolio + oral) |
+| **2 · Spring** | *Elective Slot* ([Catalog](/dynamic-courses/master/electives-and-in-company-track/)) | — | 5 | Varies (lab/project + oral) |
+| **3 · Fall** | [Engineering of Innovative Robotic Technologies](/dynamic-courses/master/engineering-of-innovative-robotic-technologies/) | — | 15 | Group prototype + report + pitch + oral |
+| **3 · Fall** | [Electives / Mobility / In-Company Track](/dynamic-courses/master/electives-and-in-company-track/) | — | 15 | Abroad, In-Company (15), Electives, or +10 Thesis |
+| **4 · Spring** | [Master's Thesis](/dynamic-courses/master/masters-thesis/) | — | 30 / 40 | Written thesis + demo + oral defense |
 
 <Divider label="Labs & Engineering Stack" />
 

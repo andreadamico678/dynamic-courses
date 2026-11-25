@@ -1,0 +1,21 @@
+---
+import DefaultPagination from '@astrojs/starlight/components/Pagination.astro';
+import { getCourseContext, normalizeRoutePath } from '../lib/courseRegistry.mjs';
+
+const scope = process.env.COURSE_SCOPE || 'all';
+const ctx = getCourseContext(Astro.url.pathname, scope);
+const { pagination } = Astro.locals.starlightRoute;
+
+if (ctx.layer === 'bachelor' || ctx.layer === 'master-course') {
+  const keepLink = (item: any) =>
+    item && normalizeRoutePath(item.href).startsWith(ctx.prefix) ? item : undefined;
+  Astro.locals.starlightRoute.pagination = {
+    prev: keepLink(pagination.prev),
+    next: keepLink(pagination.next),
+  };
+} else if (ctx.layer === 'hub' || ctx.layer === 'master-hub') {
+  Astro.locals.starlightRoute.pagination = { prev: undefined, next: undefined };
+}
+---
+
+<DefaultPagination {...Astro.props} />

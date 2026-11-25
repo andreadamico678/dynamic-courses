@@ -1,33 +1,34 @@
 ---
-const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+import { getCourseContext, MASTER_PROGRAM_LABEL } from '../lib/courseRegistry.mjs';
+
 const scope = process.env.COURSE_SCOPE || 'all';
-const pathname = Astro.url.pathname;
-
-const COURSE_LABELS: Record<string, string> = {
-  'systems-theory': 'Linear Systems Theory',
-  elettronica: 'Elettronica',
-  'computer-architecture': 'Computer Architecture',
-  master: 'MSc Robot Systems (SDU)',
-};
-
-let activeCourse = scope !== 'all' && scope !== 'hub' ? scope : '';
-if (!activeCourse) {
-  const m = pathname.match(/\/dynamic-courses\/(systems-theory|elettronica|computer-architecture|master)(?:\/|$)/);
-  if (m) activeCourse = m[1];
-}
-
-const courseHref = activeCourse ? `/dynamic-courses/${activeCourse}/` : siteTitleHref;
-const courseLabel = activeCourse ? COURSE_LABELS[activeCourse] || siteTitle : '';
+const ctx = getCourseContext(Astro.url.pathname, scope);
 ---
 
 <div class="dc-site-brand sl-flex">
   <a href="/dynamic-courses/" class="site-title sl-flex">
     <span translate="no">Dynamic Courses</span>
   </a>
-  {courseLabel && (
+  {ctx.layer === 'bachelor' && (
     <>
       <span class="dc-brand-sep" aria-hidden="true">/</span>
-      <a href={courseHref} class="dc-brand-course">{courseLabel}</a>
+      <a href="/dynamic-courses/#bachelor" class="dc-brand-layer">Bachelor</a>
+      <span class="dc-brand-sep" aria-hidden="true">/</span>
+      <a href={ctx.prefix} class="dc-brand-course">{ctx.label}</a>
+    </>
+  )}
+  {ctx.layer === 'master-hub' && (
+    <>
+      <span class="dc-brand-sep" aria-hidden="true">/</span>
+      <a href="/dynamic-courses/master/" class="dc-brand-course">{MASTER_PROGRAM_LABEL}</a>
+    </>
+  )}
+  {ctx.layer === 'master-course' && (
+    <>
+      <span class="dc-brand-sep" aria-hidden="true">/</span>
+      <a href="/dynamic-courses/master/" class="dc-brand-layer">Master (SDU)</a>
+      <span class="dc-brand-sep" aria-hidden="true">/</span>
+      <a href={ctx.prefix} class="dc-brand-course">{ctx.label}</a>
     </>
   )}
 </div>
@@ -52,6 +53,16 @@ const courseLabel = activeCourse ? COURSE_LABELS[activeCourse] || siteTitle : ''
     font-weight: 400;
     user-select: none;
   }
+  .dc-brand-layer {
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--dc-muted);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .dc-brand-layer:hover {
+    color: var(--sl-color-text-accent);
+  }
   .dc-brand-course {
     font-size: 0.88rem;
     font-weight: 600;
@@ -63,6 +74,12 @@ const courseLabel = activeCourse ? COURSE_LABELS[activeCourse] || siteTitle : ''
   }
   .dc-brand-course:hover {
     color: var(--sl-color-text-accent);
+  }
+  @media (max-width: 44rem) {
+    .dc-brand-layer,
+    .dc-brand-layer + .dc-brand-sep {
+      display: none;
+    }
   }
   @media (max-width: 36rem) {
     .dc-brand-sep,

@@ -7,8 +7,10 @@ Welcome, **agy**. You are the lead authoring, interactive-visualization, and bui
 ## Core Operating Principles
 
 1. **Two-Layer Platform & Separate Per-Course Builds (MDX + Starlight):**
+   - **Hub Layer (`template: splash`):** Platform Home (`src/content/docs/index.mdx`) separates the UniCT Bachelor degree from the SDU Master program without a global sidebar cluttering all courses.
    - **Bachelor Layer (Full Textbooks):** Complete chapters live in `src/content/docs/<course-slug>/` (`systems-theory` [blue], `elettronica` [red], `computer-architecture` [orange])—one continuous scrolling page per chapter organized with `<Divider />` breaks.
-   - **Master Layer (Course Shells):** MSc courses live under `src/content/docs/master/` ([emerald] SDU Odense *Robot Systems: Drones & Autonomous Systems*) as **preface-only shells** (course metadata, mental model, expected labs/projects, oral defense format, and Bachelor prerequisite links—zero chapters until a full syllabus is integrated).
+   - **Master Layer (Standalone Course Shells):** MSc courses under `src/content/docs/master/` ([emerald] SDU Odense *Robot Systems: Drones & Autonomous Systems*) live in their own per-course folders (`src/content/docs/master/<course-slug>/index.mdx`, anchored by the `/master/` splash hub) as **preface-only standalone shells** ready for future chapter expansion.
+   - **Course Isolation (`src/lib/courseRegistry.mjs`, `Sidebar.astro`, `Pagination.astro`):** Every course (Bachelor textbook and standalone Master shell) displays **only** its own sidebar and prev/next pagination in both production builds and `pnpm dev`.
    - **Isolated Multi-Build (`COURSE_SCOPE`):** `pnpm build` runs `scripts/build_courses.mjs` to build `hub`, each Bachelor textbook, and `master` as isolated Astro processes mounted under `/dynamic-courses/<scope>/`.
    - Use **pnpm** exclusively (`pnpm dev`, `pnpm build`, `pnpm lint`). Never use `npm`.
 2. **Strict Monotonic Dependency (Zero Forward References):**
@@ -58,9 +60,10 @@ dynamic-courses/
 │   ├── context/                     # Syllabus (raw exam PDFs stay gitignored locally)
 │   └── flashcards/                  # Obsidian spaced-repetition decks
 └── src/
+    ├── lib/courseRegistry.mjs       # Single source of truth for Bachelor & Master shells
     ├── styles/custom.css            # Pageless reading typography & dark/light widget themes
-    ├── components/                  # Divider, Callout, SiteTitle, Exercise, StepCheck, Explorers
-    └── content/docs/<course-slug>/  # Canonical MDX textbook chapters & Master shells
+    ├── components/                  # Divider, Callout, SiteTitle, Sidebar, Pagination, Exercise, Explorers
+    └── content/docs/<course-slug>/  # Canonical MDX textbooks & master/<slug>/ shells
 ```
 
 ---

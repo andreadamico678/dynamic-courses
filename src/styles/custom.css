@@ -192,10 +192,16 @@
     padding: 1.5rem 2.75rem !important;
   }
 
-  .content-panel > .sl-container {
+  [data-has-sidebar] .content-panel > .sl-container {
     max-width: var(--dc-measure) !important;
     width: 100% !important;
     margin-inline: 0 !important;
+  }
+
+  html:not([data-has-sidebar]) .content-panel > .sl-container {
+    max-width: 72rem !important;
+    width: 100% !important;
+    margin-inline: auto !important;
   }
 }
 
@@ -1145,4 +1151,27 @@ mark.dc-hl-green {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--dc-muted);
+}
+.dc-semester-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.dc-semester-pills a {
+  font-family: var(--sl-font-mono);
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--dc-muted);
+  text-decoration: none;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--sl-color-hairline-light);
+  background: rgba(43, 182, 134, 0.06);
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.dc-semester-pills a:hover {
+  color: var(--dc-ink);
+  border-color: #2bb686;
+  background: rgba(43, 182, 134, 0.14);
 }
