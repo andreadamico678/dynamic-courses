@@ -12,6 +12,44 @@ DOCS_ROOT = ROOT / "src" / "content" / "docs"
 PUBLIC_ROOT = ROOT / "public"
 COURSES_ROOT = ROOT / "courses"
 
+BANNED_META_PATTERNS = [
+    (r"Level\s+3\s+(?:Solution\s+)?Omitted", "Banned boilerplate string"),
+    (r"\b(?:Worked Archetype|Faded Completion|Toy Case|Why This Matters:|Oral Proof:|Anchor System)\b", "Banned pedagogical meta-jargon"),
+]
+
+BANNED_HEADING_TAGS = re.compile(
+    r"^#{1,4}\s+.*\((?:Conceptual|Oral Core|Written Exam Core|Warm-Up|Toy Case|Worked Archetype)\)",
+    re.IGNORECASE,
+)
+
+# Single-backslash LaTeX commands inside JS string arrays (options={[...]}) that JS turns into control chars (\b, \f, \n, \r, \t, \v)
+JSX_ESCAPE_TRAP = re.compile(
+    r'(?<!\\)\\(?:varphi|vec|tau|theta|text|times|tilde|to(?![A-Za-z])|frac|beta|bar|bm|rho|right|neq|nu|nabla|forall|tan|top)'
+)
+
+
+def check_svg_assets(errors: list[str]) -> None:
+    diagrams_root = PUBLIC_ROOT / "diagrams"
+    if not diagrams_root.exists():
+        return
+    for svg in sorted(diagrams_root.rglob("*.svg")):
+        rel = svg.relative_to(ROOT).as_posix()
+        raw = svg.read_text(encoding="utf-8", errors="ignore")
+        if "<text" in raw:
+            continue
+        # computer-architecture dvisvgm exports dropped T1 text fonts; disallow them entirely
+        if svg.parent.name == "computer-architecture" and "dvisvgm" in raw:
+            errors.append(f"[{rel}] Broken dvisvgm SVG with stripped text labels (replace with hand-authored <text> SVG)")
+            continue
+        # For legacy CircuiTikZ/TikZ dvisvgm exports in other courses, ensure outlined glyph paths exist
+        filled_glyph_paths = sum(
+            1
+            for m in re.findall(r"<path[^>]+>", raw)
+            if "stroke=" not in m and len(re.findall(r"[Cc]", m)) >= 4
+        )
+        if filled_glyph_paths < 5:
+            errors.append(f"[{rel}] SVG has no <text> elements and fewer than 5 glyph paths (likely missing labels)")
+
 
 def main() -> int:
     errors: list[str] = []
@@ -23,7 +61,10 @@ def main() -> int:
             if not (course_dir / req).exists():
                 errors.append(f"[courses/{course_dir.name}] Missing required file: {req}")
 
-    # 2. Check all MDX chapters
+    # 2. Check SVG diagram integrity
+    check_svg_assets(errors)
+
+    # 3. Check all MDX chapters
     mdx_files = sorted(DOCS_ROOT.rglob("*.mdx"))
     if not mdx_files:
         errors.append("No .mdx files found under src/content/docs/")
@@ -50,8 +91,9 @@ def main() -> int:
             if route not in valid_routes:
                 errors.append(f"[{rel}] Broken internal route: {lm.group(1)}")
 
-        # Skip platform root index.mdx for chapter-only checks
-        is_course_chapter = mdx.parent.parent != DOCS_ROOT and mdx.name != "index.mdx"
+        # Skip platform root index.mdx and part introductions for chapter-only checks
+        is_part_intro = mdx.name in ("00-introduction.mdx", "00-introduzione.mdx")
+        is_course_chapter = mdx.parent.parent != DOCS_ROOT and mdx.name != "index.mdx" and not is_part_intro
 
         # Unresolved Quarto tokens
         for m in re.finditer(r"\?@[A-Za-z0-9_-]+|(?<![A-Za-z0-9_])@(sec|fig|tbl|eq|exr)-[A-Za-z0-9_-]+", txt):
@@ -63,10 +105,11 @@ def main() -> int:
         for m in re.finditer(r"\bExercise\s+\d+\.\d+\.\d+\b", txt):
             errors.append(f"[{rel}] Legacy hardcoded exercise reference: {m.group(0)}")
 
-        # Banned boilerplate outside index.mdx
+        # Banned boilerplate & meta-jargon outside index.mdx
         if mdx.name != "index.mdx":
-            for m in re.finditer(r"Level\s+3\s+(?:Solution\s+)?Omitted", txt, re.IGNORECASE):
-                errors.append(f"[{rel}] Banned boilerplate string: {m.group(0)}")
+            for pat, label in BANNED_META_PATTERNS:
+                for m in re.finditer(pat, txt, re.IGNORECASE):
+                    errors.append(f"[{rel}] {label}: {m.group(0)}")
 
         # Verify SVG/image paths exist in public/
         for m in re.finditer(r'src="/dynamic-courses/([^"]+)"', txt):
@@ -81,8 +124,35 @@ def main() -> int:
             if "<Divider" not in txt:
                 warnings.append(f"[{rel}] No <Divider /> breaks found")
 
-        # Markdown table raw pipe inside inline math check (causes MDX/Acorn parse errors)
-        for line_no, line in enumerate(txt.splitlines(), start=1):
+        # JSX options={[...]} single-backslash LaTeX escape traps
+        for om in re.finditer(r"options=\{\[(.*?)\]\}", txt, re.S):
+            block = om.group(1)
+            for trap in JSX_ESCAPE_TRAP.finditer(block):
+                errors.append(
+                    f"[{rel}] Unescaped LaTeX command in JSX options array ({trap.group(0)}): double the backslash"
+                )
+
+        # Line-level checks: banned heading meta-tags, multi-line display math traps, table pipes
+        lines = txt.splitlines()
+        in_code = False
+        for line_no, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if stripped.startswith("```"):
+                in_code = not in_code
+                continue
+            if in_code:
+                continue
+
+            if BANNED_HEADING_TAGS.match(line):
+                errors.append(f"[{rel}:{line_no}] Banned parenthetical meta-tag in heading: {stripped}")
+
+            # Multi-line display math traps: $$\begin{...} opening without closing $$ on same line breaks remark-math
+            if re.match(r"^\s*\$\$\\begin\{", line) and not stripped.endswith("$$"):
+                errors.append(
+                    f"[{rel}:{line_no}] Put '$$' and '\\begin{{...}}' on separate unindented lines with blank lines around '$$'"
+                )
+
+            # Markdown table raw pipe inside inline math check (causes MDX/Acorn parse errors)
             if line.lstrip().startswith("|"):
                 in_math = False
                 i = 0

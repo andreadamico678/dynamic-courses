@@ -11,17 +11,22 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load defaultCollapsed title="Chapter 12 Map" markdown={`# Ch. 12: Subroutine Stack Frames
-  - Dual-Buffer Main Frame Example
-    - 48-byte aligned layout for buffers and registers
-    - Passing stack pointers via addi a0, sp, offset
-  - ABI Register Split
-    - Caller-saved volatile (t0-t6, a0-a7, ra)
-    - Callee-saved preserved (s0-s11, sp)
-    - Leaf vs. non-leaf subroutines
-  - Prologue and Epilogue Mechanics
-    - 16-byte sp alignment formula
-    - Local C arrays vs. register-named helper variables`} />
+<MindMap client:load defaultCollapsed title="Chapter 12 Outline" markdown={`# Ch. 12: Subroutine Stack Frames
+  - 1 · Example
+    - Dual-Buffer Main Frame
+  - 2 · Theory
+    - Caller and Callee Registers
+    - Leaf and Non-Leaf Functions
+    - Prologue and Epilogue Template
+    - Stack Buffers and Exam Rules
+  - 3 · Summary
+    - ABI Preservation Reference
+    - Stack Frame Budgeting Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 12.1 — Stack Buffer Validation Program
+    - Exercise 12.2 — Avoiding Callee-Saved Clobbering
+    - Exercise 12.3 — Equal-Length String Pair Processor`} />
 
 ## Subroutine Stack Frames
 
@@ -57,7 +62,7 @@ Rounding $44\text{ B}$ up to the nearest multiple of $16\text{ B}$ yields an ali
 
 <figure id="fig-stack-frame" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/computer-architecture/fig-stack-frame.svg" alt="Stack Frame Layout for a 48-byte aligned non-leaf procedure containing saved registers (ra, s0, s1) at high offsets and two 16-byte local character buffers (seconda at sp+16, prima at sp+0)." />
-  <figcaption>48-byte aligned stack frame for a non-leaf `main`: local buffers `prima[16]` (`0(sp)`) and `seconda[16]` (`16(sp)`) sit at the base, while saved registers (`s1`, `s0`, `ra`) sit at the top word slots (`36(sp)`–`44(sp)`).</figcaption>
+  <figcaption>48-byte aligned stack frame for a non-leaf <code>main</code>: local buffers <code>prima[16]</code> (<code>0(sp)</code>) and <code>seconda[16]</code> (<code>16(sp)</code>) sit at the base, while saved registers (<code>s1</code>, <code>s0</code>, <code>ra</code>) sit at the top word slots (<code>36(sp)</code>–<code>44(sp)</code>).</figcaption>
 </figure>
 
 Matching the layout in [the figure](#fig-stack-frame), `prima` starts at `sp + 0`, `seconda` starts at `sp + 16`, and `strlen` executes at the bottom as a **leaf function** using only `t0`–`t1` with zero stack overhead:
@@ -135,6 +140,8 @@ strlen_done:
 
 <Divider label="2 · Theory" />
 
+Safe multi-function execution rests on four rules: dividing registers into caller-saved and callee-saved sets, distinguishing leaf from non-leaf procedures, sizing 16-byte-aligned prologue/epilogue frames, and addressing local C arrays inside the stack frame.
+
 ### Caller and Callee Registers
 
 Without a shared register convention, every function call would have to spill all 31 general-purpose registers to memory just in case the callee modified them. Instead, the RISC-V RV32 ABI splits registers into two preservation contracts:
@@ -159,7 +166,7 @@ The RISC-V runtime stack grows **downward toward lower byte addresses**: subtrac
 
 $$K = 16 \cdot \left\lceil \frac{B_{\text{buffers}} + 4 \cdot N_{\text{regs}}}{16} \right\rceil, \qquad \mathrm{sp} \equiv 0 \pmod{16}$$
 
-Every non-leaf procedure follows one mechanical **Prologue $\to$ Body $\to$ Epilogue** skeleton:
+Inside the allocated $K$-byte frame, place local arrays starting at `0(sp)` upward and store saved registers in descending 4-byte word slots from the top of the frame: `ra` at `(K - 4)(sp)`, `s0` at `(K - 8)(sp)`, `s1` at `(K - 12)(sp)`, and so on. Every non-leaf procedure follows one mechanical **Prologue $\to$ Body $\to$ Epilogue** skeleton:
 
 ```asm
 non_leaf_fn:
@@ -219,6 +226,8 @@ On desktop Linux, overflowing the stack crosses an unmapped virtual **guard page
 
 <Divider label="3 · Summary" />
 
+### ABI Preservation Reference
+
 | Register(s) | Hardware Names | ABI Role | Preserved Across `call`? | Mechanical Rule |
 | :--- | :---: | :--- | :---: | :--- |
 | **`zero`** | `x0` | Hardwired constant `0` | Immutable | Reads `0`; writes discarded |
@@ -236,12 +245,6 @@ On desktop Linux, overflowing the stack crosses an unmapped virtual **guard page
 3. **Align to 16 Bytes:** Compute $K = 16 \cdot \lceil B_{\text{raw}} / 16 \rceil \in \{16, 32, 48, 64, \dots\}$.
 4. **Assign Non-Overlapping Offsets:** Place local arrays starting at `0(sp)` upward, and place saved registers descending from `(K - 4)(sp)` (`ra` at `K - 4`, `s0` at `K - 8`, `s1` at `K - 12`, ...).
 5. **Write Mirrored Prologue & Epilogue:** Emit `addi sp, sp, -K` + `sw` stores at entry, pass stack buffer pointers via `addi aX, sp, offset`, and emit matching `lw` loads + `addi sp, sp, K` + `ret` (or `ecall 10` in `main`) at exit.
-
-### Key Rules
-
-- **Non-Leaf `ra` Mandate:** Any function executing `call` (`jal`) must save `ra` on its stack frame before the first call and restore `ra` before returning.
-- **Stack Buffer Addressing:** Local C arrays live inside `sp` frames (never `.data`) and are passed by address via `addi a0, sp, offset`.
-- **Leaf Scratch Discipline:** Implement leaf helpers solely with `t0`–`t6` and `a0`–`a7` regardless of what the C variable names look like.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -515,7 +518,7 @@ score_done:
   hint="Allocate a 48-byte frame in `main` (`prima[16]` at `0(sp)`, `seconda[16]` at `16(sp)`, `s2` at `32(sp)`, `s1` at `36(sp)`, `s0` at `40(sp)`, `ra` at `44(sp)`), plus save `s3` or compare `s0` against `li t0, 3`. Write both `elabora` and `strlen` as zero-stack leaf functions."
 >
 
-Translate the complete Question 6 C program below (modeled on the January 2026 C1 session) into a standalone RARS file:
+Translate the complete Question 6 C program below (modeled on the January 2026 C1 session)—combining stack-allocated buffers, console I/O ([System Calls](/dynamic-courses/computer-architecture/04-riscv-subroutines/11-system-calls/)), and the zero-stack leaf helper `elabora` ([Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/))—into a standalone RARS file:
 
 ```c
 int elabora(char *p, char *s, int n) {

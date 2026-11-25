@@ -159,12 +159,6 @@ When deploying a $1\text{ kHz}$ ($T_{\text{deadline}} = 1.0\text{ ms}$) state-es
 4. **Evaluate $\text{Stalls}_{\text{ctrl}}$:** Pick $P_{\text{stage}} \in \{1, 2, 3\}$ (`ID`, `EX`, `MEM`), then multiply by $p_{\text{taken}}$ for Predict-Untaken or by $1.0$ for *solo stalli*.
 5. **Check `ALU -> Branch` Interaction:** Add $f_{\text{ALU}\to\text{Branch}} \times 1$ **only** when branches resolve in stage `ID`; explicitly cross out `ALU -> Branch` when branches resolve in `EX` or `MEM`.
 
-### Key Mechanisms
-
-- **Linear Stall Superposition:** Independent structural, data, and control stall frequencies sum directly atop $\text{CPI}_{\text{ideal}} = 1$.
-- **Conditional Frequency Anchoring:** $P(B \mid A) \cdot P(A)$ requires multiplying by $f_A$, the instruction class named after *"of"* (*delle istruzioni ...*).
-- **Decoy Immunity:** Hardware forwarding zeroes out `ALU -> ALU`, `ALU -> Load`, and `EX`/`MEM`-resolved `ALU -> Branch` dependencies.
-
 <Callout type="warning" title="Common Mistakes">
 
 1. **Swapping Producer and Consumer Base Frequencies:** *"20% of ALU depend on Load"* is $f_{\text{ALU}} \times 0.20$, whereas *"20% of Load feed ALU"* is $f_{\text{Load}} \times 0.20$.

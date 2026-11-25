@@ -217,13 +217,6 @@ Embedded RISC-V and ARM Cortex-M microcontrollers rely on static compiler schedu
 3. **If Forwarding is ON:** Assign **$0$ stalls** to all `ALU` producers, and **$1$ stall** exclusively when a `lw` producer is read in `EX` at distance $k = 1$ (**Load-Use**).
 4. **Software Rescheduling Check:** To remove a Load-Use stall at zero hardware cost, hoist an independent instruction between `lw` and its consumer, adjusting constant memory offsets if a pointer increment (`addi ptr, ptr, 4`) crosses a `lw`/`sw` using `ptr`.
 
-### Key Mechanisms
-
-- **`EX/MEM` Priority Rule:** `ForwardA/B = 01` (`MEM/WB`) is asserted only when the `EX/MEM` stage is *not* simultaneously overwriting the same non-zero register.
-- **`x0` Hardwired-Zero Guard:** Both `EX` and `MEM` forwarding equations enforce `RegisterRd != 0` so writes targeting `x0` never corrupt zero operands.
-- **Load-Use Bubble Injection:** Asserting `PCWrite = 0`, `IF/IDWrite = 0`, and zeroing `ID/EX` control signals delays the consumer by 1 cycle so `MEM/WB` data arrives at `EX` on time.
-- **Compiler Instruction Scheduling:** Static code reordering fills Load-Use delay slots with independent work at zero silicon gate cost.
-
 <Callout type="warning" title="Common Mistakes">
 
 1. **Adding Stalls to `ALU -> ALU` When Forwarding is Active:** With full forwarding, `ALU -> ALU` at $k = 1$ or $k = 2$ costs **0 stalls**. Only `lw` at distance $k = 1$ incurs 1 stall!

@@ -68,18 +68,24 @@ Raising the ideal baseline $\text{CPI}_{\text{base}} = 1.00$ by $+0.35$ yields $
 
 ### Causes and Hardware Fixes
 
-A **structural hazard** occurs when two instructions in different stages try to use the same physical hardware circuit during the same clock cycle. Across the 5-stage RISC-V datapath (`IF`, `ID`, `EX`, `MEM`, `WB`), overlapping five instructions can cause a hardware collision in three places: **memory access**, **register file access**, and **integer addition**. Standard pipelined processors eliminate all three in hardware—either by duplicating the hardware unit or splitting one clock cycle into two phases—so structural stalls only appear on exams when a problem explicitly removes one of those fixes (almost always single-port unified memory).
+A **structural hazard** occurs when two instructions in different stages try to use the same physical hardware port during the same clock cycle. Whenever a conflict happens with penalty $P_{\text{conflict}}$ cycles, the extra stall cycles per instruction follow one general rule:
+
+$$\text{Stalls}_{\text{struct}} = f_{\text{conflict}} \times P_{\text{conflict}}$$
+
+where $f_{\text{conflict}}$ is the fraction of instructions that trigger that specific resource collision (and $\text{CPI}_{\text{pipe}} = 1 + \text{Stalls}_{\text{struct}}$ when no other hazards are active).
+
+Across the 5-stage RISC-V datapath (`IF`, `ID`, `EX`, `MEM`, `WB`), overlapping five instructions creates three potential hardware bottlenecks. Standard CPUs eliminate all three permanently—by adding ports/copies or splitting one clock cycle into two halves—so you only apply the formula above when a problem removes one of those fixes (almost always single-port unified memory):
 
 ### Fix 1: Split Instruction and Data Caches
 
-- **The hazard:** Stage `IF` fetches an instruction every cycle, while `lw` and `sw` instructions access data in stage `MEM`. With a **unified single-port memory** (*una sola memoria per dati e istruzioni*), those two requests collide on the same memory port, forcing `IF` to stall for $1$ cycle on every load and store:
-  $$\text{Stalls}_{\text{struct}} = f_{\text{mem}} \times 1 = (f_{\text{load}} + f_{\text{store}}) \times 1$$
-- **The hardware fix:** Keep unified main DRAM at lower memory levels, but split the L1 interface into two separate caches (*due memorie distinte per istruzioni e dati*): an **L1 Instruction Cache (`I-Cache`)** wired only to `IF` and an **L1 Data Cache (`D-Cache`)** wired only to `MEM`. Because they have independent address and data buses, `IF` and `MEM` run concurrently:
+- **The hazard:** Stage `IF` fetches an instruction every cycle, while `lw` and `sw` instructions access data in stage `MEM`. With a **unified single-port memory** (*una sola memoria per dati e istruzioni*), only `lw` (`MemRead = 1`) and `sw` (`MemWrite = 1`) occupy `MEM`, so $f_{\text{conflict}} = f_{\text{load}} + f_{\text{store}}$ and every access stalls `IF` for $1$ cycle:
+  $$\text{Stalls}_{\text{struct}} = (f_{\text{load}} + f_{\text{store}}) \times 1$$
+- **The hardware fix:** In principle, giving one unified memory **two independent ports** would also avoid the conflict, but dual-porting a fast L1 SRAM array is expensive and slow. Instead, real CPUs keep shared main DRAM at lower levels and split the L1 interface into two separate single-port caches (*due memorie distinte per istruzioni e dati*): an **L1 Instruction Cache (`I-Cache`)** wired only to `IF` and an **L1 Data Cache (`D-Cache`)** wired only to `MEM`:
   $$\text{Split I/D Memories (Harvard L1)} \implies \text{Stalls}_{\text{struct}} = 0$$
 
 ### Fix 2: Register File Double-Pumping
 
-- **The hazard:** Whenever an older instruction $i$ writes back to a register in `WB` during the exact same clock cycle (Cycle 5) that instruction $i + 3$ decodes and reads registers in `ID` (distance $k = 3$), both stages access the Register File simultaneously:
+- **The hazard:** Whenever an older instruction $i$ writes back to a register in `WB` during the exact same clock cycle (Cycle 5) that instruction $i + 3$ decodes and reads registers in `ID` (distance $k = 3$), both stages access the Register File simultaneously. If a Register File could not read and write in the same cycle, every instruction that asserts `RegWrite = 1` in `WB` (`ALU` and `lw`, whereas `sw` and `Branch` have `RegWrite = 0`) would collide with `ID` ($f_{\text{conflict}} = f_{\text{ALU}} + f_{\text{load}}$), adding $(f_{\text{ALU}} + f_{\text{load}}) \times 1$ stalls:
 
 | Instruction | C1 | C2 | C3 | C4 | C5 | C6 | C7 |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -135,12 +141,6 @@ Even microcontrollers with split Flash instruction fetch and SRAM data access (s
 2. **Sum Memory Access Frequencies:** Add both load and store fractions: $f_{\text{mem}} = f_{\text{load}} + f_{\text{store}}$.
 3. **Assign Structural Penalty:** Set $\text{Stalls}_{\text{struct}} = f_{\text{mem}} \times 1$ for unified single-port memory, or $\text{Stalls}_{\text{struct}} = 0$ for separate instruction and data memories.
 4. **Apply Distance-3 Register Rule:** Unless a counterfactual single-port non-double-pumped Register File is explicitly posited, treat `WB`/`ID` overlap (distance $k = 3$) as **0 stalls**.
-
-### Key Mechanisms
-
-- **Unified Memory Stall:** In a single-port Von Neumann pipeline, `lw` and `sw` in `MEM` starve `IF` of an instruction fetch for 1 clock cycle.
-- **Harvard L1 Separation:** Independent `I-Cache` and `D-Cache` ports service `IF` and `MEM` concurrently in 0 stall cycles while backed by unified main RAM.
-- **Split-Cycle Register File:** Writing in Phase 1 and reading in Phase 2 of the same clock period resolves both the `WB`/`ID` structural conflict and distance-3 data reads at zero stall cost.
 
 <Callout type="warning" title="Common Mistakes">
 

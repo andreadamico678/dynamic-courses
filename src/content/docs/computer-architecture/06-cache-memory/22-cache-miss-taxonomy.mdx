@@ -12,15 +12,17 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 22 Map" markdown={`# Ch. 22: Cache Miss Taxonomy
-  - Concrete Miss Trace Example
-    - Isolating cold, collision, and working-set misses on a 4-block cache
-    - Three-simulation subtraction filter
-  - The 3 C's Taxonomy
-    - Compulsory (cold-start): fix via block size $B$ or prefetching
-    - Capacity (working-set overflow): fix via total capacity $C$
-    - Conflict (set collision): fix via associativity $N$ or victim cache
-  - Multicore Extension
-    - Coherence misses: true sharing vs. false sharing`} />
+  - 1 · Example
+    - Tracing Cold, Conflict, and Capacity Misses
+  - 2 · Theory
+    - Compulsory Misses
+    - Capacity Misses
+    - Conflict Misses
+    - Coherence Misses in Multicores
+  - 3 · Summary
+    - Taxonomy Table & Attribution Procedure
+  - 4 · Exercises
+    - Ex. 22.1–22.3: 3 C's Filter, Loops & Block Size`} />
 
 ## Classifying Cache Misses
 
@@ -55,17 +57,19 @@ Consider an initially empty cache of $NB = 4\text{ blocks}$ under two short bloc
 
 <Divider label="2 · Theory" />
 
+We define the three uniprocessor miss categories in strict diagnostic subtraction order (Compulsory $\to$ Capacity $\to$ Conflict)—pairing each experimental formula with its hardware fix and latency side-effect—and then add the fourth category (Coherence misses) for multicore systems.
+
 ### Compulsory Misses
 
 A **Compulsory Miss** (also called a **cold-start** or **first-reference** miss) occurs on the **very first access** to a main memory block that has never been brought into the cache since program start.
 
-- **Experimental Criterion:** Compulsory misses are the misses that still occur in a cache of **infinite capacity** ($\text{Misses}_{\text{comp}} = \text{Misses}_{\infty}$). Enlarging cache size $C$ or associativity $N$ cannot eliminate the first touch of a cold block.
-- **Hardware Mitigation:** **Increase block size $B$** (or add a **hardware prefetcher**). Doubling $B$ from $32\text{ B}$ to $64\text{ B}$ fetches twice as many contiguous words on the first miss, cutting sequential compulsory misses in half via spatial locality.
-- **Adverse Side-Effect:** Increasing $B$ transfers more bytes per miss across the memory bus—**increasing Miss Penalty $\text{MP}$**—and, for a fixed total capacity $C$, reduces the total number of blocks $NB = C / B$, which can increase Conflict and Capacity misses (cache pollution) if spatial locality is poor.
+- **Experimental Criterion:** Compulsory misses are the misses that still occur in a cache of **infinite capacity** ($\text{Misses}_{\text{comp}} = \text{Misses}_{\infty}$). Enlarging cache size $C$ or associativity $N$ cannot eliminate the first touch of a cold block. Scanning a cold, aligned contiguous array of $S$ bytes once touches exactly $S / B$ distinct blocks, generating $\text{Misses}_{\text{comp}} = S / B$ compulsory misses (or $\lceil S / B \rceil$ in general).
+- **Hardware Mitigation:** **Increase block size $B$** (or add a **hardware prefetcher**). Doubling $B$ from $32\text{ B}$ to $64\text{ B}$ fetches twice as many contiguous words on the first miss, cutting sequential compulsory misses $S / B$ in half via spatial locality.
+- **Adverse Side-Effect:** Increasing $B$ transfers more bytes per miss across the memory bus—**increasing Miss Penalty $\text{MP}$**—and, for a fixed total capacity $C$ and associativity $N$, halves the block count $NB = C / B$ (shifting $1$ bit from Index to Offset while keeping Tag unchanged, per [Cache Address Partitioning](/dynamic-courses/computer-architecture/06-cache-memory/20-cache-address-partitioning/)), which can increase Conflict and Capacity misses (cache pollution) if spatial locality is poor.
 
 ### Capacity Misses
 
-A **Capacity Miss** occurs when the cache is **physically too small to hold the program's active working set**: a previously loaded block is evicted because *all* slots in the cache fill with other active blocks, and the program references that evicted block again on a later pass.
+A **Capacity Miss** occurs when the cache is too small to hold the program's **active working set**: a previously loaded block is evicted because *all* slots in the cache fill with other active blocks, and the program references that evicted block again on a later pass.
 
 - **Experimental Criterion:** Measured as the extra misses incurred by a **Fully Associative cache of finite capacity $C$** beyond those of an infinite cache with the same block size $B$:
   $$\text{Misses}_{\text{cap}} = \text{Misses}_{\text{FA}(C, B)} - \text{Misses}_{\infty(B)}$$
@@ -74,12 +78,13 @@ A **Capacity Miss** occurs when the cache is **physically too small to hold the 
 
 ### Conflict Misses
 
-A **Conflict Miss** (or **collision** miss) occurs in Direct-Mapped or $N$-Way Set-Associative caches when **more than $N$ active blocks map to the identical cache set ($j \bmod NS$)**, forcing premature evictions inside that hot set while other sets in the cache have idle capacity.
+A **Conflict Miss** (or **collision** miss) occurs in Direct-Mapped or $N$-Way Set-Associative caches when more than $N$ active blocks map to the same **cache set** ($j \bmod NS$, as derived in [Cache Block Placement](/dynamic-courses/computer-architecture/06-cache-memory/19-cache-block-placement/)), forcing premature evictions inside that hot set while other sets in the cache have idle capacity.
 
 - **Experimental Criterion:** Measured as the extra misses incurred by an **$N$-Way (or Direct-Mapped) cache of capacity $C$** compared to a **Fully Associative cache of the exact same capacity $C$ and block size $B$**:
   $$\text{Misses}_{\text{conf}} = \text{Misses}_{N\text{-way}(C, B)} - \text{Misses}_{\text{FA}(C, B)}$$
-  By definition, a Fully Associative cache has **zero Conflict misses**.
-- **Hardware Mitigation:** **Increase associativity $N$** (moving from $1$-way to $2$-way, $4$-way, or $8$-way) or attach a small $4\text{--}16\text{-entry}$ fully associative **Victim Cache** behind a Direct-Mapped `L1` to catch recently evicted colliding lines. Empirically, the **2:1 Cache Rule of Thumb** observes that a Direct-Mapped cache of capacity $C$ suffers roughly the same miss rate as a $2$-Way Set-Associative cache of half the capacity ($C / 2$).
+  By definition, a Fully Associative cache has **zero Conflict misses**, and the three mutually exclusive categories sum directly to the cache's total misses and miss rate:
+  $$\text{Misses}_{\text{total}} = \text{Misses}_{\text{comp}} + \text{Misses}_{\text{cap}} + \text{Misses}_{\text{conf}}, \qquad \text{MR}_{\text{total}} = \text{MR}_{\text{comp}} + \text{MR}_{\text{cap}} + \text{MR}_{\text{conf}}$$
+- **Hardware Mitigation:** **Increase associativity $N$** (moving from $1$-way to $2$-way, $4$-way, or $8$-way) or attach a small $4\text{--}16\text{-entry}$ fully associative **Victim Cache** behind a Direct-Mapped `L1` to catch recently evicted colliding lines. Empirically, the **2:1 Cache Rule of Thumb** observes that a Direct-Mapped cache of capacity $C$ suffers roughly the same miss rate as a $2$-Way Set-Associative cache of half the capacity ($\text{MR}_{\text{Direct-Mapped}}(C) \approx \text{MR}_{2\text{-Way}}(C / 2)$).
 - **Adverse Side-Effect:** Higher associativity $N$ adds parallel tag comparators and wider way-selection multiplexers on the critical read path, **increasing Hit Time $t_{\text{hit}}$** and dynamic energy per access (with diminishing miss-rate returns past $8$-way).
 
 ### Coherence Misses in Multicores
@@ -123,11 +128,6 @@ A 3D LiDAR point stored as an **Array of Structures (AoS)** (`struct Point { flo
    - Has block $j$ *ever* been accessed before in the trace? If **no** $\implies$ **Compulsory Miss**.
    - If **yes**, simulate the exact same trace up to this point on a **Fully Associative LRU** cache of the same $NB$: if it **hits** in Fully Associative $\implies$ **Conflict Miss**; if it **also misses** in Fully Associative $\implies$ **Capacity Miss**.
 
-### Key Rules
-
-- **Additive Conservation:** $\text{MR}_{\text{total}} = \text{MR}_{\text{comp}} + \text{MR}_{\text{cap}} + \text{MR}_{\text{conf}}$.
-- **2:1 Cache Rule:** $\text{MR}_{\text{Direct-Mapped}}(C) \approx \text{MR}_{2\text{-Way}}(C / 2)$.
-
 <Callout type="warning" title="Common Mistakes">
 
 1. **Omitting the Side-Effect:** Whenever an exam question asks how to reduce each of the 3 C's, always state **both** the parameter to increase ($B$, $C$, or $N$) **and** the corresponding penalty on $\text{MP}$ or $t_{\text{hit}}$—otherwise one would claim infinite $B$, $C$, and $N$ are free.
@@ -170,7 +170,7 @@ An architect simulates $10{,}000$ memory references with fixed block size $B = 6
 2. **Effect of Upgrading to 2-Way Set-Associative ($310\text{ total misses}$):**
    - Remaining Conflict misses in $2$-Way: $310 - 230 = 80\text{ misses}$.
    - **Conflict misses eliminated:** $290 - 80 = \mathbf{210\text{ misses}}$ ($72.4\%$ of all conflict misses removed!).
-   - **Hardware Side-Effect:** Requires $2$ parallel tag comparators ($17$-bit tags instead of $16$-bit tags for $16\text{ KiB} / 64\text{ B}$) and a $2$-to-$1$ data multiplexer, slightly increasing Hit Time $t_{\text{hit}}$.
+   - **Hardware Side-Effect:** Requires $2$ parallel tag comparators ($19$-bit tags instead of $18$-bit tags for $16\text{ KiB} / 64\text{ B}$) and a $2$-to-$1$ data multiplexer, slightly increasing Hit Time $t_{\text{hit}}$.
 
 </details>
 

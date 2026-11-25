@@ -12,15 +12,19 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 2 Outline" markdown={`# Ch. 2: Mealy Sequence Detectors
-  - Dual-Branch Exam Detector (Jan 2026 C1)
-    - Shared trunk and repetition loops
-    - Directed graph and 4-column state table
-  - Mealy Synthesis Rules
-    - Zero-latency arc outputs $u^t = \\lambda(S^t, xy^t)$
-    - Repetition blocks $(XY)^+$
-    - Longest Prefix-Suffix (LPS) overlap
-    - Four-step synthesis procedure
-  - Exam Summary & Common Pitfalls`} />
+  - 1 · Example
+    - Dual-Branch Detector with Repetition and Overlap
+  - 2 · Theory
+    - Mealy Architecture and Zero-Latency Output
+    - Repetition Loops and Overlap Rules
+    - State Count and Branch Merging
+  - 3 · Summary
+    - Transition Rules Table
+    - Synthesis Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 2.1 — Dual-Branch Mealy Detector (Feb 2026 C1)
+    - Exercise 2.2 — Three-Symbol Self-Overlapping Mealy Detector`} />
 
 ## Introduction
 
@@ -65,7 +69,7 @@ Collecting all $5 \times 4 = 20$ transitions in standard Gray column order (`00,
   prompt="In state $S_3$ above (history ending in $\{11, 10, 11\}$), why does input $xy = 10$ route to $S_2 / 0$ instead of resetting to $S_0 / 0$?"
   options={[
     "Because $10$ is a self-loop symbol for every state in Branch A",
-    "Because appending $10$ yields suffix $\{11, 10\}$, which is already the valid prefix of state $S_2$",
+    "Because appending $10$ yields suffix $\\{11, 10\\}$, which is already the valid prefix of state $S_2$",
     "Because $S_2$ is the dedicated recognition state"
   ]}
   correctIndex={1}
@@ -73,6 +77,8 @@ Collecting all $5 \times 4 = 20$ transitions in standard Gray column order (`00,
 />
 
 <Divider label="2 · Theory" />
+
+We start from the Mealy hardware topology that produces same-cycle arc outputs, then formalize the transition rules for repetition loops and Longest Proper Prefix-Suffix (LPS) overlap, and finally establish state-count and branch-merging conditions for single- and multi-branch detectors.
 
 ### Mealy Architecture and Zero-Latency Output
 
@@ -93,12 +99,13 @@ Exam sequence specifications combine three structural patterns that follow stric
 2. **Longest Proper Prefix-Suffix (LPS) Mismatch Recovery:** When an unexpected symbol $xy$ arrives in state $S_i$, form the candidate history string $T = \text{History}(S_i) + [xy]$ and test suffixes of $T$ from longest to shortest. Route the arc ($u = 0$) to the state whose canonical prefix matches the longest valid suffix of $T$ (or to $S_0$ if none match).
 3. **Overlapping Terminal Return:** When the final symbol $xy$ completes a target sequence ($u = 1$), apply the exact same LPS suffix test to $W = \text{History}(S_i) + [xy]$. If the ending symbol(s) of the completed sequence also form a valid opening prefix (for example, a sequence both starting and ending with `00`), route the `u = 1` arc directly to that prefix state ($S_1$) rather than $S_0$.
 
-### Four-Step Synthesis Procedure
+### State Count and Branch Merging
 
-1. **Parse Minimal Paths and Trunk:** Write the shortest legal sequence for each branch by replacing every $(XY, \dots, XY)$ with one $XY$. Merge identical opening symbols into a shared state trunk, and merge identical closing loops when their exit conditions match.
-2. **Allocate Prefix States:** Assign $S_0$ to empty history $\varepsilon$, allocate one state per mandatory step along each branch, and mark which states hold $(XY)^+$ self-loops.
-3. **Evaluate All $4 \times \lvert S \rvert$ Transitions:** For every state $S_i$ and every input $xy \in \{00, 01, 11, 10\}$, classify the arc into one of four cases: forward step ($u = 0$), active loop self-arc ($u = 0$), terminal completion ($u = 1$ + LPS target state), or unexpected input ($u = 0$ + LPS target state).
-4. **Tabulate in Gray Column Order:** Assemble the 4-column table (`00, 01, 11, 10`) with compound entries $S^{t+1} / u$, verifying that every row has 4 filled cells and $u = 1$ appears only on terminal recognition arcs.
+Three structural sizing rules govern how many states and table entries a Mealy detector requires:
+
+1. **Fixed-Length State Count:** Recognizing a single fixed sequence of length $L$ symbols requires exactly **$L$ states** ($S_0$ for $\varepsilon$ through $S_{L-1}$ for the $(L-1)$-symbol prefix). No $(L+1)$-th recognition state is needed because the $L$-th symbol asserts $u = 1$ directly on the outgoing arc from $S_{L-1}$ while transitioning straight to the LPS overlap target.
+2. **Branch Merging Criterion:** In a multi-branch specification, branches share a common opening trunk for identical leading symbols, and may merge into a **shared closing loop state only if** their remaining required symbols and terminal recognition outputs are identical. If two branches end with the same `(01)+` repetition block but one recognizes on `10` while the other recognizes on `00`, their closing loop states must remain **separate** so each branch asserts $u = 1$ on its own terminal symbol.
+3. **Cross-Branch LPS and Table Completeness:** When evaluating the LPS suffix of $\text{History}(S_i) + [xy]$ on any mismatch or completion arc, test suffixes against **all** defined state prefixes across **all** branches (allowing a mismatch in Branch A to land inside Branch B's prefix). For an $m$-bit parallel input bus ($2^m$ input symbols, so $2^2 = 4$ for $xy \in \{00, 01, 11, 10\}$), a complete state table must populate all $2^m \times \lvert S \rvert = 4 \times \lvert S \rvert$ compound entries $S^{t+1} / u$.
 
 <Callout type="tip" title="Practical Hardware Perspective">
 
@@ -124,13 +131,12 @@ In embedded robotics communication links—such as **SBUS** (`0x0F` header byte)
 | **Terminal Symbol Completing Sequence** | Longest valid prefix matching a proper suffix of $\text{History}(S_i) + [xy]$ | **$1$** |
 | **Unexpected / Divergent Symbol** | Longest valid prefix matching a proper suffix of $\text{History}(S_i) + [xy]$ (else $S_0$) | $0$ |
 
-### Exam Execution Checklist
+### Synthesis Procedure
 
-1. List the minimal accepted string for each branch before drawing any state circles.
-2. Give every $(XY, \dots, XY)$ block an entry arc ($u = 0$) **plus** a self-loop ($XY / 0$) on the entered state.
-3. Test LPS suffix overlap on every mismatch arc—especially when inputs match the sequence start symbol (`S1`) or a 2-symbol trunk prefix (`S2`).
-4. Check whether the terminal symbol of each recognized branch can start a new sequence ($S_k \xrightarrow{xy/1} S_1$ vs. $S_0$).
-5. Confirm $4 \times \lvert S \rvert$ complete cells in column order `00, 01, 11, 10`.
+1. **Parse Minimal Paths and Trunk:** Replace every $(XY, \dots, XY)$ with one $XY$ to list each branch's shortest accepted string; merge shared opening symbols and merge closing loops only if their terminal exit symbols match.
+2. **Allocate Prefix States:** Assign $S_0$ to $\varepsilon$, allocate one state per mandatory step ($L$ states for a fixed length-$L$ pattern), and place an entry arc plus self-loop ($XY / 0$) on every $(XY)^+$ state.
+3. **Resolve All Transitions via LPS:** For every state and all 4 inputs, test $\text{History}(S_i) + [xy]$ against all branch prefixes for both mismatches ($u = 0$) and terminal completions ($u = 1$).
+4. **Tabulate in Gray Order:** Populate all $4 \times \lvert S \rvert$ cells (`NextState / Output`) across columns `00, 01, 11, 10` and verify $u = 1$ appears solely on terminal arcs.
 
 <Callout type="warning" title="Common Mistakes">
 

@@ -12,15 +12,21 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 9 Outline" markdown={`# Ch. 9: Control Flow Translation
-  - Guarded Digit Loop Example
-    - Inverted loop and range-check branches
-    - Early exit via break
-  - Branch and Loop Templates
-    - Condition inversion and signed vs unsigned tests
-    - Selection blocks (if, if-else, else-if ladders)
-    - Short-circuit && and Logical OR guards
-    - Iteration templates (for, while, do-while, break)
-  - Summary and Exercises`} />
+  - 1 · Example
+    - Guarded Digit Accumulation
+  - 2 · Theory
+    - Condition Inversion and Signedness
+    - Selection Templates
+    - Short-Circuit Compound Guards
+    - Loop Translation Templates
+  - 3 · Summary
+    - Condition Inversion and Control Lookup
+    - Control Translation Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 9.1 — Band Filter and Else-If Classification
+    - Exercise 9.2 — Reverse Scan with Early Break
+    - Exercise 9.3 — Iterative Reduction with Do-While`} />
 
 ## Sequential Fall-Through
 
@@ -96,11 +102,15 @@ Tracing `pkt = "47X9"` (`52, 55, 88, 57`) confirms how the four branch instructi
 
 <Divider label="2 · Theory" />
 
+Translating structured C control flow into flat assembly proceeds in four steps: first establishing how B-type branches negate signed and unsigned relations, then applying that inversion rule to `if`/`else` selection blocks and short-circuit `&&`/`||` guards, and finally assembling top-tested and bottom-tested loop templates with `break` and `continue`.
+
 ### Condition Inversion and Signedness
 
 RV32I provides six hardware **B-type** conditional branch instructions (`beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`), each encoding a 12-bit signed halfword offset shifted left by $1$ bit ($\pm 4\text{ KiB}$ PC-relative range). Standard relational pseudoinstructions (`bgt`, `ble`, `bgtu`, `bleu`, `beqz`, `bnez`) assemble into single hardware instructions by swapping `rs1` and `rs2` or substituting `zero`:
 
 $$\texttt{bgt rs1, rs2, L} \;\equiv\; \texttt{blt rs2, rs1, L}, \qquad \texttt{ble rs1, rs2, L} \;\equiv\; \texttt{bge rs2, rs1, L}$$
+
+$$\texttt{beqz rs1, L} \;\equiv\; \texttt{beq rs1, zero, L}, \qquad \texttt{bnez rs1, L} \;\equiv\; \texttt{bne rs1, zero, L}$$
 
 When negating a C condition to skip a guarded block, strict inequalities (`<`, `>`) flip into inclusive inequalities (`>=`, `<=`), and vice versa:
 
@@ -251,11 +261,6 @@ In $1\text{ kHz}$ quadrotor attitude controllers, taken versus untaken branches 
 2. **Invert Header Guards:** For `if`, `else if`, `while`, and `for`, replace the C condition with its exact logical negation from the table above (checking signed vs. unsigned types).
 3. **Wire Multi-Arm Merges:** Place `j end_if` at the end of every `then` and `else if` block, and `j loop_top` after the loop `step`.
 4. **Check Bottom-Tested Loops:** For `do-while`, keep the C condition un-inverted on the backward branch to `do_top`.
-
-### Key Invariants
-
-- **Inclusive/Strict Flip:** Negating `<` always produces `>=` (`bge`), never `>` (`bgt`); boundary equality must land in exactly one arm.
-- **Short-Circuit Safety:** Left-to-right sequential branches guarantee that a guarded right-hand operand (`b / a` or `arr[i]`) never executes when the left-hand guard fails.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -414,7 +419,7 @@ scan_done:
   hint="Combine RV32M `rem` and `div` from Chapter 8 with an inner `if-else` (`rem == 0` vs odd) and a bottom-tested `bgt a0, a1, reduce_top` for the `do-while` condition `n > limit`."
 >
 
-Translate the following C leaf function (combining RV32M remainder/division arithmetic with an `if-else` inside a `do-while` loop) into complete RV32IM assembly:
+Translate the following C leaf function—combining RV32M remainder, division, and multiplication from [RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/) with an `if-else` inside a `do-while` loop—into complete RV32IM assembly:
 
 ```c
 int collatz_bound(int n, int limit) {

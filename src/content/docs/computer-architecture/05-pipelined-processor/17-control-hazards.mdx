@@ -147,13 +147,6 @@ In $1\text{ kHz}$ motor and flight control loops, data-dependent `if/else` clamp
    - **Stall-Always (*Solo Stalli*):** Multiply $f_{\text{branch}} \times 1.0 \times P_{\text{stage}}$ (ignore $p_{\text{taken}}$ completely!).
 3. **Check `ALU -> Branch` Interaction (Forwarding ON):** Add $f_{\text{ALU}\to\text{Branch}} \times 1$ **if and only if** branches resolve in stage **`ID`** (and notice that this RAW comparison stall occurs before the condition is known, affecting all such dependent branches whether taken or untaken). Ignore `ALU -> Branch` completely if branches resolve in `EX` or `MEM`.
 
-### Key Mechanisms
-
-- **Stage-Index Flush Rule:** Resolving a branch at stage $s \in \{2, 3, 4\}$ flushes $s - 1$ younger instructions already fetched along the mispredicted path.
-- **Synchronous Flush:** Zeroing `RegWrite` and `MemWrite` in wrong-path latches neutralizes speculative instructions before architectural state (`Reg` or `Mem`) is modified.
-- **2-Bit Counter + BTB:** Two-bit hysteresis prevents double mispredictions at loop boundaries, while a BTB caches target addresses in `IF` for zero-cycle taken jumps.
-- **Early-`ID` RAW Penalty:** Moving branch comparison into `ID` halves misprediction flushes ($2 \to 1$) but introduces a 1-cycle RAW stall whenever the immediately preceding `ALU` instruction produces a compared register.
-
 <Callout type="warning" title="Common Mistakes">
 
 1. **Using $p_{\text{taken}}$ Under *Solo Stalli*:** When a problem specifies *"usare solo stalli nella gestione dei branch"* (no prediction), **every** branch stalls—even if the prompt also mentions *"60% taken"* as a distractor! Use $1.0$, not $0.60$.

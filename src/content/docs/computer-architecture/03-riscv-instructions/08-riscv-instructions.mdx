@@ -12,15 +12,22 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 8 Outline" markdown={`# Ch. 8: RISC-V Instructions
-  - Sensor Sample Example
-    - Byte vs word offset calculation
-    - Register trace with lbu, lw, mul, rem, sw
-  - RV32IM Instruction Mechanics
-    - 32 registers, x0 zero rule, and ABI roles
-    - 32-bit format alignment and 12-bit sign extension
-    - Arithmetic, bitwise, shift, and RV32M operations
-    - Word (lw/sw) vs byte (lb/lbu/sb) loads and stores
-  - Summary and Exercises`} />
+  - 1 · Example
+    - Scaling One Telemetry Sample
+  - 2 · Theory
+    - Register File and ABI Contract
+    - Format Regularity and Sign Extension
+    - Arithmetic, Shifts, and RV32M
+    - Word vs Byte Memory Access
+    - Unconditional Jumps and Leaf Returns
+  - 3 · Summary
+    - Register and Instruction Reference
+    - C-to-RV32IM Statement Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 8.1 — Instruction Selection Sequences
+    - Exercise 8.2 — Sign Extension and Shift Trace
+    - Exercise 8.3 — Leaf Calibration Update`} />
 
 ## Load-Store Execution
 
@@ -73,6 +80,8 @@ Three mechanical details stand out in this trace:
 
 <Divider label="2 · Theory" />
 
+To translate C expressions into RV32IM instructions reliably, we first define the register file and ABI contract, then inspect how 32-bit instruction formats sign-extend immediate operands, next catalog arithmetic, shift, and RV32M operations alongside word- versus byte-width memory accesses, and finally introduce the jump-and-link primitives that invoke and return from leaf subroutines.
+
 ### Register File and ABI Contract
 
 The RV32I integer state consists of a 32-bit **Program Counter ($\text{PC}$)** holding the byte address of the current instruction, alongside **32 general-purpose 32-bit registers** numbered $x_0$ through $x_{31}$. Register **$x_0$ (`zero`)** is hardwired to `0x00000000`: reading `zero` always yields $0$, and any instruction that targets `zero` as its destination silently discards the result.
@@ -113,7 +122,7 @@ When a C program needs a 32-bit constant outside $[-2048, +2047]$ (such as `li t
 **Shift operations** move bits left or right by a 5-bit shift amount $\text{shamt} \in [0, 31]$ (immediate forms `slli`, `srli`, `srai` or register forms `sll`, `srl`, `sra`):
 - **Logical Left Shift (`slli rd, rs1, k`):** Inserts $k$ zeros on the right, computing $rs1 \times 2^k$. Shifting left by $2$ (`slli t0, s0, 2`) multiplies an integer index by $4$ in one ALU operation.
 - **Logical Right Shift (`srli rd, rs1, k`):** Inserts $k$ zeros into the most significant bits `[31:32-k]`, implementing unsigned division $\lfloor rs1 / 2^k \rfloor$ or unsigned bitfield extraction.
-- **Arithmetic Right Shift (`srai rd, rs1, k`):** Replicates the original **sign bit `rs1[31]`** into bits `[31:32-k]`, preserving negative values in two's complement.
+- **Arithmetic Right Shift (`srai rd, rs1, k`):** Replicates the original **sign bit `rs1[31]`** into bits `[31:32-k]`, preserving negative values in two's complement and dividing signed integers by $2^k$ rounded toward $-\infty$ ($\lfloor rs1 / 2^k \rfloor$, e.g., $-20 \gg 2 = -5$).
 
 The **RV32M extension** adds hardware integer multiplication and division (`R-type`), used heavily when converting numbers or reducing results modulo a constant:
 - **Product (`mul rd, rs1, rs2`):** Writes the lower $32$ bits of $rs1 \times rs2$ into `rd`.
@@ -134,7 +143,7 @@ Every RISC-V load and store computes its byte address by adding a sign-extended 
 
 $$\text{Effective Address} = \text{rs1} + \text{SignExt}_{32}(\text{offset}_{12})$$
 
-Note the operand order distinction between I-type loads and S-type stores:
+For an array whose elements occupy $\text{sizeof}(T)$ bytes ($1$ byte for `char`, $4$ bytes for 32-bit `int`), element index $i$ sits at constant byte offset $i \times \text{sizeof}(T)$ from the base register. Note the operand order distinction between I-type loads and S-type stores:
 - **Loads (`lw`, `lh`, `lhu`, `lb`, `lbu`):** Write `load rd, offset(rs1)` — destination register `rd` comes first.
 - **Stores (`sw`, `sh`, `sb`):** Write `store rs2, offset(rs1)` — source register `rs2` comes first, and memory `offset(rs1)` is the destination.
 
@@ -149,6 +158,8 @@ Choosing the wrong width or sign-extension mode corrupts upper register bits:
 Subroutine invocation and return rely on two jump-and-link primitives:
 - **Jump and Link (`jal rd, label`):** Stores the sequential return address $\text{PC} + 4$ into `rd` and jumps to `label`. The assembler pseudoinstruction `call fn` expands to `jal ra, fn` (saving $\text{PC} + 4$ in `ra`), whereas an unconditional jump `j label` expands to `jal zero, label` (discarding $\text{PC} + 4$).
 - **Jump and Link Register (`jalr rd, offset(rs1)`):** Jumps to `(rs1 + offset) & ~1` and writes $\text{PC} + 4$ into `rd`. Returning from a subroutine uses `ret`, which expands to `jalr zero, 0(ra)`—jumping back to `ra` while discarding the link value in `zero`.
+
+A subroutine that makes no nested `call` or `jal` instructions is a **leaf subroutine**: because `ra` is never overwritten and caller-saved scratch registers `t0`–`t6` require no preservation, a leaf subroutine that avoids `s0`–`s11` needs no stack frame at all and simply places its return value in `a0` before executing `ret`.
 
 <Callout type="bridge" title="Bare-Metal Disassembly on RISC-V Microcontrollers">
 
@@ -201,12 +212,6 @@ On embedded RV32IMC microcontrollers (such as the Espressif ESP32-C3 used in wir
 2. **Load Memory Operands First:** Emit `lw` (4-byte `int`, offset $\times 4$) or `lbu`/`lb` (1-byte `char`, offset $\times 1$) into scratch registers before any arithmetic.
 3. **Select ALU or RV32M Primitives:** Replace power-of-two multiplies with `slli`, constant subtractions with `addi rd, rs1, -K` (for $-2047 \le K \le 2048$), and general `*`, `/`, `%` with `mul`, `div`, `rem`.
 4. **Write Results and Return:** Store updated memory cells with `sw` or `sb` (value register first!), move the return value into `a0`, and finish a leaf subroutine with `ret`.
-
-### Key Invariants
-
-- **Hardwired Zero Sink:** Any write to `zero` ($x_0$) is discarded; `j label` and `ret` exploit `rd = zero` to jump without clobbering `ra`.
-- **12-Bit Immediate Window:** Single-instruction I-type and S-type offsets must lie in $[-2048, +2047]$.
-- **Sign-Bit Replication:** `lb` copies bit $7$ across `[31:8]`; `srai` copies bit $31$ across vacated upper bits.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -307,14 +312,10 @@ Trace the exact 32-bit hexadecimal and signed decimal values written to `t0`, `t
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **`lb t0, 0(s0)`:** Reads byte `0xEC` (`1110_1100` in binary). Because bit $7$ is $1$, `lb` sign-extends `1` across bits `[31:8]`:
-   $$\text{t0} = \text{0xFFFFFFEC} = -20_{10}$$
-2. **`lbu t1, 0(s0)`:** Reads the same byte `0xEC` and zero-extends bits `[31:8]`:
-   $$\text{t1} = \text{0x000000EC} = +236_{10}$$
-3. **`srai t2, t0, 2`:** Shifts `0xFFFFFFEC` (`...1111_1110_1100`) right by $2$ bits while replicating sign bit $1$ on the left (`...1111_1111_1011`):
-   $$\text{t2} = \text{0xFFFFFFFB} = -5_{10}$$
-4. **`srli t3, t1, 2`:** Shifts `0x000000EC` (`0000...1110_1100`) right logically by $2$ bits, inserting zeros on the left (`0000...0011_1011`):
-   $$\text{t3} = \text{0x0000003B} = +59_{10}$$
+1. **`lb t0, 0(s0)`:** Reads byte `0xEC` (`1110_1100` in binary). Because bit $7$ is $1$, `lb` sign-extends `1` across bits `[31:8]`, giving $\text{t0} = \text{0xFFFFFFEC} = -20_{10}$.
+2. **`lbu t1, 0(s0)`:** Reads the same byte `0xEC` and zero-extends bits `[31:8]`, giving $\text{t1} = \text{0x000000EC} = +236_{10}$.
+3. **`srai t2, t0, 2`:** Shifts `0xFFFFFFEC` (`...1111_1110_1100`) right by $2$ bits while replicating sign bit $1$ on the left (`...1111_1111_1011`), giving $\text{t2} = \text{0xFFFFFFFB} = -5_{10}$.
+4. **`srli t3, t1, 2`:** Shifts `0x000000EC` (`0000...1110_1100`) right logically by $2$ bits, inserting zeros on the left (`0000...0011_1011`), giving $\text{t3} = \text{0x0000003B} = +59_{10}$.
 
 </details>
 

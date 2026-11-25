@@ -12,14 +12,20 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 3 Outline" markdown={`# Ch. 3: Moore Sequence Detectors
-  - Four-State Moore Detector
-    - Dedicated recognition state $S_3 / 1$
-    - State table and 1-cycle latency trace
-  - Moore Synthesis Rules
-    - State-only output $u^t = \\lambda(S^t)$
-    - One-state overhead $(L + 1)$
-    - Outgoing LPS arcs from $S_{\\text{rec}}$
-  - Mealy vs. Moore Summary & Pitfalls`} />
+  - 1 · Example
+    - Four-State Overlapping Moore Detector
+  - 2 · Theory
+    - State-Only Output Architecture
+    - Dedicated Recognition State Rule
+    - Outgoing Transitions from Recognition States
+    - Flip-Flop Cost and Timing Latency
+  - 3 · Summary
+    - Mealy vs. Moore Reference Table
+    - Synthesis Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 3.1 — Overlapping Moore Detector for {01, 11, 10}
+    - Exercise 3.2 — Self-Overlapping Moore Detector for {01, 10, 01}`} />
 
 ## Introduction
 
@@ -79,6 +85,8 @@ During Cycle 3 (when `00` arrives in $S_2$), the Mealy detector immediately outp
 
 <Divider label="2 · Theory" />
 
+Next, we trace how insulating output logic behind the state flip-flops eliminates input glitches, why that forces a dedicated recognition state ($L + 1$ states), how outgoing arcs from $S_{\text{rec}} / 1$ preserve multi-symbol overlap, and how the extra state affects flip-flop count and recognition latency.
+
 ### State-Only Output Architecture
 
 In a synchronous Moore FSM, primary inputs $xy^t$ enter **only** the next-state combinational block $S^{t+1} = \delta(S^t, xy^t)$. The output combinational block $u^t = \lambda(S^t)$ reads strictly from the clocked state register outputs $Q_i$.
@@ -103,15 +111,15 @@ Consequently, the terminal input must transition the machine from $S_{L-1} / 0$ 
 ### Outgoing Transitions from Recognition States
 
 A common exam trap is leaving $S_{\text{rec}} / 1$ as a dead end or blindly routing all of its outgoing arcs to $S_0$. Instead, $S_{\text{rec}} / 1$ represents the exact completed sequence string $W$:
-- For each of the 4 inputs $xy \in \{00, 01, 11, 10\}$, form $W + [xy]$ and apply the **Longest Proper Prefix-Suffix (LPS)** rule from [Mealy Sequence Detectors](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/02-mealy-sequence-detectors/).
+- For each of the 4 inputs $xy \in \{00, 01, 11, 10\}$, form $W + [xy]$ and apply the **Longest Proper Prefix-Suffix (LPS)** rule from [Mealy Sequence Detectors](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/02-mealy-sequence-detectors/). Whenever $W$ already ends in a valid prefix (for example, $W = \{01, 10, 01\}$ ends in `{01}`), appending the second symbol (`10`) forms a 2-symbol suffix (`{01, 10}`) that routes $S_{\text{rec}} / 1$ directly to $S_2$ rather than $S_1$ or $S_0$.
 - If two branches end with **different suffix histories** that affect subsequent overlaps (e.g., Branch A ends in `10` while Branch B ends in `00` where `00` already starts a new prefix!), you must split recognition into distinct $u = 1$ states so neither branch loses its overlap context.
 
-### Four-Step Synthesis Procedure
+### Flip-Flop Cost and Timing Latency
 
-1. **Allocate Prefix and Recognition States:** Assign $S_0 / 0$ to $\varepsilon$, assign $u = 0$ states to every intermediate prefix/loop, and add dedicated $S_{\text{rec}} / 1$ state(s) for completed sequences.
-2. **Route Prefix Transitions:** Apply forward, $(XY)^+$ self-loop, and LPS mismatch rules across all $u = 0$ states, routing terminal matches into $S_{\text{rec}} / 1$.
-3. **Route Outgoing Arcs from $S_{\text{rec}} / 1$:** Evaluate $W + [xy]$ across all 4 symbols `00, 01, 11, 10` so overlapping sequences jump straight into $S_1, S_2, \dots$ on the very next clock edge.
-4. **Format the Moore State Table:** Include a dedicated `Output u` column next to `Present State`, and write plain next-state labels $S^{t+1}$ across the 4 Gray-ordered input columns (`00, 01, 11, 10`).
+Adding the dedicated recognition state introduces two quantifiable hardware trade-offs relative to a Mealy detector:
+
+1. **One-Cycle Assertion Latency:** If an $L$-symbol target sequence is applied across clock cycles $1, 2, \dots, L$ starting from $S_0 / 0$, cycle $L$ presents the final symbol while the machine is still in $S_{L-1} / 0$ and sets up $S^{t+1} = S_{\text{rec}}$. Output $u = 1$ therefore asserts during **clock cycle $L + 1$**, immediately after the rising edge latches $S_{\text{rec}} / 1$.
+2. **Binary Flip-Flop Count:** Encoding $\lvert S \rvert$ states in binary requires $k = \lceil \log_2 \lvert S \rvert \rceil$ flip-flops (developed fully in [Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/)). Whenever the Mealy state count is an exact power of two (such as $\lvert S_{\text{Mealy}} \rvert = 4 \implies \lceil \log_2 4 \rceil = 2$ flip-flops), adding a single Moore recognition state crosses the power-of-two boundary ($\lvert S_{\text{Moore}} \rvert = 5 \implies \lceil \log_2 5 \rceil = 3$ flip-flops), adding one extra state bit.
 
 <Callout type="tip" title="Practical Hardware Perspective">
 
@@ -143,12 +151,12 @@ Production FPGA/ASIC designs and flight-control autopilots (such as PX4 mode man
 | **Output Latency** | $0$ clock cycles (same cycle as final input) | $1$ clock cycle (after clock latches $S_{\text{rec}}$) |
 | **Input Glitch Immunity** | Vulnerable (direct combinational path) | Immune (outputs buffered by flip-flops) |
 
-### Exam Execution Checklist
+### Synthesis Procedure
 
-1. Read the Italian prompt carefully: if it specifies *"macchina di Moore"*, put $u$ inside every state circle ($S_k / 0$ or $S_k / 1$) and never on arrows.
-2. Add the dedicated recognition state $S_{\text{rec}} / 1$ (check if two branches end with different overlap suffixes requiring two $u = 1$ states).
-3. Draw and tabulate **all 4 outgoing arcs** (`00, 01, 11, 10`) leaving $S_{\text{rec}} / 1$ using LPS suffix matching.
-4. Include a separate `Output u` column in the state table alongside Gray-ordered columns `00, 01, 11, 10`.
+1. **Allocate Prefix and Recognition States:** Assign $S_0 / 0$ to $\varepsilon$, assign $u = 0$ states to every intermediate prefix/loop, and add dedicated $S_{\text{rec}} / 1$ state(s) (splitting $u = 1$ states if distinct branches preserve different overlap suffixes).
+2. **Route Prefix Transitions:** Apply forward, $(XY)^+$ self-loop, and LPS mismatch rules across all $u = 0$ states, writing plain input labels $xy$ on arcs (never `/ u`) and routing terminal matches into $S_{\text{rec}} / 1$.
+3. **Route Outgoing Arcs from $S_{\text{rec}} / 1$:** Evaluate $W + [xy]$ via LPS across all 4 symbols `00, 01, 11, 10` so overlapping sequences jump straight to $S_1, S_2, \dots$ on the next clock edge.
+4. **Format the Moore State Table:** Place a separate `Output u` column beside `Present State`, followed by plain next-state entries $S^{t+1}$ in Gray column order `00, 01, 11, 10`.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -215,8 +223,8 @@ Design a synchronous Moore sequence detector over $xy \in \{00, 01, 11, 10\}$ re
   prompt="When the detector is in recognition state $S_3 / 1$ (history $\{01, 10, 01\}$) and input $xy = 10$ arrives, which next state must it enter?"
   options={[
     "$S_0$ (reset)",
-    "$S_1$ (prefix $\{01\}$)",
-    "$S_2$ (prefix $\{01, 10\}$)"
+    "$S_1$ (prefix $\\{01\\}$)",
+    "$S_2$ (prefix $\\{01, 10\\}$)"
   ]}
   correctIndex={2}
   explanation="Appending $10$ to $\{01, 10, 01\}$ gives $\{01, 10, 01, 10\}$, whose 2-symbol suffix $\{01, 10\}$ matches state $S_2$! Entering $S_2$ allows a subsequent $01$ on the next cycle to reach $S_3 / 1$ immediately."

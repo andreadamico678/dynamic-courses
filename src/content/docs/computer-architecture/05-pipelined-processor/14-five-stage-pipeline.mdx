@@ -157,12 +157,6 @@ Low-power embedded microcontrollers such as ARM Cortex-M4 and bare-metal RISC-V 
 3. **Single-Instruction Latency:** Compare $1 \times T_{\text{clk,single}}$ against $k \times T_{\text{clk,pipe}}$ ($k = 5$).
 4. **Workload Execution Time & Speedup:** For $\text{IC}$ hazard-free instructions, compute $T_{\text{exec,pipe}} = (\text{IC} + k - 1) \cdot T_{\text{clk,pipe}}$ (or $\text{IC} \cdot \text{CPI}_{\text{pipe}} \cdot T_{\text{clk,pipe}}$ for large $\text{IC}$ with hazards) and form the ratio $S = T_{\text{exec,single}} / T_{\text{exec,pipe}}$.
 
-### Key Mechanisms
-
-- **Throughput vs. Latency:** Pipelining overlaps up to $k$ instructions to shrink inter-instruction completion interval to $T_{\text{clk,pipe}}$, while single-instruction latency grows to $k \cdot T_{\text{clk,pipe}}$ due to stage quantization and latch overhead.
-- **Slowest-Stage Quantization:** Global synchronous clocking forces all stages to run at the period of the slowest stage plus $t_{\text{setup}} + t_{\text{cq}}$.
-- **Pipelined Control Signals:** Decoding once in `ID` and shifting control bits through `ID/EX` $\to$ `EX/MEM` $\to$ `MEM/WB` synchronizes control actions with each in-flight instruction.
-
 <Callout type="warning" title="Common Mistakes">
 
 1. **Dividing $T_{\text{clk,single}}$ by $5$:** Never compute $T_{\text{clk,pipe}}$ as $T_{\text{clk,single}} / 5$ when stage delays differ—always take $\max_i(t_{\text{stage},i}) + t_{\text{setup}} + t_{\text{cq}}$.

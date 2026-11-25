@@ -12,18 +12,16 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 23 Map" markdown={`# Ch. 23: Cache Memory Performance
-  - Concrete AMAT Ranking Example
-    - Direct-mapped vs. 2-way vs. 4-way latency comparison
-    - Adding an L2 level to slash miss penalty
-  - Single-Level AMAT & Design Thresholds
-    - $\\text{AMAT} = t_{\\text{hit}} + \\text{MR} \\cdot \\text{MP}$
-    - Max allowable $t_{\\text{hit}}$ and $\\text{MR}$ from $\\text{AMAT}_B \\le \\text{AMAT}_A$
-  - Nested Two-Level AMAT
-    - $\\text{AMAT} = t_{\\text{hit},L1} + \\text{MR}_{L1}(t_{\\text{hit},L2} + \\text{MR}_{L2} \\cdot \\text{MP}_{L2})$
-    - Local vs. global L2 miss rates
-  - Processor CPI with Memory Stalls
-    - Percentage form: $\\text{CPI}_{\\text{exe}} + \\text{MR}_I P_I + (f_{\\text{load}} + f_{\\text{store}})\\text{MR}_D P_D$
-    - Hybrid absolute-miss form: $(\\text{Misses}_{\\text{load}} + \\text{Misses}_{\\text{store}}) / \\text{IC} \\cdot P_D$`} />
+  - 1 · Example
+    - Ranking Caches and Adding L2
+  - 2 · Theory
+    - Single-Level AMAT and Threshold Inequalities
+    - Nested Two-Level AMAT
+    - Processor CPI with Memory Stalls
+  - 3 · Summary
+    - Performance Table & Calculation Procedure
+  - 4 · Exercises
+    - Ex. 23.1–23.3: AMAT Ranking, L1+L2 & Stall CPI`} />
 
 ## Memory Latency and Execution Time
 
@@ -70,6 +68,8 @@ Now insert a unified `L2` cache ($t_{\text{hit},L2} = 5.0\text{ ns}$, local miss
 />
 
 <Divider label="2 · Theory" />
+
+We start with single-level $\text{AMAT}$ and its break-even design inequalities, extend the latency model to nested two-level (`L1` + `L2`) hierarchies, and finally integrate instruction and data cache stalls into effective processor $\text{CPI}$ and execution time $T_{\text{exec}}$.
 
 ### Single-Level AMAT and Threshold Inequalities
 
@@ -118,10 +118,14 @@ $$\text{CPI} = \text{CPI}_{\text{exe}} + \text{Stalls}_{I} + \text{Stalls}_{D}$$
 2. **Data Cache Stalls — Percentage Form:** Only Load ($f_{\text{load}}$) and Store ($f_{\text{store}}$) instructions access `L1D`. When unified data miss rate $\text{MR}_D$ applies to both loads and stores:
    $$\text{CPI} = \text{CPI}_{\text{exe}} + \text{MR}_I P_I + (f_{\text{load}} + f_{\text{store}})\,\text{MR}_D P_D$$
    (If separate $\text{MR}_{\text{load}}$ and $\text{MR}_{\text{store}}$ rates are given, expand the data term as $f_{\text{load}}\,\text{MR}_{\text{load}} P_D + f_{\text{store}}\,\text{MR}_{\text{store}} P_D$.)
-3. **Data Cache Stalls — Hybrid Absolute-Miss Form:** When a problem specifies total dynamic instructions $\text{IC}$ alongside an **absolute integer count** for one memory operation (e.g., $\text{Store Misses} = 15$) and an **instruction percentage** for the other (e.g., $f_{\text{load}} = 20\%$ with $\text{MR}_D = 4\%$):
-   - Convert the percentage branch to an absolute miss count: $N_{\text{load}} = \text{IC} \cdot f_{\text{load}}$, then $\text{Misses}_{\text{load}} = N_{\text{load}} \cdot \text{MR}_D$.
+3. **Data Cache Stalls — Hybrid Absolute-Miss Form:** When a problem specifies total dynamic instructions $\text{IC}$ alongside an **absolute integer miss count** for one data operation (loads *or* stores) and an **instruction percentage** $f_{\text{op}}$ with miss rate $\text{MR}_D$ for the other:
+   - Convert the percentage branch to an absolute miss count: $N_{\text{op}} = \text{IC} \cdot f_{\text{op}}$, then $\text{Misses}_{\text{op}} = N_{\text{op}} \cdot \text{MR}_D$.
    - Sum all data cache misses and divide by $\text{IC}$ to obtain data misses per instruction:
      $$\text{Stalls}_D = \frac{\text{Misses}_{\text{load}} + \text{Misses}_{\text{store}}}{\text{IC}} \cdot P_D$$
+
+Once effective $\text{CPI}$ is known, whole-program execution time follows directly from [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/):
+
+$$T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}} = \frac{\text{IC} \cdot \text{CPI}}{f_{\text{clk}}}$$
 
 Let us verify this hybrid workflow numerically for $\text{IC} = 2{,}000$, $\text{CPI}_{\text{exe}} = 1.5$, $f_{\text{load}} = 20\%$, absolute $\text{Store Misses} = 15$, $\text{MR}_I = 2.5\%$, $P_I = 45\text{ cycles}$, $\text{MR}_D = 4\%$, and $P_D = 45\text{ cycles}$:
 - $\text{Stalls}_I = 1.0 \times 0.025 \times 45 = 1.125\text{ cycles/instr}$.
@@ -161,11 +165,7 @@ On an embedded Cortex-A or RV64 vision processor running a $30\text{ Hz}$ visual
 1. **Convert Percentages Immediately:** Rewrite every miss rate and instruction frequency as a decimal ($5\% \to 0.05$, $3.6\% \to 0.036$, $0.4\% \to 0.004$) before multiplying.
 2. **Match Time vs. Cycle Units:** If $t_{\text{hit}}$ is in $\text{ns}$ and $\text{MP}$ is given in clock cycles at frequency $f_{\text{clk}}$, convert via $T_{\text{clk}} = 1 / f_{\text{clk}}$ ($\text{MP}_{\text{ns}} = \text{MP}_{\text{cycles}} \cdot T_{\text{clk}}$).
 3. **Rank Ascending for AMAT:** Sort candidate caches from smallest $\text{AMAT}$ (fastest, 1st place) to largest $\text{AMAT}$ (slowest, last place), keeping at least $3$ decimal places ($\text{ns}$) to resolve tight ties.
-4. **Separate I-Cache from D-Cache in CPI:** Weight `L1I` misses by $1.0$ (every instruction is fetched) and `L1D` misses strictly by $f_{\text{load}} + f_{\text{store}}$ (or $\text{Misses}_{D,\text{tot}} / \text{IC}$).
-
-### Key Identities
-
-- **Execution Time Link:** Once effective memory-stall $\text{CPI}$ is known, total CPU runtime follows [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/) directly: $T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}} = \frac{\text{IC} \cdot \text{CPI}}{f_{\text{clk}}}$.
+4. **Separate I-Cache from D-Cache in CPI:** Weight `L1I` misses by $1.0$ (every instruction is fetched) and `L1D` misses strictly by $f_{\text{load}} + f_{\text{store}}$ (or $\text{Misses}_{D,\text{tot}} / \text{IC}$), then plug effective $\text{CPI}$ into $T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}}$.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -258,7 +258,7 @@ A $2\text{ GHz}$ processor ($T_{\text{clk}} = 0.5\text{ ns}$) executes a benchma
 - **Data Cache (`L1D`):** $\text{MR}_D = 3\%$, miss penalty $P_D = 45\text{ cycles}$.
 
 1. Compute $\text{Stalls}_I$ and $\text{Stalls}_D$ per instruction, and determine the effective processor $\text{CPI}$.
-2. Using $T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}}$, compute total program execution time in microseconds ($\mu\text{s}$).
+2. Using $T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}}$ from [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/), compute total program execution time in microseconds ($\mu\text{s}$).
 
 <StepCheck
   client:load

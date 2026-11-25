@@ -14,15 +14,15 @@ Welcome, **agy**. You are the lead authoring, interactive-visualization, and bui
      $$\text{Concrete Example} \longrightarrow \text{General Theory \& Proofs} \longrightarrow \text{Exam Summary} \longrightarrow \text{Exercises}$$
    - Never introduce or evaluate a mechanism before its underlying primitives and vocabulary are defined in earlier chapters.
 3. **Clean Textbook Structure (Invisible Pedagogy):**
-   - Every Part opens with `00-introduction.mdx` (`00-introduzione.mdx` for Italian courses, `sidebar.order: 0`) featuring an expanded Part `<MindMap />`, a brief overview, and one shared running system revisited across the Part's chapters.
-   - Every chapter opens with a collapsed-by-default `<MindMap client:load defaultCollapsed ... />`, a short opening problem (1 paragraph, no formal walls), and four `<Divider />`-separated sections with simple, direct labels:
-     1. **`1 · Example`** (`1 · Esempio`) — Work a concrete numerical system *first* alongside its diagram and brief intuitive explanation, plus an interactive explorer and quick `<StepCheck>`.
-     2. **`2 · Theory`** (`2 · Teoria`) — General definitions and step-by-step proofs in connected body prose (never buried in callouts), with an inline `<StepCheck>` check.
-     3. **`3 · Summary`** (`3 · Sintesi`) — One reference table, a short calculation procedure, key proofs to know, and `<Callout type="warning">` common mistakes.
-     4. **`4 · Exercises`** (`4 · Esercizi`) — Progress quietly from a full worked example to fill-in-the-step problems to mixed cross-chapter problems using plain titles (`Exercise N.k — <Topic>`). Never print internal pedagogical labels (*Toy Case*, *Worked Archetype*, *Faded Completion*, *Interleaved*, *Why This Matters*, *Oral Proof:*) in headings or prose.
-4. **Interactive Visuals & Mind Maps:**
-   - Prefer live interactive React simulators (`<BodeExplorer />`, `<RouthExplorer />`, `<PhaseFlowExplorer />`) or clean static SVGs over static diagrams whenever parameters vary continuously.
-   - Every chapter includes a collapsible `<MindMap />` powered by Markmap so students see the high-level hierarchy before diving into math.
+   - Every Part opens with `00-introduction.mdx` (`00-introduzione.mdx` for Italian courses, `sidebar.order: 0`) featuring an expanded Part `<MindMap />`, a brief overview (including any Part-wide taxonomy), and one shared running system revisited across the Part's chapters.
+   - Every chapter opens with a collapsed-by-default `<MindMap client:load defaultCollapsed ... />` that **mirrors the chapter's actual sections and `###` headings 1-to-1**, a short opening problem (1 paragraph, no formal walls), and four `<Divider />`-separated sections with simple, direct labels:
+     1. **`1 · Example`** (`1 · Esempio`) — Work a concrete numerical system *first* alongside its diagram and brief intuitive explanation, plus an interactive explorer (where applicable) and quick `<StepCheck>`.
+     2. **`2 · Theory`** (`2 · Teoria`) — Open with a 1–2 sentence roadmap connecting the subsections, derive every definition and formula needed by `4 · Exercises` in connected prose (never spring unexplained formulas in exercises, never drop disconnected topic blocks, never add parenthetical meta-tags like `(Conceptual)`), with an inline `<StepCheck>` check.
+     3. **`3 · Summary`** (`3 · Sintesi`) — Lean exam reference only (no repetitive `Key Mechanisms` prose recaps): one reference table, a short numbered calculation procedure, and `<Callout type="warning">` common mistakes.
+     4. **`4 · Exercises`** (`4 · Esercizi`) — Progress quietly from a full worked example to fill-in-the-step problems to mixed cross-chapter problems using plain titles (`Exercise N.k — <Topic>`). Every formula used must already be derived in `2 · Theory` or linked to an earlier chapter. Never print internal pedagogical labels (*Toy Case*, *Worked Archetype*, *Faded Completion*, *Interleaved*, *Why This Matters*, *Oral Proof:*) in headings or prose.
+4. **Interactive Visuals, Hand-Authored SVGs & Mind Maps:**
+   - Prefer live interactive React simulators (`<BodeExplorer />`, `<RouthExplorer />`, `<PhaseFlowExplorer />`, `<PipelineExplorer />`, `<CacheAddressExplorer />`) or self-contained hand-authored SVGs with explicit `<text>` labels (never `dvisvgm --pdf` exports that strip text).
+   - Every chapter includes a collapsible `<MindMap />` whose outline matches the chapter's real headings 1-to-1.
 5. **Global Symbol Registry & Terminology Bridges:**
    - Check `courses/<course-slug>/symbols.yaml` before writing or editing any chapter. Never recycle conflicting symbols across chapters, and always bridge shifting terminology (`eigenvalues` ↔ `polynomial roots` ↔ `poles`, Evans `K` vs. Bode `K_B`).
 6. **Plain Canonical Titles & Zero Boilerplate:**

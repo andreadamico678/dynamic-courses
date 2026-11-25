@@ -12,15 +12,21 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 10 Outline" markdown={`# Ch. 10: Arrays and Strings
-  - Full Telemetry Parser Example
-    - 1-byte char* scan vs 4-byte int* lookup
-    - Null-terminated loop and scaled return
-  - Pointer Stride and ASCII Mechanics
-    - Word scaling (slli by 2) vs byte stride
-    - Null-terminated strings and leaf strlen
-    - ASCII digit, letter, and case offsets
-    - Zero-stack leaf subroutine design
-  - Summary and Exercises`} />
+  - 1 · Example
+    - Completing the Telemetry Parser
+  - 2 · Theory
+    - Word Scaling vs Byte Stride
+    - Null-Terminated Strings and strlen
+    - ASCII Arithmetic Patterns
+    - Zero-Stack Leaf Subroutines
+  - 3 · Summary
+    - Memory Stride and ASCII Reference
+    - Leaf Translation Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 10.1 — In-Place Lowercase to Uppercase Filter
+    - Exercise 10.2 — Thresholded Integer Dot Product
+    - Exercise 10.3 — Alphabetical Histogram and Lookup`} />
 
 ## Memory Address Stride
 
@@ -103,6 +109,8 @@ Suppose `pkt` at `0x10010000` stores `"407"` (`0x34, 0x30, 0x37, 0x00`), `gain` 
 
 <Divider label="2 · Theory" />
 
+We begin by formalizing the byte-address stride formula for word, halfword, and character arrays, then apply 1-byte traversal to null-terminated C strings and ASCII character arithmetic, and finally combine these patterns inside zero-stack leaf subroutines.
+
 ### Word Scaling vs Byte Stride
 
 For any C array `T arr[]` starting at base address $\text{Base}$, element `arr[i]` begins at byte address:
@@ -115,13 +123,14 @@ $$\text{Addr}(\text{Base}, i) = \text{Base} + i \times \text{sizeof}(T)$$
       add  t0, a0, t0         # t0 = &arr[i] = base + (i * 4)
       lw   t1, 0(t0)          # Load 32-bit int arr[i]
   ```
+- **16-Bit Halfword Arrays (`short arr[i]`, $\text{sizeof} = 2$):** Multiply index `i` by $2$ (`slli t0, s0, 1`), add the base pointer, and access via `lh`/`lhu`/`sh`.
 - **8-Bit Character Strings (`char str[i]`, $\text{sizeof} = 1$):** Add index `i` directly to the base pointer with **zero shift** and dereference via `lbu` (or write via `sb`):
   ```asm
       add  t0, a0, s0         # t0 = &str[i] = base + i
       lbu  t1, 0(t0)          # Load unsigned 8-bit char str[i]
   ```
 
-Instead of recomputing `base + i * stride` on every iteration, a **pointer-walk loop** advances a moving pointer `p` directly by `addi p, p, 4` (for `int *`) or `addi p, p, 1` (for `char *`), saving the `slli` and `add` inside the loop body.
+For **in-place read-modify-write** updates (such as `arr[i] = arr[i] + 1` or `str[i] = str[i] - 32`), keep the computed element address `&arr[i]` (or `&str[i]`) in a temporary register so the matching `sw` (or `sb`) writes back to `0(t0)` without recomputing the address. Instead of recomputing `base + i * stride` on every iteration, a **pointer-walk loop** advances a moving pointer `p` directly by `addi p, p, 4` (for `int *`) or `addi p, p, 1` (for `char *`), saving the `slli` and `add` inside the loop body.
 
 ### Null-Terminated Strings and `strlen`
 
@@ -250,17 +259,12 @@ On autonomous aerial vehicles, UART GPS receivers stream comma-delimited ASCII N
 | **ASCII Uppercase `'A'`–`'Z'`** | `65`–`90` (`0x41`–`0x5A`) | Index $0$–$25$: `addi reg, reg, -65` (to lower: `+32`) |
 | **ASCII Lowercase `'a'`–`'z'`** | `97`–`122` (`0x61`–`0x7A`) | Index $0$–$25$: `addi reg, reg, -97` (to upper: `-32`) |
 
-### Leaf Array & String Checklist
+### Leaf Translation Procedure
 
 1. **Confirm Leaf Status:** Verify the C function contains zero function calls; assign every local variable (`i`, accumulators, temporaries) to `t0`–`t6` without touching `sp` or `s0`–`s11`.
 2. **Match Scaling to Pointer Type:** Emit `slli ..., 2` + `add` + `lw`/`sw` for every `int *` access, and plain `add` + `lbu`/`sb` for every `char *` access.
 3. **Apply Exact ASCII Constants:** Check whether the C code subtracts `'0'` (`48`), `'A'` (`65`), `'a'` (`97`), or another character `s[i]` directly.
 4. **Move Result to `a0`:** Keep `a0` intact while input pointer `a0` is still needed inside the loop; copy the accumulator into `a0` (`mv a0, t1`) only after the loop exits, right before `ret`.
-
-### Key Invariants
-
-- **Base-Plus-Offset Completeness:** An index or scaled offset is **not** a memory address until added to the array's base pointer (`add t0, base, offset`).
-- **Clobbering `a0` Early:** If `a0` holds `char *str`, overwriting `a0` with the running accumulator inside the loop destroys the base pointer on iteration $2$; accumulate in `t1` and `mv a0, t1` at the end.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -427,7 +431,7 @@ dot_done:
   hint="Compute `idx = let[i] - 65` (`addi t3, t3, -65`), guard `0 <= idx && idx < len` with `blt` and `bge`, then scale `idx` by 4 (`slli t4, t3, 2`) to increment `bins[idx]` in memory (`lw` -> `addi` -> `sw`)."
 >
 
-Translate the following exam-style C helper function into a zero-stack RV32IM leaf subroutine (combining null-terminated `char *` scanning, uppercase ASCII indexing, compound bounds checking, and 32-bit `int *` read-modify-write updates):
+Translate the following C helper function into a zero-stack RV32IM leaf subroutine, combining null-terminated `char *` scanning, uppercase ASCII indexing, compound bounds checking ([Control Flow Translation](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/)), RV32M multiplication ([RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/)), and 32-bit `int *` read-modify-write updates:
 
 ```c
 int histogram_sum(char *let, int *bins, int len) {

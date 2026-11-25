@@ -12,15 +12,20 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 1 Outline" markdown={`# Ch. 1: Karnaugh Map Minimization
-  - Dual-Layer 5-Variable Example
-    - Layer 0 and Layer 1 (+16) grids
-    - 3D and planar prime implicants
-  - Karnaugh Map Rules
-    - Gray-code single-bit adjacency
-    - Prime and essential implicants
-    - Five-variable superposition
-    - Five-step minimization procedure
-  - Exam Summary & Common Pitfalls`} />
+  - 1 · Example
+    - Dual-Layer Five-Variable Minimization
+  - 2 · Theory
+    - Gray-Code Adjacency
+    - Implicants and Essential Cover
+    - Five-Variable Superposition
+    - Don't-Cares and Literal Extraction
+  - 3 · Summary
+    - Group Size Reference Table
+    - Minimization Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 1.1 — Five-Variable Dual-Layer SOP
+    - Exercise 1.2 — Toroidal Wrap-Around and Unused Rows`} />
 
 ## Introduction
 
@@ -75,6 +80,8 @@ $$f(a, b, c, d, e) = c\overline{d}\overline{e} + \overline{a}cd$$
 
 <Divider label="2 · Theory" />
 
+Gray-code axis ordering turns algebraic single-bit elimination into visual rectangle grouping; below, we formalize how prime and essential implicants guarantee a minimal cover, extend planar grouping into 3D five-variable superposition, and state the rules for don't-cares and literal extraction.
+
 ### Gray-Code Adjacency
 
 Boolean minimization relies on the **Adjacency Law**:
@@ -110,13 +117,13 @@ For $f(a, b, c, d, e)$, splitting on $a$ stacks two $4 \times 4$ maps over $(bc,
 
 In addition to planar and wrap-around grouping inside a single layer, any cell at $(bc, de)$ in Layer 0 is adjacent to the **identical $(bc, de)$ cell in Layer 1**. Whenever a group of size $2^k$ on Layer 0 aligns with a matching block of `1`s or `X`s at the exact same coordinates on Layer 1, merge them into one 3D group of size $2^{k+1}$ and drop the literal $a$.
 
-### Step-by-Step Minimization Procedure
+### Don't-Cares and Literal Extraction
 
-1. **Populate Dual-Layer Grids:** Label rows $bc$ and columns $de$ as `00, 01, 11, 10` on both layers. Enter `1` for each index in $M$, `X` for each index in $D$, and `0` elsewhere.
-2. **Find Maximal Prime Implicants:** Expand every `1` into the largest possible power-of-two rectangle ($16, 8, 4, 2, 1$) across planar, toroidal wrap-around, and 3D inter-layer dimensions. Include `X` cells **only** when they double a group that contains at least one `1`; never form a group of pure `X`s.
-3. **Commit Essential Prime Implicants:** Inspect each `1`-cell individually. If a `1` belongs to only one prime implicant, circle that group as an EPI, add it to the SOP output, and check off all `1`s it covers.
-4. **Select Minimum Residual Cover:** If any `1`-cells remain unchecked, cover them using the fewest remaining prime implicants, preferring larger groups (fewer literals). Discard redundant groups whose `1`s are already covered.
-5. **Read Invariant Literals:** For each chosen group, inspect $a, b, c, d, e$: keep $x$ if fixed at `1`, keep $\overline{x}$ if fixed at `0`, and omit $x$ if it takes both `0` and `1` across the group. Sum (`+`) the resulting product terms.
+When an input combination cannot occur (for example, unused flip-flop state codes in [Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/)), its cell is marked **`X`** (don't-care):
+
+- **Wildcard Expansion Rule:** Include an `X` cell inside a group **only** when it doubles the size of a power-of-two block that already covers at least one `1`-minterm. Never form a group consisting exclusively of `X` cells, and leave any unused `X` cells uncovered (implicitly set to `0`).
+- **Reading Invariant Literals:** For an $n$-variable function ($n = 4$ or $n = 5$), a valid group of $2^k$ cells eliminates $k$ changing variables and leaves exactly $n - k$ invariant literals. Inspect each variable across the group: keep $x$ if fixed at `1`, keep $\overline{x}$ if fixed at `0`, and omit $x$ if it takes both values.
+- **Minimal SOP Cost and Ties:** Sum (`+`) the chosen product terms. A minimal SOP expression minimizes the number of product terms first and the **total literal count** (sum of literals across all selected terms) second. When residual `1`s can be covered by two equally large non-essential prime implicants, both resulting SOP expressions are equally minimal.
 
 <Callout type="tip" title="Practical Hardware Perspective">
 
@@ -148,13 +155,13 @@ On small FPGA/CPLD peripheral blocks—such as custom PWM motor-channel decoders
 | **$16$** ($2^4$) | $4$ | $0$ (constant $1$) | $1$ | Entire $4 \times 4$ layer or $2 \times 4 \times 2$ 3D block |
 | **$32$** ($2^5$) | $5$ | — | $0$ (constant $1$) | Both $4 \times 4$ layers completely filled with `{1, X}` |
 
-### Exam Execution Checklist
+### Minimization Procedure
 
-1. Write Gray headers `00, 01, 11, 10` on **both** axes before plotting a single minterm.
-2. Map indices $0 \dots 15$ to Layer 0 ($a = 0$) and subtract $16$ to place indices $16 \dots 31$ on Layer 1 ($a = 1$).
-3. Check 3D inter-layer alignment and 4-corner wrap-around on every candidate group before declaring it prime.
-4. Circle EPIs via uniquely covered `1`s first, then cover only the remaining uncovered `1`s.
-5. Verify that every `X` cell outside your selected groups is simply ignored (left at `0`).
+1. **Populate Gray-Coded Grids:** Label axes `00, 01, 11, 10`, placing indices $0 \dots 15$ on Layer 0 ($a = 0$) and subtracting $16$ to place indices $16 \dots 31$ on Layer 1 ($a = 1$).
+2. **Find Maximal Prime Implicants:** Expand every `1` into the largest power-of-two rectangle ($16, 8, 4, 2, 1$) across planar, toroidal wrap-around (including 4-corner), and 3D inter-layer dimensions, using `X` cells only to enlarge groups containing `1`s.
+3. **Commit Essential Prime Implicants:** Select every prime implicant that uniquely covers at least one `1`-minterm, and check off all `1`s it covers.
+4. **Select Minimum Residual Cover:** Cover any remaining unchecked `1`s with the fewest largest prime implicants; leave uncovered `X` cells at `0`.
+5. **Read Invariant Literals:** For each chosen group of $2^k$ cells, write the $n - k$ constant literals ($x$ for `1`, $\overline{x}$ for `0`) and sum (`+`) the terms.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -217,12 +224,12 @@ $$f(a, b, c, d, e) = \sum m(0, 2, 5, 7, 20, 21) + d(4, 16, 17, 18, 23)$$
 2. **Maximal Prime Implicants & Essentiality:**
    - **Group 1 ($\{m_0, m_2, d_{16}, d_{18}\}$):** Outer columns $de \in \{00, 10\}$ on row $bc = 00$ wrap around on Layer 0 and align with $\{d_{16}, d_{18}\}$ on Layer 1, forming a 4-cell 3D group. Variables: $a$ cancels, $bc = 00 \implies \overline{b}\overline{c}$, $e = 0 \implies \overline{e}$. Term: $\overline{b}\overline{c}\overline{e}$. Uniquely covers $m_0$ and $m_2$ $\implies$ **EPI**.
    - **Group 2 ($\{m_5, m_7, m_{21}, d_{23}\}$):** Row $bc = 01$, columns $de \in \{01, 11\}$ on Layer 0 align with $\{m_{21}, d_{23}\}$ on Layer 1, forming a 4-cell 3D group. Variables: $a$ cancels, $bc = 01 \implies \overline{b}c$, $e = 1 \implies e$. Term: $\overline{b}ce$. Uniquely covers $m_7$ $\implies$ **EPI**.
-   - **Group 3 ($\{d_{16}, d_{17}, m_{20}, m_{21}\}$):** Planar $2 \times 2$ block on Layer 1 ($a = 1$) across rows $bc \in \{00, 01\}$ ($\overline{b}$) and columns $de \in \{00, 01\}$ ($\overline{d}$). Term: $a\overline{b}\overline{d}$. Uniquely covers $m_{20}$ (since $m_{19} = 0$ blocks a 3D merge with $\{d_4, m_5\}$ unless reduced to size 4 $\{d_4, m_5, m_{20}, m_{21}\} = \overline{b}c\overline{d}$, which gives the same 3-literal count; if $\{d_4, m_5, m_{20}, m_{21}\}$ is also noted, either $\overline{b}c\overline{d}$ or $a\overline{b}\overline{d}$ covers $m_{20}$ with 3 literals!).
+   - **Group 3 ($\{d_{16}, d_{17}, m_{20}, m_{21}\}$):** Planar $2 \times 2$ block on Layer 1 ($a = 1$) across rows $bc \in \{00, 01\}$ ($\overline{b}$) and columns $de \in \{00, 01\}$ ($\overline{d}$). Term: $a\overline{b}\overline{d}$. Notice that $m_{20}$ is covered by two equally large 4-cell prime implicants—planar $a\overline{b}\overline{d}$ and 3D $\{d_4, m_5, m_{20}, m_{21}\} = \overline{b}c\overline{d}$—so neither is strictly essential, and choosing either gives an equally minimal 3-literal residual term.
 
 3. **Minimal SOP Expression:**
    All six minterms $\{0, 2, 5, 7, 20, 21\}$ are covered:
 
-   $$f(a, b, c, d, e) = \overline{b}\overline{c}\overline{e} + \overline{b}ce + a\overline{b}\overline{d}$$
+$$f(a, b, c, d, e) = \overline{b}\overline{c}\overline{e} + \overline{b}ce + a\overline{b}\overline{d}$$
 
 </details>
 
@@ -259,9 +266,9 @@ A 4-variable combinational output $u(a, b, c, d)$ driven by two state bits $ab$ 
 2. **Four-Corner Toroidal Block:** The remaining uncovered `1`s sit at $(00, 10)$ and $(10, 10)$. Together with $(00, 00) = 1$ and $(10, 00) = X$, the four outer corners $\{ab \in \{00, 10\}\} \times \{cd \in \{00, 10\}\}$ form a 4-cell wrap-around group where $b = 0$ and $d = 0$ remain constant $\implies \overline{b}\overline{d}$.
 3. **Minimal SOP:**
 
-   $$u(a, b, c, d) = \overline{c} + \overline{b}\overline{d}$$
+$$u(a, b, c, d) = \overline{c} + \overline{b}\overline{d}$$
 
-   This uses 2 product terms and $1 + 2 = 3$ total literals.
+This uses 2 product terms and $1 + 2 = 3$ total literals.
 
 </details>
 

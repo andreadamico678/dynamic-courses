@@ -12,22 +12,22 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 19 Map" markdown={`# Ch. 19: Cache Block Placement
-  - Concrete Block Mapping Example
-    - $NB = 256$ cache with main memory block $j = 450$
-    - Direct-mapped vs. 2-way vs. 4-way vs. fully associative
-  - Locality & Block Addressing
-    - Temporal and spatial locality
-    - Block count $NB = C / B$ and block address $j = \\lfloor \\text{Addr} / B \\rfloor$
-  - Placement Organizations
-    - Direct-mapped ($N = 1$, $j \\bmod NB$)
-    - $N$-way set-associative ($NS = NB / N$, $j \\bmod NS$)
-    - Fully associative ($NS = 1$, zero index bits)
-  - Replacement Policies
-    - LRU, FIFO, and Random victim selection`} />
+  - 1 · Example
+    - Mapping Block 450 Across Associativities
+  - 2 · Theory
+    - Locality and Block Addressing
+    - Direct-Mapped Organization
+    - Set-Associative Organization
+    - Fully Associative Organization
+    - Block Replacement Policies
+  - 3 · Summary
+    - Organization Comparison & Procedure
+  - 4 · Exercises
+    - Ex. 19.1–19.3: Mapping & Set Collisions`} />
 
 ## Block Placement Overview
 
-To hide the $40\text{--}80\text{ ns}$ latency of off-chip DRAM, an SRAM cache exploits **temporal locality** by retaining recently referenced words and **spatial locality** by transferring contiguous $B$-byte chunks called **cache blocks** (or cache lines). Whenever the processor requests a missing main memory block $j$, the cache controller must answer one structural question: **which physical slot(s) inside the $NB$-block cache are permitted to hold block $j$?**
+To hide the $40\text{--}80\text{ ns}$ latency of off-chip DRAM, an SRAM cache exploits **temporal locality** by retaining recently referenced words and **spatial locality** by transferring contiguous $B$-byte chunks called **cache blocks** (or cache lines). Whenever the processor requests a missing main memory block $j$, the cache controller must determine which physical slot(s) inside the $NB$-block cache are permitted to hold block $j$.
 
 <Divider label="1 · Example" />
 
@@ -68,6 +68,8 @@ Let us trace exactly where block $j = 450$ is allowed to reside under each place
 
 <Divider label="2 · Theory" />
 
+We begin by defining cache block addressing from total capacity $C$ and block size $B$, then trace the placement spectrum from Direct-Mapped ($N = 1$) through $N$-Way Set-Associative to Fully Associative ($N = NB$), and finish with the replacement policies that choose a victim when a set is full.
+
 ### Locality and Block Addressing
 
 Main memory is partitioned into fixed-size blocks of $B$ bytes (where $B = 2^m$, typically $16\text{--}128\text{ bytes}$). A cache of data capacity $C$ bytes holds:
@@ -82,21 +84,21 @@ which spans contiguous byte addresses $[j \cdot B,\; (j + 1) \cdot B - 1]$. Fetc
 
 ### Direct-Mapped Organization
 
-In a **Direct-Mapped** cache ($N = 1$), every cache block constitutes a $1$-way set ($NS = NB$), and main memory block $j$ has **exactly one legal cache location**:
+In a **Direct-Mapped** cache ($N = 1$), every cache block constitutes a $1$-way set ($NS = NB$), requiring $n = \log_2(NB)$ index bits, and main memory block $j$ has **exactly one legal cache location**:
 
-$$\text{Block Index} = j \bmod NB$$
+$$\text{Block Index} = j \bmod NB, \qquad n = \log_2(NB)\text{ bits}$$
 
-Because only one slot can ever hold block $j$, the hardware reads a single tag and needs **only $1$ comparator** and **no way-selection multiplexer**—delivering the fastest possible hit time $t_{\text{hit}}$ and lowest dynamic power. Its vulnerability is **ping-pong thrashing**: if a loop alternates between two active blocks $j_1$ and $j_2$ whose indices collide ($j_1 \equiv j_2 \pmod{NB}$, such as $j_1 = 18$ and $j_2 = 82$ in a $64$-block cache where $18 \bmod 64 = 82 \bmod 64 = 18$), the two blocks evict each other on every iteration even when the other $63$ blocks sit completely idle.
+Because only one slot can ever hold block $j$, the hardware reads a single tag and needs **only $1$ comparator** and **no way-selection multiplexer**—delivering the fastest possible hit time $t_{\text{hit}}$ and lowest dynamic power. Its vulnerability is **ping-pong thrashing**: if a loop alternates between two active blocks $j_1$ and $j_2$ whose indices collide ($j_1 \equiv j_2 \pmod{NB}$, i.e., $|j_1 - j_2|$ is an integer multiple of $NB$, such as $j_1 = 18$ and $j_2 = 82$ in a $64$-block cache where $18 \bmod 64 = 82 \bmod 64 = 18$), the two blocks evict each other on every iteration even when the other $63$ blocks sit completely idle.
 
 ### Set-Associative Organization
 
-An **$N$-Way Set-Associative** cache partitions its $NB$ total blocks into $NS$ sets of $N$ parallel ways each:
+An **$N$-Way Set-Associative** cache partitions its $NB$ total blocks into $NS$ sets of $N$ parallel ways each, requiring $n = \log_2(NS)$ bits to address the target set:
 
-$$NS = \frac{NB}{N}, \qquad \text{Set Index} = j \bmod NS = j \bmod \left(\frac{NB}{N}\right)$$
+$$NS = \frac{NB}{N}, \qquad \text{Set Index} = j \bmod NS = j \bmod \left(\frac{NB}{N}\right), \qquad n = \log_2(NS)\text{ bits}$$
 
 Main memory block $j$ maps to a single deterministic set ($j \bmod NS$), but may be placed in **any of the $N$ ways** inside that set:
 
-- **Collision Tolerance:** Up to $N$ distinct active blocks mapping to the same set index coexist simultaneously without evicting one another. Revisiting $j_1 = 18$ and $j_2 = 82$ in an $NB = 64$, $2$-way cache ($NS = 32$): both map to Set $18$ ($18 \bmod 32 = 82 \bmod 32 = 18$) and occupy Way $0$ and Way $1$ with zero conflict evictions.
+- **Set-Collision and Coexistence Rule:** Two distinct memory blocks $j_1 \neq j_2$ map to the same set if and only if $|j_1 - j_2|$ is an integer multiple of $NS$. Up to $N$ distinct colliding active blocks coexist simultaneously without evicting one another; holding $k$ colliding blocks without thrashing therefore requires $N \ge k$ ways. Revisiting $j_1 = 18$ and $j_2 = 82$ in an $NB = 64$, $2$-way cache ($NS = 32$): both map to Set $18$ ($18 \bmod 32 = 82 \bmod 32 = 18$) and occupy Way $0$ and Way $1$ with zero conflict evictions.
 - **Hardware Cost:** Because the requested block could sit in any way of the indexed set, the cache must inspect all $N$ ways simultaneously using **$N$ parallel tag comparators** and an **$N$-to-$1$ multiplexer** to route the matching data word, slightly increasing $t_{\text{hit}}$ compared to Direct-Mapped.
 
 ### Fully Associative Organization
@@ -154,11 +156,6 @@ In embedded vision and LiDAR pipelines, allocating multiple $16\text{ KiB}$ or $
 2. **Find Total Cache Sets:** Divide by associativity $N$ to obtain $NS = NB / N$ (with $N = 1 \implies NS = NB$, and Fully Associative $\implies NS = 1$).
 3. **Convert Byte Address (if needed):** Compute main memory block address $j = \lfloor \text{Byte Address} / B \rfloor$.
 4. **Apply Set Modulo:** Compute $\text{Set Index} = j \bmod NS = j - NS \cdot \lfloor j / NS \rfloor$. State both the target set index and the number of candidate ways ($N$).
-
-### Key Relations
-
-- **Unified Associativity Spectrum:** $N$-way set associativity reduces to Direct-Mapped at $N = 1$ ($NS = NB$) and to Fully Associative at $N = NB$ ($NS = 1$).
-- **Set-Collision Condition:** Two distinct memory blocks $j_1 \neq j_2$ map to the exact same cache set if and only if $|j_1 - j_2|$ is an integer multiple of $NS$.
 
 <Callout type="warning" title="Common Mistakes">
 

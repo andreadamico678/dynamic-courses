@@ -12,19 +12,21 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import AmdahlExplorer from "@components/AmdahlExplorer.tsx";
 
-<MindMap client:load defaultCollapsed title="Chapter 7 Map" markdown={`# Ch. 7: Amdahl's Law
-  - Hardware Vector Offload
-    - Serial I/O vs accelerated matrix kernel
-    - Interactive speedup saturation
-  - General Speedup Formula
-    - $S_{\\text{tot}} = \\frac{1}{(1 - F) + F / S}$
-    - Converting instruction mix to time fraction $F$
-    - Multi-component disjoint enhancements
-  - Asymptotic Speedup Ceiling
-    - $S_{\\max} = \\lim_{S \\to \\infty} S_{\\text{tot}} = \\frac{1}{1 - F}$
-  - Inverse Speedup Solving
-    - Feasibility check $S_{\\text{target}} < \\frac{1}{1 - F}$
-    - Solving for required $S$ or $F$`} />
+<MindMap client:load defaultCollapsed title="Chapter 7 Outline" markdown={`# Ch. 7: Amdahl's Law
+  - 1 · Example
+    - Hardware Vector Offload
+  - 2 · Theory
+    - General Speedup Formula
+    - Asymptotic Speedup Ceiling
+    - Inverse Speedup Solving
+  - 3 · Summary
+    - Amdahl Formulas Table
+    - Calculation Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 7.1 — Multi-Core Ceiling and Parallel Fraction
+    - Exercise 7.2 — Single vs. Dual Subsystem Acceleration
+    - Exercise 7.3 — Instruction Mix to Amdahl Speedup`} />
 
 ## Bottlenecks and Speedup
 
@@ -69,6 +71,8 @@ Sweep the local speedup slider $S$ from $4\times$ toward $32\times$ at $F = 75\%
 
 <Divider label="2 · Theory" />
 
+Below, we derive Amdahl's Law for single and multi-component enhancements (including how to convert an instruction mix into baseline time fraction $F$), establish the asymptotic speedup ceiling as $S \to \infty$, and invert the formula to solve for required local speedup $S$ or parallelized fraction $F$.
+
 ### General Speedup Formula
 
 Let $T_{\text{old}}$ denote baseline execution time before an architectural enhancement. Denote the **enhanced time fraction** by $F = F_{\text{enh}} \in [0, 1]$ (the fraction of *original* execution time $T_{\text{old}}$ spent in the accelerated component) and the **local speedup factor** of that component alone by $S = S_{\text{enh}} \ge 1$.
@@ -83,10 +87,13 @@ $$S_{\text{tot}} = \frac{T_{\text{old}}}{T_{\text{new}}} = \frac{1}{(1 - F) + \d
 
 Two structural extensions appear frequently in quantitative architecture problems:
 
-- **Converting Instruction Mix to Time Fraction $F$:** Whenever a problem specifies dynamic instruction shares $f_i = \text{IC}_i / \text{IC}$ and latencies $\text{CPI}_i$ (as in [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/)), $F$ is the share of baseline *execution time* (cycles), never the raw instruction count share $f_k$:
-  $$F = \frac{f_k \cdot \text{CPI}_k}{\text{CPI}_{\text{old}}}, \qquad \text{where } \text{CPI}_{\text{old}} = \sum_{i=1}^m f_i \cdot \text{CPI}_i$$
+- **Converting Instruction Mix to Time Fraction $F$:** Whenever a problem specifies dynamic instruction shares $f_i = \text{IC}_i / \text{IC}$ and latencies $\text{CPI}_i$ (as in [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/)), $F$ is the share of baseline *execution time* (cycles), never the raw instruction count share $f_k$, and reducing class $k$ from $\text{CPI}_{k,\text{old}}$ to $\text{CPI}_{k,\text{new}}$ yields local speedup $S_k = \text{CPI}_{k,\text{old}} / \text{CPI}_{k,\text{new}}$:
+
+$$F = \frac{f_k \cdot \text{CPI}_k}{\text{CPI}_{\text{old}}}, \qquad S_k = \frac{\text{CPI}_{k,\text{old}}}{\text{CPI}_{k,\text{new}}}, \qquad \text{where } \text{CPI}_{\text{old}} = \sum_{i=1}^m f_i \cdot \text{CPI}_i$$
+
 - **Multiple Disjoint Enhancements:** If $k$ non-overlapping baseline time fractions $F_1, F_2, \dots, F_k$ (with $\sum_{j=1}^k F_j \le 1$) are simultaneously accelerated by independent local factors $S_1, S_2, \dots, S_k$, the unaffected serial fraction is $1 - \sum_{j=1}^k F_j$ and overall speedup generalizes to:
-  $$S_{\text{tot}} = \frac{1}{\left(1 - \sum_{j=1}^k F_j\right) + \sum_{j=1}^k \dfrac{F_j}{S_j}}$$
+
+$$S_{\text{tot}} = \frac{1}{\left(1 - \sum_{j=1}^k F_j\right) + \sum_{j=1}^k \dfrac{F_j}{S_j}}$$
 
 ### Asymptotic Speedup Ceiling
 
@@ -152,12 +159,6 @@ On autonomous robots running camera obstacle detection ($70\%$ of frame time) al
 3. **Check Inverse Feasibility:** When solving for $S$, verify $S_{\text{target}} < S_{\max}$; if violated, state explicitly that the target exceeds the serial bottleneck ceiling. When solving for $F$, verify $S_{\text{target}} \le S$.
 4. **Substitute Exact Fractions:** Keep intermediate reciprocals such as $\frac{1}{1.5} = \frac{2}{3}$ or $\frac{1}{6}$ as exact rational fractions before rounding at the final step, avoiding severe rounding drift in small denominators $\frac{1}{S_{\text{target}}} - (1 - F)$.
 
-### Key Derivations
-
-- **Normalized Time Decomposition:** Writing $T_{\text{new}} / T_{\text{old}} = (1 - F) + F/S$ expresses post-optimization runtime as untouched serial share plus compressed accelerated share; inverting gives $S_{\text{tot}}$.
-- **Asymptotic Bottleneck Bound:** Taking $S \to \infty$ eliminates $F/S$, proving that $(1 - F)T_{\text{old}}$ sets the minimum achievable runtime and $S_{\max} = \frac{1}{1 - F}$.
-- **Inverse Isolation:** Subtracting $(1 - F)$ from $1/S_{\text{target}}$ isolates $F/S$ for required $S$, while rewriting $1 - F + F/S = 1 - F(1 - 1/S)$ isolates $F$.
-
 <Callout type="warning" title="Common Mistakes">
 
 1. **Plugging Instruction Share $f_k$ Directly in Place of $F$:** If floating-point ops are $20\%$ of instructions ($f_{\text{FP}} = 0.20$) at $5$ cycles each while overall $\text{CPI}_{\text{old}} = 2.0$, they consume $F = \frac{0.20 \times 5}{2.0} = 0.50$ ($50\%$) of CPU time—using $F = 0.20$ yields a completely wrong speedup.
@@ -197,14 +198,20 @@ A mobile robotics platform runs a localization and mapping workload where $80\%$
 <summary>Reveal Worked Solution</summary>
 
 1. **Asymptotic Speedup Ceiling ($F = 0.80$):**
-   $$S_{\max} = \frac{1}{1 - F} = \frac{1}{1 - 0.80} = \frac{1}{0.20} = 5.00\times$$
+
+$$S_{\max} = \frac{1}{1 - F} = \frac{1}{1 - 0.80} = \frac{1}{0.20} = 5.00\times$$
+
 2. **Overall Speedup on $8$ Cores ($S = 8$):**
-   $$S_{\text{tot}} = \frac{1}{(1 - 0.80) + \dfrac{0.80}{8}} = \frac{1}{0.20 + 0.10} = \frac{1}{0.30} \approx 3.33\times$$
+
+$$S_{\text{tot}} = \frac{1}{(1 - 0.80) + \dfrac{0.80}{8}} = \frac{1}{0.20 + 0.10} = \frac{1}{0.30} \approx 3.33\times$$
+
 3. **Why $6.0\times$ Is Infeasible at $F = 0.80$:**
    Because $S_{\text{target}} = 6.0\times > S_{\max} = 5.00\times$, the unenhanced $20\%$ serial I/O phase alone consumes $0.20\,T_{\text{old}} > \frac{1}{6}\,T_{\text{old}} \approx 0.167\,T_{\text{old}}$. Even $64$ or $\infty$ cores cannot reduce total runtime below $0.20\,T_{\text{old}}$.
+
 4. **Required Parallelized Fraction on $8$ Cores ($S = 8$, $S_{\text{target}} = 6.0$):**
    Since $S_{\text{target}} = 6.0 \le S = 8$, refactoring $F$ is feasible:
-   $$F_{\text{req}} = \frac{1 - \dfrac{1}{S_{\text{target}}}}{1 - \dfrac{1}{S}} = \frac{1 - \dfrac{1}{6}}{1 - \dfrac{1}{8}} = \frac{5/6}{7/8} = \frac{5}{6} \times \frac{8}{7} = \frac{20}{21} \approx 0.9524 \quad (95.24\%)$$
+
+$$F_{\text{req}} = \frac{1 - \dfrac{1}{S_{\text{target}}}}{1 - \dfrac{1}{S}} = \frac{1 - \dfrac{1}{6}}{1 - \dfrac{1}{8}} = \frac{5/6}{7/8} = \frac{5}{6} \times \frac{8}{7} = \frac{20}{21} \approx 0.9524 \quad (95.24\%)$$
 
 </details>
 
@@ -237,13 +244,20 @@ Profiling an embedded computer-vision pipeline shows baseline execution time spl
 
 1. **Option A (Accelerating Only $F_1 = 0.60$):**
    The asymptotic ceiling for Option A is:
-   $$S_{\max,A} = \frac{1}{1 - 0.60} = \frac{1}{0.40} = 2.50\times$$
+
+$$S_{\max,A} = \frac{1}{1 - 0.60} = \frac{1}{0.40} = 2.50\times$$
+
    - Because $2.00\times < 2.50\times$, reaching $S_{\text{target}} = 2.00\times$ is feasible and requires:
-     $$S_1 = \frac{0.60}{\dfrac{1}{2.00} - 0.40} = \frac{0.60}{0.50 - 0.40} = \frac{0.60}{0.10} = 6.00\times$$
+
+$$S_1 = \frac{0.60}{\dfrac{1}{2.00} - 0.40} = \frac{0.60}{0.50 - 0.40} = \frac{0.60}{0.10} = 6.00\times$$
+
    - Because $S_{\text{target}} = 2.50\times$ equals the asymptotic limit $S_{\max,A} = 2.50\times$ (denominator $0.40 - 0.40 = 0$), **no finite hardware accelerator** on Convolution alone can achieve $2.50\times$.
+
 2. **Option B (Disjoint Dual Enhancement):**
    With unaffected serial share $1 - (0.60 + 0.25) = 0.15$, applying the multi-component Amdahl formula gives:
-   $$S_{\text{tot},B} = \frac{1}{0.15 + \dfrac{0.60}{4} + \dfrac{0.25}{2.5}} = \frac{1}{0.15 + 0.15 + 0.10} = \frac{1}{0.40} = 2.50\times$$
+
+$$S_{\text{tot},B} = \frac{1}{0.15 + \dfrac{0.60}{4} + \dfrac{0.25}{2.5}} = \frac{1}{0.15 + 0.15 + 0.10} = \frac{1}{0.40} = 2.50\times$$
+
    With modest finite enhancements ($4\times$ and $2.5\times$), shrinking *both* major stages reaches the exact $2.50\times$ overall speedup that Option A could never reach even at $S_1 \to \infty$.
 
 </details>
@@ -271,7 +285,7 @@ A hardware upgrade replaces the iterative floating-point multiplier with a pipel
 
 1. Compute baseline $\text{CPI}_{\text{old}}$ and baseline execution time $T_{\text{exec,old}}$ (in $\text{ms}$).
 2. Calculate the baseline **execution-time fraction** $F_{\text{FP}}$ consumed by Floating-Point Multiply instructions, explaining why $F_{\text{FP}} \neq 0.20$.
-3. Compute the overall speedup $S_{\text{tot}}$ and new execution time $T_{\text{exec,new}}$ via **Amdahl's Law**, and verify that recomputing $\text{CPI}_{\text{new}}$ via the **CPU Performance Equation** yields the identical result.
+3. Compute the overall speedup $S_{\text{tot}}$ and new execution time $T_{\text{exec,new}}$ via **Amdahl's Law**, and verify that recomputing $\text{CPI}_{\text{new}}$ via the [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/) yields the identical result.
 
 <StepCheck
   client:load
@@ -286,18 +300,28 @@ A hardware upgrade replaces the iterative floating-point multiplier with a pipel
 <summary>Reveal Worked Solution</summary>
 
 1. **Baseline $\text{CPI}_{\text{old}}$ and Execution Time:**
-   $$\text{CPI}_{\text{old}} = 0.60(1) + 0.20(5) + 0.10(2) + 0.10(2) = 0.60 + 1.00 + 0.20 + 0.20 = 2.00\text{ cycles/instr}$$
-   $$T_{\text{exec,old}} = \frac{\text{IC} \times \text{CPI}_{\text{old}}}{f_{\text{clk}}} = \frac{5.0 \times 10^7 \times 2.00}{2.0 \times 10^9\text{ Hz}} = 0.050\text{ s} = 50.0\text{ ms}$$
+
+$$\text{CPI}_{\text{old}} = 0.60(1) + 0.20(5) + 0.10(2) + 0.10(2) = 0.60 + 1.00 + 0.20 + 0.20 = 2.00\text{ cycles/instr}$$
+
+$$T_{\text{exec,old}} = \frac{\text{IC} \times \text{CPI}_{\text{old}}}{f_{\text{clk}}} = \frac{5.0 \times 10^7 \times 2.00}{2.0 \times 10^9\text{ Hz}} = 0.050\text{ s} = 50.0\text{ ms}$$
+
 2. **True Execution-Time Fraction $F_{\text{FP}}$:**
    Although floating-point multiplies represent only $20\%$ of dynamic *instructions*, each takes $5$ cycles ($2.5\times$ the $2.00$-cycle program average), so their share of baseline clock cycles and CPU time is:
-   $$F_{\text{FP}} = \frac{f_{\text{FP}} \cdot \text{CPI}_{\text{FP}}}{\text{CPI}_{\text{old}}} = \frac{0.20 \times 5}{2.00} = \frac{1.00}{2.00} = 0.50 \quad (50\% \text{ of baseline runtime})$$
+
+$$F_{\text{FP}} = \frac{f_{\text{FP}} \cdot \text{CPI}_{\text{FP}}}{\text{CPI}_{\text{old}}} = \frac{0.20 \times 5}{2.00} = \frac{1.00}{2.00} = 0.50 \quad (50\% \text{ of baseline runtime})$$
+
 3. **Equivalence of Amdahl's Law and Iron Law:**
    - **Via Amdahl's Law ($F_{\text{FP}} = 0.50$, $S_{\text{FP}} = \frac{5}{1} = 5$):**
-     $$S_{\text{tot}} = \frac{1}{(1 - 0.50) + \dfrac{0.50}{5}} = \frac{1}{0.50 + 0.10} = \frac{1}{0.60} = \frac{5}{3} \approx 1.67\times$$
-     $$T_{\text{exec,new}} = \frac{T_{\text{exec,old}}}{S_{\text{tot}}} = \frac{50.0\text{ ms}}{5/3} = 30.0\text{ ms}$$
+
+$$S_{\text{tot}} = \frac{1}{(1 - 0.50) + \dfrac{0.50}{5}} = \frac{1}{0.50 + 0.10} = \frac{1}{0.60} = \frac{5}{3} \approx 1.67\times$$
+
+$$T_{\text{exec,new}} = \frac{T_{\text{exec,old}}}{S_{\text{tot}}} = \frac{50.0\text{ ms}}{5/3} = 30.0\text{ ms}$$
+
    - **Via CPU Performance Equation ($\text{CPI}_{\text{FP}} = 1$):**
-     $$\text{CPI}_{\text{new}} = 0.60(1) + 0.20(1) + 0.10(2) + 0.10(2) = 1.20\text{ cycles/instr}$$
-     $$T_{\text{exec,new}} = \frac{5.0 \times 10^7 \times 1.20}{2.0 \times 10^9\text{ Hz}} = 30.0\text{ ms}, \qquad S_{\text{tot}} = \frac{\text{CPI}_{\text{old}}}{\text{CPI}_{\text{new}}} = \frac{2.00}{1.20} = \frac{5}{3} \approx 1.67\times$$
+
+$$\text{CPI}_{\text{new}} = 0.60(1) + 0.20(1) + 0.10(2) + 0.10(2) = 1.20\text{ cycles/instr}$$
+
+$$T_{\text{exec,new}} = \frac{5.0 \times 10^7 \times 1.20}{2.0 \times 10^9\text{ Hz}} = 30.0\text{ ms}, \qquad S_{\text{tot}} = \frac{\text{CPI}_{\text{old}}}{\text{CPI}_{\text{new}}} = \frac{2.00}{1.20} = \frac{5}{3} \approx 1.67\times$$
 
 </details>
 

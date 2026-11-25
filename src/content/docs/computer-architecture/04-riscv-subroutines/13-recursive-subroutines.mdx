@@ -11,17 +11,22 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load defaultCollapsed title="Chapter 13 Map" markdown={`# Ch. 13: Recursive Subroutines
-  - Recursive Factorial Walkthrough
-    - 16-byte activation records for fact(3)
-    - Descent pushes and LIFO multiplication unwind
-  - Linear Recursion Mechanics
-    - Mandatory ra preservation
-    - Saving live arguments in stack slot or s0
-    - Shared epilogue teardown
-  - Branching Recursion
-    - Protecting partial results in s1 across second call
-    - Peak stack depth and tail-call bounds`} />
+<MindMap client:load defaultCollapsed title="Chapter 13 Outline" markdown={`# Ch. 13: Recursive Subroutines
+  - 1 · Example
+    - Tracing Recursive Factorial
+  - 2 · Theory
+    - Recursive Frame Invariants
+    - Base Case Teardown
+    - Dual-Branching Recursion
+    - Stack Depth Bounds
+  - 3 · Summary
+    - Recursion Pattern Reference
+    - Recursive Translation Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 13.1 — Recursive Integer Power
+    - Exercise 13.2 — Recursive Integer Array Sum
+    - Exercise 13.3 — Complete Interactive Pell-Number Program`} />
 
 ## Recursive Subroutines
 
@@ -76,7 +81,7 @@ As shown in [the figure](#fig-recursive-stack), calling `fact(3)` pushes three d
 
 <figure id="fig-recursive-stack" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/computer-architecture/fig-recursive-stack.svg" alt="Stack memory growth during recursive descent for fact(3). Three separate 16-byte activation records for n=3, n=2, and n=1 preserve each call's private return address ra and operand n, consuming O(n) stack space." />
-  <figcaption>Stack growth during `fact(3)` descent: three independent 16-byte activation records (`n = 3`, `n = 2`, `n = 1`) preserve each level's private `ra` and `n`, consuming $\mathcal{O}(n)$ peak stack memory before unwinding.</figcaption>
+  <figcaption>Stack growth during <code>fact(3)</code> descent: three independent 16-byte activation records (<code>n = 3</code>, <code>n = 2</code>, <code>n = 1</code>) preserve each level's private <code>ra</code> and <code>n</code>, consuming <em>O</em>(<em>n</em>) peak stack memory before unwinding.</figcaption>
 </figure>
 
 <StepCheck
@@ -89,6 +94,8 @@ As shown in [the figure](#fig-recursive-stack), calling `fact(3)` pushes three d
 />
 
 <Divider label="2 · Theory" />
+
+We generalize the factorial trace into four principles: preserving `ra` and live values across self-calls, funneling every base case through a shared epilogue, scaling the idiom to dual-branching recurrences that require two preserved values, and bounding peak stack depth $B_{\text{peak}}$.
 
 ### Recursive Frame Invariants
 
@@ -185,6 +192,8 @@ Safety-critical firmware standards (**MISRA-C**, **DO-178C** avionics) ban unbou
 
 <Divider label="3 · Summary" />
 
+### Recursion Pattern Reference
+
 | Recursion Pattern | Live Values Across `call` | Saved Slots Needed | Aligned Frame $K$ | Post-Call Recombination |
 | :--- | :--- | :--- | :---: | :--- |
 | **Single Linear (`fact(n)`)** | Parameter `n` | `ra` + `a0` (or `s0`) = $8\text{ B}$ | $16\text{ B}$ | `lw t1, 8(sp)` $\to$ `mul a0, t1, a0` |
@@ -199,12 +208,6 @@ Safety-critical firmware standards (**MISRA-C**, **DO-178C** avionics) ban unbou
 3. **Code Base Case(s) First:** Test termination conditions before any `call`; load the base return value into `a0` and `j func_epilogue`.
 4. **Code Recursive Call(s) & Recombine:** Load child arguments into `a0`, `a1`, ..., execute `call func`, reload/shield live values from stack slots or `s0`–`s1`, and compute the return value into `a0`.
 5. **Single Shared Epilogue:** Restore `s` registers and `ra`, execute `addi sp, sp, K`, and `ret`.
-
-### Key Rules
-
-- **Every Recursive Routine Is Non-Leaf:** Always save and restore `ra` in the activation frame.
-- **Never Trust `a0` or `t0`–`t6` Across `call`:** Both argument registers and temporary registers are volatile across recursive descent.
-- **Symmetric Frame Pop on Base Case:** If the prologue decrements `sp`, the base case must jump through the epilogue so `sp` is incremented by the exact same $K$ before `ret`.
 
 <Callout type="warning" title="Common Mistakes">
 

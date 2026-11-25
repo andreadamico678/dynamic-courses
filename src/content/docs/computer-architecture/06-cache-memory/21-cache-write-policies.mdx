@@ -12,22 +12,20 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 21 Map" markdown={`# Ch. 21: Cache Write Policies
-  - Concrete Loop Store Example
-    - 1,000-iteration $\\texttt{sw}$ accumulator on RV32IM
-    - Bus traffic and FIFO saturation comparison
-  - Write-Hit Policies
-    - Write-Through: immediate DRAM update, clean evictions
-    - Write-Back: SRAM-only update with Dirty bit ($D \\in \\{0, 1\\}$)
-  - Write Buffer Architecture
-    - Hiding Write-Through latency with a hardware FIFO
-    - Saturation stalls when $\\text{Rate}_{\\text{CPU}} > \\text{Rate}_{\\text{DRAM}}$
-  - Write-Miss Allocation Pairings
-    - Write-Allocate (paired with Write-Back)
-    - No-Write-Allocate / Write-Around (paired with Write-Through)`} />
+  - 1 · Example
+    - Loop Stores Under Two Policies
+  - 2 · Theory
+    - Write-Through and Write-Back
+    - Write Buffer Operation and Stalls
+    - Write-Miss Allocation Pairings
+  - 3 · Summary
+    - Policy Comparison & Trace Procedure
+  - 4 · Exercises
+    - Ex. 21.1–21.3: Dirty Misses, Buffers & Traffic`} />
 
 ## Read-Write Cache Asymmetry
 
-On a memory read (`lw`), the cache reads SRAM data and compares the Tag **in parallel**: on a hit, the word reaches the register file immediately; on a miss, the speculatively read bytes are harmlessly ignored. A memory write (`sw`) cannot speculate—overwriting SRAM before confirming a Tag match would corrupt an unrelated block. Moreover, every cache design must settle two orthogonal write rules: **when modified data propagates to DRAM on a hit** (Write-Through vs. Write-Back) and **whether a missing block is fetched into cache on a store miss** (Write-Allocate vs. No-Write-Allocate).
+On a memory read (`lw`), the cache reads SRAM data and compares the Tag **in parallel**: on a hit, the word reaches the register file immediately; on a miss, the speculatively read bytes are harmlessly ignored. A memory write (`sw`) cannot speculate—overwriting SRAM before confirming a Tag match would corrupt an unrelated block. Moreover, every cache design must settle two orthogonal rules: the **write-hit policy** (when modified data propagates to DRAM: Write-Through vs. Write-Back) and the **write-miss policy** (whether a missing block is fetched into cache: Write-Allocate vs. No-Write-Allocate).
 
 <Divider label="1 · Example" />
 
@@ -61,6 +59,8 @@ Suppose our $2\text{ GHz}$ RV32IM core ($0.5\text{ ns}$ cycle) executes a $1{,}0
 
 <Divider label="2 · Theory" />
 
+We first compare the two write-hit policies (Write-Through vs. Write-Back), next examine how a FIFO Write Buffer hides Write-Through store latency until burst saturation occurs, and finally match each write-hit rule with its standard write-miss allocation policy.
+
 ### Write-Through and Write-Back
 
 When a store instruction hits on a valid block in cache (`Tag` match and `Valid = 1`), two **write-hit policies** govern main memory consistency:
@@ -70,7 +70,7 @@ When a store instruction hits on a valid block in cache (`Tag` match and `Valid 
   - *Weaknesses:* Every store consumes off-chip memory bus bandwidth, and without buffering, each `sw` stalls the CPU for the full $50\text{--}100\text{-cycle}$ DRAM write latency.
 - **Write-Back (Copy-Back):** A store updates **only the cache SRAM line** and marks its per-block **Dirty Bit** ($D = 1$). Main memory is left untouched until that block is later chosen for replacement:
   - If $\text{Dirty} = 0$ (*clean* block, only read since being loaded), the victim block is silently overwritten at zero bus cost.
-  - If $\text{Dirty} = 1$ (*dirty* block, modified in cache), a replacement miss executes **two sequential DRAM transactions**: (1) write the entire dirty victim block back to DRAM, then (2) fetch the newly requested block from DRAM and initialize its $\text{Dirty} = 0$ (for a read miss) or $\text{Dirty} = 1$ (for a write miss).
+  - If $\text{Dirty} = 1$ (*dirty* block, modified in cache), a replacement miss executes **two sequential DRAM transactions**: (1) reconstruct the victim's block address from its stored `(Tag, Index)` and write the entire dirty victim block back to DRAM, then (2) fetch the newly requested block from DRAM and initialize its $\text{Dirty} = 0$ (for a read miss) or $\text{Dirty} = 1$ (for a write miss).
   - *Strengths:* Coalesces repeated stores to the same variable or adjacent words in the same $B$-byte block into a single eventual burst write-back, drastically cutting bus bandwidth and power.
   - *Weaknesses:* DRAM holds stale bytes while $D = 1$, and dirty evictions double the miss latency.
 
@@ -79,9 +79,9 @@ When a store instruction hits on a valid block in cache (`Tag` match and `Valid 
 Pairing Write-Through directly with slow DRAM would cripple CPI. Architects insert a **Write Buffer** between the cache and the memory bus, characterized by three operational properties:
 
 1. **Problem Solved:** Eliminates the $50\text{--}100\text{-cycle}$ DRAM wait penalty on individual `sw` instructions under Write-Through, allowing the CPU pipeline to retire stores at cache speed ($1\text{ cycle}$).
-2. **Operational Principle:** Implemented as a small hardware **FIFO queue** (typically $4\text{--}8$ entries), each holding a pending `(Physical Address, Data)` pair. On a store, the CPU updates the cache (if hit) and pushes the address and data into the FIFO tail in $1\text{ cycle}$, immediately advancing to the next instruction while the memory controller drains the FIFO head across the DRAM bus in the background.
+2. **Operational Principle:** Implemented as a small hardware **FIFO queue** of $k$ entries (typically $k = 4\text{--}8$), each holding a pending `(Physical Address, Data)` pair. On a store, the CPU updates the cache (if hit) and pushes the address and data into the FIFO tail in $1\text{ cycle}$, immediately advancing to the next instruction while the memory controller drains the FIFO head across the DRAM bus in the background. Using $T_{\text{clk}} = 1 / f_{\text{clk}}$ from [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/), a DRAM write taking $t_{\text{DRAM}}$ seconds occupies $\text{Cycles}_{\text{DRAM}} = t_{\text{DRAM}} / T_{\text{clk}} = t_{\text{DRAM}} \cdot f_{\text{clk}}$ CPU clock cycles.
 3. **When Write Stalls Occur:** A Write Buffer hides *latency* on isolated stores, not *bandwidth* deficits:
-   - **Buffer Saturation (Queue Full):** Whenever a sustained burst of stores (e.g., `memset`, stack frame saves, or tight array-output loops) produces writes faster than the memory bus can drain them ($\text{Rate}_{\text{store,CPU}} > \text{Rate}_{\text{drain,DRAM}}$), all FIFO entries fill up. Any subsequent `sw` stalls the CPU pipeline until the oldest entry finishes writing to DRAM.
+   - **Buffer Saturation (Queue Full):** Whenever a sustained burst of stores (e.g., `memset`, stack frame saves, or tight array-output loops) produces writes faster than the memory bus can drain them ($\text{Rate}_{\text{store,CPU}} > \text{Rate}_{\text{drain,DRAM}}$), all $k$ FIFO entries fill up. In particular, an initially empty $k$-entry FIFO absorbs $k$ back-to-back stores on cycles $0, 1, \dots, k - 1$ with zero stalls; whenever $\text{Cycles}_{\text{DRAM}} > k$, the **$(k + 1)$-th consecutive store** encounters a full buffer and stalls the pipeline for $\text{Cycles}_{\text{DRAM}} - k$ cycles until the oldest entry finishes writing to DRAM.
    - **Read-Miss Hazard:** If a cache read miss targets an address still sitting inside the Write Buffer, the read must either snoop the buffer or wait for the buffer to drain so the CPU never fetches stale DRAM data.
 
 ### Write-Miss Allocation Pairings
@@ -93,8 +93,8 @@ When a store instruction **misses** in the cache, two **write-miss policies** de
 
 Although all four combinations are logically legal, real processors pair them almost exclusively in two complementary designs:
 
-- **Write-Back + Write-Allocate:** Because Write-Back keeps future stores inside SRAM at zero bus cost, paying one initial block fetch on a write miss pays off immediately through temporal and spatial locality on subsequent writes or reads to that block.
-- **Write-Through + No-Write-Allocate:** Because Write-Through sends every subsequent store to DRAM anyway, fetching an entire $B$-byte block on a write miss wastes bus bandwidth—especially during write-only initializations that never read the old bytes.
+- **Write-Back + Write-Allocate:** Because Write-Back keeps future stores inside SRAM at zero bus cost, paying one initial block fetch on a write miss pays off immediately through temporal and spatial locality on subsequent writes or reads to that block. For example, sequentially initializing an uncached $S$-byte array of $4$-byte words ($S / 4$ stores across $S / B$ blocks) into clean cache slots generates $1$ DRAM block fetch on the first word of each block, absorbs the remaining $B / 4 - 1$ word stores as SRAM hits, and triggers $1$ DRAM block write-back per block upon eventual eviction—totaling $2 \cdot (S / B)$ DRAM transactions.
+- **Write-Through + No-Write-Allocate:** Because Write-Through sends every subsequent store to DRAM anyway, fetching an entire $B$-byte block on a write miss wastes bus bandwidth—especially during write-only initializations that never read the old bytes. On that same uncached $S$-byte array, every `sw` bypasses cache and issues a separate DRAM word write, totaling $S / 4$ DRAM transactions.
 
 <StepCheck
   client:load
@@ -138,11 +138,6 @@ On ARM Cortex-M7 and embedded RISC-V microcontrollers with **Write-Back** data c
 3. **If Write Miss:**
    - *No-Write-Allocate:* Enqueue `(Addr, Data)` directly to DRAM via the Write Buffer; leave cache tags and lines unchanged.
    - *Write-Allocate:* Select a victim slot in the target set; if victim has `Valid = 1` and `Dirty = 1`, write the victim block back to DRAM first ($+1$ bus write), then fetch the target $B$-byte block from DRAM ($+1$ bus read), write the new word in SRAM, and set `Valid = 1`, `Dirty = 1` (for Write-Back).
-
-### Key Design Principles
-
-- **Dirty Bit Existence Rule:** Dirty bits exist if and only if the cache uses **Write-Back**.
-- **Write-Buffer Stall Criterion:** $\text{Stall occurs} \iff \text{FIFO full}$, triggered whenever short-term store arrival rate $\lambda_{\text{store}}$ exceeds memory bus service rate $\mu_{\text{DRAM}}$.
 
 <Callout type="warning" title="Common Mistakes">
 

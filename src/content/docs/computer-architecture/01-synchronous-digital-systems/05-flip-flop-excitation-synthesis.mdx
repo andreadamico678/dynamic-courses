@@ -12,14 +12,19 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 5 Outline" markdown={`# Ch. 5: Flip-Flop Excitation Synthesis
-  - Three-State JK Synthesis
-    - Binary encoding and unused state 11
-    - Excitation table and 3-variable K-maps
-  - Bistable Synthesis Rules
-    - State register dimensioning $k = \\lceil \\log_2 |S_{\\text{min}}| \\rceil$
-    - JK, SR, T, and D excitation equations
-    - Unused-state don't-care rule
-  - Master Excitation Table & Pitfalls`} />
+  - 1 · Example
+    - Three-State JK Flip-Flop Synthesis
+  - 2 · Theory
+    - State Register Dimensioning
+    - Flip-Flop Excitation Equations
+    - Unused States and Constant Simplification
+  - 3 · Summary
+    - Master Excitation Table
+    - Synthesis Procedure
+    - Common Mistakes
+  - 4 · Exercises
+    - Exercise 5.1 — Three-State SR Flip-Flop Synthesis (Sept 2026)
+    - Exercise 5.2 — Synthesis with D and T Flip-Flops`} />
 
 ## Introduction
 
@@ -80,7 +85,7 @@ $$J_1 = Q_0 \overline{X}, \qquad K_1 = 1, \qquad J_0 = \overline{Q}_1 \overline{
   prompt="Why does $K_1$ simplify to the constant $K_1 = 1$ instead of $K_1 = Q_1$ in the JK synthesis above?"
   options={[
     "Because JK flip-flops always tie $K = 1$ whenever $\\lvert S_{\\text{min}} \\rvert = 3$",
-    "Because rows $00, 01$ hold JK don't-cares ($Q_1 = 0 \\implies K_1 = X$) and row $11$ is an unused state ($X$), filling all 8 K-map cells with $\{1, X\}$",
+    "Because rows $00, 01$ hold JK don't-cares ($Q_1 = 0 \\implies K_1 = X$) and row $11$ is an unused state ($X$), filling all 8 K-map cells with $\\{1, X\\}$",
     "Because $K_1$ ignores unused states"
   ]}
   correctIndex={1}
@@ -88,6 +93,8 @@ $$J_1 = Q_0 \overline{X}, \qquad K_1 = 1, \qquad J_0 = \overline{Q}_1 \overline{
 />
 
 <Divider label="2 · Theory" />
+
+Below, we size the binary state register from the minimized state count, invert the characteristic equations of JK, SR, T, and D flip-flops to obtain their excitation rules, and show how unused state codes feed Gray-coded Karnaugh maps for minimal hardware synthesis.
 
 ### State Register Dimensioning
 
@@ -118,11 +125,13 @@ During analysis, a flip-flop's characteristic equation computes $Q^*$ from given
 4. **D (Data) Flip-Flop ($Q^* = D$):**
    - Copy the desired next-state bit directly into the excitation column: $D_i = Q_i^*$.
 
-### Three-Step Synthesis Procedure
+### Unused States and Constant Simplification
 
-1. **Compute $k$ and Assign Binary Codes:** Calculate $k = \lceil \log_2 \lvert S_{\text{min}} \rvert \rceil$, assign sequential binary codes (`00, 01, 10, ...`) to minimal states, and list all unused $k$-bit codes.
-2. **Build the Full $2^k \times \lvert X \rvert$ Excitation Table:** Tabulate every combination of $(Q_{k-1} \dots Q_0, X)$. Fill $Q_i^*$ and $u$ for reachable states, evaluate each bit transition $Q_i \to Q_i^*$ independently using the requested flip-flop type, and fill **every column of every unused-state row with `X`**.
-3. **Minimize Each Control Signal via K-Maps:** Plot a Gray-coded Karnaugh map over $(Q_{k-1} \dots Q_0, X)$ for each flip-flop input and output $u$. Tie maps containing only `{1, X}` to constant `1`, tie maps containing zero `1`s to constant `0`, and read minimal SOP terms for the rest.
+When $\lvert S_{\text{min}} \rvert < 2^k$, the remaining $2^k - \lvert S_{\text{min}} \rvert$ unassigned binary patterns can never be entered during normal synchronous operation:
+
+- **Full Don't-Care Rows:** For every unused state code and every input value $X$, enter `X` across **every** next-state bit, flip-flop excitation column, and output $u$.
+- **Gray-Code Row Alignment:** When transferring an excitation column to a 3- or 4-variable Karnaugh map (from [Karnaugh Map Minimization](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/01-karnaugh-map-minimization/)), arrange state rows in reflected Gray order (`00, 01, 11, 10`). For a 3-state machine with `11` unused, row `11` sits in the **third** row (between `01` and `10`), allowing `X` cells to merge upward with `01` and downward with `10`.
+- **Constant Logic Ties:** Whenever every cell of an excitation K-map holds only `1` or `X` (zero `0`s anywhere, at least one `1`), all $2^n$ cells merge into a single group eliminating every variable, tying that flip-flop pin directly to constant `1` ($V_{DD}$). Likewise, a map containing only `0` and `X` simplifies to constant `0` ($\text{GND}$).
 
 <Callout type="tip" title="Practical Hardware Perspective">
 
@@ -149,13 +158,12 @@ Modern RTL compilers (`always_ff @(posedge clk)` in SystemVerilog) synthesize sy
 | **$1 \to 1$** | $X \quad 0$ | $X \quad 0$ | $0$ | $1$ |
 | **Unused State Row** | $X \quad X$ | $X \quad X$ | $X$ | $X$ |
 
-### Exam Execution Checklist
+### Synthesis Procedure
 
-1. Double-check which bistable the prompt requests (**FF JK**, **FF SR**, **FF T**, or **FF D**) before filling excitation columns.
-2. Include explicit rows for **all** unused binary state codes and fill every excitation input and output $u$ on those rows with `X`.
-3. Evaluate MSB ($Q_1 \to Q_1^*$) and LSB ($Q_0 \to Q_0^*$) transitions one column at a time to avoid bit-swap errors.
-4. Order 3-variable and 4-variable K-map state rows in Gray sequence (`00, 01, 11, 10`), placing unused state `11` in the **third** row (between `01` and `10`), not at the bottom!
-5. Check whether any excitation map has zero `0`s—if so, simplify it all the way to constant `1`.
+1. **Dimension & Encode States:** Compute $k = \lceil \log_2 \lvert S_{\text{min}} \rvert \rceil$, assign sequential binary codes (`00, 01, 10, ...`), and list all $2^k - \lvert S_{\text{min}} \rvert$ unused codes.
+2. **Confirm Bistable Type:** Check whether the specification requires **JK**, **SR**, **T**, or **D** flip-flops before populating excitation columns.
+3. **Build the $2^k \times \lvert X \rvert$ Excitation Table:** Evaluate each state bit $Q_i \to Q_i^*$ one column at a time across reachable rows, and fill every excitation input and output $u$ on unused-state rows with `X`.
+4. **Plot Gray-Coded K-Maps:** Order state rows `00, 01, 11, 10` (placing unused `11` in row 3, between `01` and `10`), tie all-`{1, X}` maps to constant `1`, and extract minimal SOP expressions for every flip-flop input and $u$.
 
 <Callout type="warning" title="Common Mistakes">
 
@@ -219,7 +227,7 @@ Given the minimal 3-state Mealy table from **September 2026 (Question 2)** with 
 
 3. **Minimal SOP Equations:**
 
-   $$S_1 = Q_0 \overline{X}, \qquad R_1 = Q_1, \qquad S_0 = \overline{Q}_1 \overline{Q}_0 \overline{X} + Q_1 X, \qquad R_0 = Q_0, \qquad u = Q_1 \overline{X}$$
+$$S_1 = Q_0 \overline{X}, \qquad R_1 = Q_1, \qquad S_0 = \overline{Q}_1 \overline{Q}_0 \overline{X} + Q_1 X, \qquad R_0 = Q_0, \qquad u = Q_1 \overline{X}$$
 
 </details>
 
