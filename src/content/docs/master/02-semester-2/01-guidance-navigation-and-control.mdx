@@ -16,6 +16,11 @@ import Divider from "@components/Divider.astro";
 2. **Navigation** estimates *where the drone actually is*—fusing IMU kinematics, GNSS, barometer, or visual measurements into full 6-DOF pose/velocity states despite noise and drift.
 3. **Control** computes *motor thrusts and attitude commands*—driving actuators accurately to track guidance references under wind gusts and coupled nonlinear quadrotor dynamics.
 
+<figure id="fig-gnc-trajectory-concept" className="dc-img-wrap">
+  <img src="/dynamic-courses/images/master/gnc-trajectory-concept.webp" alt="Autonomous research quadrotor tracking a 3D reference spline trajectory with body-frame axes (x, y, z) and downward sensor cone above a coordinate ground grid." />
+  <figcaption>The GNC loop in action: Guidance plans the 3D reference spline, Navigation estimates body pose and velocity from IMU/range/vision cues, and Control drives motor thrusts to track it.</figcaption>
+</figure>
+
 <Divider label="Course Profile" />
 
 | Attribute | Details |

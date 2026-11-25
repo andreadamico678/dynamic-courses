@@ -165,7 +165,8 @@ def record_attribution(course: str, filename: str, source_url: str, author: str,
 
 
 def cmd_fetch(args: argparse.Namespace) -> int:
-    req = urllib.request.Request(args.url, headers={"User-Agent": UA})
+    hdrs = {"User-Agent": UA if "wikimedia.org" in args.url or "wikipedia.org" in args.url else "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36"}
+    req = urllib.request.Request(args.url, headers=hdrs)
     with urllib.request.urlopen(req, timeout=30) as resp:
         raw = resp.read()
 
