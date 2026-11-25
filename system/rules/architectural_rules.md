@@ -1,6 +1,6 @@
 # Architectural Rules
 
-The textbook structure must form a clean, navigable Matryoshka hierarchy across both the Starlight sidebar and per-chapter mind maps.
+The textbook structure must form a clean, navigable Matryoshka hierarchy across the Starlight sidebar.
 
 ---
 

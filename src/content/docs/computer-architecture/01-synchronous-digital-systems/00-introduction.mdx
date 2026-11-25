@@ -7,24 +7,6 @@ sidebar:
 ---
 
 import Divider from "@components/Divider.astro";
-import MindMap from "@components/MindMap.tsx";
-
-<MindMap client:load title="Part I Roadmap" markdown={`# Part I: Synchronous Digital Systems
-  - 1. Karnaugh Map Minimization
-    - Gray-code single-bit adjacency
-    - Dual-layer 5-variable SOP cover
-  - 2. Mealy Sequence Detectors
-    - Zero-latency arc outputs $u^t = \\lambda(S^t, xy^t)$
-    - Repetition loops and LPS overlap
-  - 3. Moore Sequence Detectors
-    - Registered state outputs $u^t = \\lambda(S^t)$
-    - Dedicated recognition state and 1-cycle latency
-  - 4. Implication Table Minimization
-    - Output compatibility filtering
-    - Iterative fixed-point state merging
-  - 5. Flip-Flop Excitation Synthesis
-    - Binary encoding and unused-state don't-cares
-    - JK, SR, T, and D excitation K-maps`} />
 
 ## Introduction
 

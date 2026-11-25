@@ -7,22 +7,9 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import PhaseFlowExplorer from "@components/PhaseFlowExplorer.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 8 Outline" markdown={`# Ch. 8: Matrix Exponential State Transition
-  - State Transition Operator
-    - Power series $e^{\\mathbf{A}t} = \\sum_{k=0}^\\infty \\frac{(\\mathbf{A}t)^k}{k!}$
-    - Phase flow geometry
-  - Algebraic Group Properties
-    - Identity, derivative, and semigroup composition
-    - Non-singular inverse $e^{-\\mathbf{A}t}$ and commutativity
-  - Analytical Evaluation Methods
-    - Resolvent inverse Laplace $\\mathcal{L}^{-1}\\{(s\\mathbf{I}-\\mathbf{A})^{-1}\\}$
-    - Spectral decomposition $\\mathbf{T} e^{\\mathbf{\\Lambda} t} \\mathbf{T}^{-1}$
-    - Cayley-Hamilton polynomial expansion`} />
 
 ## Introduction
 

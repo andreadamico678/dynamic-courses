@@ -7,23 +7,9 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import PipelineExplorer from "@components/PipelineExplorer.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 16 Outline" markdown={`# Ch. 16: Data Hazards and Forwarding
-  - 1 · Example: Load-Use and ALU Chain Trace
-    - Forwarding OFF vs. ON across 4 instructions
-    - Interactive 5-stage pipeline simulator
-  - 2 · Theory
-    - RAW Distance Without Forwarding (2, 1, 0 stalls)
-    - Forwarding Unit Boolean Logic (ForwardA / ForwardB)
-    - Load-Use Hazard Interlock (ID/EX.MemRead)
-    - Zero-Cost Compiler Scheduling
-  - 3 · Summary
-    - Forwarding rules, hazards table, common traps
-  - 4 · Exercises`} />
 
 ## Read-After-Write Dependencies
 

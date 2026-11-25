@@ -7,24 +7,6 @@ sidebar:
 ---
 
 import Divider from "@components/Divider.astro";
-import MindMap from "@components/MindMap.tsx";
-
-<MindMap client:load title="Part V Roadmap" markdown={`# Part V: Pipelined Processor
-  - 14. Five-Stage Pipeline
-    - Stage latches IF/ID, ID/EX, EX/MEM, MEM/WB
-    - Slowest-stage clock period $T_{\\text{clk}}$
-  - 15. Structural Hazards
-    - Unified memory port stalls
-    - Register File split-cycle double-pumping
-  - 16. Data Hazards and Forwarding
-    - RAW distances and Forwarding Unit equations
-    - Load-Use interlock and compiler scheduling
-  - 17. Control Hazards and Branching
-    - Branch flush penalties across ID, EX, MEM
-    - Predict-Untaken and ALU-to-Branch rules
-  - 18. Pipeline Performance
-    - Additive $\\text{CPI}_{\\text{pipe}}$ cycle accounting
-    - Producer vs. consumer phrasing and decoy traps`} />
 
 ## Introduction
 

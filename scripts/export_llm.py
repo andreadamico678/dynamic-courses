@@ -17,12 +17,6 @@ def strip_jsx_for_llm(mdx: str) -> str:
     txt = re.sub(r"^---\s*\n.*?\n---\s*\n", "", mdx, count=1, flags=re.S)
     txt = re.sub(r"^import\s+[^\n]+\n", "", txt, flags=re.M)
 
-    # Convert MindMap prop to clean outline
-    def repl_mm(m: re.Match) -> str:
-        return f"**Chapter Outline:**\n{m.group(1).strip()}\n"
-
-    txt = re.sub(r'<MindMap[^>]*markdown=\{`(.*?)`\}\s*/>', repl_mm, txt, flags=re.S)
-
     # Replace Dividers and interactive explorers with clean markers
     txt = re.sub(r'<Divider\s+label="([^"]+)"\s*/>', r"\n---\n### [\1]\n", txt)
     txt = re.sub(r"<Divider\s*/>", "\n---\n", txt)

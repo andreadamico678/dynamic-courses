@@ -7,20 +7,8 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 10 Outline" markdown={`# Ch. 10: Forced Response and Convolution
-  - Non-Homogeneous State Evolution
-    - Initial energy plus external forcing
-  - Lagrange Formula and Superposition
-    - Free response $\\mathbf{x}_l(t)$ and forced integral $\\mathbf{x}_f(t)$
-    - Laplace domain evaluation $Y_f(s) = W(s)U(s)$
-  - Impulse Response Matrix
-    - Weighting kernel $\\mathbf{W}(t) = \\mathbf{C}e^{\\mathbf{A}t}\\mathbf{B}\\cdot 1(t) + \\mathbf{D}\\delta(t)$
-  - Transient vs. Steady-State
-    - Exponential decay and DC gain $\\mathbf{W}(0)$`} />
 
 ## Introduction
 

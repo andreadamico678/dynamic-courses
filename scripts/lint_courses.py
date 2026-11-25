@@ -15,6 +15,7 @@ COURSES_ROOT = ROOT / "courses"
 BANNED_META_PATTERNS = [
     (r"Level\s+3\s+(?:Solution\s+)?Omitted", "Banned boilerplate string"),
     (r"\b(?:Worked Archetype|Faded Completion|Toy Case|Why This Matters:|Oral Proof:|Anchor System)\b", "Banned pedagogical meta-jargon"),
+    (r"<MindMap\b", "Deprecated <MindMap /> component removed (use real headings + visual figures/images instead)"),
 ]
 
 BANNED_HEADING_TAGS = re.compile(
@@ -121,8 +122,6 @@ def main() -> int:
 
         # Chapter and Master-shell structure checks
         if is_course_chapter or is_master_shell:
-            if "<MindMap" not in txt:
-                errors.append(f"[{rel}] Missing <MindMap /> component")
             if "<Divider" not in txt:
                 warnings.append(f"[{rel}] No <Divider /> breaks found")
 

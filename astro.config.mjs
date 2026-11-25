@@ -127,7 +127,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: isSubCourse && COURSES[scope] ? COURSES[scope].label : 'Dynamic Courses',
-      description: 'Interactive, pageless engineering textbooks and MSc course shells with Matryoshka mind maps.',
+      description: 'Interactive, pageless engineering textbooks and MSc course shells with live math simulators.',
       head: [
         {
           tag: 'script',

@@ -7,24 +7,6 @@ sidebar:
 ---
 
 import Divider from "@components/Divider.astro";
-import MindMap from "@components/MindMap.tsx";
-
-<MindMap client:load title="Part VI Roadmap" markdown={`# Part VI: Cache Memory Systems
-  - 19. Cache Block Placement
-    - Direct-mapped ($j \\bmod NB$) vs. $N$-way ($j \\bmod NS$) vs. fully associative
-    - Parallel tag comparators and LRU / FIFO / Random replacement
-  - 20. Cache Address Partitioning
-    - 32-bit split: Tag ($t$), Index ($n = \\log_2 NS$), Offset ($m = \\log_2 B$)
-    - Total physical SRAM bits with Valid and Dirty metadata
-  - 21. Cache Write Policies
-    - Write-Through + Write Buffer vs. Write-Back + Dirty Bit
-    - No-Write-Allocate vs. Write-Allocate pairings and buffer stalls
-  - 22. Cache Miss Taxonomy
-    - The 3 C's: Compulsory, Capacity, and Conflict misses
-    - Experimental isolation, hardware mitigations, and latency side-effects
-  - 23. Cache Memory Performance
-    - Single-level and nested two-level $\\text{AMAT}$ with threshold inequalities
-    - Processor memory-stall $\\text{CPI}$ across I-Cache and D-Cache`} />
 
 ## Introduction
 

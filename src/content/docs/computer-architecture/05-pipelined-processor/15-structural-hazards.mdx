@@ -7,21 +7,8 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 15 Outline" markdown={`# Ch. 15: Structural Hazards
-  - 1 · Example: Unified Memory Port Collision
-    - Cycle 4 IF vs. MEM conflict
-    - $+1 \\times (f_{\\text{load}} + f_{\\text{store}})$ stall formula
-  - 2 · Theory: Causes and Hardware Fixes
-    - Fix 1: Split I-Cache and D-Cache (IF vs. MEM)
-    - Fix 2: Register File Double-Pumping (ID vs. WB)
-    - Fix 3: Dedicated PC and Branch Adders (IF / Branch vs. EX)
-  - 3 · Summary
-    - Resource collision lookup table and exam procedure
-  - 4 · Exercises`} />
 
 ## Hardware Resource Contention
 

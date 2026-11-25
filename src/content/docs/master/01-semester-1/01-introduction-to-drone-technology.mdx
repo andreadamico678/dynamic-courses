@@ -7,25 +7,17 @@ sidebar:
 
 import Callout from "@components/Callout.astro";
 import Divider from "@components/Divider.astro";
-import MindMap from "@components/MindMap.tsx";
-
-<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Intro to Drone Technology (T550063101 · 5 ECTS)
-  - Role in Semester 1
-    - First hands-on UAS systems integration anchor
-  - Core Hardware & Subsystem Modules
-    - Airframe, propulsion, power distribution
-    - Flight controllers (PX4 / Pixhawk) & IMU
-    - GNSS positioning & wireless telemetry
-    - UAS safety & operational risk assessment
-  - Labs & Oral Exam Structure
-    - 3-4 student lab teams & mandatory reports
-    - Individual oral defense`} />
 
 ## Course Preface & Mental Model
 
 **Introduction to Drone Technology** (`T550063101`, **5 ECTS**, Semester 1) is SDU's practical onboarding into multirotor **Unmanned Aerial Systems (UAS)** specifically framed for robotics engineers rather than pure aerospace students. While traditional robotics courses teach manipulator kinematics or wheeled odometry, a drone adds hard constraints that fail catastrophically if wired or configured wrong: thrust-to-weight margins, high-frequency IMU vibration, magnetic interference on compasses, GNSS dropouts, RC/telemetry link budgets, and operational air-risk assessment.
 
 Think of this course as learning how every physical and software subsystem inside a real quadrotor connects—from battery/ESC power and Pixhawk autopilot loops up to companion-computer messaging (`Python`, `C`, `ROS`)—so that in Semester 2 you are ready to build full autonomous GNC and perception stacks on top of reliable hardware.
+
+<figure id="fig-quadcopter-subsystems" className="dc-img-wrap">
+  <img src="/dynamic-courses/images/master/quadcopter-subsystems.webp" alt="Disassembled quadcopter airframe showing the central flight-controller board, detached navigation sensor PCB, and four rotor arms with motor and ESC assemblies." />
+  <figcaption>Quadcopter hardware anatomy: central flight-controller PCB, downward sensor board, and four rotor/ESC drive assemblies (CC BY-SA 3.0, Ryan Decker).</figcaption>
+</figure>
 
 <Divider label="Course Profile" />
 

@@ -24,7 +24,7 @@ const COLORS: { id: HighlightColor; label: string; swatch: string }[] = [
 ];
 
 const EXCLUDED_SELECTOR =
-  'script, style, button, input, textarea, select, .katex, .dc-hl-toolbar, .dc-hl-status, .dc-mindmap-svg, .expressive-code';
+  'script, style, button, input, textarea, select, .katex, .dc-hl-toolbar, .dc-hl-status, .expressive-code';
 
 function getStorageKey(): string {
   return `dc-highlights:${window.location.pathname}`;

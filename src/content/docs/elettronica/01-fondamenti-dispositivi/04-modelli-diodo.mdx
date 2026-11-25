@@ -7,24 +7,9 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import DiodeRectifierExplorer from "@components/DiodeRectifierExplorer.tsx";
-
-<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 4" markdown={`# Cap. 4: Modelli Circuitali del Diodo
-  - 1. Modelli in Grande Segnale: Retta di Carico, CVD e Ideale
-    - Esempio: Punto di Lavoro Q con Modello CVD e Iterazione Esponenziale
-    - Teoria: Retta di Carico, Modello CVD (0.7 V) e Ipotesi ON/OFF
-  - 2. Modello Differenziale di Piccolo Segnale (r_d)
-    - Esempio: Attenuazione di un Disturbo AC tramite Resistenza Dinamica r_d
-    - Teoria: Conduttanza Differenziale e Sviluppo di Taylor (|v_d| << 2ηV_T)
-  - 3. Circuiti Raddrizzatori e Filtro Capacitivo
-    - Esempio: Confronto Semionda vs Ponte di Graetz con Explorer Interattivo
-    - Teoria: Semionda, Center-Tap, Ponte di Graetz, Ripple V_r, θ_c, I_P e PIV
-  - 4. Regolatore di Tensione Shunt a Diodo Zener
-    - Esempio: Dimensionamento Worst-Case di R_serie e Regolazione di Linea
-    - Teoria: Carico Minimo R_L,min, Disequazioni Worst-Case e Modello r_z`} />
 
 ## Introduzione
 

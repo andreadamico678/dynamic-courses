@@ -7,21 +7,6 @@ sidebar:
 ---
 
 import Divider from "@components/Divider.astro";
-import MindMap from "@components/MindMap.tsx";
-
-<MindMap client:load title="Part IV Roadmap" markdown={`# Part IV: RISC-V Subroutines & Systems
-  - 11. System Calls
-    - Static .data directives and la addressing
-    - RARS console ecall services in a7 (1, 4, 5, 8, 10, 11)
-    - Input validation loops and clean termination
-  - 12. Subroutine Stack Frames
-    - Caller-saved vs. callee-saved ABI registers
-    - 16-byte sp alignment and prologue/epilogue template
-    - Local stack buffers and leaf vs. non-leaf calls
-  - 13. Recursive Subroutines
-    - Per-activation stack frames and ra preservation
-    - Shielding live arguments across recursive jal
-    - Single linear and dual-branching recursion`} />
 
 ## Introduction
 

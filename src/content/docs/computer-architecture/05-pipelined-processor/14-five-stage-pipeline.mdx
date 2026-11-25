@@ -7,22 +7,8 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 14 Outline" markdown={`# Ch. 14: Five-Stage Pipeline
-  - 1 · Example: Five-Stage Timing Benchmark
-    - Single-cycle sum vs. slowest-stage $T_{\\text{clk,pipe}}$
-    - Latency vs. steady-state speedup
-  - 2 · Theory
-    - Throughput Versus Latency
-    - Stage Hardware Mechanics (IF, ID, EX, MEM, WB)
-    - Lockstep Control Pipelining
-    - Clock Period Bound ($t_{\\text{setup}} + t_{\\text{cq}}$)
-  - 3 · Summary
-    - Pipeline stage table and timing steps
-  - 4 · Exercises`} />
 
 ## Assembly-Line Instruction Execution
 

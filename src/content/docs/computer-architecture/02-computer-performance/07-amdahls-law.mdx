@@ -7,26 +7,9 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import AmdahlExplorer from "@components/AmdahlExplorer.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 7 Outline" markdown={`# Ch. 7: Amdahl's Law
-  - 1 · Example
-    - Hardware Vector Offload
-  - 2 · Theory
-    - General Speedup Formula
-    - Asymptotic Speedup Ceiling
-    - Inverse Speedup Solving
-  - 3 · Summary
-    - Amdahl Formulas Table
-    - Calculation Procedure
-    - Common Mistakes
-  - 4 · Exercises
-    - Exercise 7.1 — Multi-Core Ceiling and Parallel Fraction
-    - Exercise 7.2 — Single vs. Dual Subsystem Acceleration
-    - Exercise 7.3 — Instruction Mix to Amdahl Speedup`} />
 
 ## Bottlenecks and Speedup
 

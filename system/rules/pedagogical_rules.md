@@ -9,10 +9,10 @@ Every chapter page is designed for fast visual intuition, rigorous written/oral 
 Teach via ordering and clarity, never by printing educational theory jargon on the student's page. **Never** use labels like *Why This Matters:*, *Toy Case*, *Derivation / Oral Proof:*, *Guided Lab:*, *Plain English:*, *Worked Archetype*, *Faded Completion*, *Interleaved Practice*, *Anchor System*, or parenthetical meta-tags like *(Conceptual)* or *(Oral Core)* in headings or prose. Keep every heading plain and direct (`2–5` words, no colon theatrics).
 
 * **Part Overview (`00-introduction.mdx` / `00-introduzione.mdx`, `sidebar.order: 0`):**
-  Opens with an expanded `<MindMap />`, a short `## Introduction` (`## Introduzione`), any cross-chapter taxonomy shared across the Part (never bury a Part-wide taxonomy inside one chapter), one shared running example revisited across the Part's chapters, and the chapter links.
+  Opens with `## Introduction` (`## Introduzione`), any cross-chapter taxonomy shared across the Part (never bury a Part-wide taxonomy inside one chapter), one shared running example revisited across the Part's chapters, and the chapter links.
 
 * **Chapter Page Structure:**
-  Opens with `<MindMap client:load defaultCollapsed ... />`, one concise motivating paragraph under a plain 2–4 word `##` heading, and four `<Divider />` sections:
+  Opens with one concise motivating paragraph under a plain 2–4 word `##` heading, and four `<Divider />` sections:
 
 1. **`<Divider label="1 · Example" />` (`"1 · Esempio"`):**
    - Solve one concrete numerical system *first* with its diagram placed right next to the equations and clear physical meaning in normal prose.
@@ -34,15 +34,7 @@ Teach via ordering and clarity, never by printing educational theory jargon on t
 
 ---
 
-### 2. Chapter Mind Map 1-to-1 Parity
-
-* Every chapter's `<MindMap client:load defaultCollapsed ... />` MUST accurately mirror the actual page structure:
-  - Include top-level nodes matching `1 · Example`, `2 · Theory` (listing the actual `###` subsections in order), `3 · Summary`, and `4 · Exercises` (or Italian equivalents `1 · Esempio`, `2 · Teoria`, `3 · Sintesi`, `4 · Esercizi`).
-  - Whenever headings or subsections are edited, update `<MindMap />` in the same edit so the outline never drifts from the chapter.
-
----
-
-### 3. The "Pencil-on-Paper" Graphical Drafting Standard
+### 2. The "Pencil-on-Paper" Graphical Drafting Standard
 
 Whenever a chapter teaches a graphical method (Bode Magnitude, Bode Phase, Phase Portraits, Stability Sets), Section 3 must explicitly specify:
 1. **Axes & Window:** Axis scales (linear vs. log), units, and finite plotting window $[\omega_{\text{start}}, \omega_{\text{end}}]$.
@@ -52,16 +44,21 @@ Whenever a chapter teaches a graphical method (Bode Magnitude, Bode Phase, Phase
 
 ---
 
-### 4. Interactive Visuals & Diagram Quality Standard
+### 3. Visuals, Interactive Simulators & Image Sourcing Workflow
 
-* **Interactive Simulators:** Use `<BodeExplorer />`, `<RouthExplorer />`, `<PhaseFlowExplorer />`, `<PipelineExplorer />`, `<CacheAddressExplorer />`, etc. where students benefit from varying parameters live.
-* **Self-Contained Hand-Authored SVGs (No Textless `dvisvgm` Exports):**
-  - All new diagrams under `public/diagrams/<course-slug>/` MUST be clean, hand-authored SVGs with explicit `<text>` labels, explicit `viewBox`, light `#fff` background, and zero overlapping labels.
-  - **Never** export diagrams with `dvisvgm --pdf --no-fonts` (which silently strips Type-3/T1 text fonts and produces blank unlabeled boxes).
+Do not emit redundant text-outline mind maps (`<MindMap />` is deprecated and disallowed by the linter). Instead, pair equations with real visual aids chosen from three tiers:
+
+1. **Interactive Simulators:** `<BodeExplorer />`, `<RouthExplorer />`, `<PhaseFlowExplorer />`, `<PipelineExplorer />`, `<CacheAddressExplorer />`, etc. where students vary parameters live.
+2. **Technical Vector Diagrams (`public/diagrams/<course-slug>/<slug>.svg`):** Self-contained hand-authored SVGs with explicit `<text>` labels, explicit `viewBox`, `#fff` background, and zero overlapping text inside `<figure className="dc-svg-wrap">`. Never export via `dvisvgm --pdf --no-fonts`.
+3. **Real Hardware Photos & Editorial Illustrations (`public/images/<course-slug>/<slug>.webp`):**
+   - **Never hotlink external URLs** (they break, get blocked, or lack attribution).
+   - **Sourcing Photos:** Run `python scripts/fetch_image.py search "<keywords>"` (queries Wikimedia Commons & Openverse for openly licensed `>= 600px` raster photos), pick the cleanest result, and download/optimize via `python scripts/fetch_image.py fetch <course> <slug> "<url>" --caption "..."` (auto-converts to WebP/JPEG `<= 1400px`, strips EXIF, logs attribution to `public/images/<course>/ATTRIBUTION.md`).
+   - **Custom Illustrations:** If no clean open photo exists, generate an image using the `image-generator` subagent into `public/images/<course-slug>/<slug>.png`.
+   - **Mandatory Visual Inspection:** Always inspect the saved file in `public/images/` with `read_file` before embedding it in MDX via `<figure className="dc-img-wrap">` to confirm subject accuracy, clarity, and absence of watermarks.
 
 ---
 
-### 5. Global Symbol Registry, Terminology Bridges & Cross-Chapter Continuity
+### 4. Global Symbol Registry, Terminology Bridges & Cross-Chapter Continuity
 
 * Always obey `courses/<course-slug>/symbols.yaml`. Never invent ad-hoc conflicting notation across chapters.
 * Insert explicit 2-line terminology bridges whenever domain terms or symbols shift (`eigenvalues` $\leftrightarrow$ `polynomial roots` $\leftrightarrow$ `poles`; Evans $K$ vs. Bode $K_B$).
@@ -69,7 +66,7 @@ Whenever a chapter teaches a graphical method (Bode Magnitude, Bode Phase, Phase
 
 ---
 
-### 6. Math Formatting, Callouts & Typography
+### 5. Math Formatting, Callouts & Typography
 
 * **Display Math Delimiters (`remark-math` Safety):** Always place multi-line display math `$$` on **unindented lines with blank lines before and after** (`\n\n$$\n...\n$$\n\n`). Never indent `$$\begin{aligned}` or `$$\begin{array}` inside Markdown list items—indented multi-line `$$` fails to parse and renders red `katex-error` text.
 * **JSX Prop Math Escaping:** Inside JS string arrays or JSX expressions (`options={["..."]}`), ALWAYS double-escape LaTeX backslashes (`\\varphi`, `\\tau`, `\\theta`, `\\frac`, `\\beta`, `\\rho`, `\\infty`) so JavaScript does not interpret `\v`, `\t`, `\f`, `\b`, or `\r` as control characters.

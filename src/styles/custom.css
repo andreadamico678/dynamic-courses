@@ -369,7 +369,7 @@ hr.dc-divider-bare {
   margin-top: 0.35rem !important;
 }
 
-/* Interactive Lab / MindMap Shell */
+/* Interactive Lab Shell */
 .dc-widget {
   margin: 1.4rem 0;
   padding: 1.1rem 1.3rem;
@@ -674,101 +674,32 @@ hr.dc-divider-bare {
   font-size: 0.88rem;
 }
 
-/* In-house Concept Map Tree */
-.dc-mm-canvas {
-  padding: 0.8rem 0.95rem;
-  border-radius: var(--dc-radius);
-  border: 1px solid var(--sl-color-hairline);
-  background: var(--sl-color-bg);
-}
-
-.dc-mm-root {
-  display: inline-block;
-  font-weight: 700;
-  font-size: 0.92rem;
-  color: var(--dc-ink);
-  padding: 0.28rem 0.65rem;
-  border: 1px solid var(--sl-color-accent);
-  border-radius: var(--dc-radius-sm);
-  background: var(--sl-color-accent-low);
-  margin-bottom: 0.55rem;
-}
-
-.dc-mm-list {
-  list-style: none;
-  margin: 0;
-  padding: 0.2rem 0 0.2rem 1.05rem;
-  border-left: 1px solid var(--sl-color-hairline-light);
-}
-
-.dc-mm-list-root {
-  margin-left: 0.55rem;
-}
-
-.dc-mm-item {
-  position: relative;
-  margin: 0.32rem 0;
-}
-
-.dc-mm-item::before {
-  content: '';
-  position: absolute;
-  left: -1.05rem;
-  top: 0.78rem;
-  width: 0.85rem;
-  height: 1px;
-  background: var(--sl-color-hairline-light);
-}
-
-.dc-mm-row {
-  display: flex;
-  align-items: center;
-}
-
-.dc-mm-node {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.42rem;
-  font-size: 0.86rem;
-  line-height: 1.4;
-  color: var(--dc-ink);
-}
-
-.dc-mm-branch-btn {
-  cursor: pointer;
-  background: var(--sl-color-bg-nav);
-  border: 1px solid var(--sl-color-hairline-light);
-  border-radius: var(--dc-radius-sm);
-  padding: 0.18rem 0.55rem;
-  font-weight: 600;
-  text-align: left;
-}
-
-.dc-mm-branch-btn:hover {
-  border-color: var(--sl-color-accent);
-}
-
-.dc-mm-caret {
-  font-size: 0.72rem;
-  color: var(--sl-color-accent);
-}
-
-.dc-mm-leaf {
-  color: var(--dc-muted);
-  padding: 0.1rem 0.2rem;
-}
-
-.dc-mm-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--sl-color-gray-4);
-  flex-shrink: 0;
-  align-self: center;
-}
-
 .dc-inline-math .katex {
   font-size: 0.98em;
+}
+
+/* Editorial Photos & Illustrations (public/images/) */
+.dc-img-wrap {
+  margin: 1.4rem 0;
+  text-align: center;
+}
+
+.dc-img-wrap img {
+  display: inline-block;
+  max-width: min(760px, 100%);
+  max-height: 460px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid var(--sl-color-hairline-light);
+  border-radius: var(--dc-radius);
+  background: var(--sl-color-bg-nav);
+}
+
+.dc-img-wrap figcaption {
+  margin-top: 0.45rem;
+  font-size: 0.85rem;
+  color: var(--dc-muted);
 }
 
 /* Explorer controls */

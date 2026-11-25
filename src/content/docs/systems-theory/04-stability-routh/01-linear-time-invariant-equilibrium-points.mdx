@@ -7,20 +7,8 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 11 Outline" markdown={`# Ch. 11: Equilibrium States in Linear Dynamic Systems
-  - Equilibrium Condition
-    - Stationary trim $\\dot{\\mathbf{x}} = \\mathbf{0}$
-    - Algebraic equation $\\mathbf{A}\\mathbf{x}_e = -\\mathbf{B}\\mathbf{u}_0$
-  - Solvability via Rouché-Capelli
-    - Non-singular matrix ($\\det(\\mathbf{A}) \\neq 0$): unique point
-    - Singular matrix ($\\det(\\mathbf{A}) = 0$): affine manifold or no solution
-  - Perturbation Dynamics
-    - Coordinate shift $\\mathbf{z}(t) = \\mathbf{x}(t) - \\mathbf{x}_e$
-    - Equivalence invariant around operating points`} />
 
 ## Introduction
 

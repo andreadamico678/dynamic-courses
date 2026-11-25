@@ -7,22 +7,8 @@ sidebar:
 
 import Divider from "@components/Divider.astro";
 import Callout from "@components/Callout.astro";
-import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
-
-<MindMap client:load defaultCollapsed title="Chapter 27 Outline" markdown={`# Ch. 27: Luenberger Observer Architecture
-  - Why Open-Loop Estimation Fails
-    - Error equation $\\dot{\\mathbf{e}} = \\mathbf{A}\\mathbf{e}$
-    - Unstable drift and disturbance sensitivity
-  - Closed-Loop Innovation Correction
-    - Output residual $\\tilde{\\mathbf{y}} = \\mathbf{y} - \\mathbf{C}\\hat{\\mathbf{x}}$
-    - Predictor-corrector vs. LTI filter form
-  - Observer Error Dynamics
-    - Error matrix $\\mathbf{A}_o = \\mathbf{A} - \\mathbf{L}\\mathbf{C}$
-    - Observability and detectability criteria
-  - Observer Bandwidth Trade-Offs
-    - Controller speed vs. sensor noise`} />
 
 ## Introduction
 
