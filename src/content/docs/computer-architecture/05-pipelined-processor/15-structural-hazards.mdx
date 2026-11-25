@@ -15,11 +15,11 @@ import StepCheck from "@components/StepCheck.tsx";
   - Unified Memory Example
     - Cycle 4 IF vs. MEM port collision
     - $+1 \\times (f_{\\text{load}} + f_{\\text{store}})$ stall formula
-  - Hardware Resource Solutions
-    - Hazard taxonomy: structural, data, control
+  - Structural Solutions in Hardware
+    - The 3 physical pipeline resource conflicts
     - Split Harvard I-Cache and D-Cache
     - Register File split-cycle double-pumping
-    - Dedicated PC, branch, and main adders`} />
+    - Dedicated PC and branch adders`} />
 
 ## Hardware Resource Contention
 
@@ -64,15 +64,13 @@ Raising the ideal baseline $\text{CPI}_{\text{base}} = 1.00$ by $+0.35$ yields $
 
 <Divider label="2 · Theory" />
 
-### Pipeline Hazard Taxonomy
+### The Three Structural Conflicts
 
-A **pipeline hazard** is any condition that prevents the next instruction in the dynamic stream from executing during its scheduled clock cycle. Every stall in an in-order pipeline belongs to one of three orthogonal categories:
+A **structural hazard** occurs when two instructions in different pipeline stages require the same physical hardware circuit in the same clock cycle. In the 5-stage RISC-V datapath, overlapping five instructions creates three potential hardware bottlenecks—each resolved permanently in standard hardware by duplicating the resource or time-splitting it:
 
-1. **Structural Hazards:** Hardware resource conflicts where two instructions in different pipeline stages require the same physical functional unit or memory port during the same clock cycle.
-2. **Data Hazards:** Operand ordering dependencies where an instruction needs a data value produced by an older instruction still in flight ([Data Hazards and Forwarding](/dynamic-courses/computer-architecture/05-pipelined-processor/16-data-hazards/)).
-3. **Control Hazards:** Control-flow uncertainties where stage `IF` does not yet know whether a branch is taken or what target address to load into `PC` ([Control Hazards and Branching](/dynamic-courses/computer-architecture/05-pipelined-processor/17-control-hazards/)).
-
-In the 5-stage RISC-V datapath, three shared hardware subsystems would suffer structural hazards every cycle if not engineered with dedicated ports or split-phase clocking: the **memory interface** (`IF` vs. `MEM`), the **Register File** (`ID` vs. `WB`), and the **adders/ALU** (`IF`, `ID`/`EX`, and `EX`).
+1. **Memory Port (`IF` vs. `MEM`):** Instruction fetch and `lw`/`sw` data access compete if they share one memory array.
+2. **Register File (`ID` vs. `WB`):** Reading `rs1`/`rs2` and writing `rd` happen in the same cycle whenever an instruction in `WB` overlaps a reader in `ID`.
+3. **Arithmetic Logic (`IF`, Branch, `EX`):** Incrementing `PC + 4`, computing branch targets, and running ALU ops happen concurrently every cycle.
 
 ### Unified Versus Split Harvard Memory
 
@@ -106,9 +104,9 @@ In Cycle 5, `add` is in `WB` writing `x1` while `sub` is in `ID` reading `rs1 = 
 
 Because the write finishes before the read settles within the same clock period, any dependency at **distance $k \ge 3$ incurs $0$ stall cycles**—even on a pipeline with no forwarding buses!
 
-### Dedicated Stage Adders
+### Dedicated Stage Adders (Conceptual)
 
-Every clock cycle, a 5-stage pipeline potentially needs three arithmetic additions simultaneously: incrementing `PC + 4` in `IF`, computing a branch target `PC + Imm` in `ID` or `EX`, and executing data arithmetic or `Base + Offset` address generation in `EX`. Sharing one ALU across these tasks would stall every instruction. Instead, architects instantiate two compact fixed-function 32-bit adders (`PC + 4` in `IF` and `PC + Imm` for branches) alongside the full **Main ALU** in `EX`, eliminating arithmetic structural hazards permanently.
+To prevent `IF` (`PC + 4`) and branch-target computation (`PC + Imm`) from fighting the main `EX` ALU, pipelines include two small dedicated 32-bit adders alongside the Main ALU—so arithmetic never causes a structural stall.
 
 <Callout type="bridge" title="DMA Bus Contention in Microcontroller SRAM">
 

@@ -96,21 +96,27 @@ An arithmetic instruction (`add`, `sub`, `addi`, `and`, `or`, `slt`) finishes co
 The combinational **Forwarding Unit** inspects register indices latched in `ID/EX`, `EX/MEM`, and `MEM/WB` and drives `ForwardA` according to two prioritized Boolean equations (with identical equations replacing `RegisterRs1` by `RegisterRs2` for `ForwardB`):
 
 1. **`EX` Hazard (Distance $k = 1$ from `EX/MEM` $\implies \text{ForwardA} = 10$):**
-   $$\begin{aligned}
-   \text{if } &\big(\text{EX/MEM.RegWrite} = 1\big) \\
-   \land\; &\big(\text{EX/MEM.RegisterRd} \neq 0\big) \\
-   \land\; &\big(\text{EX/MEM.RegisterRd} = \text{ID/EX.RegisterRs1}\big) \\
-   \implies\; &\text{ForwardA} = 10 \quad (\text{select } \text{EX/MEM.ALU\_Result})
-   \end{aligned}$$
+
+$$
+\begin{aligned}
+\text{if } &\big(\text{EX/MEM.RegWrite} = 1\big) \\
+\land\; &\big(\text{EX/MEM.RegisterRd} \neq 0\big) \\
+\land\; &\big(\text{EX/MEM.RegisterRd} = \text{ID/EX.RegisterRs1}\big) \\
+\implies\; &\text{ForwardA} = 10 \quad (\text{select } \text{EX/MEM.ALU\_Result})
+\end{aligned}
+$$
 
 2. **`MEM` Hazard (Distance $k = 2$ from `MEM/WB` $\implies \text{ForwardA} = 01$):**
-   $$\begin{aligned}
-   \text{if } &\big(\text{MEM/WB.RegWrite} = 1\big) \\
-   \land\; &\big(\text{MEM/WB.RegisterRd} \neq 0\big) \\
-   \land\; &\neg\Big(\text{EX/MEM.RegWrite} = 1 \;\land\; \text{EX/MEM.RegisterRd} \neq 0 \;\land\; \text{EX/MEM.RegisterRd} = \text{ID/EX.RegisterRs1}\Big) \\
-   \land\; &\big(\text{MEM/WB.RegisterRd} = \text{ID/EX.RegisterRs1}\big) \\
-   \implies\; &\text{ForwardA} = 01 \quad (\text{select } \text{MEM/WB write-back mux output})
-   \end{aligned}$$
+
+$$
+\begin{aligned}
+\text{if } &\big(\text{MEM/WB.RegWrite} = 1\big) \\
+\land\; &\big(\text{MEM/WB.RegisterRd} \neq 0\big) \\
+\land\; &\neg\Big(\text{EX/MEM.RegWrite} = 1 \;\land\; \text{EX/MEM.RegisterRd} \neq 0 \;\land\; \text{EX/MEM.RegisterRd} = \text{ID/EX.RegisterRs1}\Big) \\
+\land\; &\big(\text{MEM/WB.RegisterRd} = \text{ID/EX.RegisterRs1}\big) \\
+\implies\; &\text{ForwardA} = 01 \quad (\text{select } \text{MEM/WB write-back mux output})
+\end{aligned}
+$$
 
 3. **Default (`No Hazard` $\implies \text{ForwardA} = 00$):** Select `ID/EX.Data1` read normally from the Register File.
 
@@ -125,12 +131,14 @@ While `ALU -> ALU` and `ALU -> lw/sw` dependencies incur **0 stalls** with forwa
 
 A combinational **Hazard Detection Unit** in stage `ID` tests whether the instruction currently in `EX` (`ID/EX`) is a load whose destination matches either source operand of the instruction currently in `ID` (`IF/ID`):
 
-$$\begin{aligned}
+$$
+\begin{aligned}
 \text{if } &\big(\text{ID/EX.MemRead} = 1\big) \\
 \land\; &\big(\text{ID/EX.RegisterRd} \neq 0\big) \\
 \land\; &\big(\text{ID/EX.RegisterRd} = \text{IF/ID.RegisterRs1} \;\lor\; \text{ID/EX.RegisterRd} = \text{IF/ID.RegisterRs2}\big) \\
 \implies\; &\text{Stall Pipeline for 1 Cycle}
-\end{aligned}$$
+\end{aligned}
+$$
 
 When triggered, the Hazard Detection Unit executes three synchronous actions on the next clock edge:
 

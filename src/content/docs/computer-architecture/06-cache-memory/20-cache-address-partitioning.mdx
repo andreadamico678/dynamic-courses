@@ -72,13 +72,15 @@ Adjust `Ways N` from `1 (Direct-Mapped)` through `8-Way` in the simulator below 
 
 In a byte-addressable 32-bit architecture such as RV32I ($2^{32}\text{ bytes} = 4\text{ GiB}$), every 32-bit byte address `Addr[31:0]` partitions into three non-overlapping bit slices from least significant to most significant:
 
-$$\begin{array}{|c|c|c|}
+$$
+\begin{array}{|c|c|c|}
 \hline
 \textbf{Tag } (t\text{ bits}) & \textbf{Index } (n\text{ bits}) & \textbf{Byte Offset } (m\text{ bits}) \\
 \hline
 \text{Addr}[31 : n+m] & \text{Addr}[n+m-1 : m] & \text{Addr}[m-1 : 0] \\
 \hline
-\end{array}$$
+\end{array}
+$$
 
 1. **Byte Offset ($m$ bits):** Because a block holds $B = 2^m$ contiguous bytes, selecting a specific byte inside that block requires:
    $$m = \log_2(B)$$

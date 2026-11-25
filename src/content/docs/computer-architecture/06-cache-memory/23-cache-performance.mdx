@@ -40,11 +40,13 @@ Suppose we benchmark three $16\text{ KiB}$ `L1` candidates for our RV32IM proces
 
 Evaluating $\text{AMAT} = t_{\text{hit}} + \text{MR} \cdot \text{MP}$ for each design:
 
-$$\begin{aligned}
+$$
+\begin{aligned}
 \text{AMAT}_A &= 1.00 + (0.050 \times 40) = 1.00 + 2.000 = 3.000\text{ ns} \\
 \text{AMAT}_B &= 1.05 + (0.047 \times 42) = 1.05 + 1.974 = 3.024\text{ ns} \\
 \text{AMAT}_C &= 1.10 + (0.045 \times 42) = 1.10 + 1.890 = 2.990\text{ ns}
-\end{aligned}$$
+\end{aligned}
+$$
 
 Because $\text{AMAT}$ is a **latency** metric, **smaller $\text{AMAT}$ means higher performance**:
 1. **1st Place (Best): Cache C** ($2.990\text{ ns}$) — its $0.5\%$ miss-rate drop saves enough DRAM stalls to outweigh its $+0.10\text{ ns}$ hit-time tax.

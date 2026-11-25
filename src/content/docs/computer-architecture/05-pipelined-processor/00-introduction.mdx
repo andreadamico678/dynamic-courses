@@ -32,6 +32,14 @@ In [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer
 
 Part V builds the canonical **5-stage pipelined microarchitecture** (`IF`, `ID`, `EX`, `MEM`, `WB`). By inserting clocked interstage registers (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) between functional units, up to five consecutive instructions overlap in flight simultaneously, shrinking $T_{\text{clk}}$ toward a single stage delay while keeping the ideal throughput near one instruction per clock cycle ($\text{CPI}_{\text{ideal}} = 1$). Whenever overlapping instructions contend for the same memory port, read uncommitted register operands, or branch to a new target address, **pipeline hazards** arise—requiring forwarding buses, stall interlocks, branch predictors, or compiler instruction scheduling.
 
+### Pipeline Hazard Taxonomy
+
+A **pipeline hazard** is any condition that prevents the next instruction in the stream from executing in its scheduled clock cycle. Every pipeline stall falls into one of three categories:
+
+1. **Structural Hazards:** Hardware resource conflicts where two in-flight instructions need the same physical port or unit in the same clock cycle ([15. Structural Hazards](/dynamic-courses/computer-architecture/05-pipelined-processor/15-structural-hazards/)).
+2. **Data Hazards:** Operand dependencies where an instruction needs a value before an older in-flight instruction finishes writing it ([16. Data Hazards and Forwarding](/dynamic-courses/computer-architecture/05-pipelined-processor/16-data-hazards/)).
+3. **Control Hazards:** Control-flow uncertainty where stage `IF` does not yet know whether a branch is taken or where to point `PC` ([17. Control Hazards and Branching](/dynamic-courses/computer-architecture/05-pipelined-processor/17-control-hazards/)).
+
 ### Practical Hardware Perspective
 
 - **Deterministic Embedded Cores:** Real-time microcontrollers in motor drives and flight controllers (such as ARM Cortex-M4/M7 and embedded RISC-V RV32IM cores) use compact scalar in-order pipelines. Knowing exact Load-Use and branch stall counts lets firmware engineers bound worst-case execution time (WCET) inside $1\text{ kHz}$ control interrupts.
