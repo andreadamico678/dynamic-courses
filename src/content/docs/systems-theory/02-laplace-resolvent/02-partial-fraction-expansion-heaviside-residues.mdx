@@ -11,183 +11,308 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 5 Mental Model" markdown={`# Ch. 5: Partial Fraction Expansion
-  - Rational Function Decomposition in Dynamic Analysis
-    - Strict Properness Condition and Polynomial Division
-  - Pole Topologies and Residue Formulas
-    - Case 1: Real Simple Poles ($m_i = 1$)
-    - Case 2: Repeated Real Poles with Multiplicity $m$
-    - Case 3: Complex Conjugate Pole Pairs ($\lambda = \sigma \pm j\omega$)`} />
+<MindMap client:load defaultCollapsed title="Chapter 5 Outline" markdown={`# Ch. 5: Partial Fraction Expansion
+  - Mixed-Pole Inversion Example
+    - Cover-up residue for real pole
+    - Completing the square for complex pair
+  - Pole Topologies and Residues
+    - Strict properness and polynomial division
+    - Simple real poles
+    - Repeated real poles
+    - Complex conjugate pole pairs`} />
 
-## Rational Function Decomposition in Dynamic Analysis
+## Introduction
 
-In linear control systems, differential state equations and transfer functions yield rational algebraic expressions in the complex frequency variable $s$:
+Solving a linear system in the Laplace domain gives an algebraic fraction $Y(s) = N(s)/D(s)$—clean to manipulate, but useless for reading off physical waveforms directly if $D(s)$ is cubic or higher. You need a systematic way to crack that high-order fraction apart into elementary building blocks whose time-domain shapes ($e^{-at}$, $t e^{-at}$, $e^{\sigma t}\cos\omega t$) are immediately recognizable.
 
-$$F(s) = \frac{N(s)}{D(s)} = \frac{b_m s^m + b_{m-1} s^{m-1} + \dots + b_1 s + b_0}{a_n s^n + a_{n-1} s^{n-1} + \dots + a_1 s + a_0}$$
+**Partial fraction expansion** is that decoder. In practical filter and servo analysis, each pole in $D(s)$ corresponds to one physical dynamic mode, and its **residue** tells you how strongly that mode participates in the actual time response.
 
-To transform $F(s)$ back into the continuous-time domain $f(t) = \mathcal{L}^{-1}\{F(s)\}$, we must decompose the high-order quotient into a linear sum of elementary, first- and second-order partial fractions whose inverse transforms are known tabulated primitives.
+<Divider label="1 · Example" />
 
-### Strict Properness Condition and Polynomial Division
-The partial fraction expansion technique requires $F(s)$ to be **strictly proper**:
-$$m = \deg(N) < n = \deg(D)$$
-If $m \ge n$ (improper rational function), polynomial Euclidean division must be performed first:
+### Mixed-Pole Inversion
 
-$$F(s) = Q(s) + \frac{R(s)}{D(s)}$$
+In [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/), we saw how differential equations turn into rational functions $F(s) = N(s)/D(s)$ in the $s$-domain. When the denominator $D(s)$ has degree $3$ or higher, it does not appear directly in our table of elementary transform pairs; instead, we decompose $F(s)$ into a sum of first-order and second-order fractions that we can invert term by term.
 
-where $Q(s)$ is a polynomial quotient of degree $m - n$ and $R(s)$ is the remainder with $\deg(R) < n$.
-The polynomial terms in $Q(s)$ generate singular distributions at $t = 0$:
-$$\mathcal{L}^{-1}\{q_0 + q_1 s + q_2 s^2\} = q_0 \delta(t) + q_1 \dot{\delta}(t) + q_2 \ddot{\delta}(t)$$
-The strictly proper remainder $\frac{R(s)}{D(s)}$ is then expanded using Heaviside's residue calculus.
+Consider a third-order Laplace transform whose denominator factors into one simple real pole at $s = -2$ and one underdamped complex conjugate pole pair at $s = -1 \pm j2$:
 
-<Divider />
+$$F(s) = \frac{3s^2 + 9s + 16}{(s + 2)\big((s + 1)^2 + 2^2\big)}$$
 
-## Pole Topologies and Residue Formulas
-
-By the Fundamental Theorem of Algebra, the monic denominator polynomial factors completely over the field of complex numbers $\mathbb{C}$ into $r$ distinct real roots and $q$ pairs of complex conjugate roots:
-
-$$D(s) = \prod_{i=1}^r (s - p_i)^{m_i} \prod_{k=1}^q \left[ (s - \sigma_k)^2 + \omega_k^2 \right]^{l_k}$$
-
-### Case 1: Real Simple Poles ($m_i = 1$)
-If all poles $p_1, p_2, \dots, p_n$ are distinct and real:
-
-$$F(s) = \frac{R_1}{s - p_1} + \frac{R_2}{s - p_2} + \dots + \frac{R_n}{s - p_n} = \sum_{i=1}^n \frac{R_i}{s - p_i}$$
-
-The residue $R_i$ at pole $p_i$ is extracted by multiplying $F(s)$ by $(s - p_i)$ and evaluating at the limit $s \to p_i$ (**Heaviside Cover-Up Rule**):
-
-$$R_i = \lim_{s \to p_i} (s - p_i) F(s) = \left. \frac{N(s)}{D'(s)} \right|_{s = p_i}$$
-
-Taking the inverse Laplace transform term-by-term:
-
-$$f(t) = \sum_{i=1}^n R_i e^{p_i t} \cdot 1(t)$$
-
-<Divider />
-
-### Case 2: Repeated Real Poles with Multiplicity $m$
-If a real pole $p$ appears with algebraic multiplicity $m > 1$, it contributes $m$ nested fractions:
-
-$$F(s) = \frac{A_m}{(s - p)^m} + \frac{A_{m-1}}{(s - p)^{m-1}} + \dots + \frac{A_1}{s - p} + F_{\text{other}}(s)$$
-
-The coefficients $A_{m-k}$ are evaluated via the **General Heaviside Differential Residue Formula**:
-
-$$A_{m-k} = \frac{1}{k!} \lim_{s \to p} \frac{d^k}{ds^k} \left[ (s - p)^m F(s) \right], \quad k = 0, 1, \dots, m-1$$
-
-* For $k = 0$ (the highest-order pole):
-  $$A_m = \lim_{s \to p} (s - p)^m F(s)$$
-* For $k = 1$:
-  $$A_{m-1} = \lim_{s \to p} \frac{d}{ds} \left[ (s - p)^m F(s) \right]$$
-* For $k = 2$:
-  $$A_{m-2} = \frac{1}{2!} \lim_{s \to p} \frac{d^2}{ds^2} \left[ (s - p)^m F(s) \right]$$
-
-Inverting each term yields secular polynomial-exponential waveforms:
-
-$$\mathcal{L}^{-1}\left\{ \frac{A_{m-k}}{(s - p)^{m-k}} \right\} = A_{m-k} \frac{t^{m-k-1}}{(m-k-1)!} e^{pt} \cdot 1(t)$$
-
-<Divider />
-
-### Case 3: Complex Conjugate Pole Pairs ($\lambda = \sigma \pm j\omega$)
-For an irreducible quadratic factor $(s - \sigma)^2 + \omega^2$ with real coefficients:
-
-$$\frac{B s + C}{(s - \sigma)^2 + \omega^2}$$
-
-To avoid complex residue algebra, we **complete the square** in the numerator:
-$$B s + C = B(s - \sigma) + (C + B\sigma)$$
-Dividing into damped cosine and damped sine canonical forms:
-
-$$\frac{B s + C}{(s - \sigma)^2 + \omega^2} = B \frac{s - \sigma}{(s - \sigma)^2 + \omega^2} + \left( \frac{C + B\sigma}{\omega} \right) \frac{\omega}{(s - \sigma)^2 + \omega^2}$$
-
-Applying the inverse Laplace transform directly:
-
-$$f(t) = e^{\sigma t} \left[ B \cos(\omega t) + \left( \frac{C + B\sigma}{\omega} \right) \sin(\omega t) \right] \cdot 1(t)$$
-
-Using the harmonic addition identity $B\cos(\omega t) + D\sin(\omega t) = M \cos(\omega t - \phi)$:
-
-$$f(t) = M e^{\sigma t} \cos(\omega t - \phi) \cdot 1(t)$$
-where $M = \sqrt{B^2 + \left(\frac{C+B\sigma}{\omega}\right)^2}$ and $\phi = \operatorname{atan2}\left( \frac{C+B\sigma}{\omega}, B \right)$.
+First check properness: the numerator has degree $m = 2$ while the denominator has degree $n = 1 + 2 = 3$. Since $m < n$, $F(s)$ is **strictly proper** and can be expanded directly without polynomial long division. As mapped in [the figure](#fig-pole-constellation-modes), each pole location in the complex $s$-plane dictates the exact shape of its time-domain mode: the real pole at $s = -2$ produces a decaying exponential $e^{-2t}$, while the complex pair at $s = -1 \pm j2$ produces damped oscillations $e^{-t}\cos(2t)$ and $e^{-t}\sin(2t)$.
 
 <figure id="fig-pole-constellation-modes" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-pole-constellation-modes.svg" alt="Complex $s$-plane pole constellation illustrating the geometric correspondence between pole positions and their time-domain natural mode signatures." />
   <figcaption>Complex $s$-plane pole constellation illustrating the geometric correspondence between pole positions and their time-domain natural mode signatures.</figcaption>
 </figure>
 
-<Callout type="bridge" title="SDU Robotics Bridge: Airframe Structural Resonances in Drone Autopilots">
+To keep all calculations in real numbers, we assign a scalar residue $R_1$ to the linear real factor $(s + 2)$ and a linear real numerator $Bs + C$ to the irreducible quadratic factor $(s + 1)^2 + 4 = s^2 + 2s + 5$:
 
-In physical quadrotors tested at SDU, the high-speed rotation of carbon-fiber propellers (e.g., 4 blades spinning at $6000\text{ RPM} = 100\text{ Hz}$) injects high-frequency harmonic vibration into the airframe.
-If the elastic airframe exhibits a structural pole pair at $p_{1,2} = -2 \pm j2\pi(100)$, the IMU accelerometer records a damped oscillatory mode:
+$$F(s) = \frac{3s^2 + 9s + 16}{(s + 2)(s^2 + 2s + 5)} = \frac{R_1}{s + 2} + \frac{Bs + C}{(s + 1)^2 + 4}$$
+
+First, we isolate the real-pole residue $R_1$ using the **Heaviside cover-up rule**: multiply both sides by $(s + 2)$ and evaluate at $s = -2$, which zeroes out the $(s + 2)\frac{Bs+C}{(s+1)^2+4}$ term on the right:
+
+$$R_1 = \left. (s + 2) F(s) \right|_{s = -2} = \left. \frac{3s^2 + 9s + 16}{(s + 1)^2 + 4} \right|_{s = -2} = \frac{3(-2)^2 + 9(-2) + 16}{(-2 + 1)^2 + 4} = \frac{12 - 18 + 16}{1 + 4} = \frac{10}{5} = 2$$
+
+This tells us that the pure exponential mode $e^{-2t}$ enters the waveform with initial amplitude $R_1 = 2$.
+
+Second, to determine the real coefficients $B$ and $C$, multiply the entire expansion by the common denominator $(s + 2)(s^2 + 2s + 5)$ and substitute $R_1 = 2$:
+
+$$
+\begin{aligned}
+3s^2 + 9s + 16 &= R_1(s^2 + 2s + 5) + (Bs + C)(s + 2) \\
+&= 2(s^2 + 2s + 5) + (Bs^2 + 2Bs + Cs + 2C) \\
+&= (2 + B)s^2 + (4 + 2B + C)s + (10 + 2C)
+\end{aligned}
+$$
+
+Because two polynomials are identical for all $s$ if and only if their coefficients match power by power, we equate the coefficients of $s^2$, $s^1$, and $s^0$:
+- From $s^2$: $3 = 2 + B \implies B = 1$.
+- From $s^0$: $16 = 10 + 2C \implies 2C = 6 \implies C = 3$.
+- Cross-checking $s^1$: $4 + 2B + C = 4 + 2(1) + 3 = 9$, which matches the original $+9s$ term identically.
+
+Third, we prepare the quadratic fraction $\frac{Bs + C}{(s+1)^2 + 2^2} = \frac{s + 3}{(s+1)^2 + 2^2}$ for inverse transformation by **completing the square** in the numerator. Because the denominator is centered at $s = -1$ (so $s - \sigma = s + 1$) with frequency $\omega = 2$, we rewrite $s + 3 = (s + 1) + 2$ to match the damped cosine and damped sine pairs from [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/):
+
+$$F(s) = \frac{2}{s + 2} + \frac{(s + 1) + 2}{(s + 1)^2 + 2^2} = \frac{2}{s + 2} + \frac{s + 1}{(s + 1)^2 + 2^2} + \frac{2}{(s + 1)^2 + 2^2}$$
+
+Inverting each of the three elementary fractions term by term produces the analytical time-domain signal:
+
+$$f(t) = \big(2e^{-2t} + e^{-t}\cos(2t) + e^{-t}\sin(2t)\big) \cdot 1(t)$$
+
+As an immediate verification, evaluating $f(t)$ at $t = 0^+$ gives $f(0^+) = 2(1) + 1(1) + 1(0) = 3$, which agrees with the Initial Value Theorem $\lim_{s\to\infty} s F(s) = \lim_{s\to\infty} \frac{3s^3 + 9s^2 + 16s}{s^3 + 4s^2 + 9s + 10} = 3$.
+
+<StepCheck
+  client:load
+  prompt="In the mixed-pole example $F(s) = \frac{3s^2 + 9s + 16}{(s+2)((s+1)^2 + 4)}$, what is the residue $R_1$ of the real pole at $s = -2$?"
+  expected={2}
+  tolerance={0.05}
+  unit=""
+  explanation="Using Heaviside cover-up at $s = -2$ gives $R_1 = \frac{12 - 18 + 16}{1 + 4} = \frac{10}{5} = 2$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Strict Properness and Division
+
+Every linear time-invariant state-space system or differential equation with rational inputs produces a rational Laplace transform—a ratio of two polynomials in $s$ with real coefficients:
+
+$$F(s) = \frac{N(s)}{D(s)} = \frac{b_m s^m + b_{m-1} s^{m-1} + \dots + b_1 s + b_0}{s^n + a_{n-1} s^{n-1} + \dots + a_1 s + a_0}$$
+
+Why must we check the polynomial degrees $m = \deg(N)$ and $n = \deg(D)$ before writing down partial fractions? Because every partial fraction term $\frac{R}{s - p}$ approaches $0$ as $|s| \to \infty$, a sum of partial fractions can only equal $F(s)$ if $F(s)$ itself vanishes as $|s| \to \infty$—that is, when $F(s)$ is **strictly proper** ($m < n$).
+
+Whenever $m \ge n$ ($F(s)$ is **improper**, or **biproper** when $m = n$), we must first carry out polynomial Euclidean long division to divide $D(s)$ into $N(s)$, extracting a polynomial quotient $Q(s)$ of degree $m - n$ and a remainder polynomial $R(s)$ of degree strictly less than $n$:
+
+$$F(s) = Q(s) + \frac{R(s)}{D(s)}, \qquad \deg\big(R(s)\big) < \deg\big(D(s)\big) = n$$
+
+For example, in the biproper case $m = n$ (which occurs whenever a state-space model has non-zero feedthrough $D \neq 0$), long division pulls out the constant high-frequency gain $q_0 = b_n = \lim_{s\to\infty} F(s)$, which inverts directly to a Dirac delta impulse $q_0 \delta(t)$ at $t = 0$. More generally, any polynomial quotient $Q(s) = q_0 + q_1 s + q_2 s^2 + \dots$ inverts into impulses and generalized distributional derivatives at $t = 0$:
+
+$$\mathcal{L}^{-1}\{q_0 + q_1 s + q_2 s^2\} = q_0 \delta(t) + q_1 \dot{\delta}(t) + q_2 \ddot{\delta}(t)$$
+
+Once $Q(s)$ is separated out, the remaining fraction $\frac{R(s)}{D(s)}$ is strictly proper. By the Fundamental Theorem of Algebra, any real monic denominator $D(s)$ of degree $n$ factors uniquely into $r$ distinct real poles $p_i$ (with algebraic multiplicities $m_i$) and $q$ irreducible real quadratic factors corresponding to complex conjugate pole pairs $\sigma_k \pm j\omega_k$ (with multiplicities $l_k$):
+
+$$D(s) = \prod_{i=1}^r (s - p_i)^{m_i} \prod_{k=1}^q \left[ (s - \sigma_k)^2 + \omega_k^2 \right]^{l_k}, \qquad \sum_{i=1}^r m_i + 2\sum_{k=1}^q l_k = n$$
+
+### Simple Real Poles
+
+Consider first the most common physical case: $D(s) = (s - p_1)(s - p_2)\cdots(s - p_n)$ has $n$ real, mutually distinct poles $p_1 \neq p_2 \neq \dots \neq p_n$ (so each multiplicity is $m_i = 1$). Because each linear factor $(s - p_i)$ is first-order, the strictly proper rational function $F(s) = \frac{N(s)}{D(s)}$ decomposes uniquely into a sum of $n$ simple fractions:
+
+$$F(s) = \frac{R_1}{s - p_1} + \frac{R_2}{s - p_2} + \dots + \frac{R_n}{s - p_n} = \sum_{j=1}^n \frac{R_j}{s - p_j}$$
+
+Here the constant scalar $R_i$ is called the **residue** of $F(s)$ at the simple pole $s = p_i$. Rather than clearing all $n$ denominators and solving an $n \times n$ linear system for $R_1, \dots, R_n$, we can isolate any single residue $R_i$ in one line by multiplying both sides of the expansion by $(s - p_i)$:
+
+$$(s - p_i) F(s) = R_i + \sum_{\substack{j=1 \\ j \neq i}}^n R_j \frac{s - p_i}{s - p_j}$$
+
+Because $p_i \neq p_j$ for every $j \neq i$, taking the limit as $s \to p_i$ makes every fraction $\frac{s - p_i}{s - p_j}$ vanish, leaving $R_i$ alone on the right-hand side. This yields the **Heaviside Cover-Up Rule**:
+
+$$R_i = \lim_{s \to p_i} (s - p_i) F(s) = \left. \frac{N(s)}{\prod_{j \neq i}(s - p_j)} \right|_{s = p_i} = \left. \frac{N(s)}{D'(s)} \right|_{s = p_i}$$
+
+On paper, you literally "cover up" the factor $(s - p_i)$ in the factored denominator of $F(s)$ and substitute $s = p_i$ into everything that remains. Applying the inverse Laplace transform $\mathcal{L}^{-1}\left\{\frac{1}{s - p_i}\right\} = e^{p_i t} 1(t)$ from [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/) then gives the time response as a weighted sum of natural exponential modes:
+
+$$f(t) = \sum_{i=1}^n R_i e^{p_i t} \cdot 1(t)$$
+
+Physically, the pole $p_i$ fixes the decay rate (time constant $\tau_i = -1/p_i$ when $p_i < 0$), while the residue $R_i$ measures how strongly that mode is excited by the input and initial conditions.
+
+### Repeated Real Poles
+
+What happens when two or more real poles coincide at the same value $s = p$, producing a repeated factor $(s - p)^m$ with algebraic multiplicity $m > 1$? A single term $\frac{A_1}{s - p}$ provides only one degree of freedom, whereas an $m$-th order denominator factor requires $m$ independent constants to span all possible numerators of degree $< m$. Consequently, a pole of multiplicity $m$ must be expanded as a descending ladder of $m$ powers from $(s - p)^m$ down to $(s - p)^1$:
+
+$$F(s) = \frac{A_m}{(s - p)^m} + \frac{A_{m-1}}{(s - p)^{m-1}} + \dots + \frac{A_2}{(s - p)^2} + \frac{A_1}{s - p} + F_{\text{other}}(s)$$
+
+where $F_{\text{other}}(s)$ collects the partial fractions of all other poles different from $p$. Let us see why simple cover-up only finds $A_m$ and how differentiation extracts the remaining coefficients $A_{m-1}, \dots, A_1$. Multiplying both sides by the highest power $(s - p)^m$ clears every $(s - p)$ denominator:
+
+$$\Phi(s) \triangleq (s - p)^m F(s) = A_m + A_{m-1}(s - p) + A_{m-2}(s - p)^2 + \dots + A_1 (s - p)^{m-1} + (s - p)^m F_{\text{other}}(s)$$
+
+Notice that the right-hand side is simply the Taylor series of the smooth function $\Phi(s) = (s - p)^m F(s)$ expanded around the point $s = p$:
+- Setting $s = p$ directly zeroes out every $(s - p)^k$ term ($k \ge 1$) and gives the highest-order coefficient by ordinary cover-up: $A_m = \Phi(p)$.
+- Differentiating $\Phi(s)$ once with respect to $s$ kills the constant $A_m$ and turns $A_{m-1}(s - p)$ into $A_{m-1}$:
+  $$\frac{d}{ds}\Phi(s) = A_{m-1} + 2 A_{m-2}(s - p) + \dots \implies A_{m-1} = \lim_{s \to p} \frac{d}{ds}\left[(s - p)^m F(s)\right]$$
+- Differentiating $\Phi(s)$ a total of $k$ times brings down the factorial $k!$ on the $(s - p)^k$ term while killing all lower powers, and setting $s = p$ zeroes out all higher powers (including $(s - p)^m F_{\text{other}}(s)$, which retains a factor of $(s - p)^{m-k}$ for all $k \le m - 1$). Dividing by $k!$ yields the general **Differential Residue Formula**:
+
+$$A_{m-k} = \frac{1}{k!} \lim_{s \to p} \frac{d^k}{ds^k} \left[ (s - p)^m F(s) \right], \qquad k = 0, 1, \dots, m-1$$
+
+Using the frequency-differentiation pair $\mathcal{L}\left\{\frac{t^{r-1}}{(r-1)!} e^{pt} 1(t)\right\} = \frac{1}{(s - p)^r}$ from [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/) with $r = m - k$, each ladder term inverts into a polynomial-weighted (**secular**) exponential mode:
+
+$$\mathcal{L}^{-1}\left\{ \frac{A_{m-k}}{(s - p)^{m-k}} \right\} = A_{m-k} \frac{t^{m-k-1}}{(m-k-1)!} e^{pt} \cdot 1(t)$$
+
+For example, a double pole $(s - p)^2$ produces both a pure exponential $A_1 e^{pt}$ (from $\frac{A_1}{s-p}$) and a time-multiplied ramp-exponential $A_2 t e^{pt}$ (from $\frac{A_2}{(s-p)^2}$).
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="For a repeated pole $(s + 3)^3$ in the denominator of $F(s)$, which expression computes the coefficient $A_1$ of $\frac{1}{s+3}$?"
+  options={[
+    "$\\lim_{s \\to -3} (s+3)^3 F(s)$",
+    "$\\lim_{s \\to -3} \\frac{d}{ds}\\big[(s+3)^3 F(s)\\big]$",
+    "$\\frac{1}{2!}\\lim_{s \\to -3} \\frac{d^2}{ds^2}\\big[(s+3)^3 F(s)\\big]$"
+  ]}
+  correctIndex={2}
+  explanation="For $m = 3$, $A_1 = A_{3-2}$ corresponds to $k = 2$, requiring the second derivative divided by $2!$."
+/>
+
+### Complex Conjugate Pole Pairs
+
+When a real denominator $D(s)$ has a pair of underdamped complex conjugate poles $p_{1,2} = \sigma \pm j\omega$ ($\omega > 0$), factoring them as two complex linear fractions $\frac{R}{s - (\sigma + j\omega)} + \frac{R^*}{s - (\sigma - j\omega)}$ is valid but forces you to divide complex numbers and then recombine $e^{(\sigma \pm j\omega)t}$ via Euler's formula. Instead, it is much faster and less error-prone on exams to keep the conjugate pair grouped together as the real irreducible quadratic $(s - \sigma)^2 + \omega^2$:
+
+$$F_{\text{quad}}(s) = \frac{B s + C}{(s - \sigma)^2 + \omega^2}$$
+
+Once the real constants $B$ and $C$ are found (by clearing denominators and matching like powers of $s$, or by plugging in two simple real values of $s$ such as $s = 0$), we rewrite the numerator $Bs + C$ in terms of the shifted frequency variable $(s - \sigma)$ so that it splits directly into the damped cosine and damped sine transforms. Adding and subtracting $B\sigma$ inside the numerator gives $Bs + C = B(s - \sigma) + (C + B\sigma)$, and multiplying and dividing the second term by $\omega$ completes the decomposition:
+
+$$\frac{B s + C}{(s - \sigma)^2 + \omega^2} = B \underbrace{\frac{s - \sigma}{(s - \sigma)^2 + \omega^2}}_{\mathcal{L}\{e^{\sigma t}\cos(\omega t)\}} + \left( \frac{C + B\sigma}{\omega} \right) \underbrace{\frac{\omega}{(s - \sigma)^2 + \omega^2}}_{\mathcal{L}\{e^{\sigma t}\sin(\omega t)\}}$$
+
+Inverting these two standard pairs term by term yields the real oscillatory waveform immediately:
+
+$$f_{\text{quad}}(t) = e^{\sigma t} \left[ B \cos(\omega t) + \left( \frac{C + B\sigma}{\omega} \right) \sin(\omega t) \right] \cdot 1(t)$$
+
+Here $e^{\sigma t}$ is the exponential envelope (decaying when $\sigma < 0$, growing when $\sigma > 0$), $\omega$ is the damped oscillation frequency in $\text{rad/s}$, $B$ is the initial cosine amplitude at $t = 0^+$, and $\frac{C + B\sigma}{\omega}$ is the quadrature sine amplitude. If desired, the two quadrature waves can be merged into a single phase-shifted cosine:
+
+$$f_{\text{quad}}(t) = M e^{\sigma t} \cos(\omega t - \phi) \cdot 1(t), \qquad M = \sqrt{B^2 + \left(\frac{C+B\sigma}{\omega}\right)^2}, \quad \phi = \operatorname{atan2}\left( \frac{C+B\sigma}{\omega}, B \right)$$
+
+<Callout type="bridge" title="Robotics Bridge: Airframe Structural Resonances">
+
+In physical quadrotors, high-speed propeller rotation (for instance, blades spinning at $6000\text{ RPM} = 100\text{ Hz}$) injects narrowband vibration into the airframe. If the structure has a lightly damped complex pole pair at $p_{1,2} = -2 \pm j2\pi(100)$, the IMU accelerometer records a damped oscillation:
+
 $$a_{\text{vib}}(t) \propto e^{-2t} \cos(200\pi t)$$
-Because the damping $\sigma = -2$ is very small compared to the oscillation frequency $\omega = 628\text{ rad/s}$, the residue of this mode creates massive noise spikes that can saturate attitude estimators. Drone control engineers at SDU use partial fraction decomposition to identify modal amplitudes and design digital notch filters:
+
+Because $|\sigma| = 2$ is tiny relative to $\omega = 628\text{ rad/s}$, this mode creates persistent noise spikes that can corrupt attitude estimates. Engineers use partial fraction residues to quantify modal amplitudes and place digital notch filters:
+
 $$N(s) = \frac{s^2 + \omega_0^2}{s^2 + 2\zeta\omega_0 s + \omega_0^2}$$
-canceling the resonant complex pole pair in the flight control loop.
+
+to attenuate the resonant pair inside the flight loop.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Denominator / Degree Case | Partial Fraction Form | Coefficient Rule | Time-Domain Mode |
+| :--- | :--- | :--- | :--- |
+| **Improper ($\deg N \ge \deg D$)** | $Q(s) + \frac{R(s)}{D(s)}$ | Polynomial long division first | $q_0\delta(t) + q_1\dot{\delta}(t) + \dots$ |
+| **Simple Real Pole $(s - p)$** | $\frac{R_i}{s - p_i}$ | $R_i = \left.(s - p_i)F(s)\right\rvert_{s=p_i}$ | $R_i e^{p_i t} \cdot 1(t)$ |
+| **Repeated Pole $(s - p)^m$** | $\sum_{k=0}^{m-1} \frac{A_{m-k}}{(s-p)^{m-k}}$ | $A_{m-k} = \frac{1}{k!}\left.\frac{d^k}{ds^k}[(s-p)^m F(s)]\right\rvert_{s=p}$ | $A_{m-k}\frac{t^{m-k-1}}{(m-k-1)!} e^{pt}\cdot 1(t)$ |
+| **Complex Pair $(s-\sigma)^2+\omega^2$** | $\frac{B(s-\sigma) + (C+B\sigma)}{(s-\sigma)^2 + \omega^2}$ | Match numerators & complete square | $e^{\sigma t}[B\cos\omega t + \frac{C+B\sigma}{\omega}\sin\omega t]$ |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Expansion Procedure
 
-## Chapter Exercises
+1. **Check Properness:** Verify $\deg(N) < \deg(D)$; if not, run polynomial division before expanding.
+2. **Factor Denominator:** Split $D(s)$ into real linear factors $(s - p_i)^{m_i}$ and irreducible real quadratics $(s - \sigma_k)^2 + \omega_k^2$.
+3. **Compute Residues:** Evaluate simple and highest-order repeated residues by cover-up, lower repeated terms by differentiation (or strategic $s$-substitution), and quadratic numerators by matching powers.
+4. **Invert and Cross-Check:** Map each fraction to $t \ge 0$ and verify $\sum \text{residues}$ matches $\lim_{s\to\infty} sF(s)$.
 
-<Exercise client:load id="ex-5-1" title="Exercise 5.1" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Cover-Up Formula:** Multiplying $\sum_j \frac{R_j}{s-p_j}$ by $(s-p_i)$ and letting $s \to p_i$ kills every term except $R_i$.
+- **Repeated Pole Derivatives:** Differentiating $(s-p)^m F(s) = A_m + A_{m-1}(s-p) + \dots$ $k$ times isolates $k! A_{m-k}$ when evaluated at $s = p$.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Expanding Improper Fractions:** Skipping polynomial division when $\deg(N) \ge \deg(D)$ drops impulse terms $\delta(t)$ and yields wrong residues.
+2. **Missing Factorial Factor:** For $k \ge 2$ derivatives, always divide by $k!$ in $A_{m-k}$ and by $(r-1)!$ when inverting $\frac{1}{(s-p)^r}$.
+3. **Unscaled Sine Numerator:** In $\frac{D}{(s-\sigma)^2 + \omega^2}$, the inverse transform is $\frac{D}{\omega}e^{\sigma t}\sin(\omega t)$—remember to divide by $\omega$.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-5-1" title="Exercise 5.1 — Simple Real Poles" level="Warm-Up">
 
 Given the rational transform with distinct real poles:
+
 $$F(s) = \frac{5s + 7}{(s + 1)(s + 2)}$$
+
 1. Set up the partial fraction expansion form $F(s) = \frac{R_1}{s + 1} + \frac{R_2}{s + 2}$.
 2. Compute the residues $R_1$ and $R_2$ using the Heaviside cover-up formula.
 3. Invert $F(s)$ to obtain the continuous-time signal $f(t) = \mathcal{L}^{-1}\{F(s)\}$ for $t \ge 0$.
 4. Verify consistency with the initial value theorem by evaluating $f(0^+)$ directly and via $\lim_{s \to \infty} s F(s)$.
 
+<StepCheck
+  client:load
+  prompt="What is the residue $R_2$ at the pole $s = -2$?"
+  expected={3}
+  tolerance={0.05}
+  unit=""
+  explanation="Covering $(s+2)$ and evaluating at $s = -2$ gives $R_2 = \frac{5(-2)+7}{-2+1} = \frac{-3}{-1} = 3$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Form of partial fraction expansion:
+1. Because $\deg(N) = 1 < \deg(D) = 2$, $F(s)$ is strictly proper with two distinct real poles at $p_1 = -1$ and $p_2 = -2$:
    $$F(s) = \frac{5s + 7}{(s + 1)(s + 2)} = \frac{R_1}{s + 1} + \frac{R_2}{s + 2}$$
-2. Evaluating residues by the Heaviside cover-up method:
-   * Residue at $s = -1$:
-     $$R_1 = \left. (s + 1) F(s) \right|_{s = -1} = \left. \frac{5s + 7}{s + 2} \right|_{s = -1} = \frac{5(-1) + 7}{-1 + 2} = \frac{2}{1} = 2$$
-   * Residue at $s = -2$:
-     $$R_2 = \left. (s + 2) F(s) \right|_{s = -2} = \left. \frac{5s + 7}{s + 1} \right|_{s = -2} = \frac{5(-2) + 7}{-2 + 1} = \frac{-3}{-1} = 3$$
-3. Taking the inverse Laplace transform:
+2. Applying the Heaviside cover-up rule to each simple real pole:
+   - For $p_1 = -1$, multiply by $(s + 1)$ and substitute $s = -1$:
+     $$R_1 = \left. (s + 1) F(s) \right|_{s = -1} = \left. \frac{5s + 7}{s + 2} \right|_{s = -1} = \frac{5(-1) + 7}{-1 + 2} = \frac{-5 + 7}{1} = 2$$
+   - For $p_2 = -2$, multiply by $(s + 2)$ and substitute $s = -2$:
+     $$R_2 = \left. (s + 2) F(s) \right|_{s = -2} = \left. \frac{5s + 7}{s + 1} \right|_{s = -2} = \frac{5(-2) + 7}{-2 + 1} = \frac{-10 + 7}{-1} = \frac{-3}{-1} = 3$$
+3. Substituting $R_1 = 2$ and $R_2 = 3$ into the expansion and inverting each exponential term:
    $$f(t) = \mathcal{L}^{-1}\left\{ \frac{2}{s + 1} + \frac{3}{s + 2} \right\} = \left( 2e^{-t} + 3e^{-2t} \right) \cdot 1(t)$$
-4. Initial value verification:
-   * Direct evaluation: $f(0^+) = 2e^{0} + 3e^{0} = 2 + 3 = 5$.
-   * Via Initial Value Theorem:
-     $$\lim_{s \to \infty} s F(s) = \lim_{s \to \infty} \frac{s(5s + 7)}{(s + 1)(s + 2)} = \lim_{s \to \infty} \frac{5s^2 + 7s}{s^2 + 3s + 2} = 5$$
-   Both calculations match identically, confirming algebraic correctness.
+4. Checking the initial value $f(0^+)$ both ways:
+   - From the time waveform at $t = 0^+$: $f(0^+) = 2e^{0} + 3e^{0} = 2 + 3 = 5$.
+   - From the Initial Value Theorem in the $s$-domain:
+     $$\lim_{s \to \infty} s F(s) = \lim_{s \to \infty} \frac{5s^2 + 7s}{s^2 + 3s + 2} = \lim_{s \to \infty} \frac{5 + 7/s}{1 + 3/s + 2/s^2} = 5$$
+   Notice that for simple poles, $f(0^+) = \sum_{i} R_i = R_1 + R_2 = 5$, providing an instant check on residue arithmetic.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-5-2" title="Exercise 5.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-5-2" title="Exercise 5.2 — Repeated Pole Residues" level="Exam Standard">
 
-In a UniCT written exam problem, finding the forced response produces the strictly proper transform with a repeated pole:
+Finding a forced response produces the strictly proper transform with a repeated pole:
+
 $$F(s) = \frac{3s^2 + 14s + 13}{(s + 1)(s + 2)^2}$$
+
 1. Write the partial fraction expansion:
    $$F(s) = \frac{R_1}{s + 1} + \frac{A_2}{(s + 2)^2} + \frac{A_1}{s + 2}$$
 2. Calculate the simple pole residue $R_1$.
 3. Calculate the repeated pole residues $A_2$ (order 2) and $A_1$ (order 1) using the differential residue formula.
 4. Compute the analytical inverse Laplace transform $f(t) = \mathcal{L}^{-1}\{F(s)\}$.
 
+<StepCheck
+  client:load
+  prompt="Using the differential residue formula or high-frequency limit $R_1 + A_1 = 3$, what is the order-1 residue $A_1$ at $s = -2$?"
+  expected={1}
+  tolerance={0.05}
+  unit=""
+  explanation="Since $R_1 = 2$ and $\lim_{s\to\infty} sF(s) = 3 = R_1 + A_1$, we get $A_1 = 1$, matching $\lim_{s\to -2} \frac{d}{ds}\left[\frac{3s^2+14s+13}{s+1}\right] = 1$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. General expansion for repeated poles:
+1. Because $\deg(N) = 2 < \deg(D) = 3$, $F(s)$ is strictly proper. The simple pole at $s = -1$ takes one fraction $\frac{R_1}{s+1}$, while the double pole at $s = -2$ ($m = 2$) requires both order-2 and order-1 fractions:
    $$F(s) = \frac{3s^2 + 14s + 13}{(s + 1)(s + 2)^2} = \frac{R_1}{s + 1} + \frac{A_2}{(s + 2)^2} + \frac{A_1}{s + 2}$$
-2. Simple pole residue at $s = -1$:
-   $$R_1 = \left. (s + 1)F(s) \right|_{s = -1} = \left. \frac{3s^2 + 14s + 13}{(s + 2)^2} \right|_{s = -1} = \frac{3(-1)^2 + 14(-1) + 13}{(-1 + 2)^2} = \frac{3 - 14 + 13}{1} = 2$$
-3. Repeated pole residues at $s = -2$:
-   * Order-2 residue $A_2$:
-     $$A_2 = \left. (s + 2)^2 F(s) \right|_{s = -2} = \left. \frac{3s^2 + 14s + 13}{s + 1} \right|_{s = -2} = \frac{3(4) + 14(-2) + 13}{-2 + 1} = \frac{12 - 28 + 13}{-1} = \frac{-3}{-1} = 3$$
-   * Order-1 residue $A_1$ (differential formula):
-     $$\begin{aligned}
-     A_1 &= \lim_{s \to -2} \frac{d}{ds} \left[ (s + 2)^2 F(s) \right] = \lim_{s \to -2} \frac{d}{ds} \left[ \frac{3s^2 + 14s + 13}{s + 1} \right] \\
-     &= \lim_{s \to -2} \frac{(6s + 14)(s + 1) - (3s^2 + 14s + 13)(1)}{(s + 1)^2} \\
-     &= \frac{(6(-2) + 14)(-2 + 1) - (3(4) - 28 + 13)}{(-2 + 1)^2} = \frac{(2)(-1) - (-3)}{1} = -2 + 3 = 1
-     \end{aligned}$$
-   * Consistency check: $\lim_{s \to \infty} s F(s) = R_1 + A_1 = 2 + 1 = 3$, which matches $\lim_{s \to \infty} \frac{3s^3}{s^3} = 3$.
-4. Reconstructing and anti-transforming term by term:
-   $$F(s) = \frac{2}{s + 1} + \frac{3}{(s + 2)^2} + \frac{1}{s + 2}$$
-   $$f(t) = \mathcal{L}^{-1}\{F(s)\} = \left( 2e^{-t} + 3t e^{-2t} + e^{-2t} \right) \cdot 1(t)$$
+2. Cover-up residue at the simple pole $s = -1$:
+   $$R_1 = \left. (s + 1)F(s) \right|_{s = -1} = \left. \frac{3s^2 + 14s + 13}{(s + 2)^2} \right|_{s = -1} = \frac{3(-1)^2 + 14(-1) + 13}{(-1 + 2)^2} = \frac{3 - 14 + 13}{1^2} = 2$$
+3. Repeated pole coefficients at $s = -2$:
+   - For the highest power $A_2$ ($k = 0$), multiply by $(s + 2)^2$ and evaluate at $s = -2$:
+     $$A_2 = \left. (s + 2)^2 F(s) \right|_{s = -2} = \left. \frac{3s^2 + 14s + 13}{s + 1} \right|_{s = -2} = \frac{3(-2)^2 + 14(-2) + 13}{-2 + 1} = \frac{12 - 28 + 13}{-1} = \frac{-3}{-1} = 3$$
+   - For the first-order term $A_1$ ($k = 1$), differentiate $\Phi(s) = (s + 2)^2 F(s) = \frac{3s^2 + 14s + 13}{s + 1}$ with respect to $s$ using the quotient rule $\left(\frac{u}{v}\right)' = \frac{u'v - uv'}{v^2}$ and evaluate at $s = -2$:
+     $$
+     \begin{aligned}
+     A_1 &= \lim_{s \to -2} \frac{d}{ds} \left[ \frac{3s^2 + 14s + 13}{s + 1} \right] = \lim_{s \to -2} \frac{(6s + 14)(s + 1) - (3s^2 + 14s + 13)(1)}{(s + 1)^2} \\
+     &= \frac{\big(6(-2) + 14\big)(-2 + 1) - \big(3(-2)^2 + 14(-2) + 13\big)}{(-2 + 1)^2} = \frac{(2)(-1) - (-3)}{1} = -2 + 3 = 1
+     \end{aligned}
+     $$
+   - Fast exam cross-check: multiplying $F(s)$ by $s$ and taking $s \to \infty$ gives $\lim_{s\to\infty} sF(s) = 3 = R_1 + A_1$ (since $\lim_{s\to\infty} \frac{s A_2}{(s+2)^2} = 0$), which immediately confirms $A_1 = 3 - R_1 = 3 - 2 = 1$.
+4. Substituting $R_1 = 2$, $A_2 = 3$, and $A_1 = 1$ and inverting term by term (using $\mathcal{L}^{-1}\left\{\frac{1}{(s+2)^2}\right\} = t e^{-2t} 1(t)$):
+   $$F(s) = \frac{2}{s + 1} + \frac{3}{(s + 2)^2} + \frac{1}{s + 2} \implies f(t) = \left( 2e^{-t} + 3t e^{-2t} + e^{-2t} \right) \cdot 1(t)$$
 
 </details>
 

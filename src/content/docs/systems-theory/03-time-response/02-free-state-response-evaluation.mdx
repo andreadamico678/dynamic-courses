@@ -12,127 +12,206 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import PhaseFlowExplorer from "@components/PhaseFlowExplorer.tsx";
 
-<MindMap client:load title="Chapter 9 Mental Model" markdown={`# Ch. 9: Free State Response
-  - Autonomous Dynamics and Natural Modes
-  - Modal Projection and Eigenvector Invariance
-  - Detailed Exam Archetype: Hand Derivation of $\mathbf{x}_l(t)$
-    - Step 1: Formulate Dynamic Matrix and Characteristic Roots
-    - Step 2: Compute Resolvent and State Transition Matrix
-    - Step 3: Matrix-Vector Multiplication with Initial State
-    - Step 4: Verification of Boundary Condition at $t = 0$`} />
+<MindMap client:load defaultCollapsed title="Chapter 9 Outline" markdown={`# Ch. 9: Free State Response
+  - Autonomous Motion and Natural Modes
+    - Real simple, repeated defective, and complex modes
+  - Modal Projection and Eigenvectors
+    - Coordinate expansion $\\mathbf{x}_0 = \\sum c_i \\mathbf{v}_i$
+    - Invariance of eigenspaces
+  - Computing Free Response
+    - Resolvent transition matrix $e^{\\mathbf{A}t}$
+    - Boundary verification at $t = 0$`} />
 
-## Autonomous Dynamics and Natural Modes
+## Introduction
 
-When a continuous-time linear system is subjected to an initial energy displacement $\mathbf{x}(0) = \mathbf{x}_0$ in the absence of external excitation ($\mathbf{u}(t) \equiv \mathbf{0}$ for all $t \ge 0$), its internal motion is termed the **Free State Response** (or autonomous motion $\mathbf{x}_l(t)$):
+Before predicting how a motor or aircraft responds to external pilot commands, we must understand what the system does on its own when all inputs are turned off ($\mathbf{u}(t) \equiv \mathbf{0}$) and it is released from an initial stored-energy state $\mathbf{x}(0) = \mathbf{x}_0$. That autonomous trajectory—the **free state response** $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}_0$—reveals the plant's pure natural personality: whether initial energy bleeds away smoothly, rings in decaying oscillations, or diverges outward.
 
-$$\dot{\mathbf{x}}(t) = \mathbf{A} \mathbf{x}(t), \quad \mathbf{x}(0) = \mathbf{x}_0 \implies \mathbf{x}_l(t) = e^{\mathbf{A}t} \mathbf{x}_0$$
+Think of a quadrotor knocked sideways by a brief wind gust or an RLC circuit left with initial capacitor charge: every resulting curve is a weighted mixture of the system's **natural modes**, dictated by its eigenvalues and eigenvectors. Understanding how initial states project onto eigenvectors prepares you directly for internal stability analysis in Part IV.
 
-$$\mathbf{y}_l(t) = \mathbf{C} \mathbf{x}_l(t) = \mathbf{C} e^{\mathbf{A}t} \mathbf{x}_0$$
+<Divider label="1 · Example" />
 
-The trajectory $\mathbf{x}_l(t)$ is entirely synthesized from a finite linear combination of basic elementary mathematical waveforms termed the **Natural Modes** of the system.
+Consider the coupled second-order autonomous system initialized at $\mathbf{x}(0) = \begin{bmatrix} a \\ a \end{bmatrix}$ ($a \neq 0$):
 
-<Callout type="note" title="Taxonomy of Natural Dynamic Modes">
+$$\dot{x}_1(t) = x_2(t), \qquad \dot{x}_2(t) = -6 x_1(t) - 5 x_2(t)$$
 
-The natural modes are determined uniquely by the roots of the characteristic polynomial $p(\lambda) = \det(\lambda \mathbf{I} - \mathbf{A}) = 0$:
-1. **Real Simple Eigenvalue ($\lambda_i \in \mathbb{R}$):** Generates an exponential mode:
-   $$m_i(t) = e^{\lambda_i t}$$
-   Converges monotonically to 0 if $\lambda_i < 0$; diverges to $\pm \infty$ if $\lambda_i > 0$.
-2. **Real Repeated Eigenvalue of Multiplicity $m$ with Defect ($m_g < m_a$):** Generates secular polynomial-exponential modes:
-   $$e^{\lambda_i t}, \quad t e^{\lambda_i t}, \quad t^2 e^{\lambda_i t}, \quad \dots, \quad t^{m-1} e^{\lambda_i t}$$
-3. **Complex Conjugate Pair ($\lambda_{1,2} = \sigma \pm j\omega$):** Generates pseudoperiodic harmonic modes:
-   $$m(t) = e^{\sigma t} \cos(\omega t), \quad e^{\sigma t} \sin(\omega t)$$
-   Damped oscillation if $\sigma < 0$; undamped harmonic oscillation if $\sigma = 0$; growing oscillatory divergence if $\sigma > 0$.
+1. **Dynamic Matrix & Eigenvalues:** Writing $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x}$ gives:
 
-</Callout>
+   $$\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}, \qquad p(\lambda) = \det(\lambda \mathbf{I} - \mathbf{A}) = \det\begin{bmatrix} \lambda & -1 \\ 6 & \lambda + 5 \end{bmatrix} = \lambda^2 + 5\lambda + 6 = (\lambda + 2)(\lambda + 3) = 0$$
 
-<Divider />
+   The eigenvalues are $\lambda_1 = -2$ and $\lambda_2 = -3$. Because both are strictly negative, every initial state decays back to the origin.
 
-## Modal Projection and Eigenvector Invariance
+2. **Eigenvectors & Modal Decomposition:** Solve $(\mathbf{A} - \lambda_i\mathbf{I})\mathbf{v}_i = \mathbf{0}$ for each eigenvalue:
+   - For $\lambda_1 = -2$: $\begin{bmatrix} 2 & 1 \\ -6 & -3 \end{bmatrix}\begin{bmatrix} v_{11} \\ v_{12} \end{bmatrix} = \mathbf{0} \implies 2v_{11} + v_{12} = 0$, so $\mathbf{v}_1 = \begin{bmatrix} 1 \\ -2 \end{bmatrix}$.
+   - For $\lambda_2 = -3$: $\begin{bmatrix} 3 & 1 \\ -6 & -2 \end{bmatrix}\begin{bmatrix} v_{21} \\ v_{22} \end{bmatrix} = \mathbf{0} \implies 3v_{21} + v_{22} = 0$, so $\mathbf{v}_2 = \begin{bmatrix} 1 \\ -3 \end{bmatrix}$.
 
-Let $\mathbf{A} \in \mathbb{R}^{n \times n}$ possess $n$ distinct eigenvalues $\{\lambda_1, \dots, \lambda_n\}$ with corresponding right eigenvectors $\{\mathbf{v}_1, \dots, \mathbf{v}_n\}$. Any initial condition vector $\mathbf{x}_0 \in \mathbb{R}^n$ can be uniquely expanded in the eigenvector basis:
+   Decomposing the initial vector $\mathbf{x}(0) = [a, \; a]^T$ in this eigenbasis gives $\mathbf{x}(0) = 4a\mathbf{v}_1 - 3a\mathbf{v}_2$ (check: $4a[1, -2]^T - 3a[1, -3]^T = [a, a]^T$).
 
-$$\mathbf{x}_0 = c_1 \mathbf{v}_1 + c_2 \mathbf{v}_2 + \dots + c_n \mathbf{v}_n = \sum_{i=1}^n c_i \mathbf{v}_i$$
+3. **State Transition Matrix & Free Trajectory:** From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), the state transition matrix is:
 
-where the modal coordinates $\mathbf{c} = \begin{bmatrix} c_1 & \dots & c_n \end{bmatrix}^T$ are computed via $\mathbf{c} = \mathbf{T}^{-1} \mathbf{x}_0$ with $\mathbf{T} = [\mathbf{v}_1 \; \dots \; \mathbf{v}_n]$.
-Applying the state transition operator to the equation above:
+   $$e^{\mathbf{A}t} = \begin{bmatrix} 3e^{-2t} - 2e^{-3t} & e^{-2t} - e^{-3t} \\ -6e^{-2t} + 6e^{-3t} & -2e^{-2t} + 3e^{-3t} \end{bmatrix}$$
 
-$$\mathbf{x}_l(t) = e^{\mathbf{A}t} \mathbf{x}_0 = e^{\mathbf{A}t} \sum_{i=1}^n c_i \mathbf{v}_i = \sum_{i=1}^n c_i e^{\mathbf{A}t} \mathbf{v}_i$$
+   Multiplying $e^{\mathbf{A}t}$ by $\mathbf{x}(0) = [a, \; a]^T$ adds the two columns scaled by $a$:
 
-Because $\mathbf{A} \mathbf{v}_i = \lambda_i \mathbf{v}_i$, the series definition the equation above establishes that $e^{\mathbf{A}t} \mathbf{v}_i = e^{\lambda_i t} \mathbf{v}_i$. Thus:
+   $$
+   \begin{aligned}
+   \mathbf{x}_l(t) &= e^{\mathbf{A}t} \mathbf{x}(0) = a \begin{bmatrix} (3e^{-2t} - 2e^{-3t}) + (e^{-2t} - e^{-3t}) \\ (-6e^{-2t} + 6e^{-3t}) + (-2e^{-2t} + 3e^{-3t}) \end{bmatrix} \\
+   &= \begin{bmatrix} 4a e^{-2t} - 3a e^{-3t} \\ -8a e^{-2t} + 9a e^{-3t} \end{bmatrix} = 4a e^{-2t}\begin{bmatrix} 1 \\ -2 \end{bmatrix} - 3a e^{-3t}\begin{bmatrix} 1 \\ -3 \end{bmatrix}
+   \end{aligned}
+   $$
 
-$$\mathbf{x}_l(t) = \sum_{i=1}^n c_i e^{\lambda_i t} \mathbf{v}_i = c_1 e^{\lambda_1 t} \mathbf{v}_1 + c_2 e^{\lambda_2 t} \mathbf{v}_2 + \dots + c_n e^{\lambda_n t} \mathbf{v}_n$$
+   Notice that the matrix multiplication produces the exact same modal decomposition $4a e^{-2t}\mathbf{v}_1 - 3a e^{-3t}\mathbf{v}_2$: the initial state splits into two independent exponential waves, one along $\mathbf{v}_1$ decaying at rate $e^{-2t}$ and one along $\mathbf{v}_2$ decaying faster at rate $e^{-3t}$.
 
-<Callout type="tip" title="Foundational Theorem: Invariance of Eigenspaces">
-
-If the initial state $\mathbf{x}_0$ is chosen **parallel to an eigenvector** $\mathbf{v}_k$ (i.e., $\mathbf{x}_0 = c_k \mathbf{v}_k$), then $c_i = 0$ for all $i \neq k$.
-The resulting state trajectory is strictly confined to the 1-dimensional ray $\operatorname{span}\{\mathbf{v}_k\}$:
-$$\mathbf{x}_l(t) = c_k e^{\lambda_k t} \mathbf{v}_k$$
-In this condition, **only the single mode $e^{\lambda_k t}$ is excited**. No other modes appear in the internal motion or output!
-
-</Callout>
+4. **Boundary Check ($t = 0$):** Evaluating at $t = 0$ confirms $\mathbf{x}_l(0) = [4a - 3a, \; -8a + 9a]^T = [a, \; a]^T = \mathbf{x}(0)$. As $t$ grows, the faster mode $e^{-3t}$ dies out first, leaving $\mathbf{x}_l(t)$ tangent to the slower eigenvector $\mathbf{v}_1 = [1, \; -2]^T$ as it approaches the origin.
 
 <figure id="fig-modal-eigenspace-trajectories" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-modal-eigenspace-trajectories.svg" alt="Modal trajectories in the phase plane. Trajectories initialized along an eigenvector remain confined to that 1D invariant subspace for all time. Trajectories initialized off-axis rapidly decay along the fast manifold $\mathbf{v}_2$ and enter the origin asymptotically tangent to the dominant, slowest-decaying eigenspace $\mathbf{v}_1$." />
-  <figcaption>Modal trajectories in the phase plane. Trajectories initialized along an eigenvector remain confined to that 1D invariant subspace for all time. Trajectories initialized off-axis rapidly decay along the fast manifold $\mathbf{v}_2$ and enter the origin asymptotically tangent to the dominant, slowest-decaying eigenspace $\mathbf{v}_1$.</figcaption>
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-modal-eigenspace-trajectories.svg" alt="Modal trajectories in the phase plane. Trajectories initialized along an eigenvector remain confined to that 1D invariant subspace for all time. Trajectories initialized off-axis rapidly decay along the fast manifold v_2 and enter the origin asymptotically tangent to the dominant, slowest-decaying eigenspace v_1." />
+  <figcaption>Modal trajectories in the phase plane: initial states on an eigenvector stay on that ray forever, while off-axis states decay rapidly along the fast manifold $\mathbf{v}_2$ and approach the origin tangent to the slow eigenspace $\mathbf{v}_1$.</figcaption>
 </figure>
 
-<Divider />
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="In the example trajectory $\mathbf{x}_l(t) = \begin{bmatrix} 4a e^{-2t} - 3a e^{-3t} \\ -8a e^{-2t} + 9a e^{-3t} \end{bmatrix}$, which mode governs the asymptotic direction as $t \to \infty$?"
+  options={[
+    "The fast mode $e^{-3t}$ because its magnitude coefficient is larger",
+    "The slow mode $e^{-2t}$ because $e^{-3t}/e^{-2t} = e^{-t} \\to 0$",
+    "Both modes persist equally for all $t > 0$"
+  ]}
+  correctIndex={1}
+  explanation="Because $e^{-3t}$ decays faster than $e^{-2t}$, their ratio vanishes as $t \to \infty$, aligning the trajectory with the slow eigenvector $[1, -2]^T$ of $\lambda_1 = -2$."
+/>
 
-## Detailed Exam Archetype: Hand Derivation of $\mathbf{x}_l(t)$
-
-We solve the analytical derivation appearing in the 2024 and 2025 examination problems:
-
-**Problem Statement:** Given the second-order system:
-$$\dot{x}_1(t) = x_2(t)$$
-$$\dot{x}_2(t) = -6 x_1(t) - 5 x_2(t)$$
-Calculate the free state response $\mathbf{x}_l(t)$ starting from initial conditions $\mathbf{x}(0) = \begin{bmatrix} a \\ a \end{bmatrix}$.
-
-### Step 1: Formulate Dynamic Matrix and Characteristic Roots
-$$\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}, \quad \mathbf{x}(0) = \begin{bmatrix} a \\ a \end{bmatrix}$$
-$$p(\lambda) = \det\begin{bmatrix} \lambda & -1 \\ 6 & \lambda + 5 \end{bmatrix} = \lambda^2 + 5\lambda + 6 = (\lambda + 2)(\lambda + 3) = 0$$
-The eigenvalues are $\lambda_1 = -2$ and $\lambda_2 = -3$. Both are strictly negative real numbers, ensuring asymptotic stability.
-
-### Step 2: Compute Resolvent and State Transition Matrix
-From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), the state transition matrix is:
-$$e^{\mathbf{A}t} = \begin{bmatrix} 3e^{-2t} - 2e^{-3t} & e^{-2t} - e^{-3t} \\ -6e^{-2t} + 6e^{-3t} & -2e^{-2t} + 3e^{-3t} \end{bmatrix}$$
-
-### Step 3: Matrix-Vector Multiplication with Initial State
-$$\begin{aligned}
-\mathbf{x}_l(t) &= e^{\mathbf{A}t} \mathbf{x}(0) = \begin{bmatrix} 3e^{-2t} - 2e^{-3t} & e^{-2t} - e^{-3t} \\ -6e^{-2t} + 6e^{-3t} & -2e^{-2t} + 3e^{-3t} \end{bmatrix} \begin{bmatrix} a \\ a \end{bmatrix} \\
-&= a \begin{bmatrix} (3e^{-2t} - 2e^{-3t}) + (e^{-2t} - e^{-3t}) \\ (-6e^{-2t} + 6e^{-3t}) + (-2e^{-2t} + 3e^{-3t}) \end{bmatrix} \\
-&= a \begin{bmatrix} 4e^{-2t} - 3e^{-3t} \\ -8e^{-2t} + 9e^{-3t} \end{bmatrix} = \begin{bmatrix} 4a e^{-2t} - 3a e^{-3t} \\ -8a e^{-2t} + 9a e^{-3t} \end{bmatrix}
-\end{aligned}$$
-
-### Step 4: Verification of Boundary Condition at $t = 0$
-$$\mathbf{x}_l(0) = \begin{bmatrix} 4a(1) - 3a(1) \\ -8a(1) + 9a(1) \end{bmatrix} = \begin{bmatrix} a \\ a \end{bmatrix} = \mathbf{x}(0) \quad \checkmark$$
-
-<Callout type="bridge" title="SDU Robotics Bridge: Attitude Recovery in Multirotors After Wind Gusts">
-
-When an autonomous drone experiences a sudden wind gust, aerodynamic torque displaces its pitch and roll angles away from hover trim ($\theta_0 \neq 0, \dot{\theta}_0 \neq 0$). If motor thrust commands temporarily saturate or if the autopilot executes an emergency unforced damping mode, the drone's attitude trajectory follows the free response:
-$$\mathbf{x}_l(t) = e^{\mathbf{A}t} \mathbf{x}_0$$
-Because aerodynamic damping guarantees $\operatorname{Re}(\lambda_i) < 0$, the airframe naturally dissipates rotational kinetic energy and aligns back toward equilibrium. SDU flight testing protocols analyze free-response decay rates to experimentally identify unmodeled physical airframe damping parameters $d_r/J_{yy}$.
-
-</Callout>
-
-<Divider />
-
-
-<Divider label="Interactive Lab" />
+Switch between **Stable Node**, **Focus**, **Saddle**, and **Center** presets, and click along a dashed eigenvector line versus off-axis to see invariant rays versus curved trajectories.
 
 <PhaseFlowExplorer client:load initialPreset="node" />
 
-<Divider label="Interactive Practice & Exam Drills" />
+<Divider label="2 · Theory" />
 
-## Chapter Exercises
+### Autonomous Dynamics and Modes
 
-<Exercise client:load id="ex-9-1" title="Exercise 9.1: Decoupled Free State Trajectory" level="LEVEL 1: WARM-UP DRILL">
+When a continuous-time linear system starts with initial stored energy $\mathbf{x}(0) = \mathbf{x}_0$ under zero external input ($\mathbf{u}(t) \equiv \mathbf{0}$ for all $t \ge 0$), the input term $\mathbf{B}\mathbf{u}(t)$ and feedthrough term $\mathbf{D}\mathbf{u}(t)$ vanish. From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), the **free state response** $\mathbf{x}_l(t)$ and **free output response** $\mathbf{y}_l(t)$ are:
+
+$$
+\dot{\mathbf{x}}(t) = \mathbf{A} \mathbf{x}(t), \quad \mathbf{x}(0) = \mathbf{x}_0 \implies \mathbf{x}_l(t) = e^{\mathbf{A}t} \mathbf{x}_0, \qquad \mathbf{y}_l(t) = \mathbf{C} e^{\mathbf{A}t} \mathbf{x}_0
+$$
+
+Physically, $\mathbf{x}_l(t)$ tracks how the system's internal energy (stored in springs, masses, capacitors, or inductors) redistributes and dissipates on its own.
+
+Because $e^{\mathbf{A}t} = \mathcal{L}^{-1}\{(s\mathbf{I} - \mathbf{A})^{-1}\}$ and every entry of $(s\mathbf{I} - \mathbf{A})^{-1}$ has denominator dividing $p(s) = \det(s\mathbf{I} - \mathbf{A})$, every component of $\mathbf{x}_l(t)$ is a linear combination of elementary waveforms called the **natural modes** of the system. By [Partial Fraction Expansion](/dynamic-courses/systems-theory/02-laplace-resolvent/02-partial-fraction-expansion-heaviside-residues/), each root of $p(\lambda) = 0$ generates one of three mode families:
+
+1. **Real Simple Eigenvalue ($\lambda_i \in \mathbb{R}$):** A simple pole at $s = \lambda_i$ produces $\frac{1}{s - \lambda_i} \xrightarrow{\mathcal{L}^{-1}} e^{\lambda_i t}$. The mode decays monotonically to $0$ if $\lambda_i < 0$, stays constant if $\lambda_i = 0$, and diverges if $\lambda_i > 0$.
+2. **Real Repeated Eigenvalue with Defect ($m_g < m_a$):** When a Jordan block of size $m \ge 2$ occurs (so the geometric multiplicity $m_g = n - \operatorname{rank}(\lambda_i\mathbf{I} - \mathbf{A})$ is strictly less than the algebraic multiplicity $m_a$), $(s\mathbf{I} - \mathbf{A})^{-1}$ contains higher-order poles $\frac{1}{(s - \lambda_i)^{k+1}}$ ($0 \le k \le m - 1$), generating secular polynomial-exponential modes $e^{\lambda_i t}, \; t e^{\lambda_i t}, \; \dots, \; t^{m-1} e^{\lambda_i t}$. Note that if $\mathbf{A}$ is diagonalizable ($m_g = m_a$), all higher-order poles cancel and no $t^k$ terms appear.
+3. **Complex Conjugate Pair ($\lambda_{1,2} = \sigma \pm j\omega$):** Since $\mathbf{A}$ has real entries, complex eigenvalues always appear in conjugate pairs. By Euler's formula, $e^{(\sigma \pm j\omega)t} = e^{\sigma t}(\cos\omega t \pm j\sin\omega t)$, so combining conjugate residues yields real oscillatory modes $e^{\sigma t}\cos(\omega t)$ and $e^{\sigma t}\sin(\omega t)$—damped if $\sigma < 0$, sustained harmonic if $\sigma = 0$, and growing if $\sigma > 0$.
+
+### Modal Projection
+
+To see *why* $\mathbf{x}_l(t)$ behaves geometrically as a sum of straight-line rays in state space, suppose $\mathbf{A} \in \mathbb{R}^{n \times n}$ has $n$ distinct eigenvalues $\{\lambda_1, \dots, \lambda_n\}$ with linearly independent right eigenvectors $\{\mathbf{v}_1, \dots, \mathbf{v}_n\}$. As in [Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/), any initial vector $\mathbf{x}_0 \in \mathbb{R}^n$ expands uniquely in the eigenbasis:
+
+$$
+\mathbf{x}_0 = c_1 \mathbf{v}_1 + c_2 \mathbf{v}_2 + \dots + c_n \mathbf{v}_n = \sum_{i=1}^n c_i \mathbf{v}_i
+$$
+
+where the modal coordinate vector $\mathbf{c} = [c_1, \dots, c_n]^T$ is given by $\mathbf{c} = \mathbf{T}^{-1}\mathbf{x}_0$ for $\mathbf{T} = [\mathbf{v}_1 \; \dots \; \mathbf{v}_n]$.
+
+Now examine how $e^{\mathbf{A}t}$ acts on a single eigenvector $\mathbf{v}_i$. From $\mathbf{A}\mathbf{v}_i = \lambda_i \mathbf{v}_i$, multiplying repeatedly by $\mathbf{A}$ gives $\mathbf{A}^2 \mathbf{v}_i = \mathbf{A}(\lambda_i \mathbf{v}_i) = \lambda_i^2 \mathbf{v}_i$, and by induction $\mathbf{A}^k \mathbf{v}_i = \lambda_i^k \mathbf{v}_i$ for every $k \ge 0$. Substituting this into the matrix exponential power series yields:
+
+$$
+e^{\mathbf{A}t} \mathbf{v}_i = \left(\sum_{k=0}^\infty \frac{t^k}{k!} \mathbf{A}^k\right) \mathbf{v}_i = \sum_{k=0}^\infty \frac{t^k}{k!} \left(\mathbf{A}^k \mathbf{v}_i\right) = \left(\sum_{k=0}^\infty \frac{(\lambda_i t)^k}{k!}\right) \mathbf{v}_i = e^{\lambda_i t} \mathbf{v}_i
+$$
+
+Applying linearity of $e^{\mathbf{A}t}$ to the expansion $\mathbf{x}_0 = \sum_{i=1}^n c_i \mathbf{v}_i$ immediately decomposes the free response into $n$ independent modal waves:
+
+$$
+\mathbf{x}_l(t) = e^{\mathbf{A}t} \mathbf{x}_0 = \sum_{i=1}^n c_i e^{\mathbf{A}t} \mathbf{v}_i = \sum_{i=1}^n c_i e^{\lambda_i t} \mathbf{v}_i, \qquad \mathbf{y}_l(t) = \sum_{i=1}^n c_i e^{\lambda_i t} (\mathbf{C}\mathbf{v}_i)
+$$
+
+Each scalar $c_i$ is the initial excitation amplitude of mode $i$; if $\mathbf{x}_0$ happens to be orthogonal to the $i$-th left eigenvector $\mathbf{w}_i^T$, then $c_i = \mathbf{w}_i^T \mathbf{x}_0 = 0$ and mode $i$ remains completely silent.
+
+### Invariance of Eigenspaces
+
+Suppose we choose the initial state $\mathbf{x}_0$ to lie strictly along a single eigenvector $\mathbf{v}_k$, so that $\mathbf{x}_0 = c_k \mathbf{v}_k$ and $c_i = 0$ for all $i \neq k$. Because $e^{\mathbf{A}t}\mathbf{v}_k = e^{\lambda_k t}\mathbf{v}_k$, the entire trajectory collapses to:
+
+$$
+\mathbf{x}_l(t) = c_k e^{\lambda_k t} \mathbf{v}_k
+$$
+
+Geometrically, $\mathbf{x}_l(t)$ only changes length by the positive scalar factor $e^{\lambda_k t}$ and never leaves the one-dimensional ray $\operatorname{span}\{\mathbf{v}_k\}$ for any $t \ge 0$. Thus, **eigenspaces are invariant** under $e^{\mathbf{A}t}$, and **only the single mode** $e^{\lambda_k t}$ is excited.
+
+Conversely, for a generic off-axis initial state where $c_1, \dots, c_n$ are all nonzero and the eigenvalues are real and ordered $0 > \lambda_1 > \lambda_2 > \dots > \lambda_n$, factoring out the slowest exponential $e^{\lambda_1 t}$ gives:
+
+$$
+\mathbf{x}_l(t) = e^{\lambda_1 t}\left(c_1 \mathbf{v}_1 + \sum_{i=2}^n c_i e^{(\lambda_i - \lambda_1)t}\mathbf{v}_i\right)
+$$
+
+Because $\lambda_i - \lambda_1 < 0$ for all $i \ge 2$, every fast term $e^{(\lambda_i - \lambda_1)t}$ vanishes relative to $c_1 \mathbf{v}_1$ as $t \to \infty$. That is why off-axis trajectories in a stable node always bend away from the fast eigenvector and enter the origin tangent to the slowest (dominant) eigenvector $\mathbf{v}_1$.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="If an initial state $\mathbf{x}(0) = 3\mathbf{v}_2$ lies strictly along eigenvector $\mathbf{v}_2$ of $\mathbf{A}$ (with $\mathbf{A}\mathbf{v}_2 = \lambda_2 \mathbf{v}_2$), which natural modes appear in $\mathbf{x}_l(t)$?"
+  options={[
+    "Every mode $e^{\\lambda_1 t}, \\dots, e^{\\lambda_n t}$ is excited equally",
+    "Only the single mode $e^{\\lambda_2 t}$ appears, keeping $\\mathbf{x}_l(t) = 3 e^{\\lambda_2 t} \\mathbf{v}_2$ on $\\operatorname{span}\\{\\mathbf{v}_2\\}$",
+    "The trajectory immediately jumps onto the slowest eigenvector $\\mathbf{v}_1$"
+  ]}
+  correctIndex={1}
+  explanation="Eigenspaces are invariant under $e^{\mathbf{A}t}$: since $e^{\mathbf{A}t}\mathbf{v}_2 = e^{\lambda_2 t}\mathbf{v}_2$, all other modal coordinates stay identically zero for all $t \ge 0$."
+/>
+
+<Callout type="bridge" title="SDU Robotics Bridge: Attitude Recovery in Multirotors After Wind Gusts">
+
+When an autonomous drone experiences a sudden wind gust, aerodynamic torque displaces its pitch and roll angles away from hover trim ($\theta_0 \neq 0, \dot{\theta}_0 \neq 0$). If motor thrust commands temporarily saturate or the autopilot runs an unforced damping mode, the airframe's attitude follows $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}_0$. Because aerodynamic damping gives $\operatorname{Re}(\lambda_i) < 0$, SDU flight tests measure free-response decay rates to identify physical airframe damping parameters $d_r / J_{yy}$.
+
+</Callout>
+
+<Divider label="3 · Summary" />
+
+| Eigenvalue Type | Natural Modes | Decay / Growth Condition |
+| :--- | :--- | :--- |
+| **Real simple** $\lambda_i$ | $e^{\lambda_i t}$ | Decays if $\lambda_i < 0$; grows if $\lambda_i > 0$ |
+| **Defective** ($m_g < m_a$) | $e^{\lambda_i t}, \; t e^{\lambda_i t}, \; \dots, \; t^{m-1} e^{\lambda_i t}$ | Decays if $\lambda_i < 0$; grows if $\lambda_i \ge 0$ |
+| **Complex pair** $\sigma \pm j\omega$ | $e^{\sigma t}\cos(\omega t), \; e^{\sigma t}\sin(\omega t)$ | Damped if $\sigma < 0$; sustained if $\sigma = 0$; grows if $\sigma > 0$ |
+
+### Evaluation Procedure
+
+1. Assemble $\mathbf{A}$ and solve $\det(\lambda \mathbf{I} - \mathbf{A}) = 0$ to identify all natural modes.
+2. Compute $e^{\mathbf{A}t}$ via $\mathcal{L}^{-1}\{(s\mathbf{I} - \mathbf{A})^{-1}\}$ or spectral modal decomposition $\sum c_i e^{\lambda_i t}\mathbf{v}_i$.
+3. Multiply $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}(0)$ and compute output $\mathbf{y}_l(t) = \mathbf{C}\mathbf{x}_l(t)$ if required.
+4. Check the boundary condition $\mathbf{x}_l(0) = \mathbf{x}(0)$ to catch sign or partial-fraction errors.
+
+### Key Proofs
+
+- **Eigenvector Propagation:** Expanding $e^{\mathbf{A}t}\mathbf{v}_i = \sum_{k=0}^\infty \frac{t^k}{k!}\mathbf{A}^k\mathbf{v}_i = \sum_{k=0}^\infty \frac{(\lambda_i t)^k}{k!}\mathbf{v}_i = e^{\lambda_i t}\mathbf{v}_i$ proves that each eigenvector stays invariant and scales purely by $e^{\lambda_i t}$.
+- **Modal Decomposition:** Expanding $\mathbf{x}_0$ in the eigenbasis $\mathbf{T} = [\mathbf{v}_1 \; \dots \; \mathbf{v}_n]$ yields $\mathbf{x}_l(t) = \sum_{i=1}^n c_i e^{\lambda_i t}\mathbf{v}_i$.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Skipping the $t = 0$ Check:** Always plug $t = 0$ into your final $\mathbf{x}_l(t)$ to confirm it equals $\mathbf{x}(0)$.
+2. **Slow vs. Fast Alignment:** Off-axis trajectories approach the origin tangent to the **slowest** decaying eigenvector (smallest $|\operatorname{Re}(\lambda)|$), not the fastest.
+3. **Secular Terms on Repeated Roots:** Repeated eigenvalues produce $t^k e^{\lambda t}$ modes only when a Jordan block has size $\ge 2$ ($m_g < m_a$), not when $\mathbf{A}$ is diagonalizable.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-9-1" title="Exercise 9.1 — Decoupled Free State Trajectory" level="Warm-Up">
 
 Consider the decoupled stable continuous-time system:
+
 $$\mathbf{A} = \begin{bmatrix} -2 & 0 \\ 0 & -5 \end{bmatrix}, \quad \mathbf{x}(0) = \begin{bmatrix} 3 \\ -1 \end{bmatrix}$$
 
 1. Write the state transition matrix $e^{\mathbf{A}t}$ by inspection.
 2. Calculate the explicit free state trajectory $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}(0)$.
 3. Determine which of the two state variables decays faster. Calculate the time $t_1$ required for $x_1(t)$ to decay to $1\%$ of its initial value, and compare it with the time $t_2$ required for $x_2(t)$.
+
+<StepCheck
+  client:load
+  prompt="Compute the time $t_1$ required for $x_1(t)$ to decay to $1\%$ of its initial value (3 decimal places):"
+  expected={2.303}
+  tolerance={0.02}
+  unit="$\mathrm{s}$"
+  explanation="Since $e^{-2t_1} = 0.01$, $t_1 = -\ln(0.01)/2 \approx 4.605 / 2 \approx 2.303\;\mathrm{s}$, which is $2.5\times$ slower than $t_2 \approx 0.921\;\mathrm{s}$."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
@@ -141,27 +220,36 @@ $$\mathbf{A} = \begin{bmatrix} -2 & 0 \\ 0 & -5 \end{bmatrix}, \quad \mathbf{x}(
    $$e^{\mathbf{A}t} = \begin{bmatrix} e^{-2t} & 0 \\ 0 & e^{-5t} \end{bmatrix}$$
 2. The free state trajectory from initial state $\mathbf{x}(0) = \begin{bmatrix} 3 \\ -1 \end{bmatrix}$ is:
    $$\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}(0) = \begin{bmatrix} e^{-2t} & 0 \\ 0 & e^{-5t} \end{bmatrix}\begin{bmatrix} 3 \\ -1 \end{bmatrix} = \begin{bmatrix} 3e^{-2t} \\ -e^{-5t} \end{bmatrix}$$
+   Boundary check: $\mathbf{x}_l(0) = [3, \; -1]^T = \mathbf{x}(0)$. $\checkmark$
 3. State variable $x_2(t)$ decays much faster because its eigenvalue magnitude $|\lambda_2| = 5$ is larger than $|\lambda_1| = 2$.
    Time to reach $1\%$ ($0.01$) of initial amplitude:
-   * For $x_1(t)$: $e^{-2t_1} = 0.01 \implies -2t_1 = \ln(0.01) = -4.605 \implies t_1 \approx 2.303\text{ s}$.
-   * For $x_2(t)$: $e^{-5t_2} = 0.01 \implies -5t_2 = -4.605 \implies t_2 \approx 0.921\text{ s}$.
-   The slow mode $\lambda_1 = -2$ persists $2.5$ times longer and completely dictates the long-term convergence time.
+   - For $x_1(t)$: $e^{-2t_1} = 0.01 \implies -2t_1 = \ln(0.01) \approx -4.605 \implies t_1 \approx 2.303\;\text{s}$.
+   - For $x_2(t)$: $e^{-5t_2} = 0.01 \implies -5t_2 = \ln(0.01) \approx -4.605 \implies t_2 \approx 0.921\;\text{s}$.
+   The slow mode $\lambda_1 = -2$ persists $2.5$ times longer and dictates the overall convergence time.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-9-2" title="Exercise 9.2: Authentic Exam Problem 1 Free Response" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-9-2" title="Exercise 9.2 — Underdamped Second-Order Free Response" level="Intermediate">
 
-Consider the continuous-time system from the UniCT examination paper ($a=1$):
-$$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -5/2 & -2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 0 \end{bmatrix}$$
-with initial state condition:
-$$\mathbf{x}(0) = \begin{bmatrix} 1 \\ 1 \end{bmatrix}$$
+Consider the continuous-time system:
+
+$$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -5/2 & -2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 0 \end{bmatrix}, \quad \mathbf{x}(0) = \begin{bmatrix} 1 \\ 1 \end{bmatrix}$$
 
 1. Determine system eigenvalues $\det(\lambda\mathbf{I} - \mathbf{A}) = 0$ and classify internal stability.
 2. Compute the state resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$ and its inverse Laplace transform $e^{\mathbf{A}t}$.
 3. Calculate the analytical free state trajectory $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}(0)$.
 4. Compute the corresponding free output trajectory $y_l(t) = \mathbf{C}\mathbf{x}_l(t)$.
+
+<StepCheck
+  client:load
+  prompt="Find the damped oscillation frequency $\omega$ (imaginary part magnitude of the eigenvalues) in $\mathrm{rad/s}$:"
+  expected={2}
+  tolerance={0.01}
+  unit="$\mathrm{rad/s}$"
+  explanation="The characteristic polynomial $\lambda^2 + 2\lambda + 5 = (\lambda + 1)^2 + 2^2 = 0$ gives $\lambda_{1,2} = -1 \pm j2$, so $\omega = 2\;\mathrm{rad/s}$."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
@@ -172,17 +260,59 @@ $$\mathbf{x}(0) = \begin{bmatrix} 1 \\ 1 \end{bmatrix}$$
    Since $\operatorname{Re}(\lambda_{1,2}) = -1 < 0$, the system is **asymptotically stable** with underdamped oscillatory modes.
 2. Resolvent matrix:
    $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{s^2 + 2s + 5}\begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix}$$
-   Completing the square on the denominator: $(s+1)^2 + 2^2$.
-   Taking inverse Laplace transforms entry-by-entry:
-   * Entry $(1,1)$: $\frac{s+2}{(s+1)^2 + 4} = \frac{s+1}{(s+1)^2 + 4} + \frac{1}{2}\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} e^{-t}\cos(2t) + \frac{1}{2}e^{-t}\sin(2t)$
-   * Entry $(1,2)$: $\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} e^{-t}\sin(2t)$
-   * Entry $(2,1)$: $\frac{-5/2}{(s+1)^2 + 4} = -\frac{5}{4}\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} -\frac{5}{4}e^{-t}\sin(2t)$
-   * Entry $(2,2)$: $\frac{s}{(s+1)^2 + 4} = \frac{s+1}{(s+1)^2 + 4} - \frac{1}{2}\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} e^{-t}\cos(2t) - \frac{1}{2}e^{-t}\sin(2t)$
+   Completing the square on the denominator gives $(s+1)^2 + 2^2$. Taking inverse Laplace transforms entry by entry:
+   - Entry $(1,1)$: $\frac{s+2}{(s+1)^2 + 4} = \frac{s+1}{(s+1)^2 + 4} + \frac{1}{2}\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} e^{-t}\cos(2t) + \frac{1}{2}e^{-t}\sin(2t)$
+   - Entry $(1,2)$: $\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} e^{-t}\sin(2t)$
+   - Entry $(2,1)$: $\frac{-5/2}{(s+1)^2 + 4} = -\frac{5}{4}\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} -\frac{5}{4}e^{-t}\sin(2t)$
+   - Entry $(2,2)$: $\frac{s}{(s+1)^2 + 4} = \frac{s+1}{(s+1)^2 + 4} - \frac{1}{2}\frac{2}{(s+1)^2 + 4} \xrightarrow{\mathcal{L}^{-1}} e^{-t}\cos(2t) - \frac{1}{2}e^{-t}\sin(2t)$
    $$e^{\mathbf{A}t} = e^{-t}\begin{bmatrix} \cos(2t) + \frac{1}{2}\sin(2t) & \sin(2t) \\ -\frac{5}{4}\sin(2t) & \cos(2t) - \frac{1}{2}\sin(2t) \end{bmatrix}$$
 3. Free state trajectory with $\mathbf{x}(0) = \begin{bmatrix} 1 \\ 1 \end{bmatrix}$:
-   $$\mathbf{x}_l(t) = e^{\mathbf{A}t}\begin{bmatrix} 1 \\ 1 \end{bmatrix} = e^{-t}\begin{bmatrix} \cos(2t) + \frac{3}{2}\sin(2t) \\ \cos(2t) - \frac{7}{4}\sin(2t) \end{bmatrix}$$
+   $$\mathbf{x}_l(t) = e^{\mathbf{A}t}\begin{bmatrix} 1 \\ 1 \end{bmatrix} = e^{-t}\begin{bmatrix} \left(\cos(2t) + \frac{1}{2}\sin(2t)\right) + \sin(2t) \\ -\frac{5}{4}\sin(2t) + \left(\cos(2t) - \frac{1}{2}\sin(2t)\right) \end{bmatrix} = e^{-t}\begin{bmatrix} \cos(2t) + \frac{3}{2}\sin(2t) \\ \cos(2t) - \frac{7}{4}\sin(2t) \end{bmatrix}$$
+   Boundary check: $\mathbf{x}_l(0) = [1, \; 1]^T = \mathbf{x}(0)$. $\checkmark$
 4. Free output response for $\mathbf{C} = \begin{bmatrix} 2 & 0 \end{bmatrix}$:
    $$y_l(t) = \mathbf{C}\mathbf{x}_l(t) = 2 x_{l1}(t) = e^{-t}\left( 2\cos(2t) + 3\sin(2t) \right)$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-9-3" title="Exercise 9.3 — Modal Projection and Suppression" level="Exam Standard">
+
+Consider the upper-triangular system:
+
+$$\mathbf{A} = \begin{bmatrix} -1 & 1 \\ 0 & -4 \end{bmatrix}, \qquad \mathbf{C} = \begin{bmatrix} 1 & 1 \end{bmatrix}, \qquad \mathbf{x}(0) = \begin{bmatrix} 2 \\ 3 \end{bmatrix}$$
+
+1. Find the eigenvalues $\lambda_1, \lambda_2$ and corresponding right eigenvectors $\mathbf{v}_1, \mathbf{v}_2$ of $\mathbf{A}$.
+2. Form the modal matrix $\mathbf{T} = [\mathbf{v}_1 \; \mathbf{v}_2]$, compute $\mathbf{T}^{-1}$, and express $\mathbf{x}(0) = c_1 \mathbf{v}_1 + c_2 \mathbf{v}_2$.
+3. Write the free state response $\mathbf{x}_l(t)$ and free output response $y_l(t)$ directly using modal projection.
+4. State a non-zero initial state $\tilde{\mathbf{x}}(0)$ for which the slow mode $e^{-t}$ is completely absent from $\mathbf{x}_l(t)$.
+
+<StepCheck
+  client:load
+  prompt="Compute the modal coordinate $c_1$ (coefficient of the slow eigenvector $\mathbf{v}_1$ corresponding to $\lambda_1 = -1$) for $\mathbf{x}(0) = [2, 3]^T$:"
+  expected={3}
+  tolerance={0.01}
+  unit=""
+  explanation="With $\mathbf{v}_1 = [1, 0]^T$ and $\mathbf{v}_2 = [1, -3]^T$, $\mathbf{c} = \mathbf{T}^{-1}\mathbf{x}(0) = [3, -1]^T$, so $c_1 = 3$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. Because $\mathbf{A}$ is upper-triangular, its eigenvalues are the diagonal entries $\lambda_1 = -1$ and $\lambda_2 = -4$.
+   - For $\lambda_1 = -1$: $(\mathbf{A} + \mathbf{I})\mathbf{v}_1 = \begin{bmatrix} 0 & 1 \\ 0 & -3 \end{bmatrix}\mathbf{v}_1 = \mathbf{0} \implies v_{12} = 0$, so $\mathbf{v}_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$.
+   - For $\lambda_2 = -4$: $(\mathbf{A} + 4\mathbf{I})\mathbf{v}_2 = \begin{bmatrix} 3 & 1 \\ 0 & 0 \end{bmatrix}\mathbf{v}_2 = \mathbf{0} \implies 3v_{21} + v_{22} = 0$, so $\mathbf{v}_2 = \begin{bmatrix} 1 \\ -3 \end{bmatrix}$.
+2. Modal matrix and its inverse:
+   $$\mathbf{T} = \begin{bmatrix} 1 & 1 \\ 0 & -3 \end{bmatrix}, \qquad \mathbf{T}^{-1} = \frac{1}{-3}\begin{bmatrix} -3 & -1 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 1/3 \\ 0 & -1/3 \end{bmatrix}$$
+   Computing modal coordinates $\mathbf{c} = \mathbf{T}^{-1}\mathbf{x}(0)$:
+   $$\mathbf{c} = \begin{bmatrix} 1 & 1/3 \\ 0 & -1/3 \end{bmatrix}\begin{bmatrix} 2 \\ 3 \end{bmatrix} = \begin{bmatrix} 2 + 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 3 \\ -1 \end{bmatrix}$$
+   So $\mathbf{x}(0) = 3\mathbf{v}_1 - \mathbf{v}_2$.
+3. Applying $\mathbf{x}_l(t) = c_1 e^{\lambda_1 t}\mathbf{v}_1 + c_2 e^{\lambda_2 t}\mathbf{v}_2$:
+   $$\mathbf{x}_l(t) = 3 e^{-t}\begin{bmatrix} 1 \\ 0 \end{bmatrix} - e^{-4t}\begin{bmatrix} 1 \\ -3 \end{bmatrix} = \begin{bmatrix} 3e^{-t} - e^{-4t} \\ 3e^{-4t} \end{bmatrix}$$
+   Boundary check: $\mathbf{x}_l(0) = [3 - 1, \; 3]^T = [2, \; 3]^T = \mathbf{x}(0)$. $\checkmark$
+   Free output:
+   $$y_l(t) = \mathbf{C}\mathbf{x}_l(t) = (3e^{-t} - e^{-4t}) + 3e^{-4t} = 3e^{-t} + 2e^{-4t}$$
+4. To suppress the slow mode $e^{-t}$ ($c_1 = 0$), initialize the state strictly along the fast eigenvector $\mathbf{v}_2$: any $\tilde{\mathbf{x}}(0) = \alpha \begin{bmatrix} 1 \\ -3 \end{bmatrix}$ ($\alpha \neq 0$) gives $\mathbf{x}_l(t) = \alpha e^{-4t}\begin{bmatrix} 1 \\ -3 \end{bmatrix}$.
 
 </details>
 

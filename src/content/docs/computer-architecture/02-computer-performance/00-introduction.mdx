@@ -1,0 +1,43 @@
+---
+title: "Part II — Introduction: Computer Performance"
+description: "Quantitative execution time, instruction-mix CPI, and Amdahl's Law speedup bounds."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part II Roadmap" markdown={`# Part II: Computer Performance
+  - 6. CPU Performance Equation
+    - Execution time $T_{\\text{exec}} = \\text{IC} \\times \\text{CPI} \\times T_{\\text{clk}}$
+    - Instruction-mix weighted $\\text{CPI}$
+    - Speedup ratios and throughput traps
+  - 7. Amdahl's Law
+    - Overall speedup $S_{\\text{tot}} = \\frac{1}{(1 - F) + F / S}$
+    - Asymptotic ceiling $S_{\\max} = \\frac{1}{1 - F}$
+    - Inverse feasibility and target sizing`} />
+
+## Introduction
+
+After designing synchronous logic and finite-state controllers in Part I, a computer architect needs a rigorous ruler to judge whether one processor or hardware optimization is actually faster than another. Marketing sheets routinely highlight isolated numbers—higher gigahertz clock rates, wider instruction issue widths, or raw "millions of instructions per second" ($\text{MIPS}$)—yet each of those metrics can improve while a real program takes *longer* to finish.
+
+Part II establishes **elapsed CPU execution time** ($T_{\text{exec}}$) as the sole ground-truth measure of processor performance. First, the **CPU Performance Equation** decomposes runtime into three coupled quantities—dynamic instruction count ($\text{IC}$), average clock cycles per instruction ($\text{CPI}$), and clock cycle period ($T_{\text{clk}} = 1/f_{\text{clk}}$)—linking compiler output, pipeline microarchitecture, and silicon timing in one product. Second, **Amdahl's Law** bounds how much overall speedup ($S_{\text{tot}}$) any targeted hardware accelerator or multi-core upgrade can deliver when only a fraction $F$ of baseline execution time benefits from the change.
+
+### Practical Engineering Perspective
+
+- **Hard Real-Time Control Loops:** An embedded flight controller running a $1\text{ kHz}$ attitude-estimation filter must finish every iteration in under $1.0\text{ ms}$. Decomposing $T_{\text{exec}}$ tells firmware engineers the exact dynamic instruction budget available before cache stalls or branch penalties cause a deadline overrun.
+- **Compiler and Microarchitecture Co-Design:** Aggressive compiler optimizations (`-O2`, `-O3`) eliminate fast single-cycle arithmetic instructions, shrinking $\text{IC}$ and cutting wall-clock runtime even when the surviving memory-heavy mix exhibits a *higher* average $\text{CPI}$.
+- **Hardware Accelerator Budgeting:** Offloading matrix or vision kernels onto a SIMD unit, GPU, or edge NPU pays off only in proportion to the baseline runtime fraction $F$. Amdahl's asymptotic ceiling $S_{\max} = \frac{1}{1 - F}$ prevents engineering teams from over-investing silicon area on bottlenecks bounded by serial I/O.
+
+### Shared Benchmark Workload
+
+Across Chapters 6 and 7, we revisit a single running benchmark: a real-time **RV32IM state-estimation control iteration** executing $\text{IC} = 10^6$ dynamic instructions per $1.0\text{ ms}$ frame across arithmetic, load, store, and branch operations. In Chapter 6, we evaluate competing processor cores on this instruction mix to compute weighted $\text{CPI}$ and exact execution time $T_{\text{exec}}$. In Chapter 7, we profile the dominant matrix-filtering phase ($F = 0.75$ of runtime) against serial sensor I/O ($1 - F = 0.25$) to quantify vector-coprocessor speedup and inverse design targets.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[6. CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/)** — Compute total execution time $T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}}$, evaluate weighted instruction-mix $\text{CPI}$, form exact speedup ratios, and avoid throughput metric traps.
+2. **[7. Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/)** — Derive $S_{\text{tot}} = \frac{1}{(1 - F) + F/S}$, determine the asymptotic speedup ceiling $\frac{1}{1 - F}$, and solve inverse feasibility problems for required local speedup $S$ or enhanced fraction $F$.

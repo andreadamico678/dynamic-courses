@@ -11,146 +11,235 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 3 Mental Model" markdown={`# Ch. 3: Block Diagram Algebra Reduction
-  - Graph Topology of Interconnected Dynamical Systems
-  - Canonical Interconnection Topologies
-    - 1. Cascade (Series) Connection
-    - 2. Parallel Connection
-    - 3. Closed-Loop Feedback Connection
-  - Topological Transformation Equivalences
-  - Step-by-Step Exam Case Study: 6-Block Interconnected Reduction
-    - Phase 1: Disentangling the Inner Feedback Loop
-    - Phase 2: Resolving the Feedforward Parallel Branch
-    - Phase 3: Closing the Outer Global Feedback Loop`} />
+<MindMap client:load defaultCollapsed title="Chapter 3 Outline" markdown={`# Ch. 3: Block Diagram Algebra Reduction
+  - Six-Block Reduction Example
+    - Inner feedback loop
+    - Feedforward parallel branch
+    - Outer global feedback loop
+  - Interconnection Topologies
+    - Graph primitives
+    - Cascade and parallel blocks
+    - Closed-loop feedback formula
+    - Topological transformation rules`} />
 
-## Graph Topology of Interconnected Dynamical Systems
+## Introduction
 
-In complex engineering systems—such as autonomous drones, robotic manipulators, and industrial chemical reactors—overall system behavior arises from the interaction of multiple interconnected subsystems. **Block diagram algebra** provides a rigorous, visual operational framework to manipulate, transform, and reduce intricate multi-loop control topologies into minimal single-input single-output (SISO) transfer functions:
+Real engineering architectures are rarely built as one monolithic block: a drone autopilot combines a guidance controller, an attitude rate loop, electronic speed controllers, propeller aerodynamics, and an IMU sensor filter wired in nested feedback and feedforward paths. Attempting to write raw differential equations for every internal wire quickly turns intractable.
 
-$$W(s) = \frac{Y(s)}{U(s)}$$
+**Block diagram algebra** lets you treat interconnected subsystems graphically and simplify complex multi-loop networks step by step into a single equivalent input-output transfer function $W(s)$, without altering the signals at the external terminals.
 
-Every block diagram consists of three fundamental geometric primitives:
-1. **Blocks (Transfer Operators):** Unidirectional linear operators representing dynamic subsystems $Y(s) = G(s) U(s)$.
-2. **Summing Junctions (Nodes):** Algebraic comparators producing the signed sum of converging signals: $E(s) = U(s) - B(s)$.
-3. **Takeoff Points (Branch Nodes):** Distribution points allowing a single signal to route to multiple destination blocks without attenuation or distortion.
+<Divider label="1 · Example" />
 
-<Divider />
+### Six-Block Loop Reduction
 
-## Canonical Interconnection Topologies
+In [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/), we saw how an individual component can be represented by its internal state equations; in large control architectures, several such components are wired together in nested loops. Before listing general reduction rules, let us reduce a realistic multi-loop architecture step by step by writing out the signal balances at each summing node.
 
-### 1. Cascade (Series) Connection
-When the output of one subsystem directly drives the input of the next without loading effects:
-
-<figure id="fig-cascade-connection" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-cascade-connection.svg" alt="Cascade (series) connection of two dynamic blocks." />
-  <figcaption>Cascade (series) connection of two dynamic blocks.</figcaption>
-</figure>
-
-$$X(s) = G_1(s) U(s), \quad Y(s) = G_2(s) X(s) \implies W(s) = \frac{Y(s)}{U(s)} = G_1(s) G_2(s)$$
-
-In continuous-time LTI systems, dynamic blocks commute: $G_1(s) G_2(s) = G_2(s) G_1(s)$.
-
-### 2. Parallel Connection
-When a shared excitation $U(s)$ branches into two separate paths whose outputs combine at a summing junction:
-
-<figure id="fig-parallel-connection" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-parallel-connection.svg" alt="Parallel connection of dynamic blocks." />
-  <figcaption>Parallel connection of dynamic blocks.</figcaption>
-</figure>
-
-$$Y(s) = G_1(s) U(s) \pm G_2(s) U(s) \implies W(s) = G_1(s) \pm G_2(s)$$
-
-### 3. Closed-Loop Feedback Connection
-The canonical closed loop comprises a forward path $G(s)$ and a feedback return path $H(s)$:
-
-<figure id="fig-canonical-feedback" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-canonical-feedback.svg" alt="Canonical closed-loop feedback structure. The bottom junction sign is negative for negative feedback and positive for positive feedback." />
-  <figcaption>Canonical closed-loop feedback structure. The bottom junction sign is negative for negative feedback and positive for positive feedback.</figcaption>
-</figure>
-
-Writing the balance equations at the summing node and forward block:
-$$E(s) = U(s) \mp H(s) Y(s)$$
-$$Y(s) = G(s) E(s) = G(s) \left[ U(s) \mp H(s) Y(s) \right]$$
-Gathering output terms:
-$$\left[ 1 \pm G(s) H(s) \right] Y(s) = G(s) U(s)$$
-Yielding the celebrated **Closed-Loop Transfer Function**:
-
-$$W(s) = \frac{Y(s)}{U(s)} = \frac{G(s)}{1 \pm G(s) H(s)}$$
-
-* **Negative Feedback ($-H(s)$):** Denominator is $1 + G(s)H(s)$.
-* **Positive Feedback ($+H(s)$):** Denominator is $1 - G(s)H(s)$.
-
-<Divider />
-
-## Topological Transformation Equivalences
-
-When feedback loops are nested or crossing, canonical formulas cannot be applied directly. The diagram must be reshaped using equivalence rules that preserve signal values at every node:
-
-| Original Topology | Desired Movement | Equivalent Modification | Invariant Guaranteed |
-| :--- | :--- | :--- | :--- |
-| **Summing Junction** before $G$ | Move summing junction **after $G$** | Multiply the arriving signal by $G(s)$ | $Y = G(U_1 \pm U_2) = GU_1 \pm GU_2$ |
-| **Summing Junction** after $G$ | Move summing junction **before $G$** | Insert $\frac{1}{G(s)}$ on the branching feedback | $Y = GU_1 \pm U_2 = G\left(U_1 \pm \frac{1}{G}U_2\right)$ |
-| **Takeoff Point** before $G$ | Move takeoff point **after $G$** | Insert $\frac{1}{G(s)}$ on the tapped branch | $X = U = \frac{1}{G}(GU)$ |
-| **Takeoff Point** after $G$ | Move takeoff point **before $G$** | Insert $G(s)$ on the tapped branch | $X = GU$ |
-| **Adjacent Summing Junctions** | Swap positions of $\Sigma_1$ and $\Sigma_2$ | Direct permutation (no blocks added) | Commutativity of addition: $A + B + C = A + C + B$ |
-
-<Divider />
-
-## Step-by-Step Exam Case Study: 6-Block Interconnected Reduction
-
-We now execute the reduction of the **archetypal 6-block exam problem** (found identically in the 2024 and 2025 UniCT partial exams, Case $a = 1, a = 3$):
+Consider the six-block interconnected system shown in [the figure](#fig-exam-block-diagram), which pairs an inner negative feedback loop ($E$), a parallel feedforward branch ($C$), a forward cascade block ($D$), and an outer global negative feedback loop ($F$).
 
 <figure id="fig-exam-block-diagram" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-exam-block-diagram.svg" alt="Complex interconnected 6-block diagram from the UniCT examination paper." />
   <figcaption>Complex interconnected 6-block diagram from the UniCT examination paper.</figcaption>
 </figure>
 
-### Phase 1: Disentangling the Inner Feedback Loop
-Observe the inner feedback loop containing block $E$. The forward path begins at the output of summer $\Sigma_2$, passes through block $A$ and block $B$, and taps off after block $B$.
-The forward gain of this inner loop is:
-$$G_{\text{inner}}(s) = A \cdot B$$
-The feedback block is $E$, entering summer $\Sigma_2$ with a negative sign (negative feedback).
-Applying the equation above to the path from the output of $\Sigma_1$ to the output of $B$:
-$$G_1(s) = \frac{A B}{1 + A B E}$$
+Our goal is to collapse the entire diagram into a single input-output ratio $W(s) = Y(s)/U(s)$ without altering the external signals $U(s)$ and $Y(s)$. Working systematically from the innermost loop outward keeps every intermediate fraction transparent.
 
-### Phase 2: Resolving the Feedforward Parallel Branch
-The tap point for block $C$ occurs between block $A$ and block $B$.
-To express the signal entering $C$ in terms of the input to the inner loop:
-The signal after block $A$ is $A \cdot (\text{output of } \Sigma_2)$. Since the closed-loop transfer function to the output of $\Sigma_2$ is $\frac{1}{1 + ABE}$, the transfer function from the output of $\Sigma_1$ to the output of block $C$ is:
-$$G_C(s) = \frac{A C}{1 + A B E}$$
-Meanwhile, the main path continues through block $D$:
-$$G_D(s) = G_1(s) \cdot D = \frac{A B D}{1 + A B E}$$
-Both paths converge additively ($+$ and $+$) at summing junction $\Sigma_3$:
-$$G_{\text{forward}}(s) = G_D(s) + G_C(s) = \frac{A B D + A C}{1 + A B E} = \frac{A(BD + C)}{1 + A B E}$$
+First, examine the **inner feedback loop** between the output $R_1(s)$ of the outer summer $\Sigma_1$ and the intermediate node $V(s)$ situated right between blocks $A$ and $B$. Why track $V(s)$ explicitly? Because the feedforward branch $C$ taps off directly from $V(s)$! Tracing the signals around the inner loop: the signal entering $B$ is $V(s)$, so the output of $B$ is $Y_B(s) = B V(s)$, and the feedback signal returning through $E$ to the minus port of summer $\Sigma_2$ is $E Y_B(s) = E B V(s)$. Therefore, the error signal emerging from $\Sigma_2$ is $R_1(s) - E B V(s)$, and passing that signal through block $A$ gives:
 
-### Phase 3: Closing the Outer Global Feedback Loop
-The complete forward path $G_{\text{forward}}(s)$ is enclosed by the global feedback block $F$, which feeds back to summer $\Sigma_1$ with a negative sign.
-Applying the equation above once more:
-$$W(s) = \frac{Y(s)}{U(s)} = \frac{G_{\text{forward}}(s)}{1 + G_{\text{forward}}(s) F(s)}$$
-Substituting $G_{\text{forward}}(s)$:
-$$W(s) = \frac{\frac{A(BD + C)}{1 + ABE}}{1 + \frac{A(BD + C)}{1 + ABE} F} = \frac{A(BD + C)}{1 + ABE + AF(BD + C)}$$
+$$
+\begin{aligned}
+V(s) &= A\big(R_1(s) - E B V(s)\big) = A R_1(s) - A B E V(s) \\
+(1 + A B E) V(s) &= A R_1(s) \implies V(s) = \frac{A}{1 + A B E} R_1(s)
+\end{aligned}
+$$
 
-Expanding the denominator gives the final minimal transfer function:
+Here the denominator $1 + ABE$ reflects the negative feedback around the inner loop of loop gain $ABE$. Multiplying $V(s)$ by $B$ immediately gives the output of the inner loop from $R_1(s)$ to $Y_B(s)$:
 
-$$W(s) = \frac{A B D + A C}{1 + A B E + A B D F + A C F}$$
+$$Y_B(s) = B V(s) = \frac{A B}{1 + A B E} R_1(s) \implies G_1(s) = \frac{Y_B(s)}{R_1(s)} = \frac{A B}{1 + A B E}$$
 
-<Callout type="bridge" title="SDU Robotics Bridge: Cascaded Drone Flight Control Loops">
+Second, combine the **two parallel paths** from $V(s)$ to the output summing junction $\Sigma_3$. The main upper path passes $Y_B(s) = B V(s)$ through block $D$ to contribute $D B V(s)$, while the lower feedforward path passes $V(s)$ through block $C$ to contribute $C V(s)$. Adding both branches at $\Sigma_3$ expresses the output $Y(s)$ in terms of $R_1(s)$:
 
-In the PX4 autopilot architecture used across SDU drone research, control loops are structured in a nested, cascaded topology:
-1. **Outer Loop (Attitude Angle $\theta$):** A proportional gain $K_p$ converts attitude tracking error into an angular rate reference $\omega_{\text{ref}}$.
-2. **Inner Loop (Angular Rate $\omega$):** A fast PID controller $G_{\text{rate}}(s)$ drives the ESC/motor actuators $G_{\text{motor}}(s)$.
-Block diagram algebra proves why cascaded loops reject high-frequency motor disturbances: the inner loop is closed first, stiffening the actuator dynamics before the outer kinematic integration $\frac{1}{s}$ is closed.
+$$
+\begin{aligned}
+Y(s) &= D B V(s) + C V(s) = (B D + C) V(s) \\
+&= (B D + C) \frac{A}{1 + A B E} R_1(s) = \underbrace{\frac{A(B D + C)}{1 + A B E}}_{G_{\text{forward}}(s)} R_1(s)
+\end{aligned}
+$$
+
+The entire inner network between $\Sigma_1$ and $Y(s)$ has now collapsed into a single forward transfer function $G_{\text{forward}}(s) = \frac{ABD + AC}{1 + ABE}$.
+
+Third, close the **outer global feedback loop** returning from $Y(s)$ through block $F$ to the minus port of $\Sigma_1$. At $\Sigma_1$, the signal balance is $R_1(s) = U(s) - F Y(s)$. Substituting this into $Y(s) = G_{\text{forward}}(s) R_1(s)$ and clearing the compound fraction by multiplying numerator and denominator by $(1 + ABE)$ yields:
+
+$$
+\begin{aligned}
+W(s) = \frac{Y(s)}{U(s)} &= \frac{G_{\text{forward}}(s)}{1 + G_{\text{forward}}(s) F} = \frac{\frac{A(B D + C)}{1 + A B E}}{1 + \frac{A(B D + C)}{1 + A B E} F} \\
+&= \frac{A(B D + C)}{1 + A B E + A F(B D + C)} = \frac{A B D + A C}{1 + A B E + A B D F + A C F}
+\end{aligned}
+$$
+
+Every term in this final expression has a clear physical meaning: the numerator $ABD + AC$ sums the two forward paths from $U(s)$ to $Y(s)$, while the denominator $1 + ABE + ABDF + ACF$ sums $1$ plus the three individual negative-feedback loop gains ($ABE$ around the inner loop, $ABDF$ around the outer main path, and $ACF$ around the outer feedforward path).
+
+To see how this symbolic reduction simplifies concrete dynamics, substitute $A = 2$, $B(s) = \frac{1}{s + 1}$, $C = 1$, $D = 3$, $E = 2$, and $F = 1$:
+
+$$
+\begin{aligned}
+W(s) &= \frac{2 \cdot \frac{1}{s+1} \cdot 3 + 2 \cdot 1}{1 + 2 \cdot \frac{1}{s+1} \cdot 2 + 2 \cdot \frac{1}{s+1} \cdot 3 \cdot 1 + 2 \cdot 1 \cdot 1} = \frac{\frac{6}{s+1} + 2}{3 + \frac{4 + 6}{s+1}} \\
+&= \frac{\frac{6 + 2(s + 1)}{s + 1}}{\frac{3(s + 1) + 10}{s + 1}} = \frac{2s + 8}{3s + 13}
+\end{aligned}
+$$
+
+Multiplying numerator and denominator by $(s + 1)$ clears the internal pole at $s = -1$ and reveals a clean first-order closed-loop system with a single pole at $s = -13/3\text{ rad/s}$ and a zero at $s = -4\text{ rad/s}$.
+
+<StepCheck
+  client:load
+  prompt="For the numerical six-block example ($A=2$, $B=1/(s+1)$, $C=1$, $D=3$, $E=2$, $F=1$), evaluate the static DC gain $W(0)$ (2 decimal places):"
+  expected={0.62}
+  tolerance={0.02}
+  unit=""
+  explanation="Evaluating $W(s) = \frac{2s + 8}{3s + 13}$ at $s = 0$ gives $W(0) = 8/13 \approx 0.615$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Block Diagram Primitives
+
+In multi-loop control engineering—such as flight autopilots, robotic joint servos, and power converters—each physical device (actuator, sensor, filter, compensator) is modeled as an individual transfer block. **Block diagram algebra** provides a rigorous graphical calculus to connect those modular blocks together and reduce the resulting network to a single overall input-output transfer function $W(s) = \frac{Y(s)}{U(s)}$.
+
+Every linear block diagram is constructed from three ideal, unidirectional building blocks:
+- A **functional block** $G(s)$ multiplies its incoming Laplace signal $U(s)$ by the transfer operator $G(s)$ to produce $Y(s) = G(s)U(s)$. Critically, block diagrams assume **unidirectional signal flow** (infinite input impedance and zero output impedance), meaning a downstream block never loads or alters the transfer function of an upstream block.
+- A **summing junction** ($\Sigma$) acts as an instantaneous linear comparator that adds or subtracts incoming signal branches according to the $+$ or $-$ sign printed at each arrowhead, such as $E(s) = U(s) - B(s)$.
+- A **takeoff point** (branch node) taps a wire to route identical copies of the same signal $X(s)$ to multiple downstream destinations without splitting or attenuating its amplitude.
+
+### Cascade and Parallel Connections
+
+Whenever two blocks are wired together without an intervening feedback loop, they form either a series chain or a parallel split. We derive their combined equivalent block by tracing the intermediate signal algebraically.
+
+When the output of block $G_1(s)$ feeds directly into the input of block $G_2(s)$ with no takeoff point or summing junction in between, the two subsystems are in **cascade** (series):
+
+<figure id="fig-cascade-connection" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-cascade-connection.svg" alt="Cascade (series) connection of two dynamic blocks." />
+  <figcaption>Cascade (series) connection of two dynamic blocks.</figcaption>
+</figure>
+
+Letting $X(s) = G_1(s) U(s)$ denote the signal on the wire linking the two blocks and substituting $X(s)$ into $Y(s) = G_2(s) X(s)$ gives the cascade product rule:
+
+$$Y(s) = G_2(s) X(s) = G_2(s)\big(G_1(s) U(s)\big) \implies W(s) = \frac{Y(s)}{U(s)} = G_2(s) G_1(s) = G_1(s) G_2(s)$$
+
+Because scalar transfer functions commute under multiplication, cascading two SISO blocks multiplies their transfer functions in either order (though for multi-input multi-output matrix blocks $\mathbf{G}_2(s)\mathbf{G}_1(s)$, the matrix order must be kept strictly right-to-left).
+
+Conversely, when a single input signal $U(s)$ splits at a takeoff point into two separate forward branches $G_1(s)$ and $G_2(s)$ whose outputs recombine at a summing junction, the subsystems are in **parallel**:
+
+<figure id="fig-parallel-connection" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-parallel-connection.svg" alt="Parallel connection of dynamic blocks." />
+  <figcaption>Parallel connection of dynamic blocks.</figcaption>
+</figure>
+
+Summing the upper branch output $Y_1(s) = G_1(s)U(s)$ and the lower branch output $Y_2(s) = G_2(s)U(s)$ at the comparator and factoring out the common input $U(s)$ yields the parallel addition rule:
+
+$$Y(s) = G_1(s) U(s) \pm G_2(s) U(s) = \big(G_1(s) \pm G_2(s)\big) U(s) \implies W(s) = \frac{Y(s)}{U(s)} = G_1(s) \pm G_2(s)$$
+
+Parallel paths therefore combine by direct algebraic addition, which always places the resulting transfer function over the common denominator of $G_1(s)$ and $G_2(s)$ and introduces new numerator zeros.
+
+### Closed-Loop Feedback
+
+Unlike open-loop cascade or parallel interconnections, a **feedback loop** routes the output $Y(s)$ back through a sensor or return path $H(s)$ to modify the actuating signal entering the forward path $G(s)$. This cyclic dependency is the foundation of automatic control, allowing a controller to correct errors against unknown disturbances and shift unstable plant poles into the stable left half-plane.
+
+<figure id="fig-canonical-feedback" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-canonical-feedback.svg" alt="Canonical closed-loop feedback structure. The bottom junction sign is negative for negative feedback and positive for positive feedback." />
+  <figcaption>Canonical closed-loop feedback structure. The bottom junction sign is negative for negative feedback and positive for positive feedback.</figcaption>
+</figure>
+
+To derive the equivalent closed-loop transfer function $W(s) = Y(s)/U(s)$ for [the canonical feedback loop](#fig-canonical-feedback), we first write the comparator equation for the actuating error signal $E(s)$ (using $-$ for **negative feedback** and $+$ for **positive feedback**) and then substitute $E(s)$ into the forward block $Y(s) = G(s)E(s)$:
+
+$$
+\begin{aligned}
+E(s) &= U(s) \mp H(s) Y(s) \\
+Y(s) &= G(s) E(s) = G(s)\big[U(s) \mp H(s) Y(s)\big] = G(s) U(s) \mp G(s) H(s) Y(s)
+\end{aligned}
+$$
+
+Notice that $Y(s)$ appears on both sides of the equation because the signal travels around the closed loop. Collecting all $Y(s)$ terms on the left-hand side flips the $\mp$ sign to $\pm$:
+
+$$\big[1 \pm G(s) H(s)\big] Y(s) = G(s) U(s)$$
+
+Dividing both sides by $\big[1 \pm G(s) H(s)\big] U(s)$ yields the fundamental **Closed-Loop Feedback Formula**:
+
+$$W(s) = \frac{Y(s)}{U(s)} = \frac{G(s)}{1 \pm G(s) H(s)}$$
+
+In this formula, $G(s)$ is the **forward-path transfer function**, $H(s)$ is the **feedback return-path transfer function** (with $H(s) = 1$ for unity feedback), and the product $L(s) \triangleq G(s)H(s)$ is the **open-loop (or loop) transfer function**. Always remember the sign reversal caused by moving $G(s)H(s)Y(s)$ across the equals sign: negative feedback ($-$ at the summing junction) produces $+G(s)H(s)$ in the denominator, whereas positive feedback ($+$ at the summing junction) produces $-G(s)H(s)$ in the denominator.
+
+### Topological Equivalence Rules
+
+In tangled multi-loop diagrams, a takeoff point from one loop frequently sits *inside* another feedback loop, preventing us from collapsing either loop directly with the cascade, parallel, or feedback formulas. To untangle interleaved loops, we slide a summing junction or takeoff point past an adjacent block $G(s)$ and insert a compensating transfer function on the moved branch so that every signal leaving the sub-network remains algebraically identical.
+
+Let us verify the four fundamental node-shift operations by equating the outgoing signals before and after the move:
+1. **Moving a summing junction from before $G(s)$ to after $G(s)$:** Before the move, two inputs $U_1(s)$ and $\pm U_2(s)$ sum first and then pass through $G(s)$, producing output:
+   $$Y(s) = G(s)\big(U_1(s) \pm U_2(s)\big) = G(s) U_1(s) \pm G(s) U_2(s)$$
+   By the distributive law, if we move the summing junction *after* $G(s)$ so that $U_1(s)$ passes through $G(s)$ alone, we must multiply the side branch $U_2(s)$ by an extra block $G(s)$ before adding it at the shifted summer.
+2. **Moving a summing junction from after $G(s)$ to before $G(s)$:** Before the move, $U_1(s)$ passes through $G(s)$ first and then adds to $\pm U_2(s)$, giving output:
+   $$Y(s) = G(s) U_1(s) \pm U_2(s) = G(s)\left( U_1(s) \pm \frac{1}{G(s)} U_2(s) \right)$$
+   Factoring $G(s)$ out on the left shows that if we shift the summing junction *before* $G(s)$, we must pre-multiply the side branch $U_2(s)$ by the inverse block $\frac{1}{G(s)}$ so that passing through $G(s)$ restores $\pm U_2(s)$.
+3. **Moving a takeoff point from before $G(s)$ to after $G(s)$:** Before the move, the main branch outputs $Y(s) = G(s)U(s)$ while the tapped wire carries the unscaled input $X(s) = U(s)$. If we slide the takeoff point *after* $G(s)$, the wire now taps $Y(s) = G(s)U(s)$, so we must insert $\frac{1}{G(s)}$ on the tapped branch to recover:
+   $$X(s) = \frac{1}{G(s)} Y(s) = \frac{1}{G(s)}\big(G(s) U(s)\big) = U(s)$$
+4. **Moving a takeoff point from after $G(s)$ to before $G(s)$:** Before the move, the tapped wire carries $X(s) = G(s)U(s)$. If we slide the takeoff point *before* $G(s)$ where the wire only carries $U(s)$, we must insert a duplicate block $G(s)$ on the tapped branch so its output remains $X(s) = G(s)U(s)$.
+
+All four node-shift rules—plus the fact that two adjacent summing junctions can be reordered freely by associativity of addition—are summarized in the lookup table in Section 3.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Suppose a takeoff point located BEFORE a block $G(s)$ is moved AFTER $G(s)$ so an inner loop can close cleanly. What block must be inserted on the tapped branch to keep its signal unchanged?"
+  options={[
+    "$G(s)$",
+    "$1 / G(s)$",
+    "$-G(s)$"
+  ]}
+  correctIndex={1}
+  explanation="Before $G$, the tapped signal equals $U$. Moving the tap after $G$ picks up $GU$, so inserting $1/G(s)$ restores $\frac{1}{G}(GU) = U$."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Cascaded Drone Control Loops">
+
+In PX4 flight control stacks, attitude loops are wired in a nested, cascaded topology:
+1. **Outer Attitude Loop ($\theta$):** A proportional gain $K_p$ turns angle error into a desired angular rate $\omega_{\text{ref}}$.
+2. **Inner Rate Loop ($\omega$):** A fast PID controller $G_{\text{rate}}(s)$ drives the motor/ESC plant $G_{\text{motor}}(s)$.
+
+Block diagram algebra shows why closing the inner rate loop first rejects high-frequency motor disturbances before the outer kinematic integrator $\frac{1}{s}$ closes.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Original Topology | Desired Movement | Equivalent Modification | Invariant Guaranteed |
+| :--- | :--- | :--- | :--- |
+| **Summing Junction** before $G$ | Move **after $G$** | Multiply arriving branch by $G(s)$ | $Y = G(U_1 \pm U_2) = GU_1 \pm GU_2$ |
+| **Summing Junction** after $G$ | Move **before $G$** | Insert $\frac{1}{G(s)}$ on arriving branch | $Y = GU_1 \pm U_2 = G\!\left(U_1 \pm \frac{1}{G}U_2\right)$ |
+| **Takeoff Point** before $G$ | Move **after $G$** | Insert $\frac{1}{G(s)}$ on tapped branch | $X = U = \frac{1}{G}(GU)$ |
+| **Takeoff Point** after $G$ | Move **before $G$** | Insert $G(s)$ on tapped branch | $X = GU$ |
+| **Adjacent Summers** | Swap $\Sigma_1$ and $\Sigma_2$ | Direct permutation (no blocks) | $A + B + C = A + C + B$ |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Reduction Procedure
 
-## Chapter Exercises
+1. **Collapse Local Blocks:** Combine purely series blocks ($G_1 G_2$) and purely parallel branches ($G_1 \pm G_2$).
+2. **Eliminate Inner Loops:** Reduce self-contained single-loop feedback blocks via $\frac{G}{1 \pm GH}$.
+3. **Shift Crossing Nodes:** If loops overlap, move a summing junction or takeoff point across one block using the equivalence table above.
+4. **Close Outer Loop:** Repeat steps 1–3 from inside out until only $W(s) = Y(s)/U(s)$ remains.
 
-<Exercise client:load id="ex-3-1" title="Exercise 3.1: 3-Block Canonical Feedback Loop" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Closed-Loop Feedback Formula:** Substituting $E = U \mp HY$ into $Y = GE$ gives $Y(1 \pm GH) = GU$, hence $W(s) = \frac{G(s)}{1 \pm G(s)H(s)}$.
+- **Node-Shift Invariance:** Every equivalence transformation multiplies or divides the moved branch by $G(s)$ or $1/G(s)$ so all downstream signal values remain algebraically identical.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Feedback Sign Inversion:** Negative feedback ($-H$) produces $+G(s)H(s)$ in the denominator; positive feedback ($+H$) produces $-G(s)H(s)$.
+2. **Non-Unity Feedback ($H \neq 1$):** Remember the closed-loop numerator is the forward gain $G(s)$ alone, whereas the denominator uses the full loop gain $L(s) = G(s)H(s)$.
+3. **Illegal Node Swaps:** A summing junction and a takeoff point do **not** commute; swapping them directly alters intermediate signals.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-3-1" title="Exercise 3.1 — Three-Block Feedback Loop" level="Warm-Up">
 
 Consider an elementary closed-loop control loop where a proportional forward controller $G_1(s) = K$ drives a first-order plant $G_2(s) = \frac{1}{s + 2}$ with sensor feedback $H(s) = 2$ returning to a subtractive summing junction (negative feedback).
 
@@ -158,49 +247,71 @@ Consider an elementary closed-loop control loop where a proportional forward con
 2. Apply the canonical feedback formula $W(s) = \frac{G(s)}{1 + L(s)}$ to derive the closed-loop transfer function $W(s) = \frac{Y(s)}{U(s)}$.
 3. Determine the closed-loop pole location as a function of $K$. For what value of gain $K > 0$ does the closed-loop system place its pole at $s = -10$?
 
+<StepCheck
+  client:load
+  prompt="What proportional gain $K > 0$ places the closed-loop pole at $s = -10$?"
+  expected={4}
+  tolerance={0.05}
+  unit=""
+  explanation="The closed-loop denominator is $s + 2 + 2K = 0 \implies s_p = -(2 + 2K)$. Setting $2 + 2K = 10$ gives $K = 4$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. The forward path transfer function is:
+1. Because the proportional controller $G_1(s) = K$ and the plant $G_2(s) = \frac{1}{s + 2}$ are wired directly in series along the forward path, we multiply them to obtain the forward transfer function:
    $$G(s) = G_1(s) G_2(s) = K \cdot \frac{1}{s + 2} = \frac{K}{s + 2}$$
-   The loop transfer function is:
+   Multiplying $G(s)$ by the feedback sensor gain $H(s) = 2$ yields the open-loop transfer function $L(s)$:
    $$L(s) = G(s) H(s) = \frac{K}{s + 2} \cdot 2 = \frac{2K}{s + 2}$$
-2. Applying the canonical negative feedback formula:
-   $$W(s) = \frac{G(s)}{1 + L(s)} = \frac{\frac{K}{s + 2}}{1 + \frac{2K}{s + 2}} = \frac{K}{s + 2 + 2K}$$
-3. The closed-loop pole is the root of the denominator $s + 2 + 2K = 0$:
+2. Because the return path enters a subtractive summing junction (negative feedback), we apply $W(s) = \frac{G(s)}{1 + L(s)}$ and multiply both numerator and denominator by $(s + 2)$ to clear the nested fraction:
+   $$W(s) = \frac{G(s)}{1 + L(s)} = \frac{\frac{K}{s + 2}}{1 + \frac{2K}{s + 2}} = \frac{\frac{K}{s + 2}}{\frac{(s + 2) + 2K}{s + 2}} = \frac{K}{s + 2 + 2K}$$
+3. The closed-loop pole $s_p$ is the root of the denominator polynomial $D(s) = s + 2 + 2K = 0$:
    $$s_p = -(2 + 2K)$$
-   To place the pole at $s_p = -10$:
+   Setting $s_p = -10$ and solving for $K$:
    $$-(2 + 2K) = -10 \implies 2 + 2K = 10 \implies 2K = 8 \implies K = 4$$
-   Increasing feedback gain shifts the pole deeper into the stable left-half plane, accelerating transient settling.
+   Physically, closing the negative feedback loop with $K = 4$ shifts the natural pole from its open-loop value $s = -2$ out to $s = -10$, making the exponential transient decay five times faster.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-3-2" title="Exercise 3.2: Multi-Branch Feedforward & Nested Feedback Reduction" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-3-2" title="Exercise 3.2 — Multi-Branch Loop Reduction" level="Exam Standard">
 
-Reduce the block diagram shown below to a single transfer function $W(s) = \frac{Y(s)}{U(s)}$:
+Reduce the block diagram described below to a single transfer function $W(s) = \frac{Y(s)}{U(s)}$:
 A forward path contains blocks $G_1(s)$ and $G_2(s)$ in series, with an inner negative feedback loop around $G_2(s)$ through block $H_1(s)$. A feedforward branch taps before $G_1(s)$, passes through $G_3(s)$, and adds positively to the output $Y(s)$.
 
 1. Derive the general symbolic transfer function $W(s)$ in terms of $G_1, G_2, H_1, G_3$.
 2. Substituting numerical values $G_1(s) = \frac{2}{s}$, $G_2(s) = \frac{1}{s+1}$, $H_1(s) = 3$, and $G_3(s) = 4$, compute the rational expression for $W(s)$ and determine its closed-loop poles and zeros.
 
+<StepCheck
+  client:load
+  prompt="For the numerical parameters above, what is the non-zero closed-loop pole of $W(s)$?"
+  expected={-4}
+  tolerance={0.05}
+  unit="$\mathrm{rad/s}$"
+  explanation="The inner loop reduces to $\frac{1/(s+1)}{1 + 3/(s+1)} = \frac{1}{s+4}$, giving closed-loop denominator $s(s+4)$ with poles at $s = 0$ and $s = -4$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. The inner feedback loop around $G_2$ with return path $H_1$ has transfer function:
-   $$G_{2,\text{cl}}(s) = \frac{G_2(s)}{1 + G_2(s) H_1(s)}$$
-   This block is in series with $G_1(s)$:
-   $$G_{\text{series}}(s) = G_1(s) \cdot \frac{G_2(s)}{1 + G_2(s) H_1(s)}$$
-   The feedforward branch $G_3(s)$ runs in parallel from $U(s)$ to the output summer:
-   $$W(s) = G_{\text{series}}(s) + G_3(s) = \frac{G_1(s) G_2(s)}{1 + G_2(s) H_1(s)} + G_3(s) = \frac{G_1(s) G_2(s) + G_3(s)(1 + G_2(s) H_1(s))}{1 + G_2(s) H_1(s)}$$
-2. Substituting numerical values $G_1 = \frac{2}{s}$, $G_2 = \frac{1}{s+1}$, $H_1 = 3$, $G_3 = 4$:
-   $$G_{2,\text{cl}}(s) = \frac{\frac{1}{s+1}}{1 + \frac{3}{s+1}} = \frac{1}{s + 4}$$
-   $$G_{\text{series}}(s) = \frac{2}{s} \cdot \frac{1}{s+4} = \frac{2}{s(s+4)}$$
-   Adding $G_3 = 4$:
-   $$W(s) = \frac{2}{s(s+4)} + 4 = \frac{4s(s+4) + 2}{s(s+4)} = \frac{4s^2 + 16s + 2}{s(s+4)} = 4 \frac{s^2 + 4s + 0.5}{s(s+4)}$$
-   * **Poles:** $s = 0, s = -4$.
-   * **Zeros:** Solving $s^2 + 4s + 0.5 = 0 \implies s = \frac{-4 \pm \sqrt{16 - 2}}{2} = -2 \pm \sqrt{3.5} \approx -0.129, -3.871$.
+1. Working from the innermost loop outward:
+   - First, collapse the negative feedback loop around forward block $G_2(s)$ and feedback block $H_1(s)$:
+     $$G_{2,\text{cl}}(s) = \frac{G_2(s)}{1 + G_2(s) H_1(s)}$$
+   - Second, multiply $G_{2,\text{cl}}(s)$ by the upstream cascade block $G_1(s)$ to obtain the main upper branch transfer function:
+     $$G_{\text{series}}(s) = G_1(s) G_{2,\text{cl}}(s) = \frac{G_1(s) G_2(s)}{1 + G_2(s) H_1(s)}$$
+   - Third, add the parallel feedforward branch $G_3(s)$ which taps directly from $U(s)$ and sums positively into $Y(s)$:
+     $$W(s) = G_{\text{series}}(s) + G_3(s) = \frac{G_1(s) G_2(s)}{1 + G_2(s) H_1(s)} + G_3(s) = \frac{G_1(s) G_2(s) + G_3(s)\big(1 + G_2(s) H_1(s)\big)}{1 + G_2(s) H_1(s)}$$
+2. Substituting the numerical blocks $G_1(s) = \frac{2}{s}$, $G_2(s) = \frac{1}{s+1}$, $H_1(s) = 3$, and $G_3(s) = 4$:
+   - Inner closed loop:
+     $$G_{2,\text{cl}}(s) = \frac{\frac{1}{s+1}}{1 + \frac{3}{s+1}} = \frac{\frac{1}{s+1}}{\frac{s + 1 + 3}{s+1}} = \frac{1}{s + 4}$$
+   - Series upper path:
+     $$G_{\text{series}}(s) = \frac{2}{s} \cdot \frac{1}{s + 4} = \frac{2}{s(s + 4)}$$
+   - Combining with the parallel branch $G_3(s) = 4$ over the common denominator $s(s + 4)$:
+     $$W(s) = \frac{2}{s(s + 4)} + 4 = \frac{2 + 4s(s + 4)}{s(s + 4)} = \frac{4s^2 + 16s + 2}{s(s + 4)} = \frac{4(s^2 + 4s + 0.5)}{s(s + 4)}$$
+   - **Closed-loop poles** (roots of $D(s) = s(s + 4) = 0$): $p_1 = 0$ and $p_2 = -4\text{ rad/s}$.
+   - **Closed-loop zeros** (roots of $N(s) = 4(s^2 + 4s + 0.5) = 0$):
+     $$s = \frac{-4 \pm \sqrt{4^2 - 4(1)(0.5)}}{2} = -2 \pm \sqrt{3.5} \implies z_1 \approx -0.129\text{ rad/s}, \quad z_2 \approx -3.871\text{ rad/s}$$
 
 </details>
 

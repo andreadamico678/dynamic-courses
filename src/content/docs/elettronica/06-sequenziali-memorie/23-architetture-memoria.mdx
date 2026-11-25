@@ -11,214 +11,197 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 23" markdown={`# Cap. 23: Architetture di Memoria
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Memorie Statiche: Cella SRAM 6T
-    - Memorie Dinamiche: Cella DRAM 1T-1C
-    - Memorie Non Volatili: ROM a Matrice NMOS, EPROM, EEPROM e Flash
-    - Tabella Comparativa delle Tecnologie di Memoria
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 23" markdown={`# Cap. 23: Architetture di Memoria
+  - 1. Organizzazione a Matrice
+    - Word-Line e Bit-Line
+    - Volatili vs Non Volatili
+  - 2. Cella Statica SRAM 6T
+    - Struttura a 6 Transistori
+    - Stabilità in Lettura (CR) e Scrittura (PR)
+  - 3. Cella Dinamica DRAM 1T-1C
+    - Charge Sharing e Lettura Distruttiva
+    - Write-Back e Refresh Periodico
+  - 4. Memorie Non Volatili ROM e Flash
+    - Mask ROM
+    - Floating Gate (NOR e NAND)`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
-Nei sistemi di elaborazione digitale ad alte prestazioni, la gerarchia di memoria colma il divario temporale esistente tra l'altissima velocità della CPU e la capacità dei supporti di archiviazione di massa. Mentre i registri interni al processore (realizzati con Flip-Flop D Master-Slave) garantiscono tempi di accesso sub-nanosecondo ma comportano un costo d'area proibitivo (da $16$ a $24$ transistori per singolo bit memorizzato), le matrici di memoria a semiconduttore ad alta densità massimizzano il numero di bit immagazzinati per millimetro quadrato di silicio.
+Un Flip-Flop D del [Capitolo 22](/dynamic-courses/elettronica/06-sequenziali-memorie/22-circuiti-sequenziali/) è velocissimo ma richiede molti transistori per singolo bit: impossibile usarlo per integrare megabyte di cache o gigabyte di RAM. Per aumentare enormemente la densità, le **memorie a semiconduttore** dispongono celle compatte in matrici bidimensionali $2^N \times 2^M$, realizzando tre famiglie principali: **SRAM 6T** (veloce, per cache), **DRAM 1T-1C** (compatta, per RAM principale) e **ROM / Flash** (non volatili, per firmware e SSD).
 
-Le memorie a semiconduttore si classificano in:
-- **Memorie Volatili:** perdono l'informazione memorizzata all'interruzione della tensione di alimentazione. Si dividono in:
-  - **SRAM (Static Random Access Memory):** basate su anelli bistabili a retroazione positiva continua.
-  - **DRAM (Dynamic Random Access Memory):** basate sull'intrappolamento di carica elettrostatica su condensatori integrati microscopici.
-- **Memorie Non Volatili (NVM):** conservano permanentemente il dato anche in assenza di alimentazione (Flash NOR/NAND con tecnologia a *floating gate* o *charge trap*).
+<Divider label="1 · Organizzazione a Matrice" />
 
-Tutte le memorie sono organizzate topologicamente in una **matrice bidimensionale di celle elementari** $2^N \times 2^M$ ([la figura](#fig-memory-matrix-arch)): i primi $N$ bit del bus indirizzi alimentano il **decodificatore di riga (*Row Decoder*)** che seleziona una tra le $2^N$ linee di parola (*Word-Line*, $WL$), mentre i restanti $M$ bit comandano il **decodificatore/multiplexer di colonna (*Column Decoder*)** che seleziona le linee di bit (*Bit-Line*, $BL$) connesse agli amplificatori di lettura (*Sense Amplifiers*). Tale organizzazione a griglia consente di minimizzare la lunghezza massima delle interconnessioni e il numero di pin di indirizzo.
+### Esempio — Perché Serve una Matrice 2D
+
+Immagina di dover accedere a $1\,\text{Mbit} = 2^{20}$ celle di memoria ([la figura](#fig-memory-matrix-arch)):
+- Se le mettessi tutte in fila, servirebbe un decodificatore con oltre un milione di fili separati e linee lunghissime.
+- Dividendole invece in una **matrice quadra** da $2^{10} \times 2^{10}$ ($1024$ righe $\times$ $1024$ colonne), bastano $10$ bit per scegliere la riga (**Word-Line**, $WL$) e $10$ bit per scegliere la colonna (**Bit-Line**, $BL$): appena $2048$ linee in tutto invece di un milione.
 
 <figure id="fig-memory-matrix-arch" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-memory-matrix-arch.svg" alt="Architettura generale a matrice 2^N times 2^M con decodificatore di riga (Word-Line WL) e decodificatore/multiplexer di colonna (Bit-Line BL)." />
-  <figcaption>Architettura generale a matrice $2^N \times 2^M$ con decodificatore di riga (Word-Line $WL$) e decodificatore/multiplexer di colonna (Bit-Line $BL$).</figcaption>
+  <figcaption>Architettura a matrice $2^N \times 2^M$ con decodificatore di riga ($WL$) e decodificatore di colonna ($BL$).</figcaption>
 </figure>
 
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+<StepCheck client:load lang="it" prompt="In una matrice di memoria da $4096$ righe per $1024$ colonne, quanti bit di indirizzo servono per il decodificatore di riga?" expected={12} tolerance={0.1} explanation="$4096 = 2^{12}$, quindi servono $12$ bit di riga." />
 
-## Memorie Statiche: Cella SRAM 6T
+### Teoria — Classificazione e Struttura a Matrice
 
-La cella SRAM standard è costituita da $6$ transistori MOS (cella 6T):
-- **Nucleo di Memoria Bistabile (4 Transistori):** formato da due invertitori CMOS complementari collegati testa-coda ($M_{n1}, M_{p1}$ e $M_{n2}, M_{p2}$).
-- **Porte di Accesso (2 Transistori NMOS):** transistori $M_{a1}$ e $M_{a2}$ comandati dalla linea comune di riga Word-Line ($WL$). Quando la Word-Line è asserita ($WL = V_{DD}$), i due access-transistor connettono simultaneamente i nodi interni di memorizzazione $Q$ e $\overline{Q}$ alla coppia differenziale di linee di colonna $BL$ (Bit-Line) e $\overline{BL}$ (Bit-Line complementare).
+Le memorie si dividono in due grandi famiglie:
+- **Volatili (RAM):** perdono i dati quando si toglie alimentazione. Comprendono **SRAM** (statica, mantiene il bit con un anello bistabile) e **DRAM** (dinamica, salva il bit su un condensatore che si scarica nel tempo).
+- **Non Volatili (NVM):** conservano i dati anche a chip spento (**ROM** di fabbrica e **Flash** riscrivibili).
+
+In ogni matrice $2^N \times 2^M$:
+- Il **Row Decoder** attiva una sola **Word-Line ($WL$)**, collegando tutte le celle di quella riga alle rispettive colonne.
+- Il **Column Decoder** instrada le **Bit-Line ($BL$)** selezionate verso i **Sense Amplifier** (lettura) o i **Write Driver** (scrittura).
+
+<Divider label="2 · Cella Statica SRAM 6T" />
+
+### Esempio — Compromesso tra Lettura e Scrittura nella SRAM 6T
+
+La cella **SRAM 6T** ([la figura](#fig-sram-6t-schematic)) memorizza un bit in due invertitori CMOS incrociati ($M_{n1}, M_{p1}$ e $M_{n2}, M_{p2}$), collegati alle due linee differenziali $BL$ e $\overline{BL}$ tramite due NMOS di accesso ($M_{a1}, M_{a2}$) controllati da $WL$.
 
 <figure id="fig-sram-6t-schematic" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-sram-6t-schematic.svg" alt="Schema circuitale a transistori della cella di memoria SRAM a 6 transistori (6T) con linee differenziali BL e overlineBL." />
-  <figcaption>Schema circuitale a transistori della cella di memoria SRAM a 6 transistori (6T) con linee differenziali $BL$ e $\overline{BL}$.</figcaption>
+  <figcaption>Schema della cella SRAM a 6 transistori (6T) con Bit-Line differenziali $BL$ e $\overline{BL}$.</figcaption>
 </figure>
 
-### Operazione di Lettura (Read Non-Distruttiva) e Rapporto di Cella $CR$
+Quando $WL$ si alza, i transistori della cella competono tra loro:
+1. **In lettura (stabilità):** se $Q = 0$ e le Bit-Line sono precaricate a $V_{DD}$, $BL$ inizia a scaricarsi attraverso $M_{a1}$ e $M_{n1}$ in serie. Questo passaggio di corrente alza un po' la tensione su $Q$: se $M_{n1}$ non fosse più forte di $M_{a1}$, $Q$ supererebbe la soglia $V_{tn}$ e **ribalterebbe per errore il bit** (*Read Disturbance*). Serve quindi $M_{n1}$ più largo di $M_{a1}$.
+2. **In scrittura (scrivibilità):** per sovrascrivere un nodo alto ($Q = 1 \to 0$) forzando $BL = 0$, l'access $M_{a1}$ deve riuscire a tirare giù $Q$ vincendo il PMOS di pull-up $M_{p1}$ che lo tiene a $V_{DD}$. Serve quindi $M_{a1}$ più forte di $M_{p1}$.
 
-L'operazione di lettura si articola in quattro fasi rigorose:
-1. **Precarica (*Precharge*):** Le linee di bit $BL$ e $\overline{BL}$, caratterizzate da una notevole capacità parassita distribuita $C_{BL} \gg C_Q$, vengono entrambe precaricate alla tensione di alimentazione $V_{DD}$ mediante un circuito ausiliario di precarica e successivamente lasciate flottanti ad alta impedenza.
-2. **Attivazione della Word-Line:** Si porta la Word-Line a livello alto ($WL = V_{DD}$), accendendo simultaneamente i due transistori di accesso $M_{a1}$ ed $M_{a2}$.
-3. **Sviluppo del Segnale Differenziale:**
-   - Si assuma, senza perdita di generalità, che la cella contenga il dato logico $0$ al nodo $Q$ ($V_Q = 0\text{ V}$) e $1$ al nodo $\overline{Q}$ ($V_{\overline{Q}} = V_{DD}$).
-   - Sul lato destro, sia la linea $\overline{BL}$ che il nodo interno $\overline{Q}$ sono al potenziale $V_{DD}$: la differenza di potenziale ai capi di $M_{a2}$ è nulla, e nessuna corrente fluisce su $\overline{BL}$.
-   - Sul lato sinistro, la linea $BL$ è a $V_{DD}$ mentre il nodo $Q$ è a massa: una corrente di lettura $I_{read}$ inizia a scaricare la capacità di linea $C_{BL}$ attraverso $M_{a1}$ e il transistore di pull-down $M_{n1}$ verso terra.
-4. **Vincolo di Stabilità e Rapporto di Cella ($CR$, Cell Ratio):**
-   Durante la scarica, la corrente $I_{read}$ fluisce attraverso la serie formata da $M_{a1}$ e $M_{n1}$. Il nodo interno $Q$ non è un cortocircuito ideale a massa, ma si porta temporaneamente a un potenziale intermedio $V_{Q,read} > 0$.
-   Se tale potenziale superasse la tensione di soglia del transistore opposto $M_{n2}$:
-   $$ V_{Q,read} \ge V_{tn2} $$
-   il transistore $M_{n2}$ si accenderebbe, scaricando a massa il nodo $\overline{Q}$ e provocando la **sovrascrittura involontaria dello stato logico (*Read Disturbance*)**.
-   Per scongiurare questo evento catastrofico, il transistore $M_{n1}$ (pull-down) deve essere progettato con conduttanza significativamente superiore rispetto al transistore di accesso $M_{a1}$.
-   Nel punto di massimo sbilanciamento ($M_{a1}$ in saturazione e $M_{n1}$ in triodo), il vincolo di sicurezza impone il **Cell Ratio**:
-   $$ CR \triangleq \frac{(W/L)_{pull-down}}{(W/L)_{access}} = \frac{(W/L)_{n1}}{(W/L)_{a1}} \ge 1.5 \div 2.0 $$
-5. **Rilevamento Differenziale (*Sense Amplifier*):**
-   Non appena la scarica su $BL$ produce una differenza di potenziale differenziale piccolissima ma rilevabile:
-   $$ \Delta V_{BL} = V_{\overline{BL}} - V_{BL} \approx 50\div 100\text{ mV} $$
-   un amplificatore di lettura a scatto rigenerativo (Sense Amplifier bistabile) campiona $\Delta V_{BL}$ e la rigenera a piena escursione CMOS ($0\div V_{DD}$), interrompendo immediatamente l'attivazione della Word-Line per azzerare la dissipazione dinamica. La lettura è **non-distruttiva**: il dato all'interno della cella permane intatto.
+<StepCheck client:load lang="it" mode="choice" prompt="Perché nella cella SRAM 6T il transistore NMOS di pull-down $M_{n1}$ deve essere più forte dell'access-transistor $M_{a1}$?" options={["Per evitare che il nodo a `'0'` si alzi oltre $V_{tn}$ durante la lettura ribaltando la cella", "Per risparmiare il ciclo di refresh periodico", "Per aumentare la capacità della Bit-Line"]} correctIndex={0} explanation="Durante la lettura $M_{a1}$ e $M_{n1}$ formano un partitore verso massa: un $M_{n1}$ più conduttivo tiene $V_Q$ ben sotto $V_{tn}$." />
 
-### Operazione di Scrittura (Write) e Rapporto di Pull-Up $PR$
+### Teoria — Modalità Hold e Gerarchia di Dimensionamento
 
-1. Per scrivere un nuovo dato (ad esempio, forzare $Q=0$ partendo da $Q=1$):
-   - I potenti stadi di pilotaggio di colonna (*Write Drivers*) forzano aggressivamente la linea $BL$ a $0\text{ V}$ e la linea $\overline{BL}$ a $V_{DD}$.
-2. Si asserisce la Word-Line ($WL = V_{DD}$).
-3. Il transistore di accesso $M_{a1}$ si accende e deve scaricare il nodo interno $Q$ vincendo la contesa contro il transistore di pull-up $M_{p1}$ che tenta di mantenerlo a $V_{DD}$.
-4. Affinché la commutazione si inneschi, il potenziale $V_Q$ deve essere trascinato al di sotto della tensione di commutazione del secondo invertitore:
-   $$ V_Q \le V_{DD} - |V_{tp2}| $$
-   Ciò richiede che l'access-transistor $M_{a1}$ (NMOS) sia intrinsecamente più forte del transistore di pull-up $M_{p1}$ (PMOS). Si definisce il **Pull-up Ratio**:
-   $$ PR \triangleq \frac{(W/L)_{pull-up}}{(W/L)_{access}} = \frac{(W/L)_{p1}}{(W/L)_{a1}} \le 0.5 \div 0.7 $$
-   Poiché l'NMOS possiede già un vantaggio intrinseco di mobilità ($\mu_n \approx 2.5 \mu_p$), il vincolo di scrittura è naturalmente facilitato.
+- **Hold ($WL = 0$):** $M_{a1}$ e $M_{a2}$ sono spenti; i due invertitori mantengono il bit a tempo indeterminato senza bisogno di refresh.
+- **Vincolo di lettura — Cell Ratio ($CR$):** per non disturbare il bit durante la lettura, il pull-down deve battere l'access-transistor:
 
-## Memorie Dinamiche: Cella DRAM 1T-1C
+$$
+CR = \frac{(W/L)_{\text{pull-down}}}{(W/L)_{\text{access}}} \ge 1.5 \div 2.0
+$$
 
-Mentre la cella SRAM richiede $6$ transistori, la cella elementare DRAM ideata da Robert Dennard nel 1968 impiega unicamente **$1$ singolo transistore NMOS di accesso e $1$ micro-condensatore integrato di accumulo** ($C_S$, *Storage Capacitor*), offrendo la massima densità di integrazione possibile per memorie ad accesso casuale.
+- **Vincolo di scrittura — Pull-up Ratio ($PR$):** per riuscire a scaricare il nodo alto durante la scrittura, l'access-transistor deve battere il PMOS di pull-up:
+
+$$
+PR = \frac{(W/L)_{\text{pull-up}}}{(W/L)_{\text{access}}} \le 0.5 \div 0.7
+$$
+
+Unendo i due vincoli si ottiene la gerarchia tipica della SRAM 6T: $(W/L)_{\text{pull-down NMOS}} > (W/L)_{\text{access NMOS}} > (W/L)_{\text{pull-up PMOS}}$.
+
+<Divider label="3 · Cella Dinamica DRAM 1T-1C" />
+
+### Esempio — Lettura con Charge Sharing nella DRAM 1T-1C
+
+La cella **DRAM 1T-1C** ([la figura](#fig-dram-1t1c-schematic)) riduce l'area a un solo NMOS di accesso $M_a$ e un minuscolo condensatore di cella $C_S \approx 30\,\text{fF}$, collegati a una lunga Bit-Line con capacità parassita molto più grande ($C_{BL} \approx 300\,\text{fF}$).
 
 <figure id="fig-dram-1t1c-schematic" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-dram-1t1c-schematic.svg" alt="Schema circuitale della cella DRAM 1T-1C e partitore capacitivo di lettura con la capacità parassita di Bit-Line C_BL." />
-  <figcaption>Schema circuitale della cella DRAM 1T-1C e partitore capacitivo di lettura con la capacità parassita di Bit-Line $C_{BL}$.</figcaption>
+  <figcaption>Schema della cella DRAM 1T-1C con il condensatore $C_S$ e la capacità parassita $C_{BL}$.</figcaption>
 </figure>
 
-Il dato binario è immagazzinato come presenza o assenza di carica elettrostatica sul condensatore $C_S$:
-- **Stato '1':** $V_{data} = V_{DD} \implies Q_{data} = C_S V_{DD}$
-- **Stato '0':** $V_{data} = 0\text{ V} \implies Q_{data} = 0$
+Supponiamo $V_{DD} = 1.8\,\text{V}$ e la cella carica a `'1'` ($V_{data} = 1.8\,\text{V}$), con $C_S = 35\,\text{fF}$ e $C_{BL} = 315\,\text{fF}$:
+1. Prima della lettura la Bit-Line viene precaricata a metà tensione, $V_{pre} = V_{DD}/2 = 0.9\,\text{V}$, e lasciata isolata.
+2. Quando $WL$ accende $M_a$, i due condensatori si collegano in parallelo e si spartiscono la carica (*charge sharing*). Poiché $C_{BL}$ è $9$ volte più grande di $C_S$, la tensione finale comune si sposta di pochissimo sopra $0.9\,\text{V}$:
 
-### Ripartizione di Carica (Charge Sharing) in Fase di Lettura
-
-La linea Bit-Line accorpa i drain di centinaia o migliaia di celle collegate sulla stessa colonna, presentando una capacità parassita totale molto più grande di quella del condensatore di cella ($C_{BL} \approx 200\div 500\text{ fF} \gg C_S \approx 25\div 40\text{ fF} \implies C_{BL}/C_S \approx 10 \div 20$).
-Precaricando la Bit-Line isolata a $V_{pre} = V_{DD}/2$ e attivando la Word-Line, i condensatori $C_S$ (carico a $V_{data} \in \{0, V_{DD}\}$) e $C_{BL}$ si connettono in parallelo, producendo sulla Bit-Line la minuscola variazione di potenziale:
-$$ \Delta V_{BL} = V_{final} - \frac{V_{DD}}{2} = \frac{C_S}{C_S + C_{BL}} \left(V_{data} - \frac{V_{DD}}{2}\right) = \pm \frac{C_S}{C_S + C_{BL}} \frac{V_{DD}}{2} \approx \pm 40\text{ mV} $$
-
-### Dimostrazione Matematica: Conservazione della Carica nel Charge Sharing della DRAM
-
-1. **Carica iniziale totale ($Q_{tot,init}$):** Prima dell'apertura di $M_a$, il condensatore di cella possiede la carica $Q_S = C_S V_{data}$ e la Bit-Line precaricata a $V_{DD}/2$ possiede la carica $Q_{BL,init} = C_{BL} \frac{V_{DD}}{2}$.
-2. **Equilibrio elettrostatico ($Q_{tot,final}$):** Quando $M_a$ chiude il contatto, i due condensatori risultano in parallelo alla tensione comune $V_{final}$. Per la conservazione della carica:
-   $$ C_S V_{data} + C_{BL} \frac{V_{DD}}{2} = (C_S + C_{BL}) V_{final} \implies V_{final} = \frac{V_{DD}}{2} + \frac{C_S}{C_S + C_{BL}} \left(V_{data} - \frac{V_{DD}}{2}\right) $$
-   Sottraendo $V_{pre} = V_{DD}/2$, si ottiene $\Delta V_{BL} = +\frac{C_S}{C_S + C_{BL}}\frac{V_{DD}}{2}$ per $V_{data} = V_{DD}$ (dato `'1'`) e $-\frac{C_S}{C_S + C_{BL}}\frac{V_{DD}}{2}$ per $V_{data} = 0$ (dato `'0'`).
-
-### Natura Distruttiva della Lettura e Riscrittura (*Write-Back*)
-
-Al termine del processo di condivisione di carica, il potenziale sul condensatore di memorizzazione $C_S$ non è più $V_{DD}$ o $0\text{ V}$, bensì $V_{final} \approx V_{DD}/2 \pm 40\text{ mV}$. Il dato originale è **completamente distrutto (*Destructive Read*)**.
-I Sense Amplifier differenziali collegati alla colonna compiono un'azione a doppio stadio:
-1. Rilevano il segno di $\Delta V_{BL}$ amplificandolo a livello logico pieno ($0$ o $V_{DD}$).
-2. Tramite la Word-Line ancora attiva, guidano la Bit-Line a piena escursione, **ricaricando forzatamente il condensatore $C_S$** al valore nominale integro ($0\text{ V}$ o $V_{DD}$). Questa operazione hardware automatica è denominata **Write-Back** o rigenerazione.
-
-### Il Ciclo di Refresh Periodico
-
-La giunzione pn drain-substrato del transistore di accesso $M_a$ presenta una minuscola corrente parassita di perdita per polarizzazione inversa ($I_{leak} \approx 1\div 10\text{ fA}$).
-Tale corrente dissipa continuamente la carica intrappolata sul condensatore $C_S$:
 $$
-\frac{dV}{dt} = \frac{I_{leak}}{C_S} \approx \frac{5\text{ fA}}{30\text{ fF}} = 0.166\text{ V/s}
+V_{final} = \frac{C_S V_{data} + C_{BL} V_{pre}}{C_S + C_{BL}} = \frac{35 \cdot 1.8 + 315 \cdot 0.9}{35 + 315} = 0.99\,\text{V}
 $$
-Nell'arco di poche centinaia di millisecondi, la tensione di un '1' decadrebbe al di sotto della soglia di discriminazione, corrompendo irrimediabilmente il dato.
-Il controllore DRAM deve eseguire periodicamente e ciclicamente un'operazione di **Refresh** su tutte le righe della matrice (tipicamente ogni $64\text{ ms}$ a $85^\circ\text{C}$), attivando sequenzialmente ciascuna Word-Line per innescare i Sense Amplifier e ripristinare la piena carica su tutte le celle.
 
-## Memorie Non Volatili: ROM a Matrice NMOS, EPROM, EEPROM e Flash
+La variazione utile è solo $\Delta V_{BL} = +90\,\text{mV}$, e intanto la cella $C_S$ ha perso metà della sua tensione (**lettura distruttiva**): il *Sense Amplifier* legge i $+90\,\text{mV}$ e deve subito **riscrivere** $1.8\,\text{V}$ su $BL$ (*write-back*) per ripristinare $C_S$.
 
-Le memorie non volatili (NVM) conservano l'informazione binaria anche in assenza di alimentazione elettrica.
+<StepCheck client:load lang="it" prompt="Se la stessa cella ($C_S = 35\,\text{fF}, C_{BL} = 315\,\text{fF}, V_{pre} = 0.9\,\text{V}$) memorizzasse uno `'0'` logico ($V_{data} = 0\,\text{V}$), quale tensione $V_{final}$ si otterrebbe dopo il charge sharing (in $\text{V}$)?" expected={0.81} tolerance={0.01} unit="$\text{V}$" explanation="$V_{final} = (35 \cdot 0 + 315 \cdot 0.9) / 350 = 0.81\,\text{V}$ ($\Delta V_{BL} = -90\,\text{mV}$)." />
 
-### 1. Memorie ROM a Maschera (Matrice NOR di Transistori NMOS)
-Nella **ROM (*Read-Only Memory*) a maschera** ([la figura](#fig-rom-nmos-matrix)), il contenuto informativo è cablato fisicamente durante la fabbricazione litografica mediante la presenza o l'assenza di un transistore NMOS all'incrocio tra ciascuna riga ($WL_i$) e ciascuna colonna ($BL_j$, precaricata a $V_{DD}$ tramite un carico di pull-up):
-* **Presenza del transistore NMOS (dato logico '0'):** Quando la Word-Line viene attivata ($WL_i = V_{DD}$), il transistore si accende e scarica la Bit-Line verso massa ($V_{BL_j} = 0$).
-* **Assenza del transistore NMOS (dato logico '1'):** L'attivazione di $WL_i$ non crea alcun percorso verso massa e la Bit-Line rimane al livello alto $V_{DD}$.
+### Teoria — Charge Sharing, Write-Back e Refresh
 
-<figure id="fig-rom-nmos-matrix" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/elettronica/fig-rom-nmos-matrix.svg" alt="Porzione 2 times 2 di una memoria ROM a matrice NOR di transistori NMOS: la presenza del transistore all'intersezione (WL_i, BL_j) codifica uno `'0'` logico, mentre la sua assenza codifica un `'1'` logico." />
-  <figcaption>Porzione $2 \times 2$ di una memoria ROM a matrice NOR di transistori NMOS: la presenza del transistore all'intersezione $(WL_i, BL_j)$ codifica uno `'0'` logico, mentre la sua assenza codifica un `'1'` logico.</figcaption>
-</figure>
+1. **Scrittura:** il *Write Driver* porta $BL$ a $V_{DD}$ (`'1'`) o a $0\,\text{V}$ (`'0'`), $WL$ chiude $M_a$ per caricare/scaricare $C_S$, poi $WL$ torna a zero.
+2. **Lettura (*Charge Sharing*):** precaricata $BL$ a $V_{pre} = V_{DD}/2$, l'apertura di $M_a$ produce sulla Bit-Line un piccolo gradino di tensione:
 
-### 2. Il Transistore MOS a Gate Flottante (EPROM, EEPROM e Flash)
-Per consentire la programmazione e la cancellazione dopo la fabbricazione, le memorie **EPROM**, **EEPROM** e **Flash** sostituiscono l'interruttore fisso con un transistore MOSFET provvisto di un **Gate Flottante** (*Floating Gate*, FG) in polisilicio conduttivo, completamente isolato all'interno del dielettrico $\text{SiO}_2$ al di sotto del **Gate di Controllo** (*Control Gate*, CG, [la figura](#fig-flash-floating-gate)).
+$$
+\Delta V_{BL} = \frac{C_S}{C_S + C_{BL}}\left(V_{data} - \frac{V_{DD}}{2}\right)
+$$
+
+   Il segnale vale poche decine di millivolt ($\pm 40\div 90\,\text{mV}$) perché $C_{BL} \gg C_S$.
+3. **Lettura distruttiva e Write-Back:** siccome il *charge sharing* altera la carica in $C_S$, il *Sense Amplifier* amplifica $\Delta V_{BL}$ fino a $V_{DD}$ o $0\,\text{V}$ mentre $WL$ è ancora attiva, ricaricando subito la cella (**write-back**).
+4. **Refresh periodico:** anche a riposo ($WL = 0$), piccole correnti di perdita (*leakage*) scaricano lentamente $C_S$. Per non perdere i dati, il controller DRAM rilegge e riscrive ciclicamente tutte le righe della matrice ogni poche decine di millisecondi (**refresh**, tipicamente $32\div 64\,\text{ms}$).
+
+<Divider label="4 · Memorie Non Volatili ROM e Flash" />
+
+### Esempio — Principio della Cella Flash a Floating Gate
+
+Una cella **Flash** ([la figura](#fig-flash-floating-gate)) è un singolo MOSFET che ha un elettrodo aggiuntivo isolato nell'ossido chiamato **Floating Gate ($FG$)** tra il **Control Gate ($CG$)** esterno e il canale.
 
 <figure id="fig-flash-floating-gate" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/elettronica/fig-flash-floating-gate.svg" alt="Sezione strutturale di una cella non volatile (EPROM/EEPROM/Flash) con transistore MOSFET a gate flottante (*Floating Gate*)." />
-  <figcaption>Sezione strutturale di una cella non volatile (EPROM/EEPROM/Flash) con transistore MOSFET a gate flottante (*Floating Gate*).</figcaption>
+  <img src="/dynamic-courses/diagrams/elettronica/fig-flash-floating-gate.svg" alt="Sezione strutturale di una cella non volatile (EPROM/EEPROM/Flash) con transistore MOSFET a gate flottante (Floating Gate)." />
+  <figcaption>Sezione strutturale di una cella non volatile con transistore MOSFET a *Floating Gate*.</figcaption>
 </figure>
 
-### Meccanismo di Spostamento della Soglia $\Delta V_{th}$ ed Evoluzione EPROM $\to$ EEPROM $\to$ Flash
+- **Cella cancellata (bit `'1'`):** il Floating Gate è vuoto; la soglia è bassa (es. $V_{th0} = 1.5\,\text{V}$). Applicando una tensione di lettura intermedia $V_{\text{read}} = 3.0\,\text{V}$, il transistore **si accende** e scarica la Bit-Line.
+- **Cella programmata (bit `'0'`):** con un impulso ad alta tensione si intrappolano elettroni nel Floating Gate. Questa carica negativa scherma il Control Gate e **alza la tensione di soglia** (es. a $5.0\,\text{V}$). Quando si applica $V_{\text{read}} = 3.0\,\text{V}$, il transistore **resta spento** e la Bit-Line rimane alta.
 
-Il dato logico è codificato dalla carica elettronica negativa $Q_{FG}$ intrappolata nel Floating Gate:
-- **Cella Cancellata (Stato Logico '1'):** Nessun eccesso di elettroni nel gate flottante ($Q_{FG} = 0$). Il transistore presenta la tensione di soglia intrinseca bassa $V_{th,erased} = V_{th0} \approx 1.5\div 2.0\text{ V}$.
-- **Cella Programmata (Stato Logico '0'):** Iniettando una carica negativa $Q_{FG} < 0$ nel gate flottante, essa scherma elettrostaticamente il canale rispetto al Control Gate, innalzando la tensione di soglia effettiva vista dal Control Gate:
-  $$ V_{th,prog} = V_{th0} - \frac{Q_{FG}}{C_{CG}} = V_{th0} + \Delta V_{th} \approx 4.5\div 5.5\text{ V} $$
-Applicando in fase di lettura una tensione di riga intermedia $V_{th,erased} < V_{read} < V_{th,prog}$ (es. $V_{read} = V_{DD}$), la cella cancellata conduce corrente (scaricando la Bit-Line), mentre la cella programmata rimane interdetta.
+<StepCheck client:load lang="it" mode="choice" prompt="In una cella Flash a Floating Gate, cosa succede alla tensione di soglia $V_{th}$ quando vengono intrappolati elettroni nel Floating Gate?" options={["La soglia aumenta perché gli elettroni schermano il Control Gate", "La soglia diminuisce a zero", "La soglia resta identica ma cambia solo la capacità di Bit-Line"]} correctIndex={0} explanation="La carica negativa intrappolata si oppone al campo elettrico del Control Gate, richiedendo una tensione più alta per formare il canale." />
 
-Le tre famiglie di memorie programmabili a gate flottante si distinguono per i meccanismi fisici di scrittura e cancellazione:
-1. **EPROM (*Erasable Programmable ROM*):** La programmazione avviene per **iniezione di elettroni caldi di canale (CHEI)** applicando tensioni elevate su Drain e Control Gate; la cancellazione dell'intero chip avviene esponendo il silicio (attraverso una finestra in quarzo trasparente sul package) a **radiazione ultravioletta (UV)** per $15\div 20$ minuti, fornendo agli elettroni intrappolati l'energia fotonica necessaria a superare la barriera di $\text{SiO}_2$.
-2. **EEPROM (*Electrically Erasable PROM*):** Introduce uno strato di ossido ultrasottile ($\approx 8\text{ nm}$) che permette sia la programmazione sia la **cancellazione per via puramente elettrica** mediante **effetto tunnel quantistico di Fowler-Nordheim** a livello di singolo byte, al prezzo di una cella a due transistori più ingombrante.
-3. **Memorie Flash (NOR e NAND):** Combinano l'alta densità della cella a singolo transistore delle EPROM con la cancellazione elettrica per effetto tunnel Fowler-Nordheim delle EEPROM, eseguendo la cancellazione simultaneamente su interi **blocchi o settori** della matrice.
+### Teoria — ROM a Maschera e Flash NOR / NAND
 
-## Tabella Comparativa delle Tecnologie di Memoria
+1. **Mask ROM ([la figura](#fig-rom-nmos-matrix)):** memoria a sola lettura programmata in fabbrica. Dove all'incrocio $(WL, BL)$ c'è il transistore NMOS la colonna si scarica a `0`; dove manca resta a `1`.
 
-| Parametro | SRAM (6T) | DRAM (1T-1C) | Flash NAND | Flash NOR |
-| :--- | :--- | :--- | :--- | :--- |
-| **Volatilità** | Volatile | Volatile | Non Volatile | Non Volatile |
-| **Area Cella ($\lambda^2$)** | $100\div 150\,\lambda^2$ | $6\div 8\,\lambda^2$ | $4\div 5\,\lambda^2$ | $10\div 12\,\lambda^2$ |
-| **Tempo di Accesso** | $0.5\div 2\text{ ns}$ | $10\div 20\text{ ns}$ | $10\div 25\,\mu\text{s}$ | $50\div 100\text{ ns}$ |
-| **Tipo di Lettura** | Non-distruttiva | **Distruttiva** (con write-back) | Non-distruttiva | Non-distruttiva |
-| **Necessità Refresh** | No | **Sì** ($32\div 64\text{ ms}$) | No | No |
-| **Applicazione Tipica** | Cache L1/L2/L3 on-chip | Memoria Principale (RAM) | SSD, SD-Card, Storage | Firmware BIOS, Bootloader |
+<figure id="fig-rom-nmos-matrix" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-rom-nmos-matrix.svg" alt="Porzione 2 times 2 di una memoria ROM a matrice NOR di transistori NMOS: la presenza del transistore all'intersezione (WL_i, BL_j) codifica uno 0 logico, mentre la sua assenza codifica un 1 logico." />
+  <figcaption>Matrice ROM NOR: presenza di NMOS = `'0'`, assenza = `'1'`.</figcaption>
+</figure>
 
-<Callout type="tip" title="Gerarchia Industriale delle Memorie: Compattezza vs Velocità">
+2. **Flash a Floating Gate:** essendo il *Floating Gate* circondato da ossido isolante, gli elettroni intrappolati restano lì per decenni anche senza alimentazione. La cancellazione elettrica avviene per effetto tunnel su interi blocchi di celle.
+   - **Flash NOR:** celle collegate in **parallelo** sulla Bit-Line; lettura casuale molto veloce (ideale per firmware e boot).
+   - **Flash NAND:** celle collegate in **serie** a stringhe senza contatti intermedi; densità altissima e basso costo per bit (standard per SSD e schede SD).
 
-Il confronto tra le tre celle spiega immediatamente perché nei calcolatori moderni coesistono tutte queste tecnologie:
-* **La cella SRAM 6T** è velocissima (frazioni di nanosecondo) e non richiede refresh perché i due invertitori incrociati rigenerano attivamente il dato, ma richiede **$6$ transistori** per ogni singolo bit: è relativamente ingombrante e costosa, per cui viene impiegata solo per i pochi megabyte di **memoria Cache L1/L2/L3** dentro il processore.
-* **La cella DRAM 1T-1C** riduce il circuito al minimo fisico pensabile (**$1$ solo transistore e $1$ condensatore** scavato in trincea verticale o impilato): è **oltre $15$ volte più compatta** della SRAM, permettendo di integrare molti gigabyte di RAM principale su pochi millimetri quadrati a fronte della necessità del refresh periodico e del write-back dopo ogni lettura.
-* **La cella Flash a Floating Gate** usa **$1$ solo transistore senza nemmeno il condensatore esterno**, intrappolando gli elettroni nell'ossido per decenni senza alimentazione: è lenta in scrittura/cancellazione (millisecondi per effetto tunnel), ma imbattibile per compattezza e persistenza negli SSD e nella memoria di codice dei microcontrollori.
+<Divider label="5 · Sintesi" />
 
-</Callout>
+### Confronto tra le Tecnologie di Memoria
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+| Tecnologia | Struttura | Densità / Velocità | Lettura | Volatilità / Refresh | Uso Tipico |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **SRAM 6T** | $2$ invertitori + $2$ access NMOS | Bassa densità / Velocissima | Non distruttiva | Volatile, **no refresh** | Cache CPU |
+| **DRAM 1T-1C** | $1$ NMOS + condensatore $C_S$ | Alta densità / Media | **Distruttiva** (write-back) | Volatile, **refresh periodico** | RAM principale |
+| **Flash NOR** | $1$ Floating Gate (parallelo) | Media / Lettura rapida | Non distruttiva | Non volatile | Firmware, Boot |
+| **Flash NAND** | $1$ Floating Gate (serie) | Massima densità / Lenta | Non distruttiva | Non volatile | SSD, SD-Card |
 
-### Confronto Operativo — Celle SRAM 6T, DRAM 1T-1C e Non Volatili
+<Callout type="warning" title="Errori Comuni">
 
-| Tecnologia | Elemento | Lettura | Volatilità / Refresh |
-| :--- | :--- | :--- | :--- |
-| **SRAM 6T** | Due invertitori incrociati + 2 NMOS di accesso | **Non distruttiva** (differenziale su $BL, \overline{BL}$) | Volatile, **nessun refresh** |
-| **DRAM 1T-1C** | 1 NMOS + 1 condensatore $C_S$ | **Distruttiva** (*charge sharing* su $C_{BL}$) | Volatile, **refresh obbligatorio** |
-| **ROM / Flash** | Matrice NMOS / MOSFET a *Floating Gate* | Non distruttiva | **Non volatile** |
-
-**Formula del segnale di lettura DRAM:** $\Delta V = \left(V_{cell} - V_{pre}\right) \frac{C_S}{C_S + C_{BL}}$ (tipicamente $V_{pre} = V_{DD}/2$).
-
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
-
-<Callout type="warning" title="Trappola d'Esame: Vincoli di Dimensionamento nella Cella SRAM 6T">
-
-Nella cella SRAM 6T il nodo a `0` non deve salire sopra $V_{TN}$ durante la **lettura** (**Cell Ratio** $CR = (W/L)_{pull-down} / (W/L)_{access} &gt; 1.2$), mentre durante la **scrittura** il transistore di accesso deve vincere il PMOS di pull-up (**Pull-Up Ratio** $PR = (W/L)_{pull-up} / (W/L)_{access} &lt; 1.8$).
+Nella DRAM 1T-1C non confondere il **write-back** (necessario subito dopo *ogni lettura* perché il *charge sharing* svuota parzialmente $C_S$) con il **refresh** (necessario periodicamente su tutte le righe anche senza letture per compensare le correnti di perdita).
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-23-1" title="Esercizio 23.1: Charge Sharing nella Cella DRAM 1T-1C e Decodifica" level="Livello 2 · Esame" hint="Delta V = (V_DD - V_DD/2) * C_S / (C_S + C_BL). Per i bit di indirizzo usa log2(righe) e log2(colonne).">
+<Divider label="6 · Esercizi" />
 
-1. Una cella DRAM 1T-1C ($V_{DD} = 1.8\,\text{V}$, $C_S = 30\,\text{fF}$) memorizza un `'1'` logico ($1.8\,\text{V}$). Prima della lettura la bitline ($C_{BL} = 270\,\text{fF}$) viene precaricata a $V_{DD}/2 = 0.9\,\text{V}$.
-2. Una memoria è organizzata come matrice da $4096$ righe per $1024$ colonne.
+<Exercise client:load lang="it" id="ex-23-1" title="Esercizio 23.1 — Charge Sharing DRAM" level="Base" hint="Usa V_final = (C_S * V_data + C_BL * V_pre) / (C_S + C_BL).">
 
-<StepCheck client:load lang="it" prompt="Calcola lo scostamento di tensione ΔV sulla bitline durante la lettura (in mV):" expected={90.0} tolerance={1.5} unit="mV" explanation="ΔV = (1.8 - 0.9) * 30 / (30 + 270) = 0.9 * 0.1 = 0.09 V = 90 mV." />
+Una cella DRAM 1T-1C ($V_{DD} = 1.8\,\text{V}$, $C_S = 30\,\text{fF}$) memorizza un `'1'` logico ($1.8\,\text{V}$). Prima della lettura la Bit-Line ($C_{BL} = 270\,\text{fF}$) è precaricata a $V_{DD}/2 = 0.9\,\text{V}$.
 
-<StepCheck client:load lang="it" prompt="Quanti bit di indirizzo servono per il decodificatore di riga?" expected={12} tolerance={0.1} explanation="log2(4096) = 12 bit di riga (e log2(1024) = 10 bit di colonna)." />
+<StepCheck client:load lang="it" prompt="Calcola lo scostamento di tensione $\Delta V_{BL} = V_{final} - V_{pre}$ sulla Bit-Line (in $\text{mV}$):" expected={90} tolerance={2} unit="$\text{mV}$" explanation="$\Delta V_{BL} = (1.8 - 0.9) \cdot 30 / (30 + 270) = 0.9 \cdot 0.1 = 90\,\text{mV}$." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. **Charge Sharing DRAM:**
-   $$ \Delta V = (V_{DD} - V_{pre})\frac{C_S}{C_S + C_{BL}} = (1.8 - 0.9)\frac{30}{30 + 270} = 0.09\,\text{V} = 90\,\text{mV} $$
-   Poiché la carica su $C_S$ si è diluita su $C_{BL}$, il sense amplifier deve riscrivere subito il valore pieno (*refresh*).
-2. **Decodifica a matrice:** $4096 = 2^{12} \implies 12$ bit di riga; $1024 = 2^{10} \implies 10$ bit di colonna ($4\,\text{Mbit}$ totali).
+$$
+V_{final} = \frac{30 \cdot 1.8 + 270 \cdot 0.9}{30 + 270} = \frac{54 + 243}{300} = 0.99\,\text{V} \implies \Delta V_{BL} = 0.99 - 0.90 = 0.09\,\text{V} = 90\,\text{mV}
+$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-23-2" title="Esercizio 23.2 — Dimensionamento Cella SRAM 6T" level="Intermedio" hint="Imponi CR = (W/L)_n1 / (W/L)_a1 >= 1.8 e PR = (W/L)_p1 / (W/L)_a1 <= 0.6.">
+
+In una cella SRAM 6T gli NMOS di accesso hanno $(W/L)_{a1} = (W/L)_{a2} = 1.5$. Si rispettino i vincoli $CR \ge 1.8$ e $PR \le 0.6$.
+
+<StepCheck client:load lang="it" prompt="Calcola il rapporto minimo $(W/L)_{n1}$ dei transistori NMOS di pull-down:" expected={2.7} tolerance={0.05} explanation="$(W/L)_{n1,\min} = 1.8 \cdot 1.5 = 2.7$." />
+
+<StepCheck client:load lang="it" prompt="Calcola il rapporto massimo $(W/L)_{p1}$ dei transistori PMOS di pull-up:" expected={0.9} tolerance={0.03} explanation="$(W/L)_{p1,\max} = 0.6 \cdot 1.5 = 0.9$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+- **Pull-down NMOS (lettura):** $(W/L)_{n1} \ge 1.8 \times 1.5 = 2.7$.
+- **Pull-up PMOS (scrittura):** $(W/L)_{p1} \le 0.6 \times 1.5 = 0.9$.
 
 </details>
 

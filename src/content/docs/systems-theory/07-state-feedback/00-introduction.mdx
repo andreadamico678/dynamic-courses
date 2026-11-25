@@ -1,0 +1,37 @@
+---
+title: "Part VII — Introduction: State Feedback Control"
+description: "Conceptual overview and real-world framing for Part VII of Linear Systems Theory."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part VII Roadmap" markdown={`# Part VII: State Feedback Control
+  - 24. Pole Placement in Canonical Form
+    - Turning $\\mathbf{A} - \\mathbf{B}\\mathbf{K}$ into coefficient arithmetic
+  - 25. Ackermann Feedback Formula
+    - Direct closed-form gain synthesis
+  - 26. Dominant Closed-Loop Dynamics
+    - Translating overshoot & settling time to poles`} />
+
+## Introduction
+
+Up through Part VI, you analyzed systems as they are. Part VII flips the perspective from **analysis** to **synthesis**: if the pair $(\mathbf{A}, \mathbf{B})$ is controllable, you gain complete authority to reshape the system's dynamics by closing a static state-feedback law $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$.
+
+Instead of settling for the open-loop eigenvalues nature gave the plant, you choose the desired closed-loop characteristic polynomial $p^*(s)$ and solve algebraically for the gain vector $\mathbf{K}$ that places all $n$ closed-loop poles wherever performance requires—first conceptually in Controllable Canonical Form, then directly via **Ackermann's Formula**, and finally practically by mapping real time-domain specs (settling time and overshoot) into dominant pole locations.
+
+### Practical Real-World Perspective
+
+- **Balancing Unstable Hardware:** An inverted pendulum, Segway, or vertical-takeoff rocket has an open-loop pole in the right-half plane ($\lambda > 0$). Full-state feedback moves that unstable pole safely into the left-half plane so the vehicle stands upright actively.
+- **Preventing Actuator Saturation:** Knowing how to pick closed-loop poles using the **Dominant Pole Principle** (Rule of Five) keeps auxiliary poles fast enough to stay invisible without pushing gains so high that motor drivers clip or amplify gyroscope noise.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[24. Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/)** — Transform $(\mathbf{A}, \mathbf{B})$ into companion coordinates and match characteristic polynomial coefficients directly.
+2. **[25. Ackermann Feedback Formula](/dynamic-courses/systems-theory/07-state-feedback/02-ackermann-state-feedback-gain-formula/)** — Compute $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ directly without full canonical basis transformations.
+3. **[26. Dominant Closed-Loop Dynamics](/dynamic-courses/systems-theory/07-state-feedback/03-dominant-second-order-closed-loop-poles/)** — Translate transient overshoot $\hat{s}$ and settling time $T_s$ into dominant second-order poles and balanced auxiliary poles.

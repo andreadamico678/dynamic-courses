@@ -1,0 +1,288 @@
+---
+title: "4. Implication Table Minimization"
+description: "Computer Architecture — Chapter 4: Implication Table Minimization"
+sidebar:
+  order: 4
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 4 Outline" markdown={`# Ch. 4: Implication Table Minimization
+  - Six-State Reduction (Jan 2026 C1)
+    - Output-signature cross-outs
+    - Cascade elimination and 3-state table
+  - Implication Table Rules
+    - Output and next-state equivalence
+    - Lower-triangular grid geometry
+    - Five-step Paull-Unger procedure
+  - Exam Summary & Common Pitfalls`} />
+
+## Introduction
+
+Initial state machines—and the 6-state specifications given in Exam Question 2—often contain redundant states whose future input-output behavior is indistinguishable. **Implication Table minimization** (the Paull–Unger algorithm) tests every unordered state pair in a lower-triangular grid, crosses out output-incompatible pairs first, propagates implied next-state conflicts until no further eliminations occur, and merges surviving equivalent states to reduce flip-flop count $k = \lceil \log_2 \lvert S_{\text{min}} \rvert \rceil$ and combinational gate area.
+
+<Divider label="1 · Example" />
+
+### Six-State Reduction via Implication Passes
+
+Consider the 6-state Mealy machine from **January 2026 (Question 2)** with single-bit input $X \in \{0, 1\}$:
+
+| Present State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) | Output Signature $(u_{X=0}, u_{X=1})$ |
+| :---: | :---: | :---: | :---: |
+| **$A$** | $B / 0$ | $E / 0$ | $(0, 0)$ |
+| **$B$** | $D / 0$ | $C / 0$ | $(0, 0)$ |
+| **$C$** | $F / 0$ | $A / 0$ | $(0, 0)$ |
+| **$D$** | $A / 1$ | $B / 0$ | **$(1, 0)$** |
+| **$E$** | $F / 0$ | $C / 0$ | $(0, 0)$ |
+| **$F$** | $D / 0$ | $E / 0$ | $(0, 0)$ |
+
+1. **Pass 1 — Output Compatibility Cross-Out:** State $D$ has unique output signature $(1, 0)$, whereas $\{A, B, C, E, F\}$ all emit $(0, 0)$. Every pair containing $D$—namely $(D, A), (D, B), (D, C), (E, D), (F, D)$—is immediately crossed out with **X**.
+2. **Pass 2 — Implied Next-State Pairs:** For each uncrossed cell $(S_i, S_j)$ in the lower-triangular grid (rows $B \dots F$, columns $A \dots E$), we list the next-state pairs $(\delta(S_i, 0), \delta(S_j, 0))$ and $(\delta(S_i, 1), \delta(S_j, 1))$, omitting identical pairs like $(F, F)$ or $(C, C)$:
+
+| Row $\backslash$ Col | $A$ | $B$ | $C$ | $D$ | $E$ |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **$B$** | $(B, D), (C, E)$ | — | — | — | — |
+| **$C$** | $(B, F), (A, E)$ | $(D, F), (A, C)$ | — | — | — |
+| **$D$** | **X** | **X** | **X** | — | — |
+| **$E$** | $(B, F), (C, E)$ | $(D, F)$ | $(A, C)$ | **X** | — |
+| **$F$** | $(B, D)$ | $(C, E)$ | $(D, F), (A, E)$ | **X** | $(D, F), (C, E)$ |
+
+3. **Pass 3 — Iterative Cascade Elimination:**
+   - **Sweep 1:** Cells $(B, A)$, $(C, B)$, $(E, B)$, $(F, A)$, $(F, C)$, and $(F, E)$ each depend on $(B, D)$ or $(D, F)$, which are already **X** $\implies$ cross out all six cells with **X**.
+   - **Sweep 2:** Check the four surviving cells:
+     - $(C, A)$ implies $(B, F)$ and $(A, E)$ — both uncrossed!
+     - $(E, A)$ implies $(B, F)$ and $(C, E)$ — both uncrossed!
+     - $(E, C)$ implies $(A, C)$ — uncrossed!
+     - $(F, B)$ implies $(C, E)$ — uncrossed!
+     Zero new cross-outs occur (**fixed point reached**).
+
+4. **Equivalence Classes & Minimal Table:**
+   Surviving cells give $A \equiv C$, $A \equiv E$, $C \equiv E$, and $B \equiv F$. By transitivity, we obtain **3 equivalence classes**:
+
+   $$S_A = \{A, C, E\}, \qquad S_B = \{B, F\}, \qquad S_D = \{D\}$$
+
+   Replacing every state with its class representative ($A, C, E \mapsto S_A$; $B, F \mapsto S_B$; $D \mapsto S_D$) reduces the 6-state machine ($\lceil \log_2 6 \rceil = 3$ flip-flops) to **3 states** ($\lceil \log_2 3 \rceil = 2$ flip-flops):
+
+| Minimal State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
+| :---: | :---: | :---: |
+| **$S_A$** | $S_B / 0$ | $S_A / 0$ |
+| **$S_B$** | $S_D / 0$ | $S_A / 0$ |
+| **$S_D$** | $S_A / 1$ | $S_B / 0$ |
+
+<StepCheck
+  client:load
+  prompt="For a finite state machine with $N = 6$ states, how many unordered state-pair cells exist in its lower-triangular implication table?"
+  expected={15}
+  tolerance={0.01}
+  unit="cells"
+  explanation="An $N$-state machine has $\binom{N}{2} = \frac{N(N - 1)}{2} = \frac{6 \times 5}{2} = 15$ distinct unordered state pairs."
+/>
+
+<Divider label="2 · Theory" />
+
+### State Equivalence Conditions
+
+Two states $S_i$ and $S_j$ of a completely specified FSM are **equivalent** ($S_i \equiv S_j$) if and only if starting the machine in $S_i$ versus $S_j$ yields identical output sequences for every possible future input sequence. Step by step, $S_i \equiv S_j$ holds precisely when two conditions hold across **every** input symbol $x$:
+
+1. **Immediate Output Compatibility:** $\lambda(S_i, x) = \lambda(S_j, x)$ — both states emit identical outputs right now.
+2. **Next-State Compatibility:** $\delta(S_i, x) \equiv \delta(S_j, x)$ — both states transition into identical or equivalent next states.
+
+If their immediate outputs differ on even a single input, $S_i$ and $S_j$ are distinguishable in 1 cycle and can never be merged.
+
+### Lower-Triangular Grid Geometry
+
+To test each unordered pair $\{S_i, S_j\}$ ($i > j$) exactly once without redundant mirror cells or diagonal self-pairs, draw a lower-triangular matrix of size $(N - 1) \times (N - 1)$:
+- **Rows (top to bottom):** $S_1, S_2, \dots, S_{N-1}$ (omit the first state $S_0$).
+- **Columns (left to right):** $S_0, S_1, \dots, S_{N-2}$ (omit the last state $S_{N-1}$).
+
+```text
+Row \ Col
+  B   [ (B,A) ]
+  C   [ (C,A) ][ (C,B) ]
+  D   [ (D,A) ][ (D,B) ][ (D,C) ]
+  E   [ (E,A) ][ (E,B) ][ (E,C) ][ (E,D) ]
+  F   [ (F,A) ][ (F,B) ][ (F,C) ][ (F,D) ][ (F,E) ]
+         A        B        C        D        E
+```
+
+### Five-Step Implication Table Procedure
+
+1. **Draw Lower-Triangular Grid:** Label rows $S_1 \dots S_{N-1}$ and columns $S_0 \dots S_{N-2}$, creating $N(N-1)/2$ cells.
+2. **Pass 1 — Output Cross-Out (`X`):** Compare output vectors $\mathbf{u}(S_i)$ and $\mathbf{u}(S_j)$ across all inputs. Place a bold **X** in every cell where outputs disagree on any input.
+3. **Pass 2 — Implied Next-State Insertion:** For each uncrossed cell $(S_i, S_j)$, read next-state pair $(P, Q) = (\delta(S_i, x), \delta(S_j, x))$ for each input $x$:
+   - Discard **identities** ($P = Q$) and **self-implications** ($\{P, Q\} = \{S_i, S_j\}$).
+   - If zero pairs remain, mark the cell **$\checkmark$** (unconditionally equivalent!).
+   - If any $(P, Q)$ cell is already **X**, mark $(S_i, S_j)$ with **X** immediately; otherwise write $(P, Q)$ inside the cell.
+4. **Pass 3 — Fixed-Point Cascade Sweep:** Repeatedly scan all surviving cells containing implied pairs. Whenever an implied pair $(P, Q)$ now holds **X**, cross out the parent cell with **X**. Stop only after a complete pass produces **zero new `X` marks**.
+5. **Transitive Partition & Reduced Table:** Every uncrossed cell ($\checkmark$ or surviving pairs) defines $S_i \equiv S_j$. Merge overlapping pairs by transitivity ($S_i \equiv S_j$ and $S_j \equiv S_k \implies \{S_i, S_j, S_k\}$), keep unmatched states as singletons, and rewrite the state table using one representative name per class.
+
+<Callout type="tip" title="Practical Hardware Perspective">
+
+In Question 2 of the exam, Implication Table reduction directly feeds [Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/). Shrinking a 6-state FSM to 3 or 4 states drops $k = \lceil \log_2 \lvert S_{\text{min}} \rvert \rceil$ from $3$ flip-flops down to $2$, cutting every subsequent Karnaugh map in half (from 16 cells to 8 cells) and saving critical exam minutes!
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="States $A$ and $E$ both output $(0, 0)$. On $X = 0$ both go to $B$; on $X = 1$, $A \to E$ and $E \to A$. What do you enter in cell $(E, A)$ of the implication table?"
+  options={[
+    "Cross out with X because $A \\neq E$ on $X = 1$",
+    "Write $(B, B)$ and $(E, A)$ and wait for Pass 3",
+    "Mark $\\checkmark$ (unconditionally equivalent)"
+  ]}
+  correctIndex={2}
+  explanation="$(B, B)$ is an identity ($P = Q$) and $(E, A)$ is a self-implication ($\{P, Q\} = \{E, A\}$); dropping both leaves zero unresolved constraints, so $A \equiv E$ unconditionally ($\checkmark$)."
+/>
+
+<Divider label="3 · Summary" />
+
+| Condition Found for Cell $(S_i, S_j)$ | Action in Implication Table |
+| :--- | :--- |
+| **Output mismatch** $\lambda(S_i, x) \neq \lambda(S_j, x)$ on any $x$ | Cross out immediately with **X** (Pass 1) |
+| **Identical next states** ($P = Q$) or **self-pair** ($\{P, Q\} = \{S_i, S_j\}$) | Discard constraint; mark **$\checkmark$** if all inputs reduce to this |
+| **Implied pair $(P, Q)$ already marked `X`** | Cross out $(S_i, S_j)$ with **X** (Pass 2 / Cascade Pass 3) |
+| **Implied pair $(P, Q)$ currently uncrossed** | Write $(P, Q)$ inside cell and re-check in Cascade Pass 3 |
+| **Cell survives fixed-point pass without `X`** | Merge $S_i \equiv S_j$ into the same transitive equivalence class |
+
+### Exam Execution Checklist
+
+1. Add a temporary output-signature column $(u_{x_0}, u_{x_1}, \dots)$ to the given state table to partition states by output before drawing the triangle.
+2. Label rows $S_1 \dots S_{N-1}$ and columns $S_0 \dots S_{N-2}$ (verify $N(N-1)/2$ boxes).
+3. Cross out all cross-partition output mismatches first so Pass 2 avoids writing doomed pairs.
+4. Run full cascade scans until a pass yields zero new **X** marks, then verify transitivity on surviving cells.
+5. Check every row of the final reduced table: all members of a merged class must map to the exact same next-state class on every input!
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Duplicate Axis Labels:** Putting $A \dots F$ on both axes creates useless $(A, A)$ diagonal cells and mirrored $(A, B) / (B, A)$ cells where an `X` in one mirror is easily missed in the other.
+2. **Halting Cascade Elimination Early:** Crossing out $(B, E)$ at the bottom of Pass 1 may invalidate $(A, D)$ higher up in Pass 2; never stop until an entire top-to-bottom scan adds zero new `X`s.
+3. **Ignoring Broken Transitivity:** In a completely specified FSM, equivalence is transitive. If $(B, A)$ and $(C, B)$ survive while $(C, A)$ is marked `X`, you made a lookup error—audit those three states immediately!
+4. **Dropping Self-Loops Incorrectly:** Self-implication $(A, E)$ inside cell $(E, A)$ does **not** cause a cross-out; it is trivially satisfied under the hypothesis $A \equiv E$.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-4-1" title="Exercise 4.1 — Six-State Implication Reduction (Feb 2026 C1)" level="Exam" hint="Split states by output signature first: {A, B, C, E} emit (0, 0) while {D, F} emit (1, 0). Check (E, A) before resolving (F, D).">
+
+Minimize the following 6-state Mealy machine from **February 2026 (Variant C1, Question 2)**:
+
+| State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
+| :---: | :---: | :---: |
+| **$A$** | $B / 0$ | $A / 0$ |
+| **$B$** | $B / 0$ | $C / 0$ |
+| **$C$** | $C / 0$ | $D / 0$ |
+| **$D$** | $A / 1$ | $F / 0$ |
+| **$E$** | $B / 0$ | $E / 0$ |
+| **$F$** | $E / 1$ | $D / 0$ |
+
+1. Build the 15-cell lower-triangular implication table and execute all elimination passes to fixed point.
+2. List the minimal equivalence classes and construct the reduced state table.
+
+<StepCheck
+  client:load
+  prompt="How many states remain in the minimal equivalent state table of Exercise 4.1?"
+  expected={4}
+  tolerance={0.01}
+  unit="states"
+  explanation="$A \equiv E$ unconditionally ($\checkmark$), which also validates $D \equiv F$, whereas $B$ and $C$ fail compatibility because $C \xrightarrow{X=1} D$ crosses into the $(1, 0)$ output partition. The 6 states reduce to 4 classes: $\{A, E\}, \{B\}, \{C\}, \{D, F\}$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Pass 1 — Output Partitioning:**
+   - Output $(0, 0)$: $\{A, B, C, E\}$
+   - Output $(1, 0)$: $\{D, F\}$
+   - All $4 \times 2 = 8$ cross-group cells—$(D, A), (D, B), (D, C), (E, D), (F, A), (F, B), (F, C), (F, E)$—are immediately marked **X**.
+
+2. **Pass 2 & Pass 3 — Implied Pairs and Cascade Elimination:**
+   Evaluating the remaining 7 intra-group cells:
+   - $(B, A)$: $X=0 \to (B, B)$ (drop); $X=1 \to (C, A)$ $\implies$ write $(C, A)$.
+   - $(C, A)$: $X=0 \to (C, B)$; $X=1 \to (D, A)$ which is **X** $\implies$ **X**!
+   - $(C, B)$: $X=0 \to (C, B)$ (self); $X=1 \to (D, C)$ which is **X** $\implies$ **X**!
+   - $(E, A)$: $X=0 \to (B, B)$ (drop); $X=1 \to (E, A)$ (self) $\implies$ **$\checkmark$** ($A \equiv E$)!
+   - $(E, B)$: $X=0 \to (B, B)$ (drop); $X=1 \to (E, C)$ $\implies$ write $(E, C)$.
+   - $(E, C)$: $X=0 \to (B, C)$ which is **X** (and $X=1 \to (E, D)$ which is **X**) $\implies$ **X**!
+   - $(F, D)$: $X=0 \to (E, A)$; $X=1 \to (D, F)$ (self) $\implies$ write $(E, A)$.
+
+   **Cascade Sweep:** $(C, A) = \mathbf{X}$ crosses out $(B, A) \to \mathbf{X}$, and $(E, C) = \mathbf{X}$ crosses out $(E, B) \to \mathbf{X}$. Meanwhile $(F, D)$ depends only on $(E, A) = \checkmark$, so both $(E, A)$ and $(F, D)$ survive at the fixed point!
+
+   | Row $\backslash$ Col | $A$ | $B$ | $C$ | $D$ | $E$ |
+   | :---: | :---: | :---: | :---: | :---: | :---: |
+   | **$B$** | ~~$(C, A)$~~ **X** | — | — | — | — |
+   | **$C$** | **X** | **X** | — | — | — |
+   | **$D$** | **X** | **X** | **X** | — | — |
+   | **$E$** | **$\checkmark$** | ~~$(E, C)$~~ **X** | **X** | **X** | — |
+   | **$F$** | **X** | **X** | **X** | $(E, A)$ **$\checkmark$** | **X** |
+
+3. **Minimal Equivalence Classes & Reduced 4-State Table:**
+   Classes: $S_A = \{A, E\}$, $S_B = \{B\}$, $S_C = \{C\}$, $S_D = \{D, F\}$ ($k = \lceil \log_2 4 \rceil = 2$ flip-flops, saving 1 flip-flop):
+
+   | Minimal State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
+   | :---: | :---: | :---: |
+   | **$S_A$** | $S_B / 0$ | $S_A / 0$ |
+   | **$S_B$** | $S_B / 0$ | $S_C / 0$ |
+   | **$S_C$** | $S_C / 0$ | $S_D / 0$ |
+   | **$S_D$** | $S_A / 1$ | $S_D / 0$ |
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-4-2" title="Exercise 4.2 — Multi-Pass Cascade Elimination" level="Exam" hint="Notice how an output mismatch in Pass 1 invalidates a pair in Sweep 1, which in turn invalidates a third pair only in Sweep 2!">
+
+Minimize the following 5-state Moore machine ($X \in \{0, 1\}$) and determine how many binary flip-flops are saved:
+
+| State | Output $u$ | $X = 0$ ($S^{t+1}$) | $X = 1$ ($S^{t+1}$) |
+| :---: | :---: | :---: | :---: |
+| **$A$** | $0$ | $B$ | $C$ |
+| **$B$** | $0$ | $D$ | $E$ |
+| **$C$** | $0$ | $B$ | $A$ |
+| **$D$** | $0$ | $E$ | $B$ |
+| **$E$** | $1$ | $A$ | $C$ |
+
+1. Construct the 10-cell lower-triangular implication table for Moore states $A \dots E$.
+2. Trace each cascade pass explicitly until fixed point and write the minimal Moore state table.
+
+<StepCheck
+  client:load
+  prompt="How many minimal states remain after reducing the 5-state Moore machine in Exercise 4.2?"
+  expected={4}
+  tolerance={0.01}
+  unit="states"
+  explanation="Pass 1 crosses out all pairs with $E$ ($u = 1$). Next, $(B, A), (D, A), (B, C), (D, C)$ all imply pairs with $E$ (Sweep 1), which then crosses out $(D, B)$ because $X = 0$ implies $(E, D) = \mathbf{X}$! Only $(C, A)$ survives ($\checkmark$), merging $\{A, C\}$ and reducing 5 states to 4 (saving 1 flip-flop: $\lceil \log_2 5 \rceil = 3 \to \lceil \log_2 4 \rceil = 2$)."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Pass 1 — Moore Output Cross-Out:**
+   State $E$ outputs $u = 1$ while $\{A, B, C, D\}$ output $u = 0$ $\implies$ cross out $(E, A), (E, B), (E, C), (E, D)$ with **X**.
+
+2. **Pass 2 & Cascade Sweeps on $\{A, B, C, D\}$:**
+   - $(B, A)$: $X=1 \to (E, C) = \mathbf{X} \implies$ **X**.
+   - $(C, A)$: $X=0 \to (B, B)$ (drop); $X=1 \to (A, C)$ (self) $\implies$ **$\checkmark$** ($A \equiv C$)!
+   - $(C, B)$: $X=1 \to (A, E) = \mathbf{X} \implies$ **X**.
+   - $(D, A)$: $X=0 \to (E, B) = \mathbf{X} \implies$ **X**.
+   - $(D, B)$: $X=0 \to (E, D) = \mathbf{X} \implies$ **X**.
+   - $(D, C)$: $X=0 \to (E, B) = \mathbf{X} \implies$ **X**.
+
+3. **Minimal Classes & Hardware Savings:**
+   Only $A \equiv C$ survives, yielding **4 minimal states**: $S_A = \{A, C\}, S_B = \{B\}, S_D = \{D\}, S_E = \{E\}$. Reducing $5 \to 4$ states drops flip-flop count from $\lceil \log_2 5 \rceil = 3$ to $\lceil \log_2 4 \rceil = 2$!
+
+   | Minimal State | Output $u$ | $X = 0$ ($S^{t+1}$) | $X = 1$ ($S^{t+1}$) |
+   | :---: | :---: | :---: | :---: |
+   | **$S_A$** | $0$ | $S_B$ | $S_A$ |
+   | **$S_B$** | $0$ | $S_D$ | $S_E$ |
+   | **$S_D$** | $0$ | $S_E$ | $S_B$ |
+   | **$S_E$** | $1$ | $S_A$ | $S_A$ |
+
+</details>
+
+</Exercise>

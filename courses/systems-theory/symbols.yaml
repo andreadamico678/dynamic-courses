@@ -34,18 +34,28 @@ routh_hurwitz:
     - "NEVER reuse b_1, b_2 as generic placeholders for row s^2 in Ch. 15; use explicit row s^2 notation [alpha_1, alpha_2]."
 
 frequency_and_bode:
+  G_s: "Forward-path / open-loop plant transfer function (established in Ch. 3)"
+  H_s: "Feedback return-path transfer function (established in Ch. 3; H(s) = 1 for unity feedback)"
+  L_s: "Open-loop (loop) transfer function L(s) = C(s)*G(s)*H(s), whose Bode plot sets closed-loop margins (Ch. 3, 17, 18, 19)"
+  W_CL_s: "Closed-loop transfer function W_CL(s) = C(s)*G(s)/(1 + L(s)) (denoted W(s) in Ch. 3; written W_CL(s) in Part V to distinguish from open-loop L(s))"
   omega: "Angular frequency in rad/s (logarithmic horizontal axis log10(omega))"
-  K: "Evans (zero-pole-gain) leading coefficient in W(s) = K * prod(s - z_i) / prod(s - p_k)"
-  K_B: "Bode gain K_B = lim_{s -> 0} s^g * W(s) in Bode canonical form"
+  K: "Evans (zero-pole-gain) leading coefficient or proportional loop gain in L(s) = K * prod(s - z_i) / prod(s - p_k)"
+  K_B: "Bode gain K_B = lim_{s -> 0} s^g * L(s) in Bode canonical form"
   g: "System type (net number of integrators at s=0; g > 0 integrators, g < 0 differentiators)"
   tau: "Time constant tau = -1/p or -1/z in (1 + s*tau)"
-  omega_c: "Corner (break) frequency 1/|tau| of a real singularity"
+  omega_corner: "Corner (break) frequency 1/|tau| of a real singularity (written omega_c,k or omega_p / omega_z when disambiguating from gain crossover)"
+  omega_gc: "Gain crossover frequency omega_c where |L(j*omega_c)| = 1 (0 dB); always label explicitly when alongside corner breaks"
+  omega_pi: "Phase crossover frequency where arg(L(j*omega_pi)) = -180 deg"
+  phi_m: "Phase margin 180 deg + arg(L(j*omega_c)) evaluated on open-loop L(s)"
+  K_m_dB: "Gain margin -|L(j*omega_pi)|_dB evaluated on open-loop L(s)"
   omega_n: "Natural undamped frequency of a complex conjugate pair"
   zeta: "Non-dimensional damping ratio (resonant peaking strictly requires 0 < zeta < 1/sqrt(2))"
   omega_r: "Resonance peak frequency omega_n * sqrt(1 - 2*zeta^2) for 0 < zeta < 1/sqrt(2)"
   M_r: "Resonant peak magnitude 1 / (2*zeta*sqrt(1 - zeta^2))"
   omega_start: "Left boundary of finite semi-log plotting window [omega_start, omega_end]"
   omega_end: "Right boundary of finite semi-log plotting window [omega_start, omega_end]"
+  forbidden_collisions:
+    - "ALWAYS distinguish open-loop L(s) (plotted on Bode diagrams in Ch. 17–19) from closed-loop W_CL(s) = G_fwd/(1 + L(s)) defined in Ch. 3."
 
 kalman_and_control:
   P_kalman: "Kalman controllability matrix [B, A*B, ..., A^(n-1)*B]"

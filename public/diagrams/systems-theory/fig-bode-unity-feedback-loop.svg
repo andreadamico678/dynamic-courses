@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="160" viewBox="0 0 520 160" font-family="'Latin Modern Roman','CMU Serif','Times New Roman',serif" font-size="14">
+  <rect width="520" height="160" fill="#fff"/>
+  <g stroke="#000" stroke-width="1.6" fill="none">
+    <!-- Input R(s) to summing junction -->
+    <line x1="25" y1="55" x2="90" y2="55"/>
+    <polygon points="84,51 94,55 84,59" fill="#000"/>
+    <!-- Summing junction -->
+    <circle cx="110" cy="55" r="14"/>
+    <!-- Error E(s) to L(s) -->
+    <line x1="124" y1="55" x2="215" y2="55"/>
+    <polygon points="209,51 219,55 209,59" fill="#000"/>
+    <!-- L(s) block -->
+    <rect x="220" y="32" width="120" height="46" rx="4" fill="#eef4ff"/>
+    <!-- Output Y(s) -->
+    <line x1="340" y1="55" x2="485" y2="55"/>
+    <polygon points="479,51 489,55 479,59" fill="#000"/>
+    <!-- Unity feedback loop -->
+    <polyline points="415,55 415,122 110,122 110,73"/>
+    <polygon points="106,77 110,69 114,77" fill="#000"/>
+  </g>
+  <circle cx="415" cy="55" r="3" fill="#000"/>
+  <text x="52" y="45" text-anchor="middle" font-style="italic">R(s)</text>
+  <text x="170" y="45" text-anchor="middle" font-style="italic">E(s)</text>
+  <text x="280" y="59" text-anchor="middle" font-weight="bold">L(s) = C(s)G(s)</text>
+  <text x="462" y="45" text-anchor="middle" font-style="italic">Y(s)</text>
+  <text x="90" y="50" text-anchor="middle" font-size="13">+</text>
+  <text x="122" y="80" text-anchor="middle" font-size="14">−</text>
+  <text x="280" y="142" text-anchor="middle" font-size="13">W<tspan font-size="9" dy="3">CL</tspan><tspan dy="-3">(s) = L(s) / (1 + L(s))</tspan></text>
+</svg>

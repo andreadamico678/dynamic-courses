@@ -1,0 +1,59 @@
+---
+title: "Part VI — Introduction: Cache Memory Systems"
+description: "Conceptual overview, locality principles, and shared RISC-V memory hierarchy model for Part VI of Computer Architecture."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part VI Roadmap" markdown={`# Part VI: Cache Memory Systems
+  - 19. Cache Block Placement
+    - Direct-mapped ($j \\bmod NB$) vs. $N$-way ($j \\bmod NS$) vs. fully associative
+    - Parallel tag comparators and LRU / FIFO / Random replacement
+  - 20. Cache Address Partitioning
+    - 32-bit split: Tag ($t$), Index ($n = \\log_2 NS$), Offset ($m = \\log_2 B$)
+    - Total physical SRAM bits with Valid and Dirty metadata
+  - 21. Cache Write Policies
+    - Write-Through + Write Buffer vs. Write-Back + Dirty Bit
+    - No-Write-Allocate vs. Write-Allocate pairings and buffer stalls
+  - 22. Cache Miss Taxonomy
+    - The 3 C's: Compulsory, Capacity, and Conflict misses
+    - Experimental isolation, hardware mitigations, and latency side-effects
+  - 23. Cache Memory Performance
+    - Single-level and nested two-level $\\text{AMAT}$ with threshold inequalities
+    - Processor memory-stall $\\text{CPI}$ across I-Cache and D-Cache`} />
+
+## Introduction
+
+In [Five-Stage Pipeline](/dynamic-courses/computer-architecture/05-pipelined-processor/14-five-stage-pipeline/), every instruction fetch (`IF`) and every data load or store (`MEM`) assumed an ideal single-cycle memory. Real hardware confronts the **Memory Wall**: a modern processor pipeline cycles in $0.25\text{--}1.0\text{ ns}$, whereas an off-chip DRAM access requires $40\text{--}80\text{ ns}$—dozens of wasted clock cycles if the core accesses DRAM directly.
+
+Part VI bridges that latency gap using a **cache memory hierarchy**: small, fast on-chip SRAM arrays placed between the CPU pipeline and main DRAM. Caches work because real programs exhibit **temporal locality** (recently accessed instructions and variables are reused soon, such as loop bodies and stack frames) and **spatial locality** (nearby addresses are accessed sequentially, justifying the transfer of contiguous $B$-byte **cache blocks**).
+
+### Shared Running System
+
+Across Chapters 19–23, we revisit a single concrete **32-bit RISC-V (RV32IM) memory subsystem**:
+
+- **Processor & Address Bus:** Pipelined RV32IM core clocked at $2\text{ GHz}$ ($T_{\text{clk}} = 0.5\text{ ns}$) issuing 32-bit byte addresses ($4\text{ GiB}$ address space) to split Harvard L1 Instruction (`L1I`) and Data (`L1D`) caches.
+- **Primary Data Cache (`L1D`):** Data capacity $C = 16\text{ KiB}$ organized into $B = 64\text{-byte}$ blocks ($NB = C / B = 256\text{ blocks}$), evaluated from Direct-Mapped ($N = 1$) to $4$-Way Set-Associative ($N = 4$, $NS = 64\text{ sets}$).
+- **Lower Memory Hierarchy:** Optional unified $256\text{ KiB}$ `L2` cache ($t_{\text{hit},L2} = 5\text{ ns}$) backed by off-chip main DRAM ($\text{MP} = 40\text{--}45\text{ ns}$).
+
+Each chapter answers one concrete engineering question on this hardware: where a fetched $64\text{-byte}$ block is allowed to sit (`Ch. 19`), how the 32 address wires slice into `[Tag | Index | Offset]` (`Ch. 20`), how `sw` stores update DRAM without stalling the pipeline (`Ch. 21`), why misses happen (`Ch. 22`), and how miss rates translate into $\text{AMAT}$ and processor $\text{CPI}$ (`Ch. 23`).
+
+### Practical Memory-Hierarchy Perspective
+
+- **Sensor Streaming & DMA Coherence:** On embedded robotics and drone SoCs, cameras and LiDARs write frames directly into DRAM via DMA. Understanding Write-Through vs. Write-Back dirty lines explains why firmware must flush or invalidate cache lines around DMA buffers.
+- **Data Layout & Set Conflicts:** Power-of-two matrix strides can map active rows onto the exact same cache set ($j \bmod NS$), collapsing throughput even when most of `L1D` sits idle.
+- **Latency vs. Hit-Rate Trade-Offs:** Adding capacity $C$ or associativity $N$ lowers miss rate $\text{MR}$ at the cost of slower hit time $t_{\text{hit}}$; $\text{AMAT}$ quantifies whether the net change speeds up or slows down the processor.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[19. Cache Block Placement](/dynamic-courses/computer-architecture/06-cache-memory/19-cache-block-placement/)** — Map main memory block $j$ into Direct-Mapped ($j \bmod NB$), $N$-Way Set-Associative ($j \bmod NS$ with $NS = NB / N$), and Fully Associative caches, and manage evictions with LRU, FIFO, and Random policies.
+2. **[20. Cache Address Partitioning](/dynamic-courses/computer-architecture/06-cache-memory/20-cache-address-partitioning/)** — Decompose a 32-bit byte address into Offset ($m = \log_2 B$), Index ($n = \log_2 NS$), and Tag ($t = 32 - n - m$), and compute total physical SRAM bits including Valid and Dirty metadata.
+3. **[21. Cache Write Policies](/dynamic-courses/computer-architecture/06-cache-memory/21-cache-write-policies/)** — Contrast Write-Through + Write Buffer (with No-Write-Allocate) against Write-Back + Dirty Bit (with Write-Allocate), and diagnose write-buffer saturation stalls.
+4. **[22. Cache Miss Taxonomy](/dynamic-courses/computer-architecture/06-cache-memory/22-cache-miss-taxonomy/)** — Classify misses into Compulsory, Capacity, and Conflict categories, isolate each experimentally, and pair every hardware fix with its physical side-effect.
+5. **[23. Cache Memory Performance](/dynamic-courses/computer-architecture/06-cache-memory/23-cache-performance/)** — Rank architectures via single-level and nested two-level $\text{AMAT}$, invert non-inferiority inequalities ($\text{AMAT}_B \le \text{AMAT}_A$), and compute processor $\text{CPI}$ with instruction and data cache stalls.

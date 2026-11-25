@@ -11,126 +11,460 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 24 Mental Model" markdown={`# Ch. 24: Pole Placement in Canonical Form
-  - Controllable Canonical Form Architecture
-  - Direct Coefficient Synthesis in CCF
-  - Coordinate Transformation to Canonical Form
-    - The Kalman Reachability Invariant
-    - Practical Construction via the Last Row of $\mathbf{T}^{-1}$`} />
+<MindMap client:load defaultCollapsed title="Chapter 24 Outline" markdown={`# Ch. 24: Pole Placement in Canonical Form
+  - Controllable Canonical Form
+    - Companion matrix structure $(\\mathbf{A}_c, \\mathbf{B}_c)$
+    - Last-row characteristic polynomial expansion
+  - Direct Coefficient Synthesis
+    - Decoupled gain matching $k_{ci} = \\alpha_i - a_i$
+  - Canonical Coordinate Transformation
+    - Controllability factorization $\\mathcal{R} = \\mathbf{T}\\mathcal{R}_c$
+    - Last-row construction of $\\mathbf{T}^{-1}$
+    - Mapping back $\\mathbf{K} = \\mathbf{K}_c \\mathbf{T}^{-1}$`} />
 
-When an LTI system is completely controllable, the control engineer possesses complete authority over the system's autonomous dynamics. By feeding back the full state vector through a static gain matrix:
-$$\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$$
-the closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$ can be endowed with **any arbitrary set of eigenvalues**, subject only to the physical requirement that complex poles appear in conjugate pairs.
+## Introduction
 
-The most transparent analytical proof and realization of this property uses the **Controllable Canonical Form (CCF)**.
+Now that Part VI proved *when* actuators have full authority over the state space ($\operatorname{rank}(\mathcal{R}) = n$), we cross from analysis into controller **synthesis**. Suppose a hovering rocket or robotic joint has sluggish or even unstable open-loop eigenvalues: by feeding the state vector back through a static gain matrix $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$, you directly replace the system matrix $\mathbf{A}$ with the closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$ and relocate every eigenvalue to a desired target location in the complex plane.
 
-<Divider />
+To see *why* arbitrary pole placement always works whenever a system is controllable—before applying single-line shortcut formulas—this chapter transforms the plant into **Controllable Canonical Form**, where each gain entry $k_{ci}$ adjusts a single characteristic polynomial coefficient cleanly with zero algebraic cross-coupling.
 
-## Controllable Canonical Form Architecture
+<Divider label="1 · Example" />
 
-For a single-input system ($m = 1$), let the open-loop characteristic polynomial of $\mathbf{A} \in \mathbb{R}^{n \times n}$ be:
-$$p(s) = \det(s\mathbf{I} - \mathbf{A}) = s^n + a_{n-1}s^{n-1} + \dots + a_1 s + a_0$$
+### Placing Poles Directly in Companion Coordinates
 
-A system $(\mathbf{A}_c, \mathbf{B}_c)$ is in **Controllable Canonical Form** if its matrices have the companion structure:
-$$\mathbf{A}_c = \begin{bmatrix}
-0 & 1 & 0 & \dots & 0 \\
-0 & 0 & 1 & \dots & 0 \\
-\vdots & \vdots & \vdots & \ddots & \vdots \\
-0 & 0 & 0 & \dots & 1 \\
--a_0 & -a_1 & -a_2 & \dots & -a_{n-1}
-\end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \\ 1 \end{bmatrix}$$
+In an arbitrary physical coordinate basis, changing a single entry of the feedback gain row vector $\mathbf{K} = \begin{bmatrix} k_1 & k_2 & \dots & k_n \end{bmatrix}$ alters multiple entries of $\mathbf{A} - \mathbf{B}\mathbf{K}$ at once, tangling the closed-loop characteristic polynomial in coupled algebraic products. Before tackling general coordinates, consider a second-order unstable plant already expressed in **Controllable Canonical Form** $(\mathbf{A}_c, \mathbf{B}_c)$ with canonical state vector $\mathbf{z}(t) = \begin{bmatrix} z_1(t) & z_2(t) \end{bmatrix}^T$:
+
+$$
+\mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ 2 & -1 \end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}
+$$
+
+Writing out the two scalar state equations shows that this pair represents a chain of two integrators, $\dot{z}_1 = z_2$ and $\dot{z}_2 = 2z_1 - z_2 + u$, where the first state integrates the second state and the control input $u(t)$ acts exclusively on the acceleration channel $\dot{z}_2$. Computing the open-loop characteristic polynomial directly gives:
+
+$$
+p(s) = \det(s\mathbf{I}_2 - \mathbf{A}_c) = \det\begin{bmatrix} s & -1 \\ -2 & s + 1 \end{bmatrix} = s(s + 1) - (-1)(-2) = s^2 + s - 2 = (s - 1)(s + 2)
+$$
+
+Notice that the open-loop polynomial coefficients $a_1 = 1$ and $a_0 = -2$ appear with opposite signs along the bottom row $\begin{bmatrix} -a_0 & -a_1 \end{bmatrix} = \begin{bmatrix} 2 & -1 \end{bmatrix}$ of $\mathbf{A}_c$. Because one open-loop eigenvalue sits in the right half-plane at $\lambda_1 = +1 > 0$, any nonzero initial perturbation excites an exponentially growing natural mode $e^{+t}$.
+
+Suppose our closed-loop design specifications require placing the closed-loop eigenvalues in the left half-plane at $\mu_1 = -3$ and $\mu_2 = -4$. Multiplying out the corresponding linear factors yields the desired monic closed-loop characteristic polynomial:
+
+$$
+p^*(s) = (s - \mu_1)(s - \mu_2) = (s + 3)(s + 4) = s^2 + 7s + 12
+$$
+
+Here the desired closed-loop coefficients are $\alpha_1 = 7$ (on $s^1$) and $\alpha_0 = 12$ (on $s^0$). Now close the loop with the static state-feedback law $u(t) = -\mathbf{K}_c \mathbf{z}(t) + v(t) = -\begin{bmatrix} k_{c0} & k_{c1} \end{bmatrix}\mathbf{z}(t) + v(t)$. Because the input column $\mathbf{B}_c = \begin{bmatrix} 0 & 1 \end{bmatrix}^T$ has zero in its first row and $1$ in its bottom row, the outer product $\mathbf{B}_c \mathbf{K}_c$ vanishes everywhere except along the bottom row:
+
+$$
+\mathbf{B}_c \mathbf{K}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}\begin{bmatrix} k_{c0} & k_{c1} \end{bmatrix} = \begin{bmatrix} 0 & 0 \\ k_{c0} & k_{c1} \end{bmatrix} \implies \mathbf{A}_{c,\text{cl}} = \mathbf{A}_c - \mathbf{B}_c \mathbf{K}_c = \begin{bmatrix} 0 & 1 \\ 2 - k_{c0} & -1 - k_{c1} \end{bmatrix}
+$$
+
+Physically, subtracting $\mathbf{B}_c \mathbf{K}_c$ leaves the kinematic integrator relation $\dot{z}_1 = z_2$ untouched while injecting restoring position stiffness $-k_{c0} z_1$ and viscous velocity damping $-k_{c1} z_2$ directly into the $\dot{z}_2$ summing junction.
 
 <figure id="fig-ccf-block-diagram" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-ccf-block-diagram.svg" alt="State-space signal flow in Controllable Canonical Form. Full-state feedback acts in parallel with the open-loop plant dynamics, modifying the characteristic polynomial coefficients directly." />
   <figcaption>State-space signal flow in Controllable Canonical Form. Full-state feedback acts in parallel with the open-loop plant dynamics, modifying the characteristic polynomial coefficients directly.</figcaption>
 </figure>
 
-<Divider />
+Evaluating the closed-loop characteristic polynomial of the companion matrix $\mathbf{A}_{c,\text{cl}}$ gives:
 
-## Direct Coefficient Synthesis in CCF
+$$
+\det(s\mathbf{I}_2 - \mathbf{A}_{c,\text{cl}}) = \det\begin{bmatrix} s & -1 \\ -2 + k_{c0} & s + 1 + k_{c1} \end{bmatrix} = s(s + 1 + k_{c1}) + (-2 + k_{c0}) = s^2 + (1 + k_{c1})s + (-2 + k_{c0})
+$$
 
-Suppose the design specifications require closed-loop poles at $\{\mu_1, \mu_2, \dots, \mu_n\}$, corresponding to the target characteristic polynomial:
-$$p^*(s) = \prod_{i=1}^n (s - \mu_i) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_1 s + \alpha_0$$
+Equating this closed-loop polynomial power-by-power with the target polynomial $p^*(s) = s^2 + 7s + 12$ decouples the two unknown gains completely:
 
-Let $\mathbf{K}_c = \begin{bmatrix} k_{c0} & k_{c1} & \dots & k_{c,n-1} \end{bmatrix}$ be the state feedback gain vector in canonical coordinates $\mathbf{z} = \mathbf{T}^{-1}\mathbf{x}$. The closed-loop matrix is:
-$$\mathbf{A}_{c,\text{cl}} = \mathbf{A}_c - \mathbf{B}_c \mathbf{K}_c = \begin{bmatrix}
+$$
+-2 + k_{c0} = 12 \implies k_{c0} = 14, \qquad 1 + k_{c1} = 7 \implies k_{c1} = 6
+$$
+
+Thus $\mathbf{K}_c = \begin{bmatrix} 14 & 6 \end{bmatrix}$ moves the closed-loop eigenvalues from $\{+1, -2\}$ to $\{-3, -4\}$. Each entry of $\mathbf{K}_c$ tunes exactly one polynomial coefficient without disturbing any other power of $s$.
+
+<StepCheck client:load
+  prompt="In the example above ($p(s) = s^2 + s - 2$), what canonical gain $k_{c0}$ shifts the constant term to $12$?"
+  expected={14}
+  tolerance={0.01}
+  unit=""
+  explanation="Open-loop $a_0 = -2$ and target $\alpha_0 = 12$, so $k_{c0} = \alpha_0 - a_0 = 12 - (-2) = 14$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Controllable Canonical Form
+
+Consider a linear time-invariant single-input plant ($m = 1$) governed by:
+
+$$
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}u(t), \qquad \mathbf{x}(t) \in \mathbb{R}^n, \; u(t) \in \mathbb{R}
+$$
+
+Applying the linear **static state-feedback law** $u(t) = -\mathbf{K}\mathbf{x}(t) + v(t)$, where $\mathbf{K} = \begin{bmatrix} k_1 & k_2 & \dots & k_n \end{bmatrix} \in \mathbb{R}^{1 \times n}$ is the feedback gain row vector and $v(t)$ is an external reference command, yields the closed-loop state equation:
+
+$$
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\left(-\mathbf{K}\mathbf{x}(t) + v(t)\right) = (\mathbf{A} - \mathbf{B}\mathbf{K})\mathbf{x}(t) + \mathbf{B}v(t)
+$$
+
+This feedback loop replaces the open-loop dynamics matrix $\mathbf{A}$ with the closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$. As we proved in [Lyapunov Spectral Stability](/dynamic-courses/systems-theory/04-stability-routh/02-lyapunov-spectral-internal-stability/), the internal stability and transient natural modes of the closed-loop system are determined entirely by the roots of the closed-loop characteristic polynomial $\det(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K})) = 0$.
+
+When the pair $(\mathbf{A}, \mathbf{B})$ is completely controllable ($\operatorname{rank}(\mathcal{R}) = n$, as established in [Kalman Controllability](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/)), the **Pole Placement Theorem** guarantees that there exists a unique real gain vector $\mathbf{K}$ that assigns $\mathbf{A} - \mathbf{B}\mathbf{K}$ any desired set of $n$ closed-loop eigenvalues $\{\mu_1, \mu_2, \dots, \mu_n\}$ (provided complex eigenvalues appear in complex conjugate pairs so the polynomial coefficients remain real). The most transparent constructive proof of this theorem transforms the state equations into **Controllable Canonical Form (CCF)**.
+
+Let the open-loop characteristic polynomial of $\mathbf{A}$ be written in monic ascending-index notation:
+
+$$
+p(s) = \det(s\mathbf{I}_n - \mathbf{A}) = s^n + a_{n-1}s^{n-1} + \dots + a_1 s + a_0
+$$
+
+Here $a_{n-1} = -\operatorname{Tr}(\mathbf{A})$ and $a_0 = (-1)^n \det(\mathbf{A})$ are the baseline open-loop coefficients. A single-input state-space realization $(\mathbf{A}_c, \mathbf{B}_c)$ in canonical coordinates $\mathbf{z}(t) \in \mathbb{R}^n$ is in Controllable Canonical Form when its matrices take the companion structure:
+
+$$
+\mathbf{A}_c = \begin{bmatrix}
+0 & 1 & 0 & \dots & 0 \\
+0 & 0 & 1 & \dots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & \dots & 1 \\
+-a_0 & -a_1 & -a_2 & \dots & -a_{n-1}
+\end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \\ 1 \end{bmatrix}
+$$
+
+The superdiagonal of $1$s in rows $1$ through $n-1$ enforces the pure integrator chain $\dot{z}_1 = z_2$, $\dot{z}_2 = z_3, \dots, \dot{z}_{n-1} = z_n$, which means $z_k(t) = z_1^{(k-1)}(t)$ is simply the $(k-1)$-th time derivative of the first canonical state $z_1(t)$. Meanwhile, the bottom row encodes the $n$-th order differential equation:
+
+$$
+\dot{z}_n = z_1^{(n)} = -a_0 z_1 - a_1 \dot{z}_1 - \dots - a_{n-1} z_1^{(n-1)} + u(t)
+$$
+
+Expanding $\det(s\mathbf{I}_n - \mathbf{A}_c)$ by cofactors along the bottom row confirms that the negated entries $[-a_0, -a_1, \dots, -a_{n-1}]$ reproduce the exact open-loop characteristic polynomial $s^n + a_{n-1}s^{n-1} + \dots + a_1 s + a_0$.
+
+### Direct Coefficient Synthesis
+
+Suppose our transient and stability specifications require placing the closed-loop eigenvalues at $\{\mu_1, \mu_2, \dots, \mu_n\}$, which define the desired monic closed-loop characteristic polynomial:
+
+$$
+p^*(s) = \prod_{i=1}^n (s - \mu_i) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_1 s + \alpha_0
+$$
+
+In canonical coordinates $\mathbf{z}(t)$, let the state-feedback control law be $u(t) = -\mathbf{K}_c \mathbf{z}(t) + v(t)$ with canonical gain row vector:
+
+$$
+\mathbf{K}_c = \begin{bmatrix} k_{c0} & k_{c1} & \dots & k_{c,n-1} \end{bmatrix}
+$$
+
+Notice that we index the entries of $\mathbf{K}_c$ from $0$ to $n-1$ so that $k_{ci}$ aligns directly with the coefficient of $s^i$. Because $\mathbf{B}_c = \mathbf{e}_n$ has zeros in its first $n-1$ rows and $1$ in row $n$, the outer product $\mathbf{B}_c \mathbf{K}_c$ is an $n \times n$ matrix whose first $n-1$ rows are identically zero and whose bottom row equals $\mathbf{K}_c$:
+
+$$
+\mathbf{B}_c \mathbf{K}_c = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1 \end{bmatrix} \begin{bmatrix} k_{c0} & k_{c1} & \dots & k_{c,n-1} \end{bmatrix} = \begin{bmatrix}
+0 & 0 & \dots & 0 \\
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \dots & 0 \\
+k_{c0} & k_{c1} & \dots & k_{c,n-1}
+\end{bmatrix}
+$$
+
+Subtracting $\mathbf{B}_c\mathbf{K}_c$ from $\mathbf{A}_c$ modifies *only* the bottom row of the companion matrix:
+
+$$
+\mathbf{A}_{c,\text{cl}} = \mathbf{A}_c - \mathbf{B}_c \mathbf{K}_c = \begin{bmatrix}
 0 & 1 & \dots & 0 \\
 \vdots & \vdots & \ddots & \vdots \\
 0 & 0 & \dots & 1 \\
 -(a_0 + k_{c0}) & -(a_1 + k_{c1}) & \dots & -(a_{n-1} + k_{c,n-1})
-\end{bmatrix}$$
+\end{bmatrix}
+$$
 
-The closed-loop characteristic polynomial is obtained by inspection:
-$$\det(s\mathbf{I} - \mathbf{A}_{c,\text{cl}}) = s^n + (a_{n-1} + k_{c,n-1})s^{n-1} + \dots + (a_1 + k_{c1})s + (a_0 + k_{c0})$$
+Because $\mathbf{A}_{c,\text{cl}}$ preserves the exact companion structure of $\mathbf{A}_c$ with $1$s along the superdiagonal, we can read its characteristic polynomial immediately from the negated bottom row:
 
-Equating coefficients with $p^*(s)$:
-$$\alpha_i = a_i + k_{ci} \implies \boxed{k_{ci} = \alpha_i - a_i \quad (i = 0, 1, \dots, n-1)}$$
+$$
+\det(s\mathbf{I}_n - \mathbf{A}_{c,\text{cl}}) = s^n + (a_{n-1} + k_{c,n-1})s^{n-1} + \dots + (a_1 + k_{c1})s + (a_0 + k_{c0})
+$$
 
-<Callout type="note" title="Independent Eigenvalue Assignment">
+Equating this polynomial coefficient-by-coefficient against the desired polynomial $p^*(s) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_1 s + \alpha_0$ yields $n$ completely decoupled scalar equations:
 
-In Controllable Canonical Form, each feedback gain $k_{ci}$ controls **one and only one** coefficient of the characteristic polynomial. There is no algebraic coupling between gains; pole placement is completely decoupled.
+$$
+\alpha_i = a_i + k_{ci} \implies \boxed{k_{ci} = \alpha_i - a_i \quad (i = 0, 1, \dots, n-1)}
+$$
+
+Each canonical gain component $k_{ci}$ simply provides the arithmetic difference between the desired coefficient $\alpha_i$ and the existing open-loop coefficient $a_i$, proving constructively that any monic polynomial $p^*(s)$ of degree $n$ can be synthesized uniquely in Controllable Canonical Form.
+
+### Canonical Coordinate Transformation
+
+To apply this decoupled synthesis to a general controllable plant $(\mathbf{A}, \mathbf{B})$ that is *not* initially in companion form, we apply a [coordinate similarity transformation](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/) $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ (equivalently $\mathbf{z}(t) = \mathbf{T}^{-1}\mathbf{x}(t)$) that maps $(\mathbf{A}, \mathbf{B})$ into $(\mathbf{A}_c, \mathbf{B}_c)$:
+
+$$
+\mathbf{A}_c = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \qquad \mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B}
+$$
+
+Multiplying on the left by $\mathbf{T}$ gives $\mathbf{A}\mathbf{T} = \mathbf{T}\mathbf{A}_c$ and $\mathbf{B} = \mathbf{T}\mathbf{B}_c$. Repeatedly multiplying by $\mathbf{A}$ shows how each column of the Kalman controllability matrix transforms:
+
+$$
+\mathbf{A}\mathbf{B} = \mathbf{A}\mathbf{T}\mathbf{B}_c = \mathbf{T}\mathbf{A}_c\mathbf{B}_c, \quad \mathbf{A}^2\mathbf{B} = \mathbf{T}\mathbf{A}_c^2\mathbf{B}_c, \quad \dots, \quad \mathbf{A}^{n-1}\mathbf{B} = \mathbf{T}\mathbf{A}_c^{n-1}\mathbf{B}_c
+$$
+
+Stacking these $n$ column vectors side-by-side factors the physical controllability matrix $\mathcal{R}$ into $\mathbf{T}$ times the canonical controllability matrix $\mathcal{R}_c$:
+
+$$
+\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} = \mathbf{T} \begin{bmatrix} \mathbf{B}_c & \mathbf{A}_c\mathbf{B}_c & \dots & \mathbf{A}_c^{n-1}\mathbf{B}_c \end{bmatrix} = \mathbf{T}\mathcal{R}_c
+$$
+
+In canonical coordinates, $\mathbf{B}_c = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}^T$, $\mathbf{A}_c\mathbf{B}_c = \begin{bmatrix} 0 & \dots & 1 & -a_{n-1} \end{bmatrix}^T$, and each successive multiplication by $\mathbf{A}_c$ shifts the leading $1$ upward by one row. Consequently, $\mathcal{R}_c$ is an anti-upper-triangular Hankel matrix with $1$s along its main anti-diagonal and zeros everywhere above it, which guarantees $|\det(\mathcal{R}_c)| = 1 \neq 0$ for every polynomial $p(s)$. Therefore, $\mathbf{T} = \mathcal{R}\mathcal{R}_c^{-1}$ exists and is invertible if and only if $\mathcal{R}$ has full rank $n$—that is, if and only if $(\mathbf{A}, \mathbf{B})$ is completely controllable.
+
+Rather than assembling and inverting $\mathcal{R}_c$ separately, we can construct $\mathbf{T}^{-1}$ directly row-by-row from $\mathcal{R}^{-1}$. Denote the $n$ rows of $\mathbf{T}^{-1}$ by $\mathbf{r}_1^T, \mathbf{r}_2^T, \dots, \mathbf{r}_n^T$:
+
+$$
+\mathbf{T}^{-1} = \begin{bmatrix} \mathbf{r}_1^T \\ \mathbf{r}_2^T \\ \vdots \\ \mathbf{r}_n^T \end{bmatrix}
+$$
+
+Writing out the identity $\mathbf{T}^{-1}\mathbf{A} = \mathbf{A}_c \mathbf{T}^{-1}$ explicitly reveals a simple downward recursion among the rows:
+
+$$
+\begin{bmatrix} \mathbf{r}_1^T \mathbf{A} \\ \mathbf{r}_2^T \mathbf{A} \\ \vdots \\ \mathbf{r}_{n-1}^T \mathbf{A} \\ \mathbf{r}_n^T \mathbf{A} \end{bmatrix} = \begin{bmatrix}
+0 & 1 & 0 & \dots & 0 \\
+0 & 0 & 1 & \dots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & \dots & 1 \\
+-a_0 & -a_1 & -a_2 & \dots & -a_{n-1}
+\end{bmatrix} \begin{bmatrix} \mathbf{r}_1^T \\ \mathbf{r}_2^T \\ \vdots \\ \mathbf{r}_{n-1}^T \\ \mathbf{r}_n^T \end{bmatrix} = \begin{bmatrix} \mathbf{r}_2^T \\ \mathbf{r}_3^T \\ \vdots \\ \mathbf{r}_n^T \\ -a_0\mathbf{r}_1^T - a_1\mathbf{r}_2^T - \dots - a_{n-1}\mathbf{r}_n^T \end{bmatrix}
+$$
+
+Comparing rows $1$ through $n-1$ gives $\mathbf{r}_2^T = \mathbf{r}_1^T \mathbf{A}$, $\mathbf{r}_3^T = \mathbf{r}_2^T \mathbf{A} = \mathbf{r}_1^T \mathbf{A}^2, \dots, \mathbf{r}_n^T = \mathbf{r}_1^T \mathbf{A}^{n-1}$ (while row $n$ holds automatically by the Cayley-Hamilton theorem $\mathbf{r}_1^T p(\mathbf{A}) = \mathbf{0}$). Thus every row of $\mathbf{T}^{-1}$ is generated from its very first row $\mathbf{r}_1^T$:
+
+$$
+\mathbf{T}^{-1} = \begin{bmatrix} \mathbf{r}_1^T \\ \mathbf{r}_1^T \mathbf{A} \\ \vdots \\ \mathbf{r}_1^T \mathbf{A}^{n-1} \end{bmatrix}
+$$
+
+To find that first row $\mathbf{r}_1^T$, enforce the second transformation condition $\mathbf{T}^{-1}\mathbf{B} = \mathbf{B}_c$:
+
+$$
+\mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} \mathbf{r}_1^T \mathbf{B} \\ \mathbf{r}_1^T \mathbf{A}\mathbf{B} \\ \vdots \\ \mathbf{r}_1^T \mathbf{A}^{n-2}\mathbf{B} \\ \mathbf{r}_1^T \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \\ 1 \end{bmatrix}
+$$
+
+Transposing these $n$ scalar inner products and stacking them horizontally into a single row-by-matrix equation gives:
+
+$$
+\mathbf{r}_1^T \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-2}\mathbf{B} & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} = \mathbf{r}_1^T \mathcal{R} = \begin{bmatrix} 0 & 0 & \dots & 0 & 1 \end{bmatrix}
+$$
+
+Multiplying on the right by $\mathcal{R}^{-1}$ uniquely identifies the first row $\mathbf{r}_1^T$ of $\mathbf{T}^{-1}$ as the **last row** $\mathbf{t}_n^T$ of the inverse controllability matrix $\mathcal{R}^{-1}$. This gives a three-step synthesis algorithm for any controllable single-input system:
+
+1. Compute $\mathcal{R}^{-1}$ and extract its **last row** $\mathbf{t}_n^T = \begin{bmatrix} 0 & 0 & \dots & 1 \end{bmatrix} \mathcal{R}^{-1}$ (or solve $\mathbf{t}_n^T \mathcal{R} = \mathbf{e}_n^T$).
+2. Generate the remaining rows of $\mathbf{T}^{-1}$ downward by successive right-multiplication by $\mathbf{A}$:
+   $$
+   \mathbf{T}^{-1} = \begin{bmatrix} \mathbf{t}_n^T \\ \mathbf{t}_n^T \mathbf{A} \\ \vdots \\ \mathbf{t}_n^T \mathbf{A}^{n-2} \\ \mathbf{t}_n^T \mathbf{A}^{n-1} \end{bmatrix}
+   $$
+   By construction, $\mathbf{t}_n^T \mathbf{A}^k \mathbf{B} = \delta_{k,n-1}$, which guarantees $\mathbf{T}^{-1}\mathbf{B} = \mathbf{B}_c$ and $\mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \mathbf{A}_c$.
+3. Map the canonical feedback gain $\mathbf{K}_c = \begin{bmatrix} \alpha_0 - a_0 & \dots & \alpha_{n-1} - a_{n-1} \end{bmatrix}$ back to the original physical state vector $\mathbf{x}(t)$:
+   $$
+   u(t) = -\mathbf{K}_c \mathbf{z}(t) + v(t) = -\mathbf{K}_c \mathbf{T}^{-1}\mathbf{x}(t) + v(t) \implies \boxed{\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}}
+   $$
+
+Because the physical closed-loop matrix satisfies $\mathbf{A} - \mathbf{B}\mathbf{K} = \mathbf{T}(\mathbf{A}_c - \mathbf{B}_c\mathbf{K}_c)\mathbf{T}^{-1}$, it is related to $\mathbf{A}_{c,\text{cl}}$ by a similarity transformation and therefore possesses the exact same characteristic polynomial $p^*(s)$ and eigenvalues $\{\mu_1, \dots, \mu_n\}$.
+
+<StepCheck client:load
+  mode="choice"
+  prompt="Once $\mathbf{K}_c$ has been found in controllable canonical coordinates $\mathbf{z} = \mathbf{T}^{-1}\mathbf{x}$, how is the gain $\mathbf{K}$ in original coordinates $\mathbf{x}$ obtained?"
+  options={[
+    "$\\mathbf{K} = \\mathbf{K}_c \\mathbf{T}$",
+    "$\\mathbf{K} = \\mathbf{K}_c \\mathbf{T}^{-1}$",
+    "$\\mathbf{K} = \\mathbf{T}^{-1} \\mathbf{K}_c$"
+  ]}
+  correctIndex={1}
+  explanation="Substituting $\\mathbf{z} = \\mathbf{T}^{-1}\\mathbf{x}$ into $u = -\\mathbf{K}_c\\mathbf{z}$ yields $u = -(\\mathbf{K}_c\\mathbf{T}^{-1})\\mathbf{x}$, so $\\mathbf{K} = \\mathbf{K}_c\\mathbf{T}^{-1}$."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Joint Servoing and Robot Arm Decoupling">
+
+In multi-link articulated robots (e.g., UR5 or Franka Emika manipulators running ROS 2 control), feedback linearization decouples nonlinear Euler-Lagrange dynamics into $n$ independent double integrators $\ddot{q}_i(t) = v_i(t)$. Each joint is already in Controllable Canonical Form with $a_0 = 0, a_1 = 0$:
+
+$$
+\mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}
+$$
+
+Assigning $s^2 + 2\zeta\omega_n s + \omega_n^2$ sets $k_{c0} = \omega_n^2$ and $k_{c1} = 2\zeta\omega_n$ directly in the joint servo loop.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
-## Coordinate Transformation to Canonical Form
+| Quantity | Formula | Role in Synthesis |
+| :--- | :--- | :--- |
+| **Open-Loop Polynomial** | $p(s) = s^n + a_{n-1}s^{n-1} + \dots + a_0$ | Supplies baseline coefficients $a_i$ |
+| **Target Polynomial** | $p^*(s) = \prod (s - \mu_i) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_0$ | Encodes desired closed-loop poles |
+| **Canonical Gain** | $k_{ci} = \alpha_i - a_i$ | Decoupled coefficient difference |
+| **Row-1 Basis Vector** | $\mathbf{t}_n^T = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix} \mathcal{R}^{-1}$ | Generates $\mathbf{T}^{-1} = [\mathbf{t}_n^T; \, \mathbf{t}_n^T\mathbf{A}; \, \dots; \, \mathbf{t}_n^T\mathbf{A}^{n-1}]$ |
+| **Physical Gain** | $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$ | Maps canonical gain back to $\mathbf{x}$ |
 
-To apply this synthesis to a general state-space model $(\mathbf{A}, \mathbf{B})$, we must construct the similarity transformation $\mathbf{x} = \mathbf{T}\mathbf{z}$ such that:
-$$\mathbf{A}_c = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \quad \mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B}$$
+### Canonical Pole-Placement Procedure
 
-### The Kalman Reachability Invariant
-Compute the controllability matrix of the original pair:
-$$\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$$
-and the controllability matrix of the canonical pair:
-$$\mathcal{R}_c = \begin{bmatrix} \mathbf{B}_c & \mathbf{A}_c\mathbf{B}_c & \dots & \mathbf{A}_c^{n-1}\mathbf{B}_c \end{bmatrix} = \begin{bmatrix}
-0 & 0 & \dots & 1 \\
-0 & \dots & 1 & * \\
-\vdots & \ddots & \vdots & \vdots \\
-1 & * & \dots & *
-\end{bmatrix}$$
+1. Verify complete controllability: $\det(\mathcal{R}) \neq 0$.
+2. Compute open-loop $p(s) = \det(s\mathbf{I} - \mathbf{A})$ and target $p^*(s) = \prod_{i=1}^n (s - \mu_i)$.
+3. Compute canonical gain components $k_{ci} = \alpha_i - a_i$ for $i = 0, \dots, n - 1$.
+4. Extract $\mathbf{t}_n^T$ (last row of $\mathcal{R}^{-1}$) and build $\mathbf{T}^{-1}$ with rows $\mathbf{t}_n^T \mathbf{A}^k$ ($k = 0, \dots, n-1$).
+5. Return $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$ and verify $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$.
 
-Because $\mathcal{R} = \mathbf{T} \mathcal{R}_c$, the transformation matrix is:
-$$\mathbf{T} = \mathcal{R} \mathcal{R}_c^{-1}$$
+### Key Proofs
 
-### Practical Construction via the Last Row of $\mathbf{T}^{-1}$
-A numerically direct method constructs $\mathbf{T}^{-1}$ row by row:
-1. Compute $\mathcal{R}^{-1}$.
-2. Let $\mathbf{t}_n^T$ be the **last row** of $\mathcal{R}^{-1}$:
-   $$\mathbf{t}_n^T = \begin{bmatrix} 0 & 0 & \dots & 1 \end{bmatrix} \mathcal{R}^{-1}$$
-3. Generate the remaining rows upward by successive multiplication by $\mathbf{A}$:
-   $$\mathbf{T}^{-1} = \begin{bmatrix} \mathbf{t}_n^T \mathbf{A}^{n-1} \\ \mathbf{t}_n^T \mathbf{A}^{n-2} \\ \vdots \\ \mathbf{t}_n^T \mathbf{A} \\ \mathbf{t}_n^T \end{bmatrix}$$
-4. The physical state feedback gain is then mapped back to original coordinates:
-   $$\mathbf{u} = -\mathbf{K}_c \mathbf{z} = -\mathbf{K}_c \mathbf{T}^{-1}\mathbf{x} \implies \boxed{\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}}$$
+- **Decoupled Companion Characteristic:** Subtracting $\mathbf{B}_c \mathbf{K}_c$ alters only the last row of $\mathbf{A}_c$, shifting each coefficient $a_i \to a_i + k_{ci}$ without cross-coupling.
+- **Similarity Existence:** Because $\mathcal{R} = \mathbf{T}\mathcal{R}_c$ and both $\mathcal{R}, \mathcal{R}_c$ are invertible whenever $(\mathbf{A}, \mathbf{B})$ is controllable, $\mathbf{T}$ exists and satisfies $\mathbf{t}_n^T \mathbf{A}^k \mathbf{B} = \delta_{k, n-1}$.
 
-<Divider />
-
-<Callout type="bridge" title="SDU Robotics Bridge: Joint Servoing and Robot Arm Decoupling">
-
-In multi-link articulated robots (e.g., UR5 or Franka Emika manipulators running ROS 2 control), feedback linearization decouples the non-linear Euler-Lagrange robot dynamics into $n$ independent double integrators:
-$$\ddot{q}_i(t) = v_i(t), \quad i = 1, \dots, n$$
-Each joint dynamic is already in Controllable Canonical Form with $a_0 = 0, a_1 = 0$:
-$$\mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
-Synthesizing critically damped joint response ($s^2 + 2\zeta\omega_n s + \omega_n^2$) requires gains $k_{c0} = \omega_n^2$ and $k_{c1} = 2\zeta\omega_n$, which are applied directly by the joint servo loop.
-
+<Callout type="warning" title="Common Mistakes">
+1. **Reversing Coefficient Order:** In $\mathbf{K}_c = [k_{c0}, k_{c1}, \dots, k_{c,n-1}]$, $k_{c0}$ pairs with the constant term $a_0$ (first state $z_1$), **not** with $a_{n-1}$.
+2. **Multiplying by $\mathbf{T}$ Instead of $\mathbf{T}^{-1}$:** Since $\mathbf{x} = \mathbf{T}\mathbf{z}$ and $\mathbf{z} = \mathbf{T}^{-1}\mathbf{x}$, always compute $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$.
+3. **Mixing Row Order in $\mathbf{T}^{-1}$:** Check $\mathbf{T}^{-1}\mathbf{B} = [0, \dots, 0, 1]^T$ before computing $\mathbf{K}$ so row $1$ ($\mathbf{t}_n^T$) and row $n$ ($\mathbf{t}_n^T\mathbf{A}^{n-1}$) are never inverted.
 </Callout>
 
-<Divider />
+<Divider label="4 · Exercises" />
 
-### Exercise 24.1: Direct Canonical Pole Placement via Coefficient Matching [LEVEL 1: WARM-UP DRILL]
+<Exercise client:load id="ex-24-1" title="Exercise 24.1 — Canonical Coefficient Matching" level="Warm-Up" hint="Read $a_0$ and $a_1$ directly from the negated bottom row of $\mathbf{A}_c$, then subtract from the coefficients of $(s+3)(s+4)$.">
+
 Consider a second-order system already expressed in controllable canonical form:
-$$\mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
+
+$$
+\mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}, \quad \mathbf{B}_c = \begin{bmatrix} 0 \\ 1 \end{bmatrix}
+$$
 
 1. Identify the open-loop characteristic polynomial $p(s)$ and write down its coefficients $a_0, a_1$.
 2. Form the target closed-loop polynomial $p^*(s) = s^2 + \alpha_1 s + \alpha_0$ to assign closed-loop eigenvalues at $\mu_1 = -3$ and $\mu_2 = -4$.
 3. Compute the state feedback gain vector $\mathbf{K}_c = \begin{bmatrix} k_{c0} & k_{c1} \end{bmatrix}$ using direct arithmetic coefficient matching $k_{ci} = \alpha_i - a_i$.
 4. Construct the closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A}_c - \mathbf{B}_c\mathbf{K}_c$ and explicitly compute its eigenvalues to verify the design.
 
-### Exercise 24.2: Transformation to Controllable Canonical Form and Full Feedback Synthesis [LEVEL 2: EXAM BENCHMARK]
+<StepCheck client:load
+  prompt="Compute the first gain entry $k_{c0}$ for target poles $\mu_1 = -3, \mu_2 = -4$:"
+  expected={6}
+  tolerance={0.01}
+  unit=""
+  explanation="$p(s) = s^2 + 5s + 6$ ($a_0 = 6$) and $p^*(s) = s^2 + 7s + 12$ ($\alpha_0 = 12$), so $k_{c0} = 12 - 6 = 6$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Open-loop characteristic polynomial:**
+   Because the system is in Controllable Canonical Form, the matrix $\mathbf{A}_c$ matches the companion pattern:
+   $$
+   \mathbf{A}_c = \begin{bmatrix} 0 & 1 \\ -a_0 & -a_1 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}
+   $$
+   Expanding the determinant of $s\mathbf{I}_2 - \mathbf{A}_c$ confirms that the negated entries of the bottom row supply the polynomial coefficients:
+   $$
+   p(s) = \det(s\mathbf{I}_2 - \mathbf{A}_c) = \det\begin{bmatrix} s & -1 \\ 6 & s + 5 \end{bmatrix} = s(s + 5) - (-1)(6) = s^2 + 5s + 6
+   $$
+   Thus the open-loop coefficients are $a_0 = 6$ (constant term) and $a_1 = 5$ (linear term), corresponding to open-loop poles at $-2$ and $-3$.
+
+2. **Desired closed-loop polynomial:**
+   Multiplying the linear factors for the target poles $\mu_1 = -3$ and $\mu_2 = -4$ gives:
+   $$
+   p^*(s) = (s - (-3))(s - (-4)) = (s + 3)(s + 4) = s^2 + 7s + 12
+   $$
+   Matching this to $s^2 + \alpha_1 s + \alpha_0$ identifies the target coefficients as $\alpha_0 = 12$ and $\alpha_1 = 7$.
+
+3. **State feedback gain calculation:**
+   In controllable canonical coordinates, each gain component is the direct difference between the target and open-loop coefficients:
+   $$
+   k_{c0} = \alpha_0 - a_0 = 12 - 6 = 6, \qquad k_{c1} = \alpha_1 - a_1 = 7 - 5 = 2
+   $$
+   Assembling these in ascending index order gives the canonical feedback row vector:
+   $$
+   \mathbf{K}_c = \begin{bmatrix} k_{c0} & k_{c1} \end{bmatrix} = \begin{bmatrix} 6 & 2 \end{bmatrix}
+   $$
+
+4. **Closed-loop verification:**
+   Forming the outer product $\mathbf{B}_c\mathbf{K}_c$ and subtracting it from $\mathbf{A}_c$ updates only the second row:
+   $$
+   \mathbf{A}_{\text{cl}} = \mathbf{A}_c - \mathbf{B}_c\mathbf{K}_c = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix} - \begin{bmatrix} 0 \\ 1 \end{bmatrix} \begin{bmatrix} 6 & 2 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix} - \begin{bmatrix} 0 & 0 \\ 6 & 2 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -12 & -7 \end{bmatrix}
+   $$
+   Computing the characteristic polynomial of $\mathbf{A}_{\text{cl}}$ gives:
+   $$
+   \det(s\mathbf{I}_2 - \mathbf{A}_{\text{cl}}) = \det\begin{bmatrix} s & -1 \\ 12 & s + 7 \end{bmatrix} = s(s + 7) + 12 = s^2 + 7s + 12 = (s + 3)(s + 4)
+   $$
+   Setting this to zero yields roots $s_1 = -3$ and $s_2 = -4$, confirming that the closed-loop eigenvalues match the specification identically.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-24-2" title="Exercise 24.2 — Canonical Transformation Synthesis" level="Exam Standard" hint="Build $\mathbf{T}^{-1} = [\mathbf{t}_2^T; \; \mathbf{t}_2^T\mathbf{A}]$ from the last row of $\mathcal{R}^{-1}$, compute $\mathbf{K}_c$ for $p^*(s) = (s+4)^2 + 4$, then evaluate $\mathbf{K} = \mathbf{K}_c\mathbf{T}^{-1}$.">
+
 Given the general open-loop state-space model:
-$$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -1 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -1 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}
+$$
 
 1. Find the open-loop characteristic polynomial $p(s) = \det(s\mathbf{I} - \mathbf{A})$ and identify open-loop coefficients $a_0, a_1$.
-2. Compute the controllability matrix $\mathcal{M}_c$ and its inverse $\mathcal{M}_c^{-1}$.
-3. Construct the transformation matrix $\mathbf{T}^{-1}$ using the last row of $\mathcal{M}_c^{-1}$, and verify that $\mathbf{A}_c = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ and $\mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B}$ are in companion controllable form.
+2. Compute the controllability matrix $\mathcal{R}$ and its inverse $\mathcal{R}^{-1}$.
+3. Construct the transformation matrix $\mathbf{T}^{-1}$ using the last row of $\mathcal{R}^{-1}$, and verify that $\mathbf{A}_c = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ and $\mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B}$ are in companion controllable form.
 4. Synthesize the feedback gain vector $\mathbf{K}$ in original coordinates to assign the closed-loop poles at $\mu_{1,2} = -4 \pm j2$. Verify that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$.
+
+<StepCheck client:load
+  prompt="Compute the first entry $k_1$ of $\mathbf{K} = \begin{bmatrix} k_1 & k_2 \end{bmatrix}$ in original coordinates:"
+  expected={9}
+  tolerance={0.01}
+  unit=""
+  explanation="$p^*(s) = s^2 + 8s + 20$ gives $\mathbf{K}_c = [18, 5]$, and $\mathbf{T}^{-1} = \begin{bmatrix} 0.5 & 0 \\ 0 & 1 \end{bmatrix}$ gives $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1} = [9, 5]$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Open-loop characteristic polynomial:**
+   Notice that although $\mathbf{B} = \begin{bmatrix} 0 & 1 \end{bmatrix}^T$, the plant is *not* in Controllable Canonical Form because the upper-right entry of $\mathbf{A}$ is $2$ rather than $1$. Computing the determinant directly gives:
+   $$
+   p(s) = \det(s\mathbf{I}_2 - \mathbf{A}) = \det\begin{bmatrix} s & -2 \\ 1 & s + 3 \end{bmatrix} = s(s + 3) - (-2)(1) = s^2 + 3s + 2
+   $$
+   Thus the open-loop polynomial coefficients are $a_0 = 2$ and $a_1 = 3$.
+
+2. **Controllability matrix and inverse:**
+   First compute the product $\mathbf{A}\mathbf{B}$:
+   $$
+   \mathbf{A}\mathbf{B} = \begin{bmatrix} 0 & 2 \\ -1 & -3 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 2 \\ -3 \end{bmatrix}
+   $$
+   Stacking $\mathbf{B}$ and $\mathbf{A}\mathbf{B}$ gives the Kalman controllability matrix:
+   $$
+   \mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} \end{bmatrix} = \begin{bmatrix} 0 & 2 \\ 1 & -3 \end{bmatrix}, \qquad \det(\mathcal{R}) = (0)(-3) - (2)(1) = -2 \neq 0
+   $$
+   Because $\det(\mathcal{R}) \neq 0$, the plant is completely controllable. Inverting the $2 \times 2$ matrix $\mathcal{R}$ yields:
+   $$
+   \mathcal{R}^{-1} = \frac{1}{-2} \begin{bmatrix} -3 & -2 \\ -1 & 0 \end{bmatrix} = \begin{bmatrix} 1.5 & 1 \\ 0.5 & 0 \end{bmatrix}
+   $$
+
+3. **Transformation matrix $\mathbf{T}^{-1}$ and canonical verification:**
+   Extract the last (second) row of $\mathcal{R}^{-1}$ as the generator row vector $\mathbf{t}_2^T$:
+   $$
+   \mathbf{t}_2^T = \begin{bmatrix} 0 & 1 \end{bmatrix}\mathcal{R}^{-1} = \begin{bmatrix} 0.5 & 0 \end{bmatrix}
+   $$
+   Generate the second row of $\mathbf{T}^{-1}$ by multiplying $\mathbf{t}_2^T$ on the right by $\mathbf{A}$:
+   $$
+   \mathbf{t}_2^T \mathbf{A} = \begin{bmatrix} 0.5 & 0 \end{bmatrix} \begin{bmatrix} 0 & 2 \\ -1 & -3 \end{bmatrix} = \begin{bmatrix} 0 & 1 \end{bmatrix}
+   $$
+   Stacking these two rows forms $\mathbf{T}^{-1}$ and its inverse $\mathbf{T}$:
+   $$
+   \mathbf{T}^{-1} = \begin{bmatrix} \mathbf{t}_2^T \\ \mathbf{t}_2^T \mathbf{A} \end{bmatrix} = \begin{bmatrix} 0.5 & 0 \\ 0 & 1 \end{bmatrix}, \qquad \mathbf{T} = \begin{bmatrix} 2 & 0 \\ 0 & 1 \end{bmatrix}
+   $$
+   We now verify that $\mathbf{T}$ transforms $(\mathbf{A}, \mathbf{B})$ into companion coordinates:
+   $$
+   \mathbf{A}_c = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \begin{bmatrix} 0.5 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 0 & 2 \\ -1 & -3 \end{bmatrix} \begin{bmatrix} 2 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -1 & -3 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -2 & -3 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -a_0 & -a_1 \end{bmatrix} \quad \checkmark
+   $$
+   $$
+   \mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 0.5 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \quad \checkmark
+   $$
+
+4. **Desired polynomial and feedback gain synthesis:**
+   Expanding the complex conjugate factors for $\mu_{1,2} = -4 \pm j2$ gives the target characteristic polynomial:
+   $$
+   p^*(s) = (s - (-4 + j2))(s - (-4 - j2)) = (s + 4 - j2)(s + 4 + j2) = (s + 4)^2 + 2^2 = s^2 + 8s + 20
+   $$
+   Hence $\alpha_0 = 20$ and $\alpha_1 = 8$. Subtracting the open-loop coefficients $a_0 = 2$ and $a_1 = 3$ produces the canonical gain vector:
+   $$
+   k_{c0} = \alpha_0 - a_0 = 20 - 2 = 18, \qquad k_{c1} = \alpha_1 - a_1 = 8 - 3 = 5 \implies \mathbf{K}_c = \begin{bmatrix} 18 & 5 \end{bmatrix}
+   $$
+   Mapping $\mathbf{K}_c$ back to the original physical coordinates via $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$ gives:
+   $$
+   \mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1} = \begin{bmatrix} 18 & 5 \end{bmatrix} \begin{bmatrix} 0.5 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 9 & 5 \end{bmatrix}
+   $$
+   Finally, we check the closed-loop matrix in the original physical coordinates:
+   $$
+   \mathbf{A} - \mathbf{B}\mathbf{K} = \begin{bmatrix} 0 & 2 \\ -1 & -3 \end{bmatrix} - \begin{bmatrix} 0 \\ 1 \end{bmatrix} \begin{bmatrix} 9 & 5 \end{bmatrix} = \begin{bmatrix} 0 & 2 \\ -10 & -8 \end{bmatrix}
+   $$
+   $$
+   \det(s\mathbf{I}_2 - (\mathbf{A} - \mathbf{B}\mathbf{K})) = \det\begin{bmatrix} s & -2 \\ 10 & s + 8 \end{bmatrix} = s(s + 8) - (-2)(10) = s^2 + 8s + 20 = p^*(s) \quad \checkmark
+   $$
+
+</details>
+
+</Exercise>

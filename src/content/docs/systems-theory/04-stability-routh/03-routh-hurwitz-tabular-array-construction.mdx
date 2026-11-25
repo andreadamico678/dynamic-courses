@@ -11,120 +11,137 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 13 Mental Model" markdown={`# Ch. 13: Routh-Hurwitz Stability Criterion
-  - Intuition and Physical Meaning
-  - Formal Definition and Derivation (Oral Core)
-    - Derivation / Oral Proof: Stodola's Necessary Condition
-    - Routh's Stability Criterion
-  - Operational Algorithm (Written Exam Core)
-    - Step 1: Check Stodola's Necessary Condition
-    - Step 2: Populate the First Two Rows
-    - Step 3: Compute Subsequent Rows via Cross-Multiplication
-    - Step 4: Count Sign Changes in the First Column
-  - Worked Exam Archetype and Pitfalls
-    - Worked Example: Third-Order Characteristic Polynomial`} />
+<MindMap client:load defaultCollapsed title="Chapter 13 Outline" markdown={`# Ch. 13: Routh-Hurwitz Stability Criterion
+  - Root Counting Without Factoring
+    - Matrix eigenvalues vs. polynomial roots
+    - Stodola necessary condition ($a_i > 0$)
+  - Routh Tabular Array
+    - Alternating rows and cross-multiplication
+    - Positive row scaling and sign-change count
+  - Low-Order Hurwitz Inequalities
+    - 3rd-order ($a_2 a_1 > a_0$) and 4th-order bounds`} />
 
-## Intuition and Physical Meaning
-An LTI system is internally asymptotically stable if and only if every root of its characteristic polynomial $p(s)$ lies strictly in the open left-half complex plane ($\operatorname{Re}(s_k) < 0$). For degree $n = 1$ or $n = 2$, finding the roots directly is trivial. For $n \ge 3$, symbolic root formulas become unwieldy, and for $n \ge 5$, the Abel-Ruffini theorem proves that no general closed-form radical formula exists.
+## Introduction
 
-In 1877, Edward John Routh devised a purely algebraic **tabular array** that counts how many roots lie in the open right-half plane ($\operatorname{Re}(s_k) > 0$) using only the polynomial coefficients—without ever factoring $p(s)$.
+Checking stability via eigenvalues sounds simple until you face a 4th-, 5th-, or higher-order characteristic polynomial—or worse, a polynomial containing symbolic controller gains like $K$ or physical parameters like mass $m$ where closed-form root formulas do not exist. Engineers needed a fast algebraic test that detects right-half-plane roots *without ever solving $p(s) = 0$*.
+
+The **Routh-Hurwitz criterion** turns polynomial coefficients into a compact numerical table. Just by checking sign changes down the first column, you count the exact number of unstable roots in seconds—a staple method both in embedded parameter checks and hand-written control exams.
+
+<Divider label="1 · Example" />
+
+Determine the root distribution of the third-order characteristic polynomial:
+
+$$p(s) = s^3 + 2s^2 + 4s + 12$$
+
+1. **Stodola Check:** All four coefficients $[1, \; 2, \; 4, \; 12]$ are present and strictly positive, so the polynomial passes the quick necessary screen.
+2. **Build the Routh Array:** Place the even-power and odd-power coefficients alternately into the first two rows ($s^3$ and $s^2$), padding any missing trailing columns with $0$:
+
+   $$
+   \begin{array}{c|ll}
+   s^3 & 1 & 4 \\
+   s^2 & 2 & 12 \\
+   s^1 & b_1 & 0 \\
+   s^0 & c_1 & 0
+   \end{array}
+   $$
+
+   Each new entry is computed from the two rows immediately above using the cross-multiplication pattern in the figure below (pivot times upper-right minus upper-left times lower-right, divided by the pivot):
+
+   $$
+   b_1 = \frac{(2)(4) - (1)(12)}{2} = \frac{8 - 12}{2} = -2, \qquad c_1 = \frac{(-2)(12) - (2)(0)}{-2} = \frac{-24}{-2} = 12
+   $$
+
+   Because $b_1 = -2$ is negative while $c_1 = 12$ returns to positive, the first column is $[+1, \; +2, \; -2, \; +12]^T$.
+3. **Count Sign Changes:** Walking down the first column from $s^3$ to $s^0$, the sign flips twice ($+2 \to -2$ and $-2 \to +12$). Therefore, $n_{\text{RHP}} = 2$ and $n_{\text{LHP}} = 3 - 2 = 1$: the system is **unstable** with two right-half-plane roots, even though every polynomial coefficient was positive.
+
+<figure id="fig-routh-pattern" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-routh-pattern.svg" alt="Cross-multiplication pattern for computing Routh array entries from the two preceding rows." />
+  <figcaption>Cross-multiplication pattern for computing each Routh row entry from the leading pivot and columns of the two rows immediately above.</figcaption>
+</figure>
+
+<StepCheck
+  client:load
+  prompt="Test $p(s) = s^3 + s^2 + 2s + 8$: all coefficients are positive, so build its Routh table and compute entry $b_1$ in row $s^1$:"
+  expected={-6}
+  tolerance={0.01}
+  unit=""
+  explanation="Row $s^3$ is $[1, 2]$ and row $s^2$ is $[1, 8]$, so $b_1 = \frac{1\cdot 2 - 1\cdot 8}{1} = -6 < 0$ (revealing 2 RHP roots)."
+/>
+
+<Divider label="2 · Theory" />
+
+### Characteristic Polynomial Root Counting
+
+In [Lyapunov Internal State Stability](/dynamic-courses/systems-theory/04-stability-routh/02-lyapunov-spectral-internal-stability/), we established that an LTI system is internally asymptotically stable if and only if every root of its characteristic polynomial $p(s)$ lies strictly in the open left-half complex plane ($\operatorname{Re}(s_k) < 0$). While quadratic roots ($n \le 2$) factor by the quadratic formula, the Abel-Ruffini theorem proves no general radical formula exists for $n \ge 5$, and symbolic parameters make direct root-finding impossible. In 1877, Edward John Routh devised a purely algebraic **tabular array** that counts how many roots lie in the open right-half plane ($\operatorname{Re}(s_k) > 0$) directly from polynomial coefficients.
 
 <Callout type="bridge" title="Terminology Bridge: Matrix Eigenvalues vs. Polynomial Roots">
 
-In previous chapters we classified stability using the **eigenvalues of $\mathbf{A}$** (with algebraic multiplicity $m_a$ and geometric multiplicity $m_g$). The Routh-Hurwitz criterion operates on a **scalar polynomial** $p(s) = a_n s^n + \dots + a_0$ (even when no state matrix $\mathbf{A}$ is given, such as a closed-loop transfer denominator $D(s) + K N(s)$). Because $p(s)$ is scalar, Routh-Hurwitz determines the real-part sign of every **root** of $p(s)$ but **cannot** distinguish $m_g$ from $m_a$ for repeated roots on the imaginary axis.
+Earlier we classified stability using **eigenvalues of $\mathbf{A}$** (tracking $m_a$ and $m_g$). The Routh-Hurwitz criterion operates on a **scalar polynomial** $p(s) = a_n s^n + \dots + a_0$ (even without a state matrix $\mathbf{A}$, such as a closed-loop denominator $D(s) + K N(s)$). Routh-Hurwitz counts the real-part signs of all **roots** of $p(s)$, but **cannot** distinguish $m_g$ from $m_a$ for repeated roots on the imaginary axis.
 
 </Callout>
 
-<Divider />
+### Stodola Necessary Condition
 
-## Formal Definition and Derivation (Oral Core)
+Consider a real degree-$n$ polynomial normalized so that its leading coefficient is strictly positive ($a_n > 0$; if $a_n < 0$, multiply $p(s)$ by $-1$ without changing its roots):
 
-Consider a real polynomial of degree $n$ normalized so that its leading coefficient is strictly positive ($a_n > 0$):
 $$p(s) = a_n s^n + a_{n-1} s^{n-1} + \dots + a_1 s + a_0 = 0, \quad a_n > 0$$
 
-A polynomial $p(s)$ is **strictly Hurwitz** (asymptotically stable) if and only if all $n$ of its roots satisfy $\operatorname{Re}(s_k) < 0$.
+By definition, $p(s)$ is **strictly Hurwitz** if and only if all $n$ roots satisfy $\operatorname{Re}(s_k) < 0$. Any real polynomial with strictly LHP roots factors completely into linear LHP terms $(s + \alpha_k)$ with $\alpha_k > 0$ and complex-conjugate LHP quadratic terms $(s^2 + 2\zeta_m \omega_{n,m} s + \omega_{n,m}^2)$ with $\zeta_m > 0$ and $\omega_{n,m} > 0$, scaled by $a_n > 0$:
 
-### Derivation / Oral Proof: Stodola's Necessary Condition
+$$
+p(s) = a_n \prod_{k} (s + \alpha_k) \prod_{m} \left(s^2 + 2\zeta_m \omega_{n,m} s + \omega_{n,m}^2\right)
+$$
 
-If all roots of $p(s)$ lie in the open left-half plane, $p(s)$ factors into a product of linear terms $(s + \alpha_k)$ with $\alpha_k > 0$ and quadratic terms $(s^2 + 2\zeta_m \omega_{n,m} s + \omega_{n,m}^2)$ with $\zeta_m > 0, \omega_{n,m} > 0$, scaled by $a_n > 0$. Expanding a product of factors whose coefficients are all strictly positive cannot produce a zero or negative coefficient. Therefore, a **necessary** condition for strict Hurwitz stability (Stodola's rule) is that every coefficient is strictly positive:
+Because every factor contains only strictly positive coefficients, expanding their product can only add positive numbers—it can never produce a zero or negative coefficient. This proves **Stodola's necessary condition**:
+
 $$\boxed{a_i > 0 \quad \forall i = 0, 1, \dots, n \quad (\text{given } a_n > 0)}$$
 
-If any $a_k = 0$ (missing power of $s$) or $a_k < 0$ (sign flip), $p(s)$ is **immediately unstable or at best marginally stable**—there is no need to build the Routh table.
+If any coefficient $a_k = 0$ (a missing power of $s$) or $a_k < 0$, the polynomial immediately fails strict Hurwitz stability. For $n = 1$ ($a_1 s + a_0 = 0$) and $n = 2$ ($a_2 s^2 + a_1 s + a_0 = 0$, whose roots are $\frac{-a_1 \pm \sqrt{a_1^2 - 4a_2 a_0}}{2a_2}$), $a_i > 0$ is both necessary and sufficient. For $n \ge 3$, however, it is **necessary only**: a stable LHP factor can mask the negative term of an unstable quadratic, as in $s^3 + s^2 + 2s + 8 = (s+2)(s^2 - s + 4)$, which has all positive coefficients yet RHP roots $s = +0.5 \pm j\frac{\sqrt{15}}{2}$.
 
-<Callout type="warning" title="Exam Pitfall: Stodola Is Necessary, NOT Sufficient for $n \ge 3$">
+### Routh Tabular Algorithm
 
-For $n = 1$ and $n = 2$, $a_i > 0$ is both necessary and sufficient. For $n \ge 3$, positive coefficients **do not** guarantee stability. For example, $p(s) = s^3 + s^2 + 2s + 8 = (s + 2)(s^2 - s + 4)$ has all positive coefficients $[1, 1, 2, 8]$, yet its complex roots are $s = +0.5 \pm j\frac{\sqrt{15}}{2}$ in the open right-half plane.
+When Stodola's condition holds and no first-column pivot vanishes (the regular case), populate rows $s^n$ and $s^{n-1}$ with alternating coefficients and compute each subsequent row from the two rows immediately above (treating missing right-hand entries as $0$):
 
-</Callout>
-
-### Routh's Stability Criterion
-
-Assuming Stodola's condition holds and no row pivot vanishes (the regular case):
-1. A polynomial $p(s)$ is strictly Hurwitz ($\operatorname{Re}(s_k) < 0$ for all $k$) **if and only if** all $(n+1)$ entries in the first column of the Routh table are strictly positive.
-2. The number of roots in the open right-half plane ($n_{\text{RHP}}$) equals the **number of sign changes** in the first column.
-3. In the regular case (no zeros in the first column), there are no roots on the imaginary axis, so $n_{\text{LHP}} = n - n_{\text{RHP}}$.
-
-<Divider />
-
-## Operational Algorithm (Written Exam Core)
-
-### Step 1: Check Stodola's Necessary Condition
-Verify $a_n > 0$ (if $a_n < 0$, multiply $p(s)$ by $-1$) and confirm every $a_i > 0$ for $i = 0, \dots, n$.
-
-### Step 2: Populate the First Two Rows
-Arrange the coefficients in alternating order across row $s^n$ and row $s^{n-1}$:
-$$\begin{array}{c|llll}
+$$
+\begin{array}{c|llll}
 s^n & a_n & a_{n-2} & a_{n-4} & \dots \\
 s^{n-1} & a_{n-1} & a_{n-3} & a_{n-5} & \dots \\
 s^{n-2} & b_1 & b_2 & b_3 & \dots \\
 s^{n-3} & c_1 & c_2 & c_3 & \dots \\
 \vdots & \vdots & & & \\
 s^0 & a_0 & & &
-\end{array}$$
+\end{array}
+$$
 
-### Step 3: Compute Subsequent Rows via Cross-Multiplication
-Each entry in row $s^{n-2}$ is computed from the two rows immediately above using the leading pivot $a_{n-1}$ ([the figure](#fig-routh-pattern)):
+Each entry in row $s^{n-2}$ is the negative $2 \times 2$ determinant of the first column and column $(j+1)$ divided by the pivot $a_{n-1}$:
+
 $$\boxed{b_1 = \frac{a_{n-1} a_{n-2} - a_n a_{n-3}}{a_{n-1}}}, \qquad \boxed{b_2 = \frac{a_{n-1} a_{n-4} - a_n a_{n-5}}{a_{n-1}}}$$
-and similarly for row $s^{n-3}$ using pivot $b_1$:
+
+Repeating the exact same rule one row lower gives row $s^{n-3}$ from rows $s^{n-1}$ and $s^{n-2}$:
+
 $$c_1 = \frac{b_1 a_{n-3} - a_{n-1} b_2}{b_1}, \qquad c_2 = \frac{b_1 a_{n-5} - a_{n-1} b_3}{b_1}$$
-Missing entries to the right are treated as $0$. Any entire row may be multiplied or divided by a **strictly positive scalar** ($k > 0$) to clear fractions without affecting the first-column signs.
 
-<figure id="fig-routh-pattern" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-routh-pattern.svg" alt="Cross-multiplication pattern for computing Routh array entries from the two preceding rows." />
-  <figcaption>Cross-multiplication pattern for computing Routh array entries from the two preceding rows.</figcaption>
-</figure>
+Notice that multiplying or dividing any complete row by a **strictly positive scalar** $k > 0$ preserves all signs in that row and leaves every subsequent cross-product ratio invariant, because $\frac{(k p) x - y (k q)}{k p} = \frac{p x - y q}{p}$. This lets you clear fractions cleanly by hand without altering the result. By **Routh's criterion**:
 
-### Step 4: Count Sign Changes in the First Column
-Read the first column from $s^n$ down to $s^0$. Every sign flip ($+ \to -$ or $- \to +$) counts as one RHP root. For standard low-order monic polynomials with $a_i > 0$, this yields the analytical Hurwitz inequalities:
-* **3rd-order** ($s^3 + a_2 s^2 + a_1 s + a_0$): $\boxed{a_2 a_1 > a_0}$
-* **4th-order** ($s^4 + a_3 s^3 + a_2 s^2 + a_1 s + a_0$): $\boxed{a_3 a_2 a_1 > a_1^2 + a_3^2 a_0}$
+1. $p(s)$ is strictly Hurwitz ($\operatorname{Re}(s_k) < 0$ for all $k$) **if and only if** all $(n + 1)$ entries in the first column are strictly positive.
+2. The number of open right-half-plane roots $n_{\text{RHP}}$ equals the **number of sign changes** in the first column from $s^n$ down to $s^0$; in the regular case (no imaginary-axis roots), $n_{\text{LHP}} = n - n_{\text{RHP}}$.
 
-<Divider />
+For low-order monic polynomials with $a_i > 0$, evaluating the first column directly yields closed-form Hurwitz inequalities:
+* **3rd-order** ($s^3 + a_2 s^2 + a_1 s + a_0$): Row $s^1$ is $b_1 = \frac{a_2 a_1 - a_0}{a_2} > 0$, which simplifies (since $a_2 > 0$) to $\boxed{a_2 a_1 > a_0}$.
+* **4th-order** ($s^4 + a_3 s^3 + a_2 s^2 + a_1 s + a_0$): Row $s^2$ is $[b_1, b_2] = \left[\frac{a_3 a_2 - a_1}{a_3},\; a_0\right]$, and row $s^1$ is $c_1 = \frac{b_1 a_1 - a_3 a_0}{b_1} > 0$. Requiring $b_1 > 0$ and $b_1 a_1 > a_3 a_0$ gives $\frac{a_3 a_2 - a_1}{a_3} a_1 > a_3 a_0$, or $\boxed{a_3 a_2 a_1 > a_1^2 + a_3^2 a_0}$.
 
-## Worked Exam Archetype and Pitfalls
-
-### Worked Example: Third-Order Characteristic Polynomial
-
-Determine the root distribution of:
-$$p(s) = s^3 + 2s^2 + 4s + 12$$
-
-1. **Stodola Check:** $[1, 2, 4, 12]$ are all strictly positive.
-2. **Routh Table:**
-   $$\begin{array}{c|ll}
-   s^3 & 1 & 4 \\
-   s^2 & 2 & 12 \\
-   s^1 & b_1 & 0 \\
-   s^0 & c_1 & 0
-   \end{array}$$
-   $$b_1 = \frac{(2)(4) - (1)(12)}{2} = \frac{-4}{2} = -2, \qquad c_1 = \frac{(-2)(12) - (2)(0)}{-2} = 12$$
-3. **First Column Inspection:** $[+1,\; +2,\; -2,\; +12]^T$ exhibits **2 sign changes** ($+2 \to -2$ and $-2 \to +12$).
-   Therefore, $n_{\text{RHP}} = 2$ and $n_{\text{LHP}} = 3 - 2 = 1$; the system is **unstable**.
-
-<Callout type="warning" title="Exam Pitfall: Scaling a Row by a Negative Number">
-
-Never multiply a Routh row by a negative scalar! Multiplying by $-1$ flips the sign of that first-column entry and corrupts the sign-change count. Only strictly positive scalars ($k > 0$) preserve stability.
-
-</Callout>
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="When constructing a Routh table, which row operation is mathematically valid without corrupting the RHP root count?"
+  options={[
+    "Multiplying every entry in a row by $-1$ to make the leading pivot positive",
+    "Dividing or multiplying an entire row by a strictly positive constant $k > 0$",
+    "Swapping two adjacent rows before cross-multiplying"
+  ]}
+  correctIndex={1}
+  explanation="Scaling a row by $k > 0$ preserves the signs of all entries in that row and leaves every subsequent row ratio unchanged, whereas multiplying by $-1$ flips first-column signs."
+/>
 
 <Callout type="bridge" title="SDU Robotics Bridge: DC Motor PI Speed Loop Tuning">
 
@@ -132,104 +149,143 @@ In differential-drive mobile robots, a permanent-magnet DC motor ($J, b, L, R$) 
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Polynomial Degree | Necessary Condition | Sufficient Hurwitz Condition (given $a_n > 0$) | RHP Root Count |
+| :--- | :--- | :--- | :--- |
+| **Degree 1** ($a_1 s + a_0$) | $a_1, a_0 > 0$ | Same ($a_0 > 0$) | $0$ if $a_0 > 0$ |
+| **Degree 2** ($s^2 + a_1 s + a_0$) | $a_1, a_0 > 0$ | Same ($a_1 > 0, \; a_0 > 0$) | $0$ if $a_1, a_0 > 0$ |
+| **Degree 3** ($s^3 + a_2 s^2 + a_1 s + a_0$) | $a_2, a_1, a_0 > 0$ | $a_2 a_1 > a_0$ | Sign changes in Col 1 |
+| **Degree 4** ($s^4 + a_3 s^3 + a_2 s^2 + a_1 s + a_0$) | $a_3, a_2, a_1, a_0 > 0$ | $a_3 a_2 a_1 > a_1^2 + a_3^2 a_0$ | Sign changes in Col 1 |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Construction Procedure
 
-## Chapter Exercises
+1. Normalize $a_n > 0$ (multiply $p(s)$ by $-1$ if $a_n < 0$) and check Stodola's condition ($a_i > 0$ for all $i$).
+2. Populate row $s^n$ and row $s^{n-1}$ with alternating coefficients of $p(s)$.
+3. Compute rows $s^{n-2}$ down to $s^0$ via cross-multiplication, optionally scaling any row by $k > 0$.
+4. Count sign changes down Column 1 from $s^n$ to $s^0$ to obtain $n_{\text{RHP}}$ and $n_{\text{LHP}} = n - n_{\text{RHP}}$.
 
-<Exercise client:load id="ex-13-1" title="Exercise 13.1" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Stodola Necessity:** Expanding a product of strictly positive linear and quadratic LHP factors produces strictly positive coefficients $a_i > 0$.
+- **Positive Scaling Invariance:** Multiplying row $s^k$ by $k > 0$ scales its pivot and entries identically, leaving subsequent cross-product ratios $(k p \cdot x - y \cdot k q)/(k p)$ invariant.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Treating Stodola as Sufficient:** Positive coefficients never guarantee stability for $n \ge 3$; always build the Routh array or check the Hurwitz inequalities.
+2. **Negative Row Scaling:** Never multiply a Routh row by a negative scalar; flipping row signs corrupts the sign-change count.
+3. **Missing Powers of $s$:** If any power $s^k$ is absent ($a_k = 0$), write `0` explicitly in the alternating rows—never shift later coefficients left.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-13-1" title="Exercise 13.1 — Third-Order Routh Array" level="Warm-Up">
 
 Given the 3rd-order characteristic polynomial:
+
 $$p(s) = s^3 + 2s^2 + 4s + 12$$
+
 1. Verify Stodola's necessary condition on the polynomial coefficients.
 2. Construct the complete Routh table from row $s^3$ down to row $s^0$.
 3. Extract the elements of the first column and determine their signs.
 4. Count the number of sign variations, determine $n_{\text{RHP}}$ and $n_{\text{LHP}}$, and conclude whether the system is asymptotically stable.
 
-<StepCheck client:load prompt="Compute entry b₁ in row s¹ of the Routh table for p(s) = s³ + 2s² + 4s + 12:" expected={-2} tolerance={0.01} explanation="b₁ = (2·4 − 1·12)/2 = −2." />
+<StepCheck
+  client:load
+  prompt="Compute entry $b_1$ in row $s^1$ of the Routh table for $p(s) = s^3 + 2s^2 + 4s + 12$:"
+  expected={-2}
+  tolerance={0.01}
+  unit=""
+  explanation="$b_1 = (2 \cdot 4 - 1 \cdot 12)/2 = -2$."
+/>
 
-<StepCheck client:load mode="choice" prompt="How many sign changes appear in the first column [1, 2, −2, 12]?" options={["0 (Stable)", "1 RHP root", "2 RHP roots", "3 RHP roots"]} correctIndex={2} explanation="Sign flips +2 → −2 and −2 → +12 give 2 RHP roots." />
-
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="How many sign changes appear in the first column $[1, 2, -2, 12]$?"
+  options={[
+    "0 (Stable)",
+    "1 RHP root",
+    "2 RHP roots",
+    "3 RHP roots"
+  ]}
+  correctIndex={2}
+  explanation="Sign flips $+2 \to -2$ and $-2 \to +12$ give $2$ RHP roots."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 1. Stodola necessary condition:
-   For $p(s) = s^3 + 2s^2 + 4s + 12$, the coefficients are $[1, \; 2, \; 4, \; 12]$.
-   All coefficients are strictly positive ($> 0$) and no term is missing. The necessary condition for stability is satisfied.
+   For $p(s) = s^3 + 2s^2 + 4s + 12$, the coefficients $[1, \; 2, \; 4, \; 12]$ are all strictly positive with no missing terms.
 2. Complete Routh table construction:
    * Row $s^3$: $1, \quad 4$
    * Row $s^2$: $2, \quad 12$
-   * Row $s^1$:
-     $$b_1 = \frac{2(4) - 1(12)}{2} = \frac{8 - 12}{2} = \frac{-4}{2} = -2$$
-     Row $s^1$: $-2, \quad 0$
-   * Row $s^0$:
-     $$c_1 = \frac{-2(12) - 2(0)}{-2} = 12$$
-     Row $s^0$: $12, \quad 0$
-   Tabular array:
-   $$\begin{array}{c|ll}
+   * Row $s^1$: $b_1 = \frac{2(4) - 1(12)}{2} = \frac{-4}{2} = -2 \implies [-2, \; 0]$
+   * Row $s^0$: $c_1 = \frac{-2(12) - 2(0)}{-2} = 12 \implies [12, \; 0]$
+   $$
+   \begin{array}{c|ll}
    s^3 & +1 & 4 \\
    s^2 & +2 & 12 \\
    s^1 & -2 & 0 \\
    s^0 & +12 & 0
-   \end{array}$$
+   \end{array}
+   $$
 3. First column elements and signs:
    $$\text{Column 1} = \begin{bmatrix} +1 \\ +2 \\ -2 \\ +12 \end{bmatrix} \implies \begin{bmatrix} + \\ + \\ - \\ + \end{bmatrix}$$
 4. Root distribution and stability:
    * Transition $+2 \to -2$: 1st sign change.
    * Transition $-2 \to +12$: 2nd sign change.
-   There are exactly **2 sign variations** in the first column.
-   * Roots in the open right-half plane: $n_{\text{RHP}} = 2$.
-   * Roots in the open left-half plane: $n_{\text{LHP}} = 3 - 2 = 1$.
-   The polynomial is strictly **unstable** (not asymptotically stable).
+   With **2 sign variations**, $n_{\text{RHP}} = 2$ and $n_{\text{LHP}} = 3 - 2 = 1$; the system is **unstable**.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-13-2" title="Exercise 13.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-13-2" title="Exercise 13.2 — Fourth-Order Routh Array" level="Exam Standard">
 
 Consider the 4th-order characteristic polynomial:
+
 $$p(s) = s^4 + 2s^3 + 3s^2 + 4s + 5$$
+
 1. Verify Stodola's necessary condition.
 2. Construct the full Routh tabular array, using positive row-scaling where helpful.
 3. Determine the signs of the first-column entries and identify every sign change.
 4. Determine $n_{\text{RHP}}$ and $n_{\text{LHP}}$, and state the internal stability classification.
 
+<StepCheck
+  client:load
+  prompt="After scaling row $s^3$ by $1/2$ to $[1, 2, 0]$, compute the first-column entry $c_1$ in row $s^1$:"
+  expected={-3}
+  tolerance={0.01}
+  unit=""
+  explanation="Row $s^2$ gives $[1, 5]$, so $c_1 = \frac{1(2) - 1(5)}{1} = -3$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 1. Stodola check:
-   For $p(s) = s^4 + 2s^3 + 3s^2 + 4s + 5$, all coefficients $[1, 2, 3, 4, 5]$ are strictly positive. The necessary condition holds.
+   For $p(s) = s^4 + 2s^3 + 3s^2 + 4s + 5$, all coefficients $[1, 2, 3, 4, 5]$ are strictly positive.
 2. Tabular array construction:
    * Row $s^4$: $1, \quad 3, \quad 5$
-   * Row $s^3$: $2, \quad 4, \quad 0$. Dividing the row by $2$ simplifies subsequent calculations: $[1, \; 2, \; 0]$.
-   * Row $s^2$:
-     $$b_1 = \frac{1(3) - 1(2)}{1} = 1, \quad b_2 = \frac{1(5) - 1(0)}{1} = 5 \implies [1, \; 5]$$
-   * Row $s^1$:
-     $$c_1 = \frac{1(2) - 1(5)}{1} = -3 \implies [-3, \; 0]$$
-   * Row $s^0$:
-     $$d_1 = \frac{-3(5) - 1(0)}{-3} = 5 \implies [5, \; 0]$$
-   Completed Routh array:
-   $$\begin{array}{c|lll}
+   * Row $s^3$: $2, \quad 4, \quad 0 \xrightarrow{\div 2} [1, \; 2, \; 0]$
+   * Row $s^2$: $b_1 = \frac{1(3) - 1(2)}{1} = 1, \quad b_2 = \frac{1(5) - 1(0)}{1} = 5 \implies [1, \; 5]$
+   * Row $s^1$: $c_1 = \frac{1(2) - 1(5)}{1} = -3 \implies [-3, \; 0]$
+   * Row $s^0$: $d_1 = \frac{-3(5) - 1(0)}{-3} = 5 \implies [5, \; 0]$
+   $$
+   \begin{array}{c|lll}
    s^4 & +1 & 3 & 5 \\
    s^3 & +2 \;(\to +1) & 4 \;(\to 2) & 0 \\
    s^2 & +1 & 5 & 0 \\
    s^1 & -3 & 0 & 0 \\
    s^0 & +5 & 0 & 0
-   \end{array}$$
-3. First column signs:
-   $$\text{Column 1} = \begin{bmatrix} +1 \\ +1 \\ +1 \\ -3 \\ +5 \end{bmatrix}$$
-   * $+1 \to +1 \to +1$: 0 changes.
-   * $+1 \to -3$: **1st sign change**.
-   * $-3 \to +5$: **2nd sign change**.
-4. Root distribution and stability conclusion:
-   Because there are exactly 2 sign changes in the first column:
-   * $n_{\text{RHP}} = 2$ (a pair of complex conjugate poles in the open right-half plane).
-   * $n_{\text{LHP}} = 4 - 2 = 2$ (two poles in the open left-half plane).
-   The system is **unstable**.
+   \end{array}
+   $$
+3. First column signs: $\text{Column 1} = [+1, \; +1, \; +1, \; -3, \; +5]^T$ has **2 sign changes** ($+1 \to -3$ and $-3 \to +5$).
+4. Root distribution and conclusion:
+   $n_{\text{RHP}} = 2$ and $n_{\text{LHP}} = 4 - 2 = 2$; the system is **unstable**.
 
 </details>
 

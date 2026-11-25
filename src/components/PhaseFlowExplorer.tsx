@@ -16,8 +16,8 @@ const PRESETS: Record<PresetKey, Preset> = {
     desc: 'λ₁ = −1 along v₁=[2,1], λ₂ = −4 along v₂=[−1,2]: trajectories bend tangentially onto the slow manifold v₁.',
     tMax: 4,
     eigenLines: [
-      { dx: 2, dy: 1, color: '#3b82f6', name: 'v₁ (slow)' },
-      { dx: -1, dy: 2, color: '#ef4444', name: 'v₂ (fast)' },
+      { dx: 2, dy: 1, color: 'var(--sl-color-accent)', name: 'v₁ (slow)' },
+      { dx: -1, dy: 2, color: 'var(--dc-err)', name: 'v₂ (fast)' },
     ],
     step: (t, [x10, x20]) => {
       // x0 = c1*[2,1] + c2*[-1,2] -> c1 = (2*x10 + x20)/5, c2 = (-x10 + 2*x20)/5
@@ -44,8 +44,8 @@ const PRESETS: Record<PresetKey, Preset> = {
     desc: 'λ₁ = −1 (stable axis), λ₂ = +0.7 (unstable axis): trajectories approach along x₁ and diverge along x₂.',
     tMax: 2.2,
     eigenLines: [
-      { dx: 1, dy: 0, color: '#10b981', name: 'stable λ₁=−1' },
-      { dx: 0, dy: 1, color: '#ef4444', name: 'unstable λ₂=+0.7' },
+      { dx: 1, dy: 0, color: 'var(--dc-ok)', name: 'stable λ₁=−1' },
+      { dx: 0, dy: 1, color: 'var(--dc-err)', name: 'unstable λ₂=+0.7' },
     ],
     step: (t, [x10, x20]) => [x10 * Math.exp(-t), x20 * Math.exp(0.7 * t)],
   },
@@ -96,10 +96,10 @@ export default function PhaseFlowExplorer({ initialPreset = 'node' }: { initialP
   const cur = preset.step(t, x0);
 
   return (
-    <div className="dc-widget">
+    <div className="dc-widget not-content">
       <div className="dc-widget-header">
-        <div>
-          <span className="dc-badge">Interactive Lab</span>{' '}
+        <div className="dc-widget-heading">
+          <span className="dc-badge">Interactive Lab</span>
           <span className="dc-widget-title">Phase-Plane State Flow x(t) = e^(At) x₀</span>
         </div>
         <div style={{ display: 'flex', gap: '0.45rem' }}>
@@ -145,7 +145,7 @@ export default function PhaseFlowExplorer({ initialPreset = 'node' }: { initialP
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', alignItems: 'center' }}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          style={{ width: '100%', height: 'auto', border: '1px solid var(--sl-color-hairline)', borderRadius: '0.5rem', cursor: 'crosshair' }}
+          style={{ width: '100%', maxWidth: '460px', height: 'auto', border: '1px solid var(--sl-color-hairline-light)', borderRadius: 'var(--dc-radius)', cursor: 'crosshair' }}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const px = ((e.clientX - rect.left) / rect.width) * W;
@@ -172,9 +172,9 @@ export default function PhaseFlowExplorer({ initialPreset = 'node' }: { initialP
             />
           ))}
 
-          <path d={path} fill="none" stroke="#8b5cf6" strokeWidth={2.4} />
-          <circle cx={toX(x0[0])} cy={toY(x0[1])} r={4.5} fill="#ef4444" />
-          <circle cx={toX(cur[0])} cy={toY(cur[1])} r={5.5} fill="#10b981" />
+          <path d={path} fill="none" stroke="var(--sl-color-accent)" strokeWidth={2.4} />
+          <circle cx={toX(x0[0])} cy={toY(x0[1])} r={4.5} fill="var(--dc-err)" />
+          <circle cx={toX(cur[0])} cy={toY(cur[1])} r={5.5} fill="var(--dc-ok)" />
         </svg>
 
         <div style={{ fontSize: '0.88rem' }}>
@@ -194,10 +194,10 @@ export default function PhaseFlowExplorer({ initialPreset = 'node' }: { initialP
           </label>
           <div><strong>Click anywhere on the plane</strong> to move initial state x₀.</div>
           <div style={{ marginTop: '0.5rem' }}>
-            <span style={{ color: '#ef4444' }}>● x(0)</span> = [{x0[0].toFixed(2)}, {x0[1].toFixed(2)}]ᵀ
+            <span style={{ color: 'var(--dc-err)' }}>● x(0)</span> = [{x0[0].toFixed(2)}, {x0[1].toFixed(2)}]ᵀ
           </div>
           <div>
-            <span style={{ color: '#10b981' }}>● x(t)</span> = [{cur[0].toFixed(2)}, {cur[1].toFixed(2)}]ᵀ
+            <span style={{ color: 'var(--dc-ok)' }}>● x(t)</span> = [{cur[0].toFixed(2)}, {cur[1].toFixed(2)}]ᵀ
           </div>
         </div>
       </div>

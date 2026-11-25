@@ -11,85 +11,118 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 14 Mental Model" markdown={`# Ch. 14: Singular Routh Tables
-  - Intuition and Physical Meaning
-  - Formal Definition and Classification (Oral Core)
-    - Derivation / Oral Proof: Why a Row of Zeros Means Symmetric Roots
-  - Operational Algorithm (Written Exam Core)
-    - Remedy for Case 1: The $\varepsilon$-Perturbation Method
-    - Remedy for Case 2: The Auxiliary Polynomial Derivative
-  - Worked Exam Archetype and Pitfalls
-    - Worked Example: Complete Row of Zeros`} />
+<MindMap client:load defaultCollapsed title="Chapter 14 Outline" markdown={`# Ch. 14: Singular Routh Tables
+  - Singular Table Cases
+    - Isolated zero pivot ($\\varepsilon$-perturbation)
+    - Complete row of zeros (symmetric roots)
+  - Auxiliary Polynomial $A(s)$
+    - Quadrantal symmetry ($\\pm j\\omega_0$, $\\pm\\sigma_0$, $\\pm\\sigma \\pm j\\omega$)
+    - Derivative substitution $\\frac{dA}{ds}$`} />
 
-## Intuition and Physical Meaning
+## Introduction
 
-The standard Routh algorithm in [Routh-Hurwitz Stability Criterion](/dynamic-courses/systems-theory/04-stability-routh/03-routh-hurwitz-tabular-array-construction/) divides each cross-product by the leading pivot of the row above. Whenever a pivot evaluates to zero, ordinary arithmetic breaks down. Physically, a zero pivot signals either an asymmetrical root cancellation in the array (an isolated zero) or **symmetric roots** balanced across the imaginary axis or origin (an entire row of zeros).
+In ordinary arithmetic, hitting a zero in a denominator stops the calculation dead. Inside a Routh table, hitting a zero in the first column does something far more informative: it warns you that the system sits on a razor's edge of **spectral symmetry** or cancellation.
 
-<Divider />
+Rather than guessing or aborting, this chapter equips you with two clean algebraic rescues—the **$\varepsilon$-perturbation** for an isolated zero pivot and the **auxiliary polynomial** $A(s)$ for an all-zero row—allowing you to diagnose pure imaginary oscillations ($\pm j\omega$) and symmetric unstable roots ($\pm \sigma$) accurately.
 
-## Formal Definition and Classification (Oral Core)
+<Divider label="1 · Example" />
 
-Singular Routh tables fall into two distinct algebraic cases:
+Classify all roots of the fourth-order characteristic polynomial:
 
-1. **Singular Case 1 (Isolated First-Column Zero):** The leading element of row $s^k$ is zero ($a_{k,1} = 0$), while at least one subsequent element in that row is non-zero ($a_{k,j} \neq 0$ for some $j > 1$).
-2. **Singular Case 2 (Complete Row of Zeros):** Every entry in row $s^k$ vanishes identically ($a_{k,j} = 0$ for all $j \ge 1$).
+$$p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$$
 
-### Derivation / Oral Proof: Why a Row of Zeros Means Symmetric Roots
+1. **Build the Table Down to Row $s^1$:** Place alternating coefficients into rows $s^4$ ($[1, 5, 6]$) and $s^3$ ($[3, 9, 0]$). Dividing row $s^3$ by $3$ gives $[1, 3, 0]$. Computing row $s^2$ by cross-multiplication yields:
 
-An entire row of zeros occurs **if and only if** $p(s)$ contains a factor $A(s)$ with **quadrantal symmetry** about the origin ([the figure](#fig-symmetric-roots)):
-1. Purely imaginary conjugate pairs $\pm j\omega_0$ (undamped oscillations / marginal stability).
-2. Equal-and-opposite real pairs $\pm \sigma_0$ (one stable, one unstable).
-3. Complex quadruplets $\pm \sigma \pm j\omega$ (two stable, two unstable).
+   $$
+   b_1 = \frac{(1)(5) - (1)(3)}{1} = 2, \qquad b_2 = \frac{(1)(6) - (1)(0)}{1} = 6
+   $$
 
-Because $A(s)$ is an **even polynomial** (containing only even powers of $s$ when $k$ is odd, or odd powers factored by $s$), the row immediately above the zero row (row $s^{k+1}$) holds the exact coefficients of $A(s)$. Thus $A(s)$ divides $p(s)$ exactly: $p(s) = A(s) Q(s)$.
+   Scaling row $s^2$ ($[2, 6, 0]$) by $1/2$ gives $[1, 3, 0]$. Notice that row $s^2$ is now identical to the scaled row $s^3$, so the next row $s^1$ vanishes completely:
 
-<figure id="fig-symmetric-roots" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-symmetric-roots.svg" alt="Three symmetric root configurations that trigger a complete row of zeros in the Routh table." />
-  <figcaption>Three symmetric root configurations that trigger a complete row of zeros in the Routh table.</figcaption>
-</figure>
+   $$
+   c_1 = \frac{(1)(3) - (1)(3)}{1} = 0, \qquad c_2 = 0
+   $$
 
-<Divider />
-
-## Operational Algorithm (Written Exam Core)
-
-### Remedy for Case 1: The $\varepsilon$-Perturbation Method
-1. Replace the isolated zero in the first column with an infinitesimal positive parameter $\varepsilon > 0$.
-2. Complete the remaining rows symbolically as rational functions of $\varepsilon$.
-3. Take the limit $\varepsilon \to 0^+$ in the first column to determine the sign of every entry and count sign changes.
-
-### Remedy for Case 2: The Auxiliary Polynomial Derivative
-1. Form the **auxiliary polynomial** $A(s)$ from row $s^{k+1}$ immediately above the vanishing row $s^k$ (stepping down by powers of $2$: $s^{k+1}, s^{k-1}, \dots$).
-2. Differentiate $A(s)$ with respect to $s$ to obtain $\frac{dA}{ds}$.
-3. Replace the vanishing row $s^k$ with the coefficients of $\frac{dA}{ds}$ and resume the standard Routh algorithm.
-4. Solve $A(s) = 0$ explicitly to locate the symmetric roots (e.g., for row $s^2$ entries $[\alpha_1, \alpha_2]$, $A(s) = \alpha_1 s^2 + \alpha_2 = 0 \implies s = \pm j\sqrt{\alpha_2/\alpha_1}$ when $\alpha_1, \alpha_2 > 0$).
-
-<Divider />
-
-## Worked Exam Archetype and Pitfalls
-
-### Worked Example: Complete Row of Zeros
-
-Classify the roots of $p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$:
-1. **Build Table to Row $s^1$:**
-   $$\begin{array}{c|lll}
+   $$
+   \begin{array}{c|lll}
    s^4 & 1 & 5 & 6 \\
    s^3 & 3 & 9 & 0 \quad (\div 3 \to [1,\, 3,\, 0]) \\
    s^2 & 2 & 6 & 0 \quad (\div 2 \to [1,\, 3,\, 0]) \\
    s^1 & 0 & 0 &
-   \end{array}$$
-   Row $s^1$ vanishes identically!
-2. **Auxiliary Polynomial from Row $s^2$:**
-   Using the scaled row $s^2$ entries $[1, 3]$:
-   $$A(s) = s^2 + 3 = 0 \implies s = \pm j\sqrt{3}$$
-   Differentiating gives $\frac{dA}{ds} = 2s$, so replace row $s^1$ with $[2, 0]$.
-3. **Complete Table:** Row $s^0$ evaluates to $3$.
-4. **Root Distribution:** First column $[1, 1, 1, 2, 3]^T$ has **zero sign changes** ($n_{\text{RHP}} = 0$). Since $A(s)$ contributes two simple imaginary roots $\pm j\sqrt{3}$, we have $n_{\text{LHP}} = 2$, $n_{j\omega} = 2$, $n_{\text{RHP}} = 0$ (simply stable).
+   \end{array}
+   $$
 
-<Callout type="warning" title="Exam Pitfall: Miscounting Roots When $A(s)$ Has Imaginary Pairs">
+2. **Resolve the Vanishing Row via $A(s)$:** An entire row of zeros signals that $p(s)$ contains an even factor $A(s)$ with origin-symmetric roots. Reading the scaled row $s^2$ ($[1, 3]$) as coefficients of $s^2$ and $s^0$ gives the **auxiliary polynomial**:
 
-A zero sign-change count below the auxiliary row means no RHP roots, **not** asymptotic stability! Always solve $A(s) = 0$ to identify the $j\omega$-axis roots and check their multiplicity.
+   $$A(s) = s^2 + 3 = 0 \implies s_{1,2} = \pm j\sqrt{3}$$
 
-</Callout>
+   To continue the Routh table past row $s^1$, differentiate $A(s)$ to obtain $\frac{dA}{ds} = 2s$, replace row $s^1$ with its coefficients $[2, 0]$, and compute row $s^0 = \frac{2(3) - 1(0)}{2} = 3$.
+3. **Read the Completed Column:** The completed first column $[+1, +1, +1, +2, +3]^T$ has zero sign changes, proving $n_{\text{RHP}} = 0$. Dividing $p(s)$ by $A(s) = s^2 + 3$ leaves the quotient $Q(s) = s^2 + 3s + 2 = (s + 1)(s + 2)$, whose two roots lie in the open LHP. Thus $n_{\text{LHP}} = 2$, $n_{j\omega} = 2$, and $n_{\text{RHP}} = 0$: the system is **simply stable** with undamped oscillation at $\omega_0 = \sqrt{3}\;\text{rad/s}$.
+
+<figure id="fig-symmetric-roots" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-symmetric-roots.svg" alt="Three symmetric root configurations that trigger a complete row of zeros in the Routh table." />
+  <figcaption>Three symmetric root configurations that trigger a complete row of zeros: imaginary conjugate pairs $\pm j\omega_0$, opposite real pairs $\pm \sigma_0$, and quadrantal quadruplets $\pm\sigma \pm j\omega$.</figcaption>
+</figure>
+
+<StepCheck
+  client:load
+  prompt="For $p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$, find the oscillation frequency $\omega_0$ of its imaginary-axis roots (3 decimal places):"
+  expected={1.732}
+  tolerance={0.01}
+  unit="$\mathrm{rad/s}$"
+  explanation="The auxiliary equation $A(s) = s^2 + 3 = 0$ gives $s = \pm j\sqrt{3}$, so $\omega_0 = \sqrt{3} \approx 1.732\;\mathrm{rad/s}$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Classification of Singular Rows
+
+The standard Routh algorithm in [Routh-Hurwitz Stability Criterion](/dynamic-courses/systems-theory/04-stability-routh/03-routh-hurwitz-tabular-array-construction/) divides each cross-product by the leading pivot of the row immediately above. Whenever a pivot evaluates to zero, division by zero halts the ordinary table and signals one of two distinct algebraic phenomena:
+
+1. **Singular Case 1 (Isolated First-Column Zero):** The leading entry of row $s^k$ is zero ($a_{k,1} = 0$), while at least one subsequent entry in that row is non-zero ($a_{k,j} \neq 0$ for some $j > 1$). This occurs because of an accidental numerical cancellation in the table, not because of origin-symmetric roots.
+2. **Singular Case 2 (Complete Row of Zeros):** Every entry in row $s^k$ vanishes identically ($a_{k,j} = 0$ for all $j \ge 1$). This occurs **if and only if** $p(s)$ contains an even polynomial factor whose roots are symmetric about the origin.
+
+### Isolated Zero Perturbation
+
+When row $s^k$ begins with $0$ followed by at least one non-zero entry (for example, $[0, \; 5]$), apply the **$\varepsilon$-perturbation method**:
+
+1. Replace the isolated zero in the first column with an infinitesimal positive parameter $\varepsilon > 0$.
+2. Complete all remaining rows symbolically as rational functions of $\varepsilon$.
+3. Evaluate the limit $\varepsilon \to 0^+$ in the first column to determine the sign of every entry and count sign changes.
+
+To see why this works, consider a row $s^2 = [\varepsilon, \; b_2]$ below row $s^3 = [a, \; c]$ with $a > 0$ and $b_2 > 0$. The next first-column entry is:
+
+$$c_1(\varepsilon) = \frac{\varepsilon c - a b_2}{\varepsilon} = c - \frac{a b_2}{\varepsilon}$$
+
+As $\varepsilon \to 0^+$, the $-a b_2 / \varepsilon$ term dominates and drives $c_1(\varepsilon) \to -\infty$, while row $s^0$ evaluates to $b_2 > 0$. The resulting sign sequence $[+, \; +\varepsilon, \; -, \; +]$ exhibits two sign changes ($+\varepsilon \to -$ and $- \to +$). By continuity of polynomial roots, a tiny perturbation $\varepsilon > 0$ cannot push any root across the $j\omega$-axis when no roots sit on it; moreover, choosing $-\varepsilon$ instead of $+\varepsilon$ simply flips the sign sequence to $[+, \; -\varepsilon, \; +, \; +]$, which still yields the exact same two sign changes.
+
+### Auxiliary Polynomial Symmetry
+
+An entire row of zeros occurs **if and only if** $p(s)$ contains an even factor $A(s)$ (satisfying $A(s) = A(-s)$). Because $A(-s) = 0$ whenever $A(s) = 0$, and complex roots of real polynomials appear in conjugate pairs, every root $s_0$ of $A(s)$ forces $-s_0$, $\overline{s_0}$, and $-\overline{s_0}$ to be roots as well. This produces **quadrantal symmetry** in three possible geometries:
+
+1. Purely imaginary conjugate pairs $\pm j\omega_0$ (marginal oscillation, $n_{j\omega}$).
+2. Equal-and-opposite real pairs $\pm \sigma_0$ (one LHP root and one RHP root).
+3. Complex quadruplets $\pm \sigma \pm j\omega$ (two LHP roots and two RHP roots).
+
+Because $A(s)$ contains only even or odd powers separated by $2$, row $s^{k+1}$ immediately above the vanishing row $s^k$ holds the exact coefficients of $A(s)$ (stepping down by powers of $2$: $s^{k+1}, s^{k-1}, \dots$), and $A(s)$ divides $p(s)$ exactly as $p(s) = A(s)Q(s)$. To resolve Singular Case 2:
+
+1. Form $A(s)$ from row $s^{k+1}$ immediately above the vanishing row $s^k$.
+2. Differentiate to obtain $\frac{dA}{ds}$ and substitute its coefficients into the vanishing row $s^k$. Because $A(s)$ and $\frac{dA}{ds}$ share no roots unless $A(s)$ has repeated symmetric roots, replacing row $s^k$ with $\frac{dA}{ds}$ preserves the RHP root count of both $A(s)$ and the quotient $Q(s)$.
+3. Resume the standard Routh algorithm down to $s^0$: the total number of sign changes in Column 1 equals $n_{\text{RHP}}$ across the entire polynomial $p(s)$.
+4. Solve $A(s) = 0$ explicitly to separate any $j\omega$-axis roots ($n_{j\omega}$) from the remaining LHP roots ($n_{\text{LHP}} = n - n_{\text{RHP}} - n_{j\omega}$). In particular, when row $s^1$ vanishes below row $s^2 = [\alpha_1, \alpha_2]$, the auxiliary equation $A(s) = \alpha_1 s^2 + \alpha_2 = 0$ gives $s = \pm j\sqrt{\alpha_2/\alpha_1}$ whenever $\alpha_1$ and $\alpha_2$ share the same sign.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="If row $s^1$ vanishes identically in a Routh table and the completed first column below it shows zero sign changes, how should you classify the polynomial?"
+  options={[
+    "Guaranteed asymptotically stable because Column 1 has zero sign changes",
+    "Not asymptotically stable: $A(s) = 0$ from row $s^2$ must be solved to locate $j\\omega$-axis roots",
+    "Guaranteed to have two RHP roots"
+  ]}
+  correctIndex={1}
+  explanation="Zero sign changes only prove $n_{\mathrm{RHP}} = 0$. A vanishing row indicates symmetric roots—here from $A(s) = \alpha_1 s^2 + \alpha_2 = 0$, placing roots on the $j\omega$-axis (simple stability if distinct)."
+/>
 
 <Callout type="bridge" title="SDU Robotics Bridge: Tethered Multirotor Altitude Hunting">
 
@@ -97,97 +130,111 @@ When altitude velocity gain in PX4 firmware reaches its critical boundary, the c
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Singular Type | Table Symptom | Physical Root Geometry | Algebraic Remedy |
+| :--- | :--- | :--- | :--- |
+| **Case 1: Isolated Zero** | $a_{k,1} = 0$, some $a_{k,j} \neq 0$ | Asymmetrical cancellation in table | Replace $0$ with $\varepsilon > 0$; take $\varepsilon \to 0^+$ |
+| **Case 2: Full Zero Row** | $a_{k,j} = 0$ for all $j$ | Symmetric pairs ($\pm j\omega_0, \pm\sigma_0, \pm\sigma\pm j\omega$) | Build $A(s)$ from row $s^{k+1}$; replace row $s^k$ with $\frac{dA}{ds}$ |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Resolution Procedure
 
-## Chapter Exercises
+1. Build rows normally until hitting either an isolated zero pivot (Case 1) or a full zero row (Case 2).
+2. For Case 1, substitute $\varepsilon > 0$, complete all remaining rows in $\varepsilon$, and evaluate $\lim_{\varepsilon \to 0^+}$ signs.
+3. For Case 2, build $A(s)$ from row $s^{k+1}$, replace row $s^k$ with $\frac{dA}{ds}$, finish the table, and solve $A(s) = 0$ to separate $n_{j\omega}$ from $n_{\text{LHP}}$ and $n_{\text{RHP}}$.
 
-<Exercise client:load id="ex-14-1" title="Exercise 14.1" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Quadrantal Symmetry:** An even polynomial $A(s)$ satisfies $A(s) = A(-s)$, forcing roots to appear in origin-symmetric pairs ($\pm\sigma_0$, $\pm j\omega_0$) or quadruplets ($\pm\sigma \pm j\omega$); because $p(s) = A(s)Q(s)$ divides evenly, row $s^k$ vanishes.
+- **Root-Sign Preservation via $\frac{dA}{ds}$:** Replacing row $s^k$ with $\frac{dA}{ds}$ preserves the RHP root count of $A(s)$ because $A(s)$ and $dA/ds$ share no roots unless $A(s)$ itself has repeated symmetric roots.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Ignoring $j\omega$ Roots Below $A(s)$:** Zero sign changes in Column 1 after using $dA/ds$ means $n_{\text{RHP}} = 0$, **not** asymptotic stability; always solve $A(s) = 0$ to identify $j\omega$-axis roots.
+2. **Forgetting to Differentiate $A(s)$:** Never copy row $s^{k+1}$ directly into row $s^k$; you must compute $\frac{dA}{ds}$ first.
+3. **Confusing Case 1 and Case 2:** Check the entire row $s^k$ before choosing a method; only use $A(s)$ when **every** entry in row $s^k$ is zero.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-14-1" title="Exercise 14.1 — Isolated First-Column Zero" level="Warm-Up">
 
 Given the 4th-order characteristic polynomial exhibiting an isolated first-column zero (Singular Case 1):
+
 $$p(s) = s^4 + 2s^3 + 2s^2 + 4s + 5$$
+
 1. Construct the Routh table down to row $s^2$ and verify that its leading entry is zero while the row is not identically zero.
 2. Replace the zero entry with $\varepsilon > 0$ and express subsequent row entries as functions of $\varepsilon$.
 3. Evaluate the signs of the first-column entries as $\varepsilon \to 0^+$.
 4. Count sign variations, determine $n_{\text{RHP}}$ and $n_{\text{LHP}}$, and classify stability.
 
+<StepCheck
+  client:load
+  prompt="Using the $\varepsilon$-perturbation limit $\varepsilon \to 0^+$, how many open right-half-plane roots ($n_{\mathrm{RHP}}$) does $p(s)$ possess?"
+  expected={2}
+  tolerance={0.01}
+  unit=""
+  explanation="Row $s^1$ entry $c_1 = \frac{2\varepsilon - 5}{\varepsilon} \to -\infty$ as $\varepsilon \to 0^+$, giving signs $[+, +, +, -, +]^T$ with $2$ sign changes ($n_{\mathrm{RHP}} = 2$)."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 1. Constructing the initial rows:
-   For $p(s) = s^4 + 2s^3 + 2s^2 + 4s + 5$:
    * Row $s^4$: $1, \quad 2, \quad 5$
    * Row $s^3$: $2, \quad 4, \quad 0 \xrightarrow{\div 2} [1, \; 2, \; 0]$
-   * Row $s^2$:
-     $$b_1 = \frac{1(2) - 1(2)}{1} = 0, \quad b_2 = \frac{1(5) - 1(0)}{1} = 5 \implies [0, \; 5]$$
-   An isolated zero appears at the leading pivot $b_1 = 0$, while element $b_2 = 5 \neq 0$. This represents Singular Case 1.
+   * Row $s^2$: $b_1 = \frac{1(2) - 1(2)}{1} = 0, \quad b_2 = \frac{1(5) - 1(0)}{1} = 5 \implies [0, \; 5]$
+   An isolated zero appears at $b_1 = 0$ while $b_2 = 5 \neq 0$ (Singular Case 1).
 2. $\varepsilon$-substitution:
-   Replacing the zero by an infinitesimal parameter $\varepsilon > 0$:
-   Row $s^2$: $[\varepsilon, \; 5]$.
-   * Row $s^1$:
-     $$c_1 = \frac{\varepsilon(2) - 1(5)}{\varepsilon} = \frac{2\varepsilon - 5}{\varepsilon}$$
-   * Row $s^0$:
-     $$d_1 = \frac{c_1(5) - \varepsilon(0)}{c_1} = 5$$
+   Replacing $0$ by $\varepsilon > 0$ gives row $s^2 = [\varepsilon, \; 5]$:
+   * Row $s^1$: $c_1 = \frac{\varepsilon(2) - 1(5)}{\varepsilon} = \frac{2\varepsilon - 5}{\varepsilon}$
+   * Row $s^0$: $d_1 = \frac{c_1(5) - \varepsilon(0)}{c_1} = 5$
 3. Limit signs as $\varepsilon \to 0^+$:
-   $$\text{Column 1} = \left[ +1, \; +1, \; +\varepsilon, \; \frac{2\varepsilon - 5}{\varepsilon}, \; +5 \right]^T$$
-   Taking $\varepsilon \to 0^+$:
-   $$\lim_{\varepsilon \to 0^+} \frac{2\varepsilon - 5}{\varepsilon} = -\infty < 0$$
-   Sign sequence: $[+, \; +, \; +, \; -, \; +]^T$.
+   In row $s^1$, $c_1(\varepsilon) = \frac{2\varepsilon - 5}{\varepsilon} = 2 - \frac{5}{\varepsilon} \to -\infty$ as $\varepsilon \to 0^+$ (strictly negative), while $d_1 = 5 > 0$:
+   $$\text{Column 1} = \left[ +1, \; +1, \; +\varepsilon, \; \frac{2\varepsilon - 5}{\varepsilon}, \; +5 \right]^T \xrightarrow{\varepsilon \to 0^+} [+, \; +, \; +, \; -, \; +]^T$$
 4. Sign variations and stability:
-   * $+\varepsilon \to -\infty$: **1st sign change**.
-   * $-\infty \to +5$: **2nd sign change**.
-   There are exactly **2 sign changes** in the first column.
-   * $n_{\text{RHP}} = 2$ (two roots in the open right-half plane).
-   * $n_{\text{LHP}} = 4 - 2 = 2$ (two roots in the open left-half plane).
-   The system is **unstable**.
+   Two sign changes ($+\varepsilon \to -\infty$ and $-\infty \to +5$) yield $n_{\text{RHP}} = 2$ and $n_{\text{LHP}} = 4 - 2 = 2$; the system is **unstable**.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-14-2" title="Exercise 14.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-14-2" title="Exercise 14.2 — Complete Row of Zeros" level="Exam Standard">
 
 Consider the characteristic polynomial triggering an entire row of zeros (Singular Case 2):
+
 $$p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$$
+
 1. Build the Routh array down to row $s^1$, showing that row $s^1$ vanishes identically.
 2. Extract the auxiliary polynomial $A(s)$ from row $s^2$, compute $\frac{dA}{ds}$, and replace the vanishing row to complete the array.
 3. Solve $A(s) = 0$ analytically to find the exact imaginary-axis roots.
 4. Read the completed first column, classify stability in the sense of Lyapunov, and report $n_{\text{LHP}}$, $n_{j\omega}$, and $n_{\text{RHP}}$.
 
+<StepCheck
+  client:load
+  prompt="How many roots of $p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$ lie directly on the imaginary axis ($n_{j\omega}$)?"
+  expected={2}
+  tolerance={0.01}
+  unit=""
+  explanation="The auxiliary equation $A(s) = 2(s^2 + 3) = 0$ yields $s_{1,2} = \pm j\sqrt{3}$ ($2$ simple imaginary-axis roots), while $Q(s) = (s+1)(s+2)$ lies in the LHP."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 1. Building the Routh array down to row $s^1$:
-   For $p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$:
    * Row $s^4$: $1, \quad 5, \quad 6$
    * Row $s^3$: $3, \quad 9, \quad 0 \xrightarrow{\div 3} [1, \; 3, \; 0]$
-   * Row $s^2$:
-     $$b_1 = \frac{1(5) - 1(3)}{1} = 2, \quad b_2 = \frac{1(6) - 0}{1} = 6 \implies [2, \; 6] \xrightarrow{\div 2} [1, \; 3]$$
-   * Row $s^1$:
-     $$c_1 = \frac{1(3) - 1(3)}{1} = 0 \implies [0, \; 0] \quad (\text{Entire row of zeros at } s^1!)$$
+   * Row $s^2$: $b_1 = \frac{1(5) - 1(3)}{1} = 2, \quad b_2 = 6 \implies [2, \; 6] \xrightarrow{\div 2} [1, \; 3]$
+   * Row $s^1$: $c_1 = \frac{1(3) - 1(3)}{1} = 0 \implies [0, \; 0]$
 2. Auxiliary polynomial resolution:
-   From row $s^2$ (with unscaled coefficients $[2, \; 6]$):
-   $$A(s) = 2s^2 + 6 = 2(s^2 + 3) = 0$$
-   Differentiating with respect to $s$:
-   $$\frac{dA}{ds} = 4s$$
-   Replacing row $s^1$ by $[4, \; 0] \xrightarrow{\div 4} [1, \; 0]$:
-   * Row $s^0$:
-     $$d_1 = \frac{1(3) - 0}{1} = 3 \quad (\text{or } 6 \text{ using unscaled row } s^2)$$
-   First column entries: $[+1, \; +1, \; +1, \; +1, \; +3]^T$ (all strictly positive).
+   From row $s^2$ (unscaled $[2, \; 6]$), $A(s) = 2s^2 + 6 = 2(s^2 + 3) = 0$ and $\frac{dA}{ds} = 4s$.
+   Replacing row $s^1$ by $[4, \; 0] \xrightarrow{\div 4} [1, \; 0]$ gives row $s^0$: $d_1 = \frac{1(3) - 1(0)}{1} = 3$, with Column 1 $= [+1, \; +1, \; +1, \; +1, \; +3]^T$.
 3. Roots of $A(s)$:
    $$s^2 + 3 = 0 \implies s_{1,2} = \pm j\sqrt{3}$$
-   The auxiliary polynomial contributes 2 simple purely imaginary roots on the imaginary axis.
 4. Stability and complete root distribution:
-   Factoring the characteristic polynomial by $A(s)$:
-   $$Q(s) = \frac{p(s)}{s^2 + 3} = s^2 + 3s + 2 = (s + 1)(s + 2)$$
-   The roots of $Q(s)$ are $s = -1$ and $s = -2$ (strictly in the open LHP).
-   Total distribution:
-   * $n_{j\omega} = 2$ (purely imaginary roots at $\pm j\sqrt{3}$),
-   * $n_{\text{LHP}} = 2$ (stable roots at $-1, -2$),
-   * $n_{\text{RHP}} = 0$.
-   **Classification:** The system is **simply stable (marginally stable)** in the sense of Lyapunov, but **not asymptotically stable** (sustaining perpetual harmonic oscillations at $\omega = \sqrt{3}\text{ rad/s}$).
+   Dividing $p(s)$ by $s^2 + 3$ gives $Q(s) = s^2 + 3s + 2 = (s + 1)(s + 2)$, so $n_{j\omega} = 2$, $n_{\text{LHP}} = 2$, and $n_{\text{RHP}} = 0$. The system is **simply stable** (sustaining oscillations at $\omega = \sqrt{3}\;\text{rad/s}$).
 
 </details>
 

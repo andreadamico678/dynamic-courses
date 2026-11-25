@@ -1,0 +1,51 @@
+---
+title: "Part I — Introduction: Synchronous Digital Systems"
+description: "Conceptual overview, shared running system, and chapter roadmap for Part I of Computer Architecture."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part I Roadmap" markdown={`# Part I: Synchronous Digital Systems
+  - 1. Karnaugh Map Minimization
+    - Gray-code single-bit adjacency
+    - Dual-layer 5-variable SOP cover
+  - 2. Mealy Sequence Detectors
+    - Zero-latency arc outputs $u^t = \\lambda(S^t, xy^t)$
+    - Repetition loops and LPS overlap
+  - 3. Moore Sequence Detectors
+    - Registered state outputs $u^t = \\lambda(S^t)$
+    - Dedicated recognition state and 1-cycle latency
+  - 4. Implication Table Minimization
+    - Output compatibility filtering
+    - Iterative fixed-point state merging
+  - 5. Flip-Flop Excitation Synthesis
+    - Binary encoding and unused-state don't-cares
+    - JK, SR, T, and D excitation K-maps`} />
+
+## Introduction
+
+Before a processor can fetch instructions, forward operands across pipeline stages, or track cache line tags, its underlying silicon must evaluate Boolean logic and remember discrete state across clock cycles. Combinational gate networks compute instantaneous outputs from current inputs, while synchronous **Finite State Machines (FSMs)** store historical progress inside edge-triggered flip-flops updated on a periodic clock (`CLK`).
+
+Part I covers the complete gate-level synthesis pipeline tested in **Exam Section I (Questions 1 and 2)**: minimizing multi-variable Boolean functions, translating complex sequence specifications into Mealy or Moore state tables, eliminating redundant states via an Implication Table, and synthesizing flip-flop excitation logic down to minimal Sum-of-Products (SOP) gates.
+
+### Shared Running System: Serial Packet Frame Synchronizer
+
+Across Chapters 1–5, every synthesis stage maps onto a single concrete hardware block—a **2-bit synchronous frame synchronizer** (such as an embedded telemetry or radio-control receiver on a drone flight controller) that samples parallel symbol pairs $xy^t \in \{00, 01, 11, 10\}$ on each rising clock edge and asserts a frame-valid pulse $u^t = 1$ whenever a valid header pattern completes:
+
+- **Combinational Logic Minimization:** Decoding control conditions across up to five binary signals ($a, b, c, d, e$) and unreachable don't-care states ($X$) into minimal two-level SOP gate networks with minimal fan-in delay.
+- **Mealy vs. Moore Recognition:** Choosing between a **Mealy detector** that asserts $u^t = 1$ on the transition arc during the exact clock cycle of the final symbol, or a **Moore detector** that isolates $u^t$ behind a dedicated recognition state to guarantee glitch-free control strobes.
+- **State Reduction and Bistable Realization:** Compressing redundant states with a triangular **Implication Table** to save physical flip-flops, encoding the minimal states into $k = \lceil \log_2 \lvert S_{\text{min}} \rvert \rceil$ bits, and deriving the exact $J_i, K_i$ or $S_i, R_i$ drive equations.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[1. Karnaugh Map Minimization](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/01-karnaugh-map-minimization/)** — Fold 4- and 5-variable truth tables onto Gray-coded grids, exploit don't-care wildcards and 3D layer superposition, and extract minimal SOP expressions.
+2. **[2. Mealy Sequence Detectors](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/02-mealy-sequence-detectors/)** — Translate dual-branch exam specifications with arbitrary $(XY, \dots, XY)$ loops and Longest Prefix-Suffix (LPS) overlaps into 4-column Mealy state tables.
+3. **[3. Moore Sequence Detectors](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/03-moore-sequence-detectors/)** — Isolate outputs inside state registers, allocate the mandatory recognition state, and trace the 1-cycle latency trade-off against combinational glitches.
+4. **[4. Implication Table Minimization](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/04-implication-table-minimization/)** — Execute output-signature cross-outs and fixed-point implication sweeps to merge equivalent states and cut flip-flop count.
+5. **[5. Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/)** — Encode minimal states in binary, leverage unused-state don't-cares, and map $Q_i \to Q_i^*$ transitions through JK, SR, T, and D excitation tables into final SOP hardware.

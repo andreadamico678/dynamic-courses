@@ -3,8 +3,17 @@ interface Props {
   label?: string;
 }
 const { label } = Astro.props;
+const parts = label ? label.split(' · ') : [];
+const hasNum = parts.length >= 2;
+const num = hasNum ? parts[0].trim() : '';
+const heading = hasNum ? parts.slice(1).join(' · ').trim() : (label ?? '');
 ---
 
-<div class="dc-divider" role="separator">
-  {label && <span class="dc-divider-pill">{label}</span>}
-</div>
+{label ? (
+  <div class="dc-divider dc-divider-labeled not-content" role="separator">
+    {hasNum && <span class="dc-divider-num">{num}</span>}
+    <span class="dc-divider-title">{heading}</span>
+  </div>
+) : (
+  <hr class="dc-divider dc-divider-bare" />
+)}

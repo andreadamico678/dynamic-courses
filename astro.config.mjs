@@ -33,6 +33,9 @@ export default defineConfig({
         'katex/dist/katex.min.css',
         './src/styles/custom.css',
       ],
+      components: {
+        Footer: './src/components/CustomFooter.astro',
+      },
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
       sidebar: [
         {
@@ -118,6 +121,42 @@ export default defineConfig({
               label: 'Parte VI — Sequenziali, Memorie e CAD',
               collapsed: true,
               autogenerate: { directory: 'elettronica/06-sequenziali-memorie' },
+            },
+          ],
+        },
+        {
+          label: 'Computer Architecture',
+          items: [
+            { label: 'Preface & Exam Scope', link: '/computer-architecture/' },
+            {
+              label: 'Part I — Synchronous Digital Systems',
+              collapsed: true,
+              autogenerate: { directory: 'computer-architecture/01-synchronous-digital-systems' },
+            },
+            {
+              label: 'Part II — Computer Performance',
+              collapsed: true,
+              autogenerate: { directory: 'computer-architecture/02-computer-performance' },
+            },
+            {
+              label: 'Part III — RISC-V Instruction Set',
+              collapsed: true,
+              autogenerate: { directory: 'computer-architecture/03-riscv-instructions' },
+            },
+            {
+              label: 'Part IV — RISC-V Subroutines & Systems',
+              collapsed: true,
+              autogenerate: { directory: 'computer-architecture/04-riscv-subroutines' },
+            },
+            {
+              label: 'Part V — Pipelined Processor',
+              collapsed: true,
+              autogenerate: { directory: 'computer-architecture/05-pipelined-processor' },
+            },
+            {
+              label: 'Part VI — Cache Memory Systems',
+              collapsed: true,
+              autogenerate: { directory: 'computer-architecture/06-cache-memory' },
             },
           ],
         },

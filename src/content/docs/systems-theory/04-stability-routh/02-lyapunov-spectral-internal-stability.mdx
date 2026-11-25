@@ -11,209 +11,247 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 12 Mental Model" markdown={`# Ch. 12: Lyapunov Internal State Stability
-  - Concept and Definition of Internal Stability
-    - Physical Intuition: The Autonomous Perturbation Response
-    - Bridging Perturbation Coordinates to the Origin
-    - Formal Mathematical Definitions
-    - Global and Exponential Properties of Linear Systems
-  - The Master Spectral Theorem
-    - Operational Classification Criteria
-  - Stability Margin and Dominant Decay Envelope`} />
+<MindMap client:load defaultCollapsed title="Chapter 12 Outline" markdown={`# Ch. 12: Lyapunov Internal State Stability
+  - Autonomous Perturbation Stability
+    - Reduction of $\\mathbf{x}_e$ to the origin $\\mathbf{z} = \\mathbf{0}$
+    - Simple, asymptotic, and unstable definitions
+  - Master Spectral Theorem
+    - Hurwitz eigenvalues ($\\operatorname{Re}(\\lambda_i) < 0$)
+    - Imaginary-axis multiplicity ($m_a$ vs. $m_g$)
+  - Stability Margin
+    - Dominant decay rate $\\alpha = \\min_i \\lvert\\operatorname{Re}(\\lambda_i)\\rvert$`} />
 
-## Concept and Definition of Internal Stability
-### Physical Intuition: The Autonomous Perturbation Response
-In engineering systems, stability answers a fundamental question:
-> If a system in equilibrium is perturbed by an initial impulse or disturbance, will its internal state return to equilibrium, remain bounded near equilibrium, or violently diverge toward infinity?
+## Introduction
 
-Notice that stability is evaluated in the **absence of continuous external excitation**:
-* When an aircraft hits a gust of wind, the gust imparts an initial angular velocity and attitude displacement. Once the gust passes, do the aircraft's aerodynamic restoring moments return it to level flight without pilot intervention?
-* When a pendulum hanging downward is tapped, friction eventually dissipates the kinetic energy, returning it to the vertical resting position. If inverted upside down, the slightest disturbance causes it to accelerate away and topple.
-* In an electrical RLC circuit with non-zero initial capacitor charge and inductor current, do the voltages and currents decay asymptotically to zero through resistive dissipation?
+Once a machine sits at an equilibrium point, the immediate safety question is what happens after a nudge: if a wind gust tilts a drone or a load bump perturbs a generator, does the internal state snap back to rest, wander indefinitely near equilibrium, or run away exponentially? That intrinsic self-recovery behavior under zero external input is **Lyapunov internal stability**.
 
-Because stability investigates the intrinsic dissipative or energetic properties of the physical plant itself, we evaluate the system under **zero external forcing** ($\mathbf{u}(t) \equiv \mathbf{0}$). This intrinsic property is called **internal state stability**.
+For linear time-invariant systems, stability reduces completely to the geometry of the eigenvalues of $\mathbf{A}$ in the complex plane—with one subtle, critical edge case when repeated eigenvalues sit right on the imaginary axis ($\operatorname{Re}(\lambda) = 0$), where algebraic versus geometric multiplicity separates safe sustained oscillation from polynomial blow-up.
 
-### Bridging Perturbation Coordinates to the Origin
-In [Equilibrium States in Linear Dynamic Systems](/dynamic-courses/systems-theory/04-stability-routh/01-linear-time-invariant-equilibrium-points/), we proved that for any nominal operating equilibrium $(\mathbf{x}_e, \mathbf{u}_0)$, the deviation vector $\mathbf{z}(t) = \mathbf{x}(t) - \mathbf{x}_e$ satisfies:
-$$\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{z}(t) + \mathbf{B}\mathbf{v}(t)$$
-When the external perturbation input is zero ($\mathbf{v}(t) \equiv \mathbf{0}$), the deviation dynamics reduce to:
-$$\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{z}(t)$$
-Notice that when $\mathbf{x}(t) = \mathbf{x}_e$, the deviation is at the origin $\mathbf{z} = \mathbf{0}$. Therefore, **analyzing the stability of any arbitrary physical equilibrium $\mathbf{x}_e$ is mathematically identical to analyzing the stability of the origin $\mathbf{z} = \mathbf{0}$ of the autonomous linear system**.
+<Divider label="1 · Example" />
 
-Without loss of generality, in all subsequent stability definitions, we analyze the unforced continuous-time system:
-$$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t), \quad \mathbf{x}(0) = \mathbf{x}_0 \in \mathbb{R}^n$$
-whose dynamic trajectory is governed by the state transition matrix:
-$$\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}_0$$
+Compare three $2 \times 2$ autonomous systems $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t)$, all of whose eigenvalues satisfy $\operatorname{Re}(\lambda) \le 0$:
 
-### Formal Mathematical Definitions
+$$
+\mathbf{A}_1 = \begin{bmatrix} -1 & 0 \\ 0 & -3 \end{bmatrix}, \qquad \mathbf{A}_2 = \begin{bmatrix} 0 & 2 \\ -2 & 0 \end{bmatrix}, \qquad \mathbf{J} = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}
+$$
 
-#### 1. Stability in the Sense of Lyapunov (Simple Stability)
-The equilibrium point $\mathbf{x}_e = \mathbf{0}$ is **stable in the sense of Lyapunov** (or simply stable) if, for every chosen positive bound $\varepsilon > 0$, there exists a corresponding initial perturbation radius $\delta(\varepsilon) > 0$ such that:
-$$\|\mathbf{x}(0)\| < \delta \implies \|\mathbf{x}(t)\| < \varepsilon \quad \forall t \ge 0$$
+Evaluating each system's trajectory $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}(0)$ from an initial perturbation $\mathbf{x}(0) = [x_1(0), x_2(0)]^T$ reveals three sharply different behaviors:
 
-*Physical Meaning:* If the initial disturbance is sufficiently small ($\|\mathbf{x}(0)\| < \delta$), the trajectory is guaranteed to remain permanently trapped within an $\varepsilon$-neighborhood of the origin. Trajectories cannot blow up, but they are not required to decay back to zero (for example, undamped harmonic oscillators that oscillate indefinitely with constant amplitude).
+1. **Damped Decay ($\mathbf{A}_1$):** The diagonal entries give eigenvalues $\lambda_1 = -1$ and $\lambda_2 = -3$, both strictly in the open left-half plane ($\operatorname{Re}(\lambda) < 0$). Because $e^{\mathbf{A}_1 t} = \operatorname{diag}(e^{-t}, e^{-3t})$, the free response is:
 
-#### 2. Asymptotic Stability
-The equilibrium point $\mathbf{x}_e = \mathbf{0}$ is **asymptotically stable** if:
-1. It is stable in the sense of Lyapunov (bounded excursions), and
-2. It is **attractive**: there exists an attractive radius $\delta_a > 0$ such that:
-   $$\|\mathbf{x}(0)\| < \delta_a \implies \lim_{t \to \infty} \|\mathbf{x}(t)\| = \mathbf{0}$$
+   $$
+   \mathbf{x}(t) = \begin{bmatrix} e^{-t} x_1(0) \\ e^{-3t} x_2(0) \end{bmatrix}
+   $$
 
-*Physical Meaning:* Not only do perturbations remain bounded, but internal physical dissipation (such as electrical resistance or mechanical friction) drains all stored dynamic energy, forcing all state variables to return asymptotically to the equilibrium point.
+   Every initial displacement shrinks monotonically to zero as $t \to \infty$, so the origin is **asymptotically stable**.
 
-#### 3. Instability
-An equilibrium point that is not stable in the sense of Lyapunov is defined as **unstable**. In this case, there exists at least one $\varepsilon_0 > 0$ such that, no matter how small the initial displacement $\delta > 0$ is chosen, at least one state trajectory starting within $\|\mathbf{x}(0)\| < \delta$ eventually breaches the boundary $\|\mathbf{x}(t_1)\| \ge \varepsilon_0$ at some future time $t_1 > 0$.
+2. **Harmonic Oscillator ($\mathbf{A}_2$):** Solving $\det(\lambda \mathbf{I} - \mathbf{A}_2) = \lambda^2 + 4 = 0$ gives distinct purely imaginary eigenvalues $\lambda_{1,2} = \pm j2$ ($\operatorname{Re}(\lambda) = 0$, $m_a = m_g = 1$). Its state transition matrix is a pure rotation:
 
-### Global and Exponential Properties of Linear Systems
-In general non-linear systems, Lyapunov stability is strictly local (holding only within small neighborhoods $\delta$). 
+   $$
+   e^{\mathbf{A}_2 t} = \begin{bmatrix} \cos(2t) & \sin(2t) \\ -\sin(2t) & \cos(2t) \end{bmatrix}
+   $$
 
-In continuous-time **linear time-invariant systems**, however:
-* Asymptotic stability is **strictly global**: if trajectories converge to zero from within some $\delta_a$, then by linearity, $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}_0$ converges to zero for **every** initial state $\mathbf{x}_0 \in \mathbb{R}^n$, no matter how large $\|\mathbf{x}_0\|$ is.
-* Asymptotic stability is **strictly exponential**: there always exist finite positive constants $M \ge 1$ and $\alpha > 0$ such that:
-  $$\|\mathbf{x}(t)\| \le M \|\mathbf{x}(0)\| e^{-\alpha t} \quad \forall t \ge 0$$
+   Because $\cos^2(2t) + \sin^2(2t) = 1$, the Euclidean norm satisfies $\|\mathbf{x}(t)\|_2 = \|\mathbf{x}(0)\|_2$ for all $t \ge 0$. Trajectories trace closed circles around the origin—staying permanently bounded without decaying—so $\mathbf{A}_2$ is **simply stable**.
 
-Because stability in LTI systems does not depend on the initial state $\mathbf{x}_0$ or the operating point $\mathbf{x}_e$, we say that **the system matrix $\mathbf{A}$ itself is asymptotically stable, simply stable, or unstable**.
+3. **Defective Integrator Chain ($\mathbf{J}$):** Here $\det(\lambda \mathbf{I} - \mathbf{J}) = \lambda^2 = 0$, giving a repeated zero eigenvalue $\lambda_{1,2} = 0$ ($m_a(0) = 2$) that also satisfies $\operatorname{Re}(\lambda) \le 0$. However, $\operatorname{rank}(0\mathbf{I} - \mathbf{J}) = 1$, so the geometric multiplicity is $m_g(0) = 2 - 1 = 1 < m_a(0)$. Because $\mathbf{J}^2 = \mathbf{0}$, the matrix exponential series truncates at $t^1$:
 
-<Divider />
+   $$
+   e^{\mathbf{J}t} = \mathbf{I} + \mathbf{J}t = \begin{bmatrix} 1 & t \\ 0 & 1 \end{bmatrix} \implies \mathbf{x}(t) = \begin{bmatrix} x_1(0) + t x_2(0) \\ x_2(0) \end{bmatrix}
+   $$
 
-## The Master Spectral Theorem
-Because the state transition matrix $e^{\mathbf{A}t}$ is composed of linear combinations of natural modes of the form $t^k e^{\lambda_i t}$, internal stability is governed entirely by the spectrum of eigenvalues of the system matrix $\mathbf{A}$:
-$$\sigma(\mathbf{A}) = \{ \lambda \in \mathbb{C} \;:\; \det(\lambda \mathbf{I} - \mathbf{A}) = 0 \}$$
-
-Let $\lambda_i = \sigma_i + j\omega_i$ denote the eigenvalues of $\mathbf{A}$, where $m_a(\lambda_i)$ is the algebraic multiplicity and $m_g(\lambda_i) = \operatorname{dim}(\ker(\lambda_i \mathbf{I} - \mathbf{A}))$ is the geometric multiplicity.
-
-### Operational Classification Criteria
-
-1. **Asymptotically Stable:**
-   The system is asymptotically stable if and only if **all eigenvalues have strictly negative real parts**:
-   $$\boxed{\operatorname{Re}(\lambda_i) < 0 \quad \forall i = 1, 2, \dots, n}$$
-   A matrix $\mathbf{A}$ satisfying this property is called a **Hurwitz matrix**.
-
-2. **Simply (Marginally) Stable:**
-   The system is stable in the sense of Lyapunov, but not asymptotically stable, if and only if:
-   * All eigenvalues satisfy $\operatorname{Re}(\lambda_i) \le 0$,
-   * At least one eigenvalue lies directly on the imaginary axis ($\operatorname{Re}(\lambda_k) = 0$), and
-   * **Every eigenvalue on the imaginary axis is non-defective (simple Jordan blocks):**
-     $$\boxed{m_a(\lambda_k) = m_g(\lambda_k) \quad \forall \lambda_k \text{ with } \operatorname{Re}(\lambda_k) = 0}$$
-     Equivalently, all Jordan blocks corresponding to purely imaginary or zero eigenvalues have dimension $1 \times 1$.
-
-3. **Unstable:**
-   The system is unstable if and only if:
-   * **Condition A:** At least one eigenvalue has a strictly positive real part:
-     $$\exists \lambda_i \;:\; \operatorname{Re}(\lambda_i) > 0$$
-     or
-   * **Condition B (Defective Imaginary Singularity):** At least one eigenvalue on the imaginary axis ($\operatorname{Re}(\lambda_k) = 0$) has geometric multiplicity strictly less than algebraic multiplicity:
-     $$m_g(\lambda_k) < m_a(\lambda_k) \quad (\text{Jordan block size } \ge 2)$$
+   The off-diagonal coupling produces a growing secular term $t x_2(0)$: even an arbitrarily small initial velocity $x_2(0) \neq 0$ drives $\|\mathbf{x}(t)\| \to \infty$, making $\mathbf{J}$ strictly **unstable**.
 
 <figure id="fig-lyapunov-plane" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-lyapunov-plane.svg" alt="Complex eigenvalue plane $\mathbb{C}$ partitioned into internal stability regions. Strict left-half plane poles generate decaying exponentials (asymptotic stability). Purely imaginary non-defective poles yield permanent oscillations (simple stability). Right-half plane poles or defective imaginary poles induce instability." />
-  <figcaption>Complex eigenvalue plane $\mathbb{C}$ partitioned into internal stability regions. Strict left-half plane poles generate decaying exponentials (asymptotic stability). Purely imaginary non-defective poles yield permanent oscillations (simple stability). Right-half plane poles or defective imaginary poles induce instability.</figcaption>
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-lyapunov-plane.svg" alt="Complex eigenvalue plane partitioned into internal stability regions. Strict left-half plane poles generate decaying exponentials (asymptotic stability). Purely imaginary non-defective poles yield permanent oscillations (simple stability). Right-half plane poles or defective imaginary poles induce instability." />
+  <figcaption>Complex eigenvalue plane $\mathbb{C}$ partitioned by stability regime: open LHP poles give asymptotic stability, simple $j\omega$-axis poles give simple stability, and RHP or defective $j\omega$-axis poles cause instability.</figcaption>
 </figure>
 
-<Divider />
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Both $\mathbf{A}_2 = \begin{bmatrix} 0 & 2 \\ -2 & 0 \end{bmatrix}$ and $\mathbf{J} = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}$ have all eigenvalues on the imaginary axis ($\operatorname{Re}(\lambda) = 0$). Why is $\mathbf{J}$ unstable while $\mathbf{A}_2$ is simply stable?"
+  options={[
+    "Because $\\mathbf{J}$ has zero eigenvalues whereas $\\mathbf{A}_2$ has imaginary eigenvalues",
+    "Because $\\lambda = 0$ in $\\mathbf{J}$ is defective ($m_g(0) = 1 < m_a(0) = 2$), producing a linear growth term $t$ in $e^{\\mathbf{J}t}$",
+    "Because $\\mathbf{A}_2$ is skew-symmetric and therefore strictly Hurwitz"
+  ]}
+  correctIndex={1}
+  explanation="A zero eigenvalue is simply stable if non-defective ($m_g = m_a$), just like $\pm j2$. Defective multiplicity $m_g < m_a$ on $\operatorname{Re}(\lambda) = 0$ creates a size $\ge 2$ Jordan block and unbounded secular growth $t$."
+/>
 
-<Callout type="warning" title="Exam Trap: The Defective Imaginary Singularity Trap">
+<Divider label="2 · Theory" />
 
-Many students assume that if all eigenvalues satisfy $\operatorname{Re}(\lambda_i) \le 0$, the system is guaranteed to be stable. **This is a dangerous trap.**
-If a repeated eigenvalue on the imaginary axis is defective ($m_g(\lambda) < m_a(\lambda)$), its Jordan form contains an off-diagonal 1:
-$$\mathbf{J} = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix} \implies e^{\mathbf{J}t} = \begin{bmatrix} 1 & t \\ 0 & 1 \end{bmatrix}$$
-The secular term $t$ grows linearly without bound as $t \to \infty$. Consequently, $\|\mathbf{x}(t)\| \to \infty$, rendering the system strictly **unstable**!
+### Perturbation Coordinates and Origin
 
-</Callout>
+Internal stability evaluates how a plant recovers from an initial energy displacement (such as a wind gust, mechanical tap, or stray capacitor charge) under **zero external forcing**. In [Equilibrium States in Linear Dynamic Systems](/dynamic-courses/systems-theory/04-stability-routh/01-linear-time-invariant-equilibrium-points/), we proved that for any operating trim $(\mathbf{x}_e, \mathbf{u}_0)$, the deviation vector $\mathbf{z}(t) = \mathbf{x}(t) - \mathbf{x}_e$ satisfies $\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{z}(t) + \mathbf{B}\mathbf{v}(t)$. Holding the input at its nominal trim ($\mathbf{v}(t) \equiv \mathbf{0}$) removes external forcing and leaves:
 
-<Divider />
+$$\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{z}(t)$$
 
-## Stability Margin and Dominant Decay Envelope
-When all eigenvalues satisfy $\operatorname{Re}(\lambda_i) < 0$, the exponential rate of decay of the slowest mode is defined as the **stability margin** (or degree of stability) $\alpha$:
-$$\alpha = \min_{i=1,\dots,n} |\operatorname{Re}(\lambda_i)| > 0$$
+Analyzing stability around any equilibrium $\mathbf{x}_e$ is therefore identical to analyzing the origin $\mathbf{x}_e = \mathbf{0}$ of the autonomous system $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t)$, whose free trajectory is $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}(0)$.
 
-The dominant pole closest to the imaginary axis establishes the upper bound envelope:
-$$\|\mathbf{x}(t)\| \le M \|\mathbf{x}(0)\| e^{-\alpha t}$$
+### Formal Lyapunov Definitions
+
+Lyapunov formalized stability by comparing the size of the initial perturbation $\|\mathbf{x}(0)\|$ against the size of the resulting trajectory $\|\mathbf{x}(t)\|$ for all future time $t \ge 0$:
+
+1. **Stability in the Sense of Lyapunov (Simple Stability):** The origin $\mathbf{x}_e = \mathbf{0}$ is *simply stable* if for every tolerance radius $\varepsilon > 0$ there exists a smaller launch radius $\delta(\varepsilon) > 0$ such that:
+   $$\|\mathbf{x}(0)\| < \delta \implies \|\mathbf{x}(t)\| < \varepsilon \quad \forall t \ge 0$$
+   In words, any trajectory that starts close enough to equilibrium stays inside the chosen $\varepsilon$-ball forever, though it need not return to zero (as seen with $\mathbf{A}_2$ above).
+2. **Asymptotic Stability:** The origin is *asymptotically stable* if it is simply stable **and** attractive: there exists $\delta_a > 0$ such that $\|\mathbf{x}(0)\| < \delta_a \implies \lim_{t \to \infty} \|\mathbf{x}(t)\| = \mathbf{0}$. Internal dissipation drains all perturbation energy so the state returns to rest.
+3. **Instability:** The origin is *unstable* if it is not simply stable: there exists some threshold $\varepsilon_0 > 0$ such that even arbitrarily tiny perturbations ($\|\mathbf{x}(0)\| < \delta$ for any $\delta > 0$) eventually breach $\|\mathbf{x}(t_1)\| \ge \varepsilon_0$ at some finite time $t_1 > 0$.
+
+Unlike nonlinear systems—where stability can hold only inside a small basin around equilibrium—asymptotic stability in continuous-time LTI systems is **strictly global** and **strictly exponential**. By linearity, if a trajectory from a unit ball decays to zero, scaling $\mathbf{x}(0)$ by any factor $R$ scales $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}(0)$ by $R$, so every initial state $\mathbf{x}(0) \in \mathbb{R}^n$ converges to zero. Because stability depends solely on $\mathbf{A}$, the matrix $\mathbf{A}$ itself is classified as asymptotically stable, simply stable, or unstable.
+
+### Master Spectral Theorem
+
+Every state transition matrix $e^{\mathbf{A}t}$ can be decomposed via the Jordan canonical form $\mathbf{A} = \mathbf{T}\mathbf{J}\mathbf{T}^{-1}$ into $e^{\mathbf{A}t} = \mathbf{T}e^{\mathbf{J}t}\mathbf{T}^{-1}$, where each Jordan block of size $m$ for an eigenvalue $\lambda_i = \sigma_i + j\omega_i$ contributes modes of the form $\frac{t^k}{k!} e^{\sigma_i t} e^{j\omega_i t}$ ($0 \le k \le m - 1$). Internal stability is therefore governed completely by the eigenvalue spectrum $\sigma(\mathbf{A}) = \{\lambda \in \mathbb{C} \mid \det(\lambda\mathbf{I} - \mathbf{A}) = 0\}$, together with the algebraic multiplicity $m_a(\lambda_i)$ and geometric multiplicity $m_g(\lambda_i) = \dim(\ker(\lambda_i\mathbf{I} - \mathbf{A})) = n - \operatorname{rank}(\lambda_i\mathbf{I} - \mathbf{A})$:
+
+1. **Asymptotically Stable (Hurwitz Matrix):** All eigenvalues lie strictly in the open left-half plane:
+   $$\boxed{\operatorname{Re}(\lambda_i) < 0 \quad \forall i = 1, 2, \dots, n}$$
+   Because every exponential factor $e^{-|\sigma_i|t}$ decays faster than any polynomial factor $t^k$ grows ($\lim_{t \to \infty} t^k e^{-|\sigma_i|t} = 0$), even repeated or defective eigenvalues inside the open LHP decay to zero.
+
+2. **Simply (Marginally) Stable:** All eigenvalues satisfy $\operatorname{Re}(\lambda_i) \le 0$, at least one lies on the imaginary axis ($\operatorname{Re}(\lambda_k) = 0$), and every imaginary-axis eigenvalue is **non-defective** (all its Jordan blocks have size $1 \times 1$, so $k = 0$ only):
+   $$\boxed{m_a(\lambda_k) = m_g(\lambda_k) \quad \forall \lambda_k \text{ with } \operatorname{Re}(\lambda_k) = 0}$$
+   With no decaying exponential on the $j\omega$-axis ($e^{0\cdot t} = 1$), size-$1$ blocks produce bounded constants or pure sinusoids $e^{j\omega_k t}$ that neither grow nor decay.
+
+3. **Unstable:** Either at least one eigenvalue has strictly positive real part ($\operatorname{Re}(\lambda_i) > 0$, causing exponential blow-up $e^{\sigma_i t} \to \infty$), **or** at least one imaginary-axis eigenvalue ($\operatorname{Re}(\lambda_k) = 0$) is defective ($m_g(\lambda_k) < m_a(\lambda_k)$). A defective boundary eigenvalue creates at least one Jordan block of size $\ge 2$, introducing an untamed polynomial factor $t^k$ ($k \ge 1$) whose magnitude grows to infinity.
+
+### Stability Margin and Envelope
+
+When $\mathbf{A}$ is Hurwitz ($\operatorname{Re}(\lambda_i) < 0$), the slowest exponential decay rate among all eigenvalues defines the **stability margin** (or *degree of stability*) $\alpha$:
+
+$$\alpha = \min_{i=1,\dots,n} |\operatorname{Re}(\lambda_i)| > 0, \qquad \|\mathbf{x}(t)\| \le M \|\mathbf{x}(0)\| e^{-\alpha t}$$
+
+Here $\alpha$ sets the asymptotic decay rate of the dominant pole closest to the imaginary axis, while the constant $M \ge 1$ accounts for any finite transient peaking caused by non-orthogonal eigenvectors or polynomial factors $t^k$ in defective LHP blocks.
+
+<StepCheck
+  client:load
+  prompt="An asymptotically stable system has eigenvalues $\lambda_1 = -4$ and $\lambda_{2,3} = -1 \pm j5$. What is its stability margin $\alpha$ in $\mathrm{s}^{-1}$?"
+  expected={1}
+  tolerance={0.01}
+  unit="$\mathrm{s}^{-1}$"
+  explanation="The stability margin is $\alpha = \min_i |\operatorname{Re}(\lambda_i)| = \min(4, 1, 1) = 1\;\mathrm{s}^{-1}$, governed by the slower complex pair."
+/>
 
 <Callout type="bridge" title="Robotics Bridge: Structural Damping and Vibration Suppression">
 
-In industrial robotic manipulators with elastic harmonic drive joints, mechanical flexure introduces complex conjugate poles close to the imaginary axis:
-$$\lambda_{1,2} = -\zeta \omega_n \pm j\omega_n \sqrt{1 - \zeta^2}$$
-For joints with low damping ($\zeta = 0.005, \omega_n = 200\text{ rad/s}$):
-$$\operatorname{Re}(\lambda_{1,2}) = -0.005 \times 200 = -1.0\text{ s}^{-1}$$
-The time constant of the decaying oscillation is $\tau = 1/\alpha = 1.0\text{ s}$, requiring over 4 seconds for vibration to subside. State feedback is synthesized to shift these poles to $\operatorname{Re}(\lambda) = -20\text{ s}^{-1}$, increasing the stability margin twenty-fold and extinguishing vibration in under 200 ms.
+In industrial robotic manipulators with elastic harmonic-drive joints, mechanical flexure introduces lightly damped poles $\lambda_{1,2} = -\zeta\omega_n \pm j\omega_n\sqrt{1 - \zeta^2}$ close to the imaginary axis. For $\zeta = 0.005$ and $\omega_n = 200\;\text{rad/s}$, $\operatorname{Re}(\lambda_{1,2}) = -1.0\;\text{s}^{-1}$ gives a $1.0\;\text{s}$ time constant (over $4\;\text{s}$ settling). State feedback shifts these poles left to $\operatorname{Re}(\lambda) = -20\;\text{s}^{-1}$, suppressing vibration in under $200\;\text{ms}$.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Classification | Eigenvalue Real Parts | Imaginary-Axis Multiplicity | Trajectory as $t \to \infty$ |
+| :--- | :--- | :--- | :--- |
+| **Asymptotically Stable** | All $\operatorname{Re}(\lambda_i) < 0$ | None on $j\omega$-axis | $\mathbf{x}(t) \to \mathbf{0}$ exponentially |
+| **Simply Stable** | $\operatorname{Re}(\lambda_i) \le 0$, some $= 0$ | $m_g(\lambda_k) = m_a(\lambda_k)$ for all $\operatorname{Re}(\lambda_k)=0$ | Bounded ($\lVert\mathbf{x}(t)\rVert \le M\lVert\mathbf{x}_0\rVert$) |
+| **Unstable** | Any $\operatorname{Re}(\lambda_i) > 0$, or $= 0$ | $m_g(\lambda_k) < m_a(\lambda_k)$ on $\operatorname{Re}(\lambda_k)=0$ | Unbounded ($\lVert\mathbf{x}(t)\rVert \to \infty$) |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Classification Procedure
 
-## Chapter Exercises
+1. Solve $\det(\lambda\mathbf{I} - \mathbf{A}) = 0$ for all eigenvalues $\lambda_i$ and their algebraic multiplicities $m_a(\lambda_i)$.
+2. If any $\operatorname{Re}(\lambda_i) > 0$, classify immediately as **unstable**.
+3. If all $\operatorname{Re}(\lambda_i) < 0$, classify as **asymptotically stable** and read $\alpha = \min_i |\operatorname{Re}(\lambda_i)|$.
+4. If $\max \operatorname{Re}(\lambda_i) = 0$, compute $m_g(\lambda_k) = n - \operatorname{rank}(\lambda_k\mathbf{I} - \mathbf{A})$ for every boundary root: **simply stable** iff $m_g = m_a$ on every $j\omega$-axis root, otherwise **unstable**.
 
-<Exercise client:load id="ex-12-1" title="Exercise 12.1" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Global Exponential LTI Bound:** Linearity scales any convergent $\delta_a$-neighborhood trajectory to all of $\mathbb{R}^n$, bounded by $M e^{-\alpha t}$ from the slowest eigenvalue real part.
+- **Jordan Defect Secular Growth:** A $2 \times 2$ Jordan block for $\lambda_k = j\omega$ gives off-diagonal terms $t e^{j\omega t}$, whose magnitude grows linearly to infinity.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **The Defective Imaginary Trap:** Never conclude stability solely from $\operatorname{Re}(\lambda_i) \le 0$; a repeated eigenvalue on the imaginary axis (including $\lambda = 0$) is unstable whenever $m_g(\lambda_k) < m_a(\lambda_k)$.
+2. **Repeated Poles in the Open LHP:** A defective eigenvalue with $\operatorname{Re}(\lambda) < 0$ still yields $t^k e^{-|\sigma|t} \to 0$, so multiplicity defects inside the strict LHP do **not** break asymptotic stability.
+3. **Mixing Simple and Asymptotic Stability:** Purely imaginary simple eigenvalues yield bounded oscillations, never convergence to zero.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-12-1" title="Exercise 12.1 — Spectral Stability Classification" level="Warm-Up">
 
 Analyze the spectral properties and determine the internal stability classification (asymptotically stable, simply stable, or unstable) for each of the following autonomous systems:
+
 1. $\mathbf{A}_1 = \begin{bmatrix} -3 & 0 \\ 4 & -2 \end{bmatrix}$
 2. $\mathbf{A}_2 = \begin{bmatrix} 0 & 5 \\ -5 & 0 \end{bmatrix}$
 3. $\mathbf{A}_3 = \begin{bmatrix} 1 & -2 \\ 0 & -4 \end{bmatrix}$
+
 For each system, state the qualitative time-domain behavior of the free response trajectory $\mathbf{x}(t)$ as $t \to \infty$.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="What is the correct stability sequence for $(\mathbf{A}_1, \mathbf{A}_2, \mathbf{A}_3)$?"
+  options={[
+    "Asymptotically stable, simply stable, unstable",
+    "Asymptotically stable, unstable, unstable",
+    "Simply stable, simply stable, asymptotically stable"
+  ]}
+  correctIndex={0}
+  explanation="$\mathbf{A}_1$ has eigenvalues $-3, -2$ (open LHP); $\mathbf{A}_2$ has distinct imaginary eigenvalues $\pm j5$ ($m_g = m_a = 1$); $\mathbf{A}_3$ has $+1$ in the RHP."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Matrix $\mathbf{A}_1 = \begin{bmatrix} -3 & 0 \\ 4 & -2 \end{bmatrix}$ is lower triangular; its eigenvalues are its diagonal entries: $\lambda_1 = -3, \lambda_2 = -2$.
+1. Matrix $\mathbf{A}_1 = \begin{bmatrix} -3 & 0 \\ 4 & -2 \end{bmatrix}$ is lower triangular; its eigenvalues are $\lambda_1 = -3, \lambda_2 = -2$.
    * Since $\operatorname{Re}(\lambda_1) = -3 < 0$ and $\operatorname{Re}(\lambda_2) = -2 < 0$, both natural modes decay exponentially.
-   * **Classification:** **Asymptotically stable**.
-   * **Time-domain behavior:** All unforced trajectories converge exponentially to the origin: $\lim_{t \to \infty} \mathbf{x}_{\ell}(t) = \mathbf{0}$.
+   * **Classification:** **Asymptotically stable** ($\lim_{t \to \infty} \mathbf{x}_{\ell}(t) = \mathbf{0}$).
 2. For $\mathbf{A}_2 = \begin{bmatrix} 0 & 5 \\ -5 & 0 \end{bmatrix}$:
-   $$\det(\lambda\mathbf{I} - \mathbf{A}_2) = \lambda^2 + 25 = 0 \implies \lambda_{1,2} = \pm j5$$
-   * The eigenvalues are purely imaginary with $\operatorname{Re}(\lambda) = 0$.
-   * Both roots are distinct ($m_a(j5) = 1, m_a(-j5) = 1 \implies m_g = m_a = 1$).
-   * **Classification:** **Simply stable (marginally stable)** in the sense of Lyapunov.
-   * **Time-domain behavior:** The unforced trajectory forms a bounded, closed elliptical orbit oscillating perpetually at $\omega = 5\text{ rad/s}$ ($e^{\mathbf{A}_2 t} = \begin{bmatrix} \cos(5t) & \sin(5t) \\ -\sin(5t) & \cos(5t) \end{bmatrix}$); trajectories neither decay to zero nor diverge to infinity.
+   $$\det(\lambda\mathbf{I} - \mathbf{A}_2) = \det\begin{bmatrix} \lambda & -5 \\ 5 & \lambda \end{bmatrix} = \lambda^2 + 25 = 0 \implies \lambda_{1,2} = \pm j5$$
+   * Both roots are purely imaginary and distinct ($m_a = m_g = 1$).
+   * **Classification:** **Simply stable** in the sense of Lyapunov ($e^{\mathbf{A}_2 t} = \cos(5t)\mathbf{I} + \frac{\sin(5t)}{5}\mathbf{A}_2 = \begin{bmatrix} \cos(5t) & \sin(5t) \\ -\sin(5t) & \cos(5t) \end{bmatrix}$ yields bounded perpetual orbits).
 3. Matrix $\mathbf{A}_3 = \begin{bmatrix} 1 & -2 \\ 0 & -4 \end{bmatrix}$ is upper triangular; its eigenvalues are $\lambda_1 = +1, \lambda_2 = -4$.
-   * Because $\lambda_1 = +1 > 0$, the system contains an unstable natural mode $e^{+t}$.
+   * Because $\lambda_1 = +1 > 0$, mode $e^{+t}$ diverges exponentially.
    * **Classification:** **Unstable**.
-   * **Time-domain behavior:** Any unforced state with non-zero projection onto the eigenspace of $\lambda_1$ diverges exponentially: $\lim_{t \to \infty} \|\mathbf{x}_{\ell}(t)\| = \infty$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-12-2" title="Exercise 12.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-12-2" title="Exercise 12.2 — Defective vs. Diagonalizable Zero Modes" level="Exam Standard">
 
-In a university written examination, consider two $3 \times 3$ systems both possessing a repeated zero eigenvalue on the imaginary axis:
+Consider two $3 \times 3$ systems both possessing a repeated zero eigenvalue on the imaginary axis:
+
 $$\mathbf{A}_A = \begin{bmatrix} -2 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{bmatrix}, \quad \mathbf{A}_B = \begin{bmatrix} -2 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}$$
+
 1. Compute the eigenvalues and state the algebraic multiplicity $m_a(\lambda)$ of each mode for both systems.
 2. Evaluate $\operatorname{rank}(0\mathbf{I} - \mathbf{A})$ and compute the geometric multiplicity $m_g(0) = n - \operatorname{rank}(0\mathbf{I} - \mathbf{A})$ for both matrices.
 3. Compute the matrix exponential $e^{\mathbf{A}t}$ for both systems.
-4. Classify the internal Lyapunov stability of $\mathbf{A}_A$ and $\mathbf{A}_B$. Explain why the presence of the secular term $t$ renders $\mathbf{A}_A$ strictly unstable despite having no positive real parts ($\operatorname{Re}(\lambda) \le 0$).
+4. Classify the internal Lyapunov stability of $\mathbf{A}_A$ and $\mathbf{A}_B$. Explain why the presence of the secular term $t$ renders $\mathbf{A}_A$ strictly unstable despite having $\operatorname{Re}(\lambda) \le 0$.
+
+<StepCheck
+  client:load
+  prompt="Compute the geometric multiplicity $m_g(0) = 3 - \operatorname{rank}(0\mathbf{I} - \mathbf{A}_A)$ for system $\mathbf{A}_A$:"
+  expected={1}
+  tolerance={0.01}
+  unit=""
+  explanation="Since $0\mathbf{I} - \mathbf{A}_A = -\mathbf{A}_A$ has two linearly independent rows, $\operatorname{rank}(-\mathbf{A}_A) = 2$, so $m_g(0) = 3 - 2 = 1 < m_a(0) = 2$ (unstable)."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 1. Characteristic polynomial and eigenvalues:
-   For both $\mathbf{A}_A$ and $\mathbf{A}_B$, the block triangular/diagonal form yields:
+   For both $\mathbf{A}_A$ and $\mathbf{A}_B$:
    $$p(\lambda) = (\lambda + 2)\lambda^2 = 0$$
-   * Mode $\lambda_1 = -2$: algebraic multiplicity $m_a(-2) = 1$.
-   * Mode $\lambda_{2,3} = 0$: algebraic multiplicity $m_a(0) = 2$.
+   * Mode $\lambda_1 = -2$: $m_a(-2) = 1$.
+   * Mode $\lambda_{2,3} = 0$: $m_a(0) = 2$.
 2. Rank evaluation and geometric multiplicity $m_g(0)$:
    * For $\mathbf{A}_A$:
      $$0\mathbf{I} - \mathbf{A}_A = \begin{bmatrix} 2 & 0 & 0 \\ 0 & 0 & -1 \\ 0 & 0 & 0 \end{bmatrix} \implies \operatorname{rank}(0\mathbf{I} - \mathbf{A}_A) = 2$$
-     $$m_g(0) = n - \operatorname{rank}(0\mathbf{I} - \mathbf{A}_A) = 3 - 2 = 1 < m_a(0) = 2$$
-     The zero eigenvalue is **defective** with a non-trivial $2 \times 2$ Jordan block.
+     $$m_g(0) = 3 - 2 = 1 < m_a(0) = 2$$
+     The zero eigenvalue is **defective** with a $2 \times 2$ Jordan block.
    * For $\mathbf{A}_B$:
      $$0\mathbf{I} - \mathbf{A}_B = \begin{bmatrix} 2 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix} \implies \operatorname{rank}(0\mathbf{I} - \mathbf{A}_B) = 1$$
-     $$m_g(0) = n - \operatorname{rank}(0\mathbf{I} - \mathbf{A}_B) = 3 - 1 = 2 = m_a(0) = 2$$
-     The zero eigenvalue is **non-defective** (diagonalizable into two $1 \times 1$ Jordan blocks).
+     $$m_g(0) = 3 - 1 = 2 = m_a(0) = 2$$
+     The zero eigenvalue is **non-defective** (diagonalizable into two $1 \times 1$ blocks).
 3. Matrix exponentials:
-   * For $\mathbf{A}_A$:
-     $$e^{\mathbf{A}_A t} = \begin{bmatrix} e^{-2t} & 0 & 0 \\ 0 & 1 & t \\ 0 & 0 & 1 \end{bmatrix}$$
-   * For $\mathbf{A}_B$:
-     $$e^{\mathbf{A}_B t} = \begin{bmatrix} e^{-2t} & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}$$
-4. Lyapunov stability classification and secular term:
-   * System $\mathbf{A}_B$ is **simply stable (marginally stable)** in the sense of Lyapunov. The state transition matrix is uniformly bounded ($\|e^{\mathbf{A}_B t}\| \le 1$ for all $t \ge 0$).
-   * System $\mathbf{A}_A$ is strictly **UNSTABLE**. Even though all eigenvalues satisfy $\operatorname{Re}(\lambda) \le 0$, the $(2,3)$ entry of $e^{\mathbf{A}_A t}$ is the secular polynomial term $t$.
-     For initial state $\mathbf{x}(0) = [0, 0, 1]^T$:
-     $$\mathbf{x}_{\ell}(t) = e^{\mathbf{A}_A t}\mathbf{x}(0) = \begin{bmatrix} 0 \\ t \\ 1 \end{bmatrix} \implies \|\mathbf{x}_{\ell}(t)\| = \sqrt{t^2 + 1} \to \infty \quad \text{as } t \to \infty$$
-     The secular term drives the state to infinity, causing unbounded linear drift.
+   For $\mathbf{A}_A$, the upper-left $1 \times 1$ block gives $e^{-2t}$ and the lower-right $2 \times 2$ Jordan block $\mathbf{J}_0 = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}$ satisfies $\mathbf{J}_0^2 = \mathbf{0}$, so $e^{\mathbf{J}_0 t} = \mathbf{I} + \mathbf{J}_0 t = \begin{bmatrix} 1 & t \\ 0 & 1 \end{bmatrix}$:
+   $$e^{\mathbf{A}_A t} = \begin{bmatrix} e^{-2t} & 0 & 0 \\ 0 & 1 & t \\ 0 & 0 & 1 \end{bmatrix}, \qquad e^{\mathbf{A}_B t} = \begin{bmatrix} e^{-2t} & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}$$
+4. Stability classification:
+   * System $\mathbf{A}_B$ is **simply stable** in the sense of Lyapunov ($\|e^{\mathbf{A}_B t}\| \le 1$ for all $t \ge 0$).
+   * System $\mathbf{A}_A$ is strictly **unstable**: for $\mathbf{x}(0) = [0, 0, 1]^T$, $\mathbf{x}_{\ell}(t) = [0, t, 1]^T$ has norm $\sqrt{t^2 + 1} \to \infty$ as $t \to \infty$.
 
 </details>
 

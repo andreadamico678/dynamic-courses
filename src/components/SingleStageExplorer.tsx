@@ -83,13 +83,13 @@ export default function SingleStageExplorer() {
     val >= 1000 ? `${(val / 1000).toFixed(2)} kΩ` : `${val.toFixed(0)} Ω`;
 
   return (
-    <div className="dc-widget">
+    <div className="dc-widget not-content">
       <div className="dc-widget-header">
-        <div>
-          <span className="dc-badge">Simulatore Interattivo</span>{' '}
-          <span className="dc-widget-title">Amplificatori a Singolo Stadio e Banda f_H (OCTC)</span>
+        <div className="dc-widget-heading">
+          <span className="dc-badge">Simulatore Interattivo</span>
+          <span className="dc-widget-title">Amplificatori a Singolo Stadio e Banda f<sub>H</sub> (OCTC)</span>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+        <div className="dc-btn-group">
           {(
             [
               ['cs', 'Common Source'],
@@ -112,56 +112,48 @@ export default function SingleStageExplorer() {
 
       <div className="dc-controls">
         <label>
-          <strong>g_m = {gmMaV.toFixed(1)} mA/V</strong>
-          <br />
+          <span>g<sub>m</sub> = {gmMaV.toFixed(1)} mA/V</span>
           <input type="range" min={1} max={10} step={0.5} value={gmMaV} onChange={(e) => setGmMaV(Number(e.target.value))} />
         </label>
         <label>
-          <strong>{topo === 'cd' || topo === 'cg' ? 'R_S' : 'R_D'} = {rdOrRsK.toFixed(1)} kΩ</strong>
-          <br />
+          <span>{topo === 'cd' || topo === 'cg' ? <>R<sub>S</sub></> : <>R<sub>D</sub></>} = {rdOrRsK.toFixed(1)} kΩ</span>
           <input type="range" min={1} max={20} step={0.5} value={rdOrRsK} onChange={(e) => setRdOrRsK(Number(e.target.value))} />
         </label>
         {topo === 'cs-deg' && (
           <label>
-            <strong>R_S (deg.) = {rsDegK.toFixed(2)} kΩ</strong>
-            <br />
+            <span>R<sub>S</sub> (deg.) = {rsDegK.toFixed(2)} kΩ</span>
             <input type="range" min={0.1} max={2.0} step={0.1} value={rsDegK} onChange={(e) => setRsDegK(Number(e.target.value))} />
           </label>
         )}
         <label>
-          <strong>R_L = {rlK.toFixed(1)} kΩ</strong>
-          <br />
+          <span>R<sub>L</sub> = {rlK.toFixed(1)} kΩ</span>
           <input type="range" min={1} max={50} step={1} value={rlK} onChange={(e) => setRlK(Number(e.target.value))} />
         </label>
         <label>
-          <strong>R_sig = {rsigK.toFixed(1)} kΩ</strong>
-          <br />
+          <span>R<sub>sig</sub> = {rsigK.toFixed(1)} kΩ</span>
           <input type="range" min={0.1} max={10} step={0.2} value={rsigK} onChange={(e) => setRsigK(Number(e.target.value))} />
         </label>
         <label>
-          <strong>r_o = {roK} kΩ</strong>
-          <br />
+          <span>r<sub>o</sub> = {roK} kΩ</span>
           <input type="range" min={10} max={200} step={10} value={roK} onChange={(e) => setRoK(Number(e.target.value))} />
         </label>
         <label>
-          <strong>C_gs = {cgsPf.toFixed(1)} pF</strong>
-          <br />
+          <span>C<sub>gs</sub> = {cgsPf.toFixed(1)} pF</span>
           <input type="range" min={1} max={10} step={0.5} value={cgsPf} onChange={(e) => setCgsPf(Number(e.target.value))} />
         </label>
         <label>
-          <strong>C_gd = {cgdPf.toFixed(1)} pF</strong>
-          <br />
+          <span>C<sub>gd</sub> = {cgdPf.toFixed(1)} pF</span>
           <input type="range" min={0.2} max={5} step={0.2} value={cgdPf} onChange={(e) => setCgdPf(Number(e.target.value))} />
         </label>
       </div>
 
       <div className="dc-step-box" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem', fontSize: '0.9rem' }}>
-        <div><strong>Guadagno A_v:</strong> {metrics.av.toFixed(2)} V/V</div>
-        <div><strong>Guadagno A_vs:</strong> {metrics.avs.toFixed(2)} V/V</div>
-        <div><strong>R_in:</strong> {fmtOhm(metrics.rin)}</div>
-        <div><strong>R_out:</strong> {fmtOhm(metrics.rout)}</div>
-        <div><strong>Capacità Miller C_M:</strong> {metrics.cmPf > 0 ? `${metrics.cmPf.toFixed(1)} pF` : 'Assente'}</div>
-        <div><strong>Banda f_H (OCTC):</strong> {metrics.fhMhz.toFixed(2)} MHz</div>
+        <div><strong>Guadagno A<sub>v</sub>:</strong> {metrics.av.toFixed(2)} V/V</div>
+        <div><strong>Guadagno A<sub>vs</sub>:</strong> {metrics.avs.toFixed(2)} V/V</div>
+        <div><strong>R<sub>in</sub>:</strong> {fmtOhm(metrics.rin)}</div>
+        <div><strong>R<sub>out</sub>:</strong> {fmtOhm(metrics.rout)}</div>
+        <div><strong>Capacità Miller C<sub>M</sub>:</strong> {metrics.cmPf > 0 ? `${metrics.cmPf.toFixed(1)} pF` : 'Assente'}</div>
+        <div><strong>Banda f<sub>H</sub> (OCTC):</strong> {metrics.fhMhz.toFixed(2)} MHz</div>
       </div>
     </div>
   );

@@ -69,17 +69,17 @@ export default function RouthExplorer() {
   const toY = (im: number) => 16 + ((6 - im) / (6 - -6)) * (H - 32);
 
   return (
-    <div className="dc-widget">
+    <div className="dc-widget not-content">
       <div className="dc-widget-header">
-        <div>
-          <span className="dc-badge">Interactive Lab</span>{' '}
+        <div className="dc-widget-heading">
+          <span className="dc-badge">Interactive Lab</span>
           <span className="dc-widget-title">Parametric Routh Table &amp; Pole Migration</span>
         </div>
         <span
           style={{
             fontWeight: 700,
             fontSize: '0.86rem',
-            color: isCritical ? '#f59e0b' : signChanges === 0 ? '#10b981' : '#ef4444',
+            color: isCritical ? 'var(--dc-warn)' : signChanges === 0 ? 'var(--dc-ok)' : 'var(--dc-err)',
           }}
         >
           {statusText}
@@ -150,9 +150,9 @@ export default function RouthExplorer() {
           </tbody>
         </table>
 
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', border: '1px solid var(--sl-color-hairline)', borderRadius: '0.5rem' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: '460px', height: 'auto', border: '1px solid var(--sl-color-hairline-light)', borderRadius: 'var(--dc-radius)' }}>
           {/* LHP shading */}
-          <rect x={0} y={0} width={toX(0)} height={H} fill="#10b981" fillOpacity={0.07} />
+          <rect x={0} y={0} width={toX(0)} height={H} fill="var(--dc-ok)" fillOpacity={0.07} />
           {/* Axes */}
           <line x1={20} x2={W - 20} y1={toY(0)} y2={toY(0)} stroke="currentColor" strokeOpacity={0.35} />
           <line x1={toX(0)} x2={toX(0)} y1={10} y2={H - 10} stroke="currentColor" strokeWidth={1.5} strokeOpacity={0.55} />
@@ -166,8 +166,8 @@ export default function RouthExplorer() {
           {/* Roots */}
           {roots.map((r, i) => (
             <g key={i} transform={`translate(${toX(r.re).toFixed(1)}, ${toY(r.im).toFixed(1)})`}>
-              <line x1={-5} y1={-5} x2={5} y2={5} stroke={r.re > 0.01 ? '#ef4444' : '#3b82f6'} strokeWidth={2.2} />
-              <line x1={-5} y1={5} x2={5} y2={-5} stroke={r.re > 0.01 ? '#ef4444' : '#3b82f6'} strokeWidth={2.2} />
+              <line x1={-5} y1={-5} x2={5} y2={5} stroke={r.re > 0.01 ? 'var(--dc-err)' : 'var(--sl-color-accent)'} strokeWidth={2.2} />
+              <line x1={-5} y1={5} x2={5} y2={-5} stroke={r.re > 0.01 ? 'var(--dc-err)' : 'var(--sl-color-accent)'} strokeWidth={2.2} />
             </g>
           ))}
         </svg>

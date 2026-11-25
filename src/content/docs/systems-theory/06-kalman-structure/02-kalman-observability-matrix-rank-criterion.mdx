@@ -11,161 +11,462 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 21 Mental Model" markdown={`# Ch. 21: Kalman Observability Criterion
-  - Observability and the Sensor Reconstruction Invariant
-  - Derivation of the Kalman Observability Matrix
-  - The Kalman Observability Rank Criterion
-    - The Unobservable Subspace $\mathcal{X}_{no}$
-  - The Principle of Duality (Kalman Duality)
-    - Proof via Matrix Transposition
-  - The PBH Observability Eigenvector Test
-    - Right Eigenvector Modal Test
-  - SDU Robotics Bridge: Sensor Fusion and IMU Bias Observability`} />
+<MindMap client:load defaultCollapsed title="Chapter 21 Outline" markdown={`# Ch. 21: Kalman Observability Criterion
+  - Sensor Reconstruction Invariant
+    - Free output response $\\mathbf{y}_{\\text{free}}(t)$
+  - Kalman Observability Matrix
+    - Derivative stacking and Cayley-Hamilton
+  - Rank Criterion and Kernel
+    - Unobservable subspace $\\mathcal{X}_{no}$
+  - Principle of Kalman Duality
+    - Proof via matrix transposition
+  - PBH Observability Test
+    - Right eigenvector orthogonality`} />
 
-## Observability and the Sensor Reconstruction Invariant
+## Introduction
 
-While controllability investigates whether actuator inputs can steer internal states, **observability** addresses the dual problem of sensory perception: **can the internal state of a dynamic system be uniquely reconstructed from external sensor measurements?**
+In almost every real engineering setup, you cannot afford—or physically fit—a sensor on every internal variable: you might measure motor shaft angle with an optical encoder without having a velocity tachometer, or measure capacitor voltage without an inline inductor current probe. **Observability** asks whether watching the external sensor stream $\mathbf{y}(t)$ over a finite time window lets you uniquely deduce every hidden internal state inside $\mathbf{x}(t)$ so that a state estimator ([Chapter 27](/dynamic-courses/systems-theory/08-observers-compensation/01-luenberger-state-observer-architecture/)) can reconstruct the full state vector.
 
-Consider the continuous-time linear time-invariant system:
-$$\begin{cases}
-\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t) \\
-\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)
-\end{cases} \quad \mathbf{x}(t) \in \mathbb{R}^n, \; \mathbf{u}(t) \in \mathbb{R}^m, \; \mathbf{y}(t) \in \mathbb{R}^p$$
+Remarkably, observability is the exact algebraic transpose mirror (**Kalman Duality**) of [controllability](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/): replacing the actuator pair $(\mathbf{A}, \mathbf{B})$ with the transposed sensor pair $(\mathbf{A}^T, \mathbf{C}^T)$ turns actuator steering into sensor reconstruction. That duality explains why navigation filters on autonomous drones can estimate an unmeasured gyroscope drift bias simply by watching how attitude angle measurements evolve over time.
 
-Because the input $\mathbf{u}(t)$ and matrices $(\mathbf{B}, \mathbf{D})$ are known, their forced contribution to the output can be subtracted without loss of generality:
-$$\mathbf{y}_{\text{free}}(t) = \mathbf{y}(t) - \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau - \mathbf{D}\mathbf{u}(t) = \mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0)$$
+<Divider label="1 · Example" />
 
-<Callout type="note" title="Definition: Observability">
+### An Unobservable Direction
 
-An initial state $\mathbf{x}(0) \in \mathbb{R}^n$ is **observable** on $[0, t_f]$ if knowledge of the output history $\mathbf{y}(t)$ and input history $\mathbf{u}(t)$ over the finite interval $[0, t_f]$ is sufficient to uniquely determine $\mathbf{x}(0)$.
-A system is **completely observable** if the only initial state that produces an identically zero free output response ($\mathbf{y}_{\text{free}}(t) \equiv \mathbf{0}$ for all $t \in [0, t_f]$) is the trivial state:
-$$\mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0) = \mathbf{0} \quad \forall t \in [0, t_f] \iff \mathbf{x}(0) = \mathbf{0}$$
+Consider a third-order continuous-time LTI system ($n = 3$) with zero input ($\mathbf{u}(t) \equiv \mathbf{0}$) monitored through a single scalar sensor ($p = 1$):
 
-</Callout>
+$$
+\dot{\mathbf{x}}(t) = \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 0 \\ 0 & 0 & -4 \end{bmatrix} \mathbf{x}(t), \qquad y(t) = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix} \mathbf{x}(t)
+$$
 
-<Divider />
+This model describes how three internal states evolve freely from an unknown initial condition $\mathbf{x}(0) = [x_1(0), x_2(0), x_3(0)]^T$ while our sensor records only the scalar trace $y(t)$. Writing out the three scalar differential equations alongside the measurement equation exposes the sensor's blind spot immediately:
 
-## Derivation of the Kalman Observability Matrix
+$$
+\begin{cases}
+\dot{x}_1(t) = x_2(t) \\
+\dot{x}_2(t) = -2x_1(t) - 3x_2(t) \\
+\dot{x}_3(t) = -4x_3(t)
+\end{cases}, \qquad y(t) = x_1(t)
+$$
 
-Expanding the matrix exponential $\mathbf{C} e^{\mathbf{A}t} \mathbf{x}_0$ in a Taylor power series:
-$$\mathbf{y}_{\text{free}}(t) = \mathbf{C} \left[ \mathbf{I} + \mathbf{A}t + \frac{1}{2}\mathbf{A}^2 t^2 + \dots \right] \mathbf{x}_0 = \mathbf{C}\mathbf{x}_0 + \mathbf{C}\mathbf{A}\mathbf{x}_0 t + \frac{1}{2}\mathbf{C}\mathbf{A}^2\mathbf{x}_0 t^2 + \dots$$
-Evaluating the repeated time derivatives of the output at $t = 0$:
-$$\begin{aligned}
-\mathbf{y}(0) &= \mathbf{C}\mathbf{x}_0 \\
-\dot{\mathbf{y}}(0) &= \mathbf{C}\mathbf{A}\mathbf{x}_0 \\
-\ddot{\mathbf{y}}(0) &= \mathbf{C}\mathbf{A}^2\mathbf{x}_0 \\
-&\;\;\vdots \\
-\mathbf{y}^{(n-1)}(0) &= \mathbf{C}\mathbf{A}^{n-1}\mathbf{x}_0
-\end{aligned}$$
+Suppose you record the output signal $y(t)$ and its time derivatives at $t = 0$ in order to deduce all three unknown initial states $x_1(0), x_2(0), x_3(0)$:
+- **Direct reading ($\mathbf{C}$):** At $t = 0$, the sensor outputs $y(0) = x_1(0)$ directly, so the first state $x_1(0)$ is known immediately.
+- **First derivative ($\mathbf{C}\mathbf{A}$):** Differentiating the sensor trace once gives $\dot{y}(t) = \dot{x}_1(t) = x_2(t)$. Evaluating the slope of the sensor trace at $t = 0$ yields $\dot{y}(0) = x_2(0)$, so the hidden velocity state $x_2(0)$ is also reconstructed uniquely!
+- **Second derivative ($\mathbf{C}\mathbf{A}^2$) and the blind spot:** Differentiating a second time gives $\ddot{y}(t) = \dot{x}_2(t) = -2x_1(t) - 3x_2(t)$, which is merely a linear combination of the two states $x_1$ and $x_2$ we already know. Notice that $x_3(t) = x_3(0)e^{-4t}$ never feeds into $\dot{x}_1$, $\dot{x}_2$, or $y(t)$: no matter how many times you differentiate $y(t)$, the third state $x_3(0)$ never appears in the sensor signal.
 
-By the **Cayley-Hamilton Theorem**, higher-order derivatives $\mathbf{y}^{(k)}(0)$ for $k \ge n$ are linear combinations of the first $n$ derivative vectors. Stacking these equations yields the linear algebraic system:
+To express this derivative chain systematically in matrix form, compute the $1 \times 3$ row vectors $\mathbf{C}$, $\mathbf{C}\mathbf{A}$, and $\mathbf{C}\mathbf{A}^2$ step by step:
 
-$$\begin{bmatrix} \mathbf{y}(0) \\ \dot{\mathbf{y}}(0) \\ \ddot{\mathbf{y}}(0) \\ \vdots \\ \mathbf{y}^{(n-1)}(0) \end{bmatrix} = \underbrace{\begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}}_{\mathcal{O}} \mathbf{x}_0$$
+$$
+\mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}, \qquad
+\mathbf{C}\mathbf{A} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix} \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 0 \\ 0 & 0 & -4 \end{bmatrix} = \begin{bmatrix} 1(0)+0(-2)+0(0) & 1(1)+0(-3)+0(0) & 1(0)+0(0)+0(-4) \end{bmatrix} = \begin{bmatrix} 0 & 1 & 0 \end{bmatrix}
+$$
 
-The matrix $\mathcal{O} \in \mathbb{R}^{(n \cdot p) \times n}$ is the **Kalman Observability Matrix**.
+The row $\mathbf{C} = [1, 0, 0]$ extracts $x_1(0)$ from $\mathbf{x}(0)$, and the product $\mathbf{C}\mathbf{A} = [0, 1, 0]$ extracts $x_2(0)$ from $\dot{y}(0) = \mathbf{C}\mathbf{A}\mathbf{x}(0)$. Multiplying $\mathbf{C}\mathbf{A}$ on the right by $\mathbf{A}$ once more gives the second-derivative row $\mathbf{C}\mathbf{A}^2$:
 
-<Divider />
+$$
+\mathbf{C}\mathbf{A}^2 = (\mathbf{C}\mathbf{A})\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \end{bmatrix} \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 0 \\ 0 & 0 & -4 \end{bmatrix} = \begin{bmatrix} -2 & -3 & 0 \end{bmatrix}
+$$
 
-## The Kalman Observability Rank Criterion
+Stacking these three $1 \times 3$ row vectors **vertically** produces the $3 \times 3$ **Kalman observability matrix** $\mathcal{O}$ (also denoted $\mathbf{Q}$ or $\mathcal{M}_o$):
 
-<Callout type="tip" title="Kalman Observability Rank Criterion">
+$$
+\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ -2 & -3 & 0 \end{bmatrix}
+$$
 
-The continuous-time linear system $(\mathbf{A}, \mathbf{C})$ is completely observable if and only if the Kalman observability matrix has full column rank:
-$$\boxed{\operatorname{rank}(\mathcal{O}) = \operatorname{rank} \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix} = n}$$
-* **SISO Systems ($p = 1$):** $\mathcal{O}$ is an $n \times n$ square matrix. Complete observability is equivalent to:
-  $$\det(\mathcal{O}) \neq 0$$
-* **MIMO Systems ($p > 1$):** $\mathcal{O}$ is a tall rectangular $(np) \times n$ matrix. Complete observability requires finding an $n \times n$ submatrix with non-zero determinant.
+This matrix maps the unknown initial state vector $\mathbf{x}(0)$ directly to the observed output derivative vector $[y(0), \dot{y}(0), \ddot{y}(0)]^T = \mathcal{O}\mathbf{x}(0)$. Because the entire third column of $\mathcal{O}$ is zero, $\det(\mathcal{O}) = 0$, while the top-left $2 \times 2$ identity block has determinant $1 \neq 0$, giving $\operatorname{rank}(\mathcal{O}) = 2 < 3$.
 
-</Callout>
+What initial states $\mathbf{x}_0 = [x_{10}, x_{20}, x_{30}]^T$ produce a completely flat zero sensor reading $y(t) \equiv 0$? Solving the homogeneous linear system $\mathcal{O}\mathbf{x}_0 = \mathbf{0}$ gives:
 
-### The Unobservable Subspace $\mathcal{X}_{no}$
-The null space (kernel) of $\mathcal{O}$ constitutes the **unobservable subspace**:
-$$\mathcal{X}_{no} = \ker(\mathcal{O}) = \{ \mathbf{x}_0 \in \mathbb{R}^n \;:\; \mathcal{O}\mathbf{x}_0 = \mathbf{0} \}$$
-* Any initial state vector $\mathbf{x}_0 \in \mathcal{X}_{no}$ produces an **identically zero output** $y(t) \equiv 0$ for all $t \ge 0$.
-* The dimension of the unobservable subspace is:
-  $$\operatorname{dim}(\mathcal{X}_{no}) = n - \operatorname{rank}(\mathcal{O})$$
-* $\mathcal{X}_{no}$ is an **$\mathbf{A}$-invariant subspace**:
-  $$\mathbf{A} \mathcal{X}_{no} \subseteq \mathcal{X}_{no}$$
-  If an unobservable mode is excited, its free evolution remains trapped inside the unobservable subspace forever, never leaking any information into the sensor measurements!
+$$
+\begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ -2 & -3 & 0 \end{bmatrix} \begin{bmatrix} x_{10} \\ x_{20} \\ x_{30} \end{bmatrix} = \begin{bmatrix} x_{10} \\ x_{20} \\ -2x_{10} - 3x_{20} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ 0 \end{bmatrix} \implies x_{10} = 0, \quad x_{20} = 0, \quad x_{30} \in \mathbb{R} \text{ arbitrary}
+$$
+
+Thus the **unobservable subspace** is the one-dimensional kernel (null space) of $\mathcal{O}$, spanned by the third coordinate axis:
+
+$$
+\mathcal{X}_{no} = \ker(\mathcal{O}) = \operatorname{span}\left\{ \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix} \right\}
+$$
 
 <figure id="fig-observability-kernel" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-observability-kernel.svg" alt="Geometric depiction of the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{O})$ in $\mathbb{R}^3$. Any state vector lying along the red line produces zero projection through the sensor mapping $\mathbf{C}$, rendering it entirely invisible to external measurements." />
   <figcaption>Geometric depiction of the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{O})$ in $\mathbb{R}^3$. Any state vector lying along the red line produces zero projection through the sensor mapping $\mathbf{C}$, rendering it entirely invisible to external measurements.</figcaption>
 </figure>
 
-<Divider />
+Any initial state $\mathbf{x}(0) = [0, 0, c]^T \in \mathcal{X}_{no}$ excites the trajectory $\mathbf{x}(t) = [0, 0, c e^{-4t}]^T$ while producing $y(t) \equiv 0$ for all $t \ge 0$. Notice also that $\mathbf{v} = [0, 0, 1]^T$ is a **right eigenvector** of $\mathbf{A}$ for the eigenvalue $\lambda_3 = -4$ ($\mathbf{A}\mathbf{v} = -4\mathbf{v}$) that lies inside the null space of the sensor matrix ($\mathbf{C}\mathbf{v} = 0$), rendering mode $\lambda_3 = -4$ completely invisible to external measurements.
 
-## The Principle of Duality (Kalman Duality)
+<StepCheck client:load
+  prompt="For the system above with $\operatorname{rank}(\mathcal{O}) = 2$ and $n = 3$, what is $\dim(\mathcal{X}_{no})$?"
+  expected={1}
+  tolerance={0.01}
+  unit=""
+  explanation="By the rank-nullity theorem, $\dim(\mathcal{X}_{no}) = \dim(\ker(\mathcal{O})) = n - \operatorname{rank}(\mathcal{O}) = 3 - 2 = 1$."
+/>
 
-Kalman established a mathematical duality between control and observation:
+<Divider label="2 · Theory" />
 
-<Callout type="tip" title="Kalman Duality Theorem">
+### Sensor Reconstruction Invariant
 
-A continuous linear time-invariant system $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ satisfies the following exact dualities:
-1. **Controllability $\iff$ Observability of the Dual System:**
-   $$\text{Pair } (\mathbf{A}, \mathbf{B}) \text{ is controllable} \iff \text{Dual pair } (\mathbf{A}^T, \mathbf{B}^T) \text{ is observable}$$
-2. **Observability $\iff$ Controllability of the Dual System:**
-   $$\text{Pair } (\mathbf{A}, \mathbf{C}) \text{ is observable} \iff \text{Dual pair } (\mathbf{A}^T, \mathbf{C}^T) \text{ is controllable}$$
+Consider the full continuous-time LTI state-space model with $n$ states, $m$ inputs, and $p$ outputs:
+
+$$
+\begin{cases}
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t) \\
+\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)
+\end{cases} \qquad \mathbf{x}(t) \in \mathbb{R}^n, \quad \mathbf{u}(t) \in \mathbb{R}^m, \quad \mathbf{y}(t) \in \mathbb{R}^p
+$$
+
+Here $\mathbf{C} \in \mathbb{R}^{p \times n}$ is the output measurement matrix and $\mathbf{D} \in \mathbb{R}^{p \times m}$ is the direct feedthrough matrix. By Lagrange's output response formula ([Chapter 10](/dynamic-courses/systems-theory/03-time-response/03-lagrange-convolution-forced-response/)), the measured sensor signal $\mathbf{y}(t)$ at any time $t \ge 0$ is the sum of the free response generated by the unknown initial state $\mathbf{x}(0)$ and the forced response generated by the known control input $\mathbf{u}(t)$:
+
+$$
+\mathbf{y}(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{x}(0) + \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau + \mathbf{D}\mathbf{u}(t)
+$$
+
+Because the system matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ and the applied input signal $\mathbf{u}(\tau)$ over $[0, t_f]$ are completely known to the control computer, we can compute the forced integral and feedthrough terms explicitly and subtract them from the measured sensor data $\mathbf{y}(t)$. This defines the known **free output response** $\mathbf{y}_{\text{free}}(t)$:
+
+$$
+\mathbf{y}_{\text{free}}(t) = \mathbf{y}(t) - \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau - \mathbf{D}\mathbf{u}(t) = \mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0)
+$$
+
+This subtraction proves a crucial physical fact: **observability depends exclusively on the pair $(\mathbf{A}, \mathbf{C})$** and never on $\mathbf{B}$, $\mathbf{D}$, or $\mathbf{u}(t)$. An initial state $\mathbf{x}(0) \in \mathbb{R}^n$ is **unobservable** if it produces zero free output over the entire observation window:
+
+$$
+\mathbf{C}e^{\mathbf{A}t}\mathbf{x}(0) = \mathbf{0} \qquad \forall t \in [0, t_f]
+$$
+
+Why does testing for invisible initial states tell us whether any initial state can be reconstructed uniquely? Suppose two initial states $\mathbf{x}_a(0)$ and $\mathbf{x}_b(0)$ produce the exact same sensor trace $\mathbf{y}_a(t) \equiv \mathbf{y}_b(t)$ on $[0, t_f]$. By linearity, their difference $\Delta\mathbf{x}_0 = \mathbf{x}_a(0) - \mathbf{x}_b(0)$ satisfies:
+
+$$
+\mathbf{C}e^{\mathbf{A}t}\mathbf{x}_a(0) - \mathbf{C}e^{\mathbf{A}t}\mathbf{x}_b(0) = \mathbf{C}e^{\mathbf{A}t}(\mathbf{x}_a(0) - \mathbf{x}_b(0)) = \mathbf{C}e^{\mathbf{A}t}\Delta\mathbf{x}_0 = \mathbf{0} \qquad \forall t \in [0, t_f]
+$$
+
+Therefore, the sensor trace uniquely determines every initial state $\mathbf{x}(0) \in \mathbb{R}^n$ (**complete observability**) if and only if the only state vector that produces $\mathbf{C}e^{\mathbf{A}t}\mathbf{x}(0) \equiv \mathbf{0}$ is the trivial zero state:
+
+$$
+\boxed{\mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0) = \mathbf{0} \quad \forall t \in [0, t_f] \iff \mathbf{x}(0) = \mathbf{0}}
+$$
+
+### Kalman Observability Matrix
+
+To turn the continuous functional condition $\mathbf{C}e^{\mathbf{A}t}\mathbf{x}_0 \equiv \mathbf{0}$ into a finite algebraic test, expand the matrix exponential $e^{\mathbf{A}t}$ in its convergent Taylor series around $t = 0$:
+
+$$
+\mathbf{y}_{\text{free}}(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{x}_0 = \mathbf{C} \left( \mathbf{I} + \mathbf{A}t + \frac{t^2}{2!}\mathbf{A}^2 + \dots + \frac{t^k}{k!}\mathbf{A}^k + \dots \right) \mathbf{x}_0 = \sum_{k=0}^\infty \frac{t^k}{k!} \left( \mathbf{C}\mathbf{A}^k \mathbf{x}_0 \right)
+$$
+
+Because $\mathbf{y}_{\text{free}}(t)$ is a real analytic function of time $t$, it vanishes identically for all $t \in [0, t_f]$ if and only if every coefficient of its Taylor series at $t = 0$ vanishes—that is, $\mathbf{y}_{\text{free}}^{(k)}(0) = \mathbf{C}\mathbf{A}^k\mathbf{x}_0 = \mathbf{0}$ for all $k = 0, 1, 2, \dots$. Writing out the first $n$ derivatives at $t = 0$ gives $n$ block rows of linear equations in the unknown vector $\mathbf{x}_0 \in \mathbb{R}^n$:
+
+$$
+\begin{aligned}
+\mathbf{y}_{\text{free}}(0) &= \mathbf{C}\mathbf{x}_0 \\
+\dot{\mathbf{y}}_{\text{free}}(0) &= \mathbf{C}\mathbf{A}\mathbf{x}_0 \\
+\ddot{\mathbf{y}}_{\text{free}}(0) &= \mathbf{C}\mathbf{A}^2\mathbf{x}_0 \\
+&\;\;\vdots \\
+\mathbf{y}_{\text{free}}^{(n-1)}(0) &= \mathbf{C}\mathbf{A}^{n-1}\mathbf{x}_0
+\end{aligned}
+$$
+
+Why can we stop at the $(n-1)$-th derivative instead of continuing to $k \to \infty$? By the **Cayley-Hamilton Theorem** ([Chapter 8](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/)), every higher power $\mathbf{A}^k$ for $k \ge n$ is a linear combination of the first $n$ powers $\{\mathbf{I}, \mathbf{A}, \dots, \mathbf{A}^{n-1}\}$:
+
+$$
+\mathbf{A}^k = \sum_{j=0}^{n-1} \alpha_{k,j}\mathbf{A}^j \qquad \forall k \ge n
+$$
+
+Multiplying on the left by $\mathbf{C}$ and on the right by $\mathbf{x}_0$ expresses every higher derivative at $t = 0$ as a linear combination of the first $n$ derivatives:
+
+$$
+\mathbf{y}_{\text{free}}^{(k)}(0) = \mathbf{C}\mathbf{A}^k\mathbf{x}_0 = \sum_{j=0}^{n-1} \alpha_{k,j} \left( \mathbf{C}\mathbf{A}^j \mathbf{x}_0 \right) \qquad \forall k \ge n
+$$
+
+Consequently, if the first $n$ block equations $\mathbf{C}\mathbf{A}^j\mathbf{x}_0 = \mathbf{0}$ ($j = 0, 1, \dots, n-1$) hold, then **every** higher derivative $\mathbf{C}\mathbf{A}^k\mathbf{x}_0$ ($k \ge n$) vanishes automatically, and $\mathbf{y}_{\text{free}}(t) \equiv \mathbf{0}$ for all $t \ge 0$! Stacking those first $n$ matrix blocks vertically defines the $(np) \times n$ **Kalman observability matrix** $\mathcal{O}$ (also denoted $\mathbf{Q}$ or $\mathcal{M}_o$):
+
+$$
+\begin{bmatrix} \mathbf{y}_{\text{free}}(0) \\ \dot{\mathbf{y}}_{\text{free}}(0) \\ \ddot{\mathbf{y}}_{\text{free}}(0) \\ \vdots \\ \mathbf{y}_{\text{free}}^{(n-1)}(0) \end{bmatrix} = \underbrace{\begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}}_{\mathcal{O}} \mathbf{x}_0
+$$
+
+The $n$-block vertical stack $\mathcal{O} \in \mathbb{R}^{(n \cdot p) \times n}$ captures the entire information content that the sensors can ever extract from the state trajectory.
+
+### Rank Criterion and Kernel
+
+From the linear algebraic system above, $\mathbf{y}_{\text{free}}(t) \equiv \mathbf{0}$ on $[0, t_f]$ if and only if $\mathcal{O}\mathbf{x}_0 = \mathbf{0}$. A homogeneous linear system $\mathcal{O}\mathbf{x}_0 = \mathbf{0}$ with $n$ unknown state coordinates has the unique trivial solution $\mathbf{x}_0 = \mathbf{0}$ if and only if the $n$ columns of $\mathcal{O}$ are linearly independent. This establishes the **Kalman Observability Criterion**: a continuous-time LTI pair $(\mathbf{A}, \mathbf{C})$ is **completely observable** if and only if $\mathcal{O}$ has full column rank $n$:
+
+$$
+\boxed{\operatorname{rank}(\mathcal{O}) = \operatorname{rank} \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix} = n}
+$$
+
+In noise-free continuous time, derivatives at $t = 0$ suffice conceptually, while in real hardware with sensor noise, one avoids differentiating $\mathbf{y}(t)$ by integrating over $[0, t_f]$ using the symmetric positive semi-definite **observability Gramian** $\mathbf{W}_o(t_f) = \int_0^{t_f} e^{\mathbf{A}^T t}\mathbf{C}^T\mathbf{C}e^{\mathbf{A}t}\,dt$. By the exact same Cayley-Hamilton argument used for controllability, $\ker(\mathbf{W}_o(t_f)) = \ker(\mathcal{O})$, so when $\operatorname{rank}(\mathcal{O}) = n$, $\mathbf{W}_o(t_f)$ is invertible and reconstructs the initial state via the noise-averaging integral $\mathbf{x}_0 = \mathbf{W}_o(t_f)^{-1} \int_0^{t_f} e^{\mathbf{A}^T t}\mathbf{C}^T \mathbf{y}_{\text{free}}(t)\,dt$.
+
+Depending on the number of sensors $p$, we evaluate $\operatorname{rank}(\mathcal{O})$ as follows:
+- **Single-Output Systems (SISO, $p = 1$):** Here $\mathbf{C} \in \mathbb{R}^{1 \times n}$ is a single row vector, so $\mathcal{O}$ is an $n \times n$ **square** matrix. Complete observability holds if and only if $\det(\mathcal{O}) \neq 0$.
+- **Multi-Output Systems (MIMO, $p > 1$):** Here $\mathbf{C} \in \mathbb{R}^{p \times n}$ has $p$ rows, so $\mathcal{O}$ is a tall $(np) \times n$ **rectangular** matrix. Complete observability holds if and only if Gaussian row reduction of $\mathcal{O}$ produces $n$ non-zero pivots (or at least one $n \times n$ submatrix has a non-zero determinant).
+
+When $\operatorname{rank}(\mathcal{O}) = r_o < n$, the null space (kernel) of $\mathcal{O}$ is non-trivial and forms the **unobservable subspace** $\mathcal{X}_{no}$:
+
+$$
+\mathcal{X}_{no} = \ker(\mathcal{O}) = \left\{ \mathbf{x}_0 \in \mathbb{R}^n \;:\; \mathcal{O}\mathbf{x}_0 = \mathbf{0} \right\} = \bigcap_{k=0}^{n-1} \ker(\mathbf{C}\mathbf{A}^k)
+$$
+
+By the rank-nullity theorem, the dimension of the unobservable subspace is $\dim(\mathcal{X}_{no}) = n - \operatorname{rank}(\mathcal{O}) = n - r_o$. Furthermore, $\mathcal{X}_{no}$ satisfies two fundamental geometric properties:
+1. **$\mathbf{A}$-Invariance ($\mathbf{A}\mathcal{X}_{no} \subseteq \mathcal{X}_{no}$):** Suppose $\mathbf{x}_0 \in \mathcal{X}_{no}$, so $\mathbf{C}\mathbf{A}^k\mathbf{x}_0 = \mathbf{0}$ for all $k = 0, 1, \dots, n-1$. Let us check whether $\mathbf{A}\mathbf{x}_0$ also lies in $\ker(\mathcal{O})$. For the first $n-1$ blocks ($j = 0, \dots, n-2$), we have $\mathbf{C}\mathbf{A}^j(\mathbf{A}\mathbf{x}_0) = \mathbf{C}\mathbf{A}^{j+1}\mathbf{x}_0 = \mathbf{0}$. For the final block ($j = n - 1$), Cayley-Hamilton gives $\mathbf{C}\mathbf{A}^{n-1}(\mathbf{A}\mathbf{x}_0) = \mathbf{C}\mathbf{A}^n\mathbf{x}_0 = -\sum_{i=1}^n a_i (\mathbf{C}\mathbf{A}^{n-i}\mathbf{x}_0) = \mathbf{0}$. Thus $\mathcal{O}(\mathbf{A}\mathbf{x}_0) = \mathbf{0}$, proving $\mathbf{A}\mathcal{X}_{no} \subseteq \mathcal{X}_{no}$.
+2. **Kernel Containment ($\mathcal{X}_{no} \subseteq \ker(\mathbf{C})$):** Because the very first block row of $\mathcal{O}\mathbf{x}_0 = \mathbf{0}$ is $\mathbf{C}\mathbf{x}_0 = \mathbf{0}$, every unobservable state lies inside the sensor's immediate null space $\ker(\mathbf{C})$.
+
+Physically, $\mathbf{A}$-invariance inside $\ker(\mathbf{C})$ means that any free trajectory starting inside $\mathcal{X}_{no}$ remains trapped inside $\mathcal{X}_{no}$ forever, never crossing into a direction that the sensors can detect.
+
+### Principle of Kalman Duality
+
+Comparing the horizontal controllability matrix $\mathcal{R} = [\mathbf{B} \;\; \mathbf{A}\mathbf{B} \;\; \dots \;\; \mathbf{A}^{n-1}\mathbf{B}]$ from [Chapter 20](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/) with the vertical observability matrix $\mathcal{O} = [\mathbf{C}; \;\; \mathbf{C}\mathbf{A}; \;\; \dots; \;\; \mathbf{C}\mathbf{A}^{n-1}]$ reveals an exact transpose symmetry called the **Principle of Kalman Duality**:
+
+1. **Controllability to Observability:** The pair $(\mathbf{A}, \mathbf{B})$ is completely controllable if and only if the dual pair $(\mathbf{A}^T, \mathbf{B}^T)$ is completely observable.
+2. **Observability to Controllability:** The pair $(\mathbf{A}, \mathbf{C})$ is completely observable if and only if the dual pair $(\mathbf{A}^T, \mathbf{C}^T)$ is completely controllable.
+
+To prove this identity step by step, write down the Kalman controllability matrix $\mathcal{R}_{\text{dual}}$ for the dual pair $(\mathbf{A}_{\text{dual}}, \mathbf{B}_{\text{dual}}) = (\mathbf{A}^T, \mathbf{C}^T)$:
+
+$$
+\mathcal{R}_{\text{dual}} = \begin{bmatrix} \mathbf{C}^T & \mathbf{A}^T \mathbf{C}^T & (\mathbf{A}^T)^2 \mathbf{C}^T & \dots & (\mathbf{A}^T)^{n-1} \mathbf{C}^T \end{bmatrix} \in \mathbb{R}^{n \times (np)}
+$$
+
+Now take the matrix transpose of $\mathcal{R}_{\text{dual}}$, recalling that transposing a horizontally partitioned matrix turns its block columns into vertically stacked block rows, and that $(\mathbf{M}\mathbf{N})^T = \mathbf{N}^T\mathbf{M}^T$ reverses the order of multiplication:
+
+$$
+\mathcal{R}_{\text{dual}}^T = \begin{bmatrix} (\mathbf{C}^T)^T \\ (\mathbf{A}^T \mathbf{C}^T)^T \\ \left((\mathbf{A}^T)^2 \mathbf{C}^T\right)^T \\ \vdots \\ \left((\mathbf{A}^T)^{n-1} \mathbf{C}^T\right)^T \end{bmatrix} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix} = \mathcal{O}
+$$
+
+Because transposing any matrix preserves its rank ($\operatorname{rank}(\mathbf{M}^T) = \operatorname{rank}(\mathbf{M})$), we obtain the exact equality:
+
+$$
+\operatorname{rank}\big(\mathcal{R}(\mathbf{A}^T, \mathbf{C}^T)\big) = \operatorname{rank}\big(\mathcal{O}(\mathbf{A}, \mathbf{C})^T\big) = \operatorname{rank}\big(\mathcal{O}(\mathbf{A}, \mathbf{C})\big)
+$$
+
+Furthermore, by the fundamental theorem of linear algebra, the null space of $\mathcal{O}$ is the orthogonal complement of the row space of $\mathcal{O}$ (which equals the column space of $\mathcal{O}^T = \mathcal{R}(\mathbf{A}^T, \mathbf{C}^T)$):
+
+$$
+\mathcal{X}_{no}(\mathbf{A}, \mathbf{C}) = \ker(\mathcal{O}) = \left( \operatorname{Im}(\mathcal{O}^T) \right)^\perp = \left( \mathcal{X}_r(\mathbf{A}^T, \mathbf{C}^T) \right)^\perp
+$$
+
+Thanks to Kalman Duality, we never need separate mathematical machinery to design state observers in [Chapter 27](/dynamic-courses/systems-theory/08-observers-compensation/01-luenberger-state-observer-architecture/): every pole-placement theorem for state feedback $\mathbf{A} - \mathbf{B}\mathbf{K}$ converts directly into an observer gain formula for $\mathbf{A} - \mathbf{L}\mathbf{C}$ via $(\mathbf{A} - \mathbf{L}\mathbf{C})^T = \mathbf{A}^T - \mathbf{C}^T\mathbf{L}^T$.
+
+### PBH Observability Test
+
+Applying Kalman Duality to the PBH controllability test from [Chapter 20](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/) immediately yields the modal **PBH Observability Test**. The pair $(\mathbf{A}, \mathbf{C})$ is completely observable if and only if the $(n + p) \times n$ vertically stacked matrix has full column rank $n$ for every eigenvalue $\lambda \in \sigma(\mathbf{A})$:
+
+$$
+\boxed{\operatorname{rank} \begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} \\ \mathbf{C} \end{bmatrix} = n \qquad \forall \lambda \in \sigma(\mathbf{A})}
+$$
+
+Just as in the controllability test, for any $\lambda \notin \sigma(\mathbf{A})$, the top block $\lambda\mathbf{I} - \mathbf{A}$ already has full rank $n$, so we only need to test the eigenvalues $\lambda \in \sigma(\mathbf{A})$.
+
+When does the $(n + p) \times n$ PBH matrix lose full column rank at an eigenvalue $\lambda \in \sigma(\mathbf{A})$? Its $n$ columns are linearly dependent if and only if there exists a non-zero column vector $\mathbf{v} \in \mathbb{C}^n$ ($\mathbf{v} \neq \mathbf{0}$) in its right null space:
+
+$$
+\begin{bmatrix} \lambda\mathbf{I} - \mathbf{A} \\ \mathbf{C} \end{bmatrix} \mathbf{v} = \begin{bmatrix} \mathbf{0} \\ \mathbf{0} \end{bmatrix} \iff \begin{cases} (\lambda\mathbf{I} - \mathbf{A})\mathbf{v} = \mathbf{0} \iff \mathbf{A}\mathbf{v} = \lambda\mathbf{v} \\ \mathbf{C}\mathbf{v} = \mathbf{0} \end{cases}
+$$
+
+Thus an eigenvalue $\lambda \in \sigma(\mathbf{A})$ is **unobservable** if and only if it possesses a **right eigenvector** $\mathbf{v} \neq \mathbf{0}$ that lies inside the null space of the output matrix ($\mathbf{C}\mathbf{v} = \mathbf{0}$).
+
+To see the physical meaning immediately, initialize the system right on that eigenvector at $\mathbf{x}(0) = \mathbf{v}$ with zero input $\mathbf{u}(t) \equiv \mathbf{0}$. Because $\mathbf{v}$ is a right eigenvector of $\mathbf{A}$, the free state trajectory evolves purely along $\mathbf{v}$ as $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{v} = e^{\lambda t}\mathbf{v}$, and the resulting sensor output is:
+
+$$
+\mathbf{y}_{\text{free}}(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{v} = e^{\lambda t}(\mathbf{C}\mathbf{v}) = e^{\lambda t}\mathbf{0} \equiv \mathbf{0} \qquad \forall t \ge 0
+$$
+
+Even though the internal state $\mathbf{x}(t) = e^{\lambda t}\mathbf{v}$ is actively oscillating or growing inside the plant, its projection onto every sensor channel is identically zero at every instant $t \ge 0$.
+
+<StepCheck client:load
+  mode="choice"
+  prompt="By Kalman Duality, testing whether $(\mathbf{A}, \mathbf{C})$ is observable is equivalent to testing whether which dual pair is controllable?"
+  options={[
+    "$(\\mathbf{A}, \\mathbf{C}^T)$",
+    "$(\\mathbf{A}^T, \\mathbf{C}^T)$",
+    "$(\\mathbf{A}^T, \\mathbf{C})$"
+  ]}
+  correctIndex={1}
+  explanation="Transposing $\\mathcal{R}_{\\text{dual}}$ for $(\\mathbf{A}^T, \\mathbf{C}^T)$ recovers $\\mathcal{O} = [\\mathbf{C}; \\mathbf{C}\\mathbf{A}; \\dots; \\mathbf{C}\\mathbf{A}^{n-1}]$, preserving rank identically."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Sensor Fusion and IMU Bias Observability">
+
+In autonomous drone navigation (PX4 / ROS 2 EKF2 module), estimating gyroscope sensor bias $b_g$ alongside angular orientation $\theta$ using only an inclinometer/accelerometer measurement $y = \theta$ uses the model:
+
+$$
+\begin{bmatrix} \dot{\theta} \\ \dot{b}_g \end{bmatrix} = \begin{bmatrix} 0 & -1 \\ 0 & 0 \end{bmatrix} \begin{bmatrix} \theta \\ b_g \end{bmatrix} + \begin{bmatrix} 1 \\ 0 \end{bmatrix} \omega_{\text{gyro}}, \quad y = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} \theta \\ b_g \end{bmatrix}
+$$
+
+Checking Kalman observability gives:
+
+$$
+\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}, \quad \det(\mathcal{O}) = -1 \neq 0 \implies \operatorname{rank}(\mathcal{O}) = 2 = n
+$$
+
+Even though no sensor measures bias directly, coupling through $\mathbf{A}$ makes $b_g$ fully observable from angle readings so the Kalman filter converges to the exact drift value.
 
 </Callout>
 
-### Proof via Matrix Transposition
-Transposing the Kalman controllability matrix of the dual system $(\mathbf{A}^T, \mathbf{C}^T)$:
-$$\mathcal{R}_{\text{dual}} = \begin{bmatrix} \mathbf{C}^T & \mathbf{A}^T \mathbf{C}^T & (\mathbf{A}^T)^2 \mathbf{C}^T & \dots & (\mathbf{A}^T)^{n-1} \mathbf{C}^T \end{bmatrix}$$
-Taking the transpose of the entire matrix:
-$$\mathcal{R}_{\text{dual}}^T = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix} = \mathcal{O}$$
-Because a matrix and its transpose share the exact same row rank and column rank:
-$$\operatorname{rank}(\mathcal{R}_{\text{dual}}) = \operatorname{rank}(\mathcal{O})$$
-This duality guarantees that **every mathematical theorem, synthesis algorithm, and proof developed for controllability applies immediately to observability by substituting $\mathbf{A} \to \mathbf{A}^T$ and $\mathbf{B} \to \mathbf{C}^T$**.
+<Divider label="3 · Summary" />
 
-<Divider />
+| Test / Concept | Mathematical Condition | Dual Controllability Counterpart |
+| :--- | :--- | :--- |
+| **Kalman Rank (SISO)** | $\det(\mathcal{O}) \neq 0$ | $\det(\mathcal{R}) \neq 0$ |
+| **Kalman Rank (MIMO)** | $\operatorname{rank}[\mathbf{C}; \mathbf{C}\mathbf{A}; \dots; \mathbf{C}\mathbf{A}^{n-1}] = n$ | $\operatorname{rank}[\mathbf{B}, \mathbf{A}\mathbf{B}, \dots, \mathbf{A}^{n-1}\mathbf{B}] = n$ |
+| **Unobservable Subspace** | $\mathcal{X}_{no} = \ker(\mathcal{O})$, $\dim = n - \operatorname{rank}(\mathcal{O})$ | $\mathcal{X}_r = \operatorname{Im}(\mathcal{R})$, $\dim = \operatorname{rank}(\mathcal{R})$ |
+| **PBH Rank Test** | $\operatorname{rank}[\lambda\mathbf{I}-\mathbf{A}; \mathbf{C}] = n \;\; \forall \lambda \in \sigma(\mathbf{A})$ | $\operatorname{rank}[\lambda\mathbf{I}-\mathbf{A} \;\; \mathbf{B}] = n$ |
+| **Eigenvector Modal Test** | No $\mathbf{v} \neq \mathbf{0}$: $\mathbf{A}\mathbf{v}=\lambda\mathbf{v},\; \mathbf{C}\mathbf{v}=\mathbf{0}$ | No $\mathbf{v}^T \neq \mathbf{0}^T$: $\mathbf{v}^T\mathbf{A}=\lambda\mathbf{v}^T,\; \mathbf{v}^T\mathbf{B}=\mathbf{0}^T$ |
 
-## The PBH Observability Eigenvector Test
+### Verification Procedure
 
-<Callout type="tip" title="PBH Observability Criterion">
+1. Stack $\mathcal{O} = [\mathbf{C}; \mathbf{C}\mathbf{A}; \dots; \mathbf{C}\mathbf{A}^{n-1}]$ with $n$ block rows computed recursively via $\mathbf{C}\mathbf{A}^k = (\mathbf{C}\mathbf{A}^{k-1})\mathbf{A}$.
+2. Check $\det(\mathcal{O}) \neq 0$ (for $p = 1$) or compute $\operatorname{rank}(\mathcal{O})$ by row reduction (for $p > 1$).
+3. If $\operatorname{rank}(\mathcal{O}) < n$, solve the homogeneous system $\mathcal{O}\mathbf{x}_0 = \mathbf{0}$ to find a basis for $\mathcal{X}_{no} = \ker(\mathcal{O})$ and test PBH on each $\lambda \in \sigma(\mathbf{A})$ to identify invisible modes.
 
-The pair $(\mathbf{A}, \mathbf{C})$ is completely observable if and only if the partitioned matrix has full column rank for **every eigenvalue** $\lambda \in \sigma(\mathbf{A})$:
-$$\boxed{\operatorname{rank} \begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} \\ \mathbf{C} \end{bmatrix} = n \quad \forall \lambda \in \mathbb{C}}$$
+### Key Proofs
 
-### Right Eigenvector Modal Test
-An eigenvalue $\lambda$ of $\mathbf{A}$ is **unobservable** if and only if there exists a non-zero right eigenvector $\mathbf{v} \neq \mathbf{0}$ satisfying:
-$$\mathbf{A}\mathbf{v} = \lambda \mathbf{v} \quad \text{and} \quad \boxed{\mathbf{C}\mathbf{v} = \mathbf{0}}$$
-Physical meaning: If a right eigenvector $\mathbf{v}$ lies in the null space of $\mathbf{C}$, the natural mode $e^{\lambda t}\mathbf{v}$ produces zero sensor output ($\mathbf{C} e^{\lambda t}\mathbf{v} = e^{\lambda t} \mathbf{C}\mathbf{v} = \mathbf{0}$), making the mode completely invisible to the measurement instruments.
+- **Finite Derivative Reduction:** Taylor-expanding $\mathbf{C}e^{\mathbf{A}t}\mathbf{x}_0$ and applying Cayley-Hamilton shows $\mathbf{y}_{\text{free}}^{(k)}(0)$ for $k \ge n$ depends linearly on the first $n$ rows $\mathcal{O}\mathbf{x}_0$.
+- **Kalman Duality:** Transposing $\mathcal{R}_{\text{dual}}$ of $(\mathbf{A}^T, \mathbf{C}^T)$ equals $\mathcal{O}$ of $(\mathbf{A}, \mathbf{C})$, guaranteeing identical rank.
+- **PBH Right-Eigenvector Invisibility:** If $\mathbf{A}\mathbf{v} = \lambda\mathbf{v}$ and $\mathbf{C}\mathbf{v} = \mathbf{0}$, then $\mathbf{x}(0) = \mathbf{v}$ produces $\mathbf{y}_{\text{free}}(t) = \mathbf{C}e^{\lambda t}\mathbf{v} = e^{\lambda t}(\mathbf{C}\mathbf{v}) \equiv \mathbf{0}$.
 
+<Callout type="warning" title="Common Mistakes">
+1. **Confusing Left and Right Eigenvectors:** Unobservable modes satisfy $\mathbf{A}\mathbf{v} = \lambda\mathbf{v}$ and $\mathbf{C}\mathbf{v} = \mathbf{0}$ (right eigenvectors), whereas uncontrollable modes use left eigenvectors.
+2. **Swapping Row/Column Stacking:** $\mathcal{O}$ stacks $\mathbf{C}\mathbf{A}^k$ **vertically** ($(np) \times n$), while $\mathcal{R}$ stacks $\mathbf{A}^k\mathbf{B}$ **horizontally** ($n \times (nm)$).
+3. **Ignoring Forced Subtraction:** Observability tests apply to $\mathbf{y}_{\text{free}}(t)$ after subtracting known $\mathbf{u}(t)$ effects; an observed nonzero $y(t)$ under nonzero input does not imply observability.
 </Callout>
 
-<Divider />
+<Divider label="4 · Exercises" />
 
-## SDU Robotics Bridge: Sensor Fusion and IMU Bias Observability
+<Exercise client:load id="ex-21-1" title="Exercise 21.1 — Kalman Observability Matrix" level="Warm-Up" hint="Compute $\mathbf{C}\mathbf{A}$ and $\mathbf{C}\mathbf{A}^2$ as row vectors, stack them into $\mathcal{M}_o$, and expand $\det(\mathcal{M}_o)$ along column 1.">
 
-<Callout type="bridge" title="SDU Robotics Bridge: Extended Kalman Filter (EKF) Observability">
-
-In autonomous drone navigation (PX4 / ROS 2 EKF2 module), a critical problem is estimating gyroscope sensor bias $b_g$ alongside angular orientation $\theta$ using only an inclinometer/accelerometer measurement $y = \theta$:
-$$\begin{bmatrix} \dot{\theta} \\ \dot{b}_g \end{bmatrix} = \begin{bmatrix} 0 & -1 \\ 0 & 0 \end{bmatrix} \begin{bmatrix} \theta \\ b_g \end{bmatrix} + \begin{bmatrix} 1 \\ 0 \end{bmatrix} \omega_{\text{gyro}}, \quad y = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} \theta \\ b_g \end{bmatrix}$$
-Let us check Kalman observability for estimating the hidden bias $b_g$:
-$$\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} 0 & -1 \\ 0 & 0 \end{bmatrix} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$$
-$$\det(\mathcal{O}) = (1)(-1) - (0)(0) = -1 \neq 0 \implies \operatorname{rank}(\mathcal{O}) = 2 = n$$
-Because $\operatorname{rank}(\mathcal{O}) = 2$, **the gyroscope bias $b_g$ is fully observable from angle measurements**!
-Even though there is no direct sensor measuring bias, the Kalman filter is mathematically guaranteed to converge to the exact drift value, enabling automatic bias compensation during autonomous flight.
-
-</Callout>
-
-<Divider />
-
-### Exercise 21.1: Kalman Observability Matrix Computation [LEVEL 1: WARM-UP DRILL]
 Given the continuous-time LTI system:
-$$\mathbf{A} = \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}
+$$
 
 1. State the state dimension $n$ and the structure of the Kalman observability matrix $\mathcal{M}_o$.
 2. Compute the row vectors $\mathbf{C}\mathbf{A}$ and $\mathbf{C}\mathbf{A}^2$.
 3. Construct the observability matrix $\mathcal{M}_o = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix}$.
 4. Compute the determinant $\det(\mathcal{M}_o)$ and determine whether the pair $(\mathbf{A}, \mathbf{C})$ is completely observable.
 
-### Exercise 21.2: Parametric Observability Analysis and Unobservable Subspace [LEVEL 2: EXAM BENCHMARK]
+<StepCheck client:load
+  prompt="Compute $\det(\mathcal{M}_o)$ for the third-order system above:"
+  expected={-1}
+  tolerance={0.01}
+  unit=""
+  explanation="$\mathcal{M}_o = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}$, which has $\det(\mathcal{M}_o) = -1 \neq 0$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **State dimension and observability matrix definition:**
+   The system matrix $\mathbf{A} \in \mathbb{R}^{3 \times 3}$ has dimension $n = 3$.
+   For a single-output system ($p = 1$), the Kalman observability matrix has size $3 \times 3$ and is defined as:
+   $$
+   \mathcal{M}_o = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix}
+   $$
+
+2. **Row-matrix products:**
+   $$
+   \mathbf{C}\mathbf{A} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix} = \begin{bmatrix} 0 & 1 & -6 \end{bmatrix}
+   $$
+   $$
+   \mathbf{C}\mathbf{A}^2 = (\mathbf{C}\mathbf{A})\mathbf{A} = \begin{bmatrix} 0 & 1 & -6 \end{bmatrix} \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix} = \begin{bmatrix} 1 & -6 & 0(0) - 11(1) - 6(-6) \end{bmatrix} = \begin{bmatrix} 1 & -6 & 25 \end{bmatrix}
+   $$
+
+3. **Assembly of the observability matrix:**
+   $$
+   \mathcal{M}_o = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}
+   $$
+
+4. **Determinant and observability conclusion:**
+   Expanding $\det(\mathcal{M}_o)$ along the first column:
+   $$
+   \det(\mathcal{M}_o) = +1 \cdot \det\begin{bmatrix} 0 & 1 \\ 1 & -6 \end{bmatrix} = 1 \cdot (0 - 1) = -1
+   $$
+   Since $\det(\mathcal{M}_o) = -1 \neq 0$, the matrix has full rank:
+   $$
+   \operatorname{rank}(\mathcal{M}_o) = 3 = n
+   $$
+   By the Kalman rank condition, the pair $(\mathbf{A}, \mathbf{C})$ is **completely observable**. Notice also that $(\mathbf{A}, \mathbf{C})$ here is the exact transpose dual $(\mathbf{A}_1^T, \mathbf{B}_1^T)$ of the controllable companion system $(\mathbf{A}_1, \mathbf{B}_1)$ from Exercise 20.1, yielding the exact same matrix $\mathcal{M}_o = \mathcal{M}_c^T = \mathcal{M}_c$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-21-2" title="Exercise 21.2 — Parametric Observability Kernel" level="Exam Standard" hint="Row-reduce $\mathcal{M}_o(\beta)$ by subtracting $2 \times \text{Row } 1$ from Row 2 and $4 \times \text{Row } 1$ from Row 3 before computing the determinant.">
+
 A third-order system depends on an unknown real measurement parameter $\beta \in \mathbb{R}$:
-$$\mathbf{A} = \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix}
+$$
 
 1. Compute the Kalman observability matrix $\mathcal{M}_o(\beta)$.
 2. Calculate the determinant $\det(\mathcal{M}_o(\beta))$ as an explicit function of $\beta$.
 3. Determine the critical value(s) of $\beta$ for which complete observability is lost.
 4. For the critical value of $\beta$, evaluate the rank of $\mathcal{M}_o$ and find an explicit basis for the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{M}_o)$. Identify which eigenvalue mode is unobservable.
+
+<StepCheck client:load
+  prompt="Which eigenvalue mode becomes unobservable at the critical value $\beta = 1/3$?"
+  expected={-1}
+  tolerance={0.01}
+  unit=""
+  explanation="For $\beta = 1/3$, $\ker(\mathcal{M}_o)$ is spanned by $[-1, 3, 0]^T$, which is the right eigenvector of $\mathbf{A}$ for $\lambda_2 = -1$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Computing row-matrix products for $\mathcal{M}_o(\beta)$:**
+   Given $\mathbf{A} = \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix}$ and $\mathbf{C} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix}$:
+   $$
+   \mathbf{C}\mathbf{A} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix} \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix} = \begin{bmatrix} 2 & 1 - \beta & 3 \end{bmatrix}
+   $$
+   $$
+   \mathbf{C}\mathbf{A}^2 = (\mathbf{C}\mathbf{A})\mathbf{A} = \begin{bmatrix} 2 & 1 - \beta & 3 \end{bmatrix} \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix} = \begin{bmatrix} 4 & 2 - (1 - \beta) & 9 \end{bmatrix} = \begin{bmatrix} 4 & 1 + \beta & 9 \end{bmatrix}
+   $$
+   Thus:
+   $$
+   \mathcal{M}_o(\beta) = \begin{bmatrix} 1 & \beta & 1 \\ 2 & 1 - \beta & 3 \\ 4 & 1 + \beta & 9 \end{bmatrix}
+   $$
+
+2. **Determinant calculation:**
+   Perform elementary row operations: subtract $2 \times (\text{Row } 1)$ from Row 2, and $4 \times (\text{Row } 1)$ from Row 3:
+   $$
+   \mathcal{M}_o \sim \begin{bmatrix} 1 & \beta & 1 \\ 0 & (1 - \beta) - 2\beta & 3 - 2 \\ 0 & (1 + \beta) - 4\beta & 9 - 4 \end{bmatrix} = \begin{bmatrix} 1 & \beta & 1 \\ 0 & 1 - 3\beta & 1 \\ 0 & 1 - 3\beta & 5 \end{bmatrix}
+   $$
+   Expanding along the first column:
+   $$
+   \det(\mathcal{M}_o(\beta)) = 1 \cdot \det\begin{bmatrix} 1 - 3\beta & 1 \\ 1 - 3\beta & 5 \end{bmatrix} = 5(1 - 3\beta) - 1(1 - 3\beta) = 4(1 - 3\beta)
+   $$
+
+3. **Observability loss:**
+   The pair $(\mathbf{A}, \mathbf{C})$ loses full observability when $\det(\mathcal{M}_o(\beta)) = 0$:
+   $$
+   4(1 - 3\beta) = 0 \iff 1 - 3\beta = 0 \iff \beta = \frac{1}{3}
+   $$
+   * For all $\beta \neq \frac{1}{3}$, $\det(\mathcal{M}_o(\beta)) \neq 0$, so $\operatorname{rank}(\mathcal{M}_o) = 3$ and the system is completely observable.
+   * For $\beta = \frac{1}{3}$, the system is **not completely observable**.
+
+4. **Unobservable subspace and mode for $\beta = \frac{1}{3}$:**
+   Substituting $\beta = \frac{1}{3}$ into the row-reduced matrix:
+   $$
+   \begin{bmatrix} 1 & 1/3 & 1 \\ 0 & 0 & 1 \\ 0 & 0 & 5 \end{bmatrix} \sim \begin{bmatrix} 1 & 1/3 & 1 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{bmatrix}
+   $$
+   Clearly, $\operatorname{rank}(\mathcal{M}_o) = 2 < 3$.
+   The unobservable subspace is the null space $\mathcal{X}_{no} = \ker(\mathcal{M}_o)$:
+   $$
+   \begin{cases} x_1 + \frac{1}{3}x_2 + x_3 = 0 \\ x_3 = 0 \end{cases} \implies \begin{cases} x_3 = 0 \\ x_1 = -\frac{1}{3}x_2 \end{cases}
+   $$
+   Choosing $x_2 = 3$, we have $x_1 = -1$ and $x_3 = 0$.
+   Thus, an explicit basis for $\mathcal{X}_{no}$ is:
+   $$
+   \mathcal{B}_{no} = \left\{ \begin{bmatrix} -1 \\ 3 \\ 0 \end{bmatrix} \right\}
+   $$
+   To identify which eigenvalue mode is unobservable, note that the eigenvalues of the upper triangular matrix $\mathbf{A}$ are $\lambda_1 = 2, \lambda_2 = -1, \lambda_3 = 3$. Testing the right eigenvector of mode $\lambda_2 = -1$:
+   $$
+   (\mathbf{A} - (-1)\mathbf{I})\mathbf{v}_2 = \begin{bmatrix} 3 & 1 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 4 \end{bmatrix} \begin{bmatrix} -1 \\ 3 \\ 0 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ 0 \end{bmatrix}
+   $$
+   The basis vector of $\mathcal{X}_{no}$ is precisely the right eigenvector corresponding to $\lambda_2 = -1$.
+   Testing output coupling: $\mathbf{C}\mathbf{v}_2 = \begin{bmatrix} 1 & 1/3 & 1 \end{bmatrix}\begin{bmatrix} -1 \\ 3 \\ 0 \end{bmatrix} = -1 + 1 + 0 = 0$.
+   Therefore, the eigenvalue mode $\lambda_2 = -1$ is strictly **unobservable**.
+
+</details>
+
+</Exercise>

@@ -11,80 +11,104 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 16 Mental Model" markdown={`# Ch. 16: BIBO Stability
-  - Intuition and Physical Meaning
-  - Formal Definition and Derivation (Oral Core)
-    - Derivation / Oral Proof: Time-Domain ($L_1$) and Frequency-Domain Criteria
-    - Internal Asymptotic Stability vs. BIBO Stability (Minimality Equivalence)
-  - Operational Algorithm (Written Exam Core)
-  - Worked Exam Archetype and Pitfalls
-    - Worked Example: Hidden Unstable Mode`} />
+<MindMap client:load defaultCollapsed title="Chapter 16 Outline" markdown={`# Ch. 16: BIBO Stability
+  - External Input-Output Boundedness
+    - Impulse response $L_1$ norm $\\lVert w\\rVert_1 < \\infty$
+    - Strict LHP poles of reduced $W(s)$
+  - Internal vs. BIBO Stability
+    - Hidden uncontrollable or unobservable modes
+    - Minimality equivalence`} />
 
-## Intuition and Physical Meaning
+## Introduction
 
-Lyapunov stability examines whether the **internal state** $\mathbf{x}(t)$ stays bounded or decays to zero when the external input is turned off. **Bounded-Input Bounded-Output (BIBO) stability**, by contrast, is a purely **external (black-box) property**: if you feed any finite-amplitude signal into the system (starting from rest $\mathbf{x}(0) = \mathbf{0}$), does the output stay finite forever?
+Chapters 12–15 checked whether *internal states* decay under zero input. In day-to-day testing, however, an engineer only sees external terminals: feed a bounded voltage or force command into a black box and check whether the measured output stays bounded. That external input-output guarantee is **BIBO stability**.
 
-An ideal frictionless integrator ($W(s) = 1/s$) is **internally simply stable** under zero input (its state stays constant), yet it is **NOT BIBO stable**: a constant bounded step input $u(t) = 1$ produces a ramp output $y(t) = t \to \infty$.
+Crucially, internal and external stability are **not always the same thing**: an unstable internal motor current or structural vibration can grow silently without showing up in the output if a pole-zero cancellation blinds the sensor. This chapter clarifies exact time- and $s$-domain BIBO criteria and teaches you never to trust an input-output transfer function blindly without verifying minimality.
 
-<Divider />
+<Divider label="1 · Example" />
 
-## Formal Definition and Derivation (Oral Core)
+Consider two systems that show why internal Lyapunov stability and external **BIBO stability** differ:
 
-A continuous-time LTI system initially at rest ($\mathbf{x}(0) = \mathbf{0}$) with impulse response $w(t)$ and transfer function $W(s)$ is **BIBO stable** if and only if every bounded input produces a bounded output:
-$$\forall u(t) \;:\; \sup_{t \ge 0} |u(t)| \le M_u < \infty \implies \sup_{t \ge 0} |y(t)| \le M_y < \infty$$
-for finite constants $M_u, M_y > 0$.
+1. **Hidden Unstable Mode:** Take the diagonal state-space realization:
 
-### Derivation / Oral Proof: Time-Domain ($L_1$) and Frequency-Domain Criteria
+   $$
+   \mathbf{A} = \begin{bmatrix} -2 & 0 \\ 0 & 1 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 3 & 5 \end{bmatrix}, \quad D = 0
+   $$
 
-From the convolution integral $y(t) = \int_0^t w(\tau) u(t - \tau)\,d\tau$, if $|u(t)| \le M_u$ then:
-$$|y(t)| \le M_u \int_0^t |w(\tau)|\,d\tau \le M_u \int_0^\infty |w(\tau)|\,d\tau$$
-Thus, **absolute integrability** of the impulse response is sufficient for BIBO stability:
-$$\boxed{\|w\|_1 = \int_0^\infty |w(t)| \, dt < \infty}$$
-To prove necessity, apply the unit-bounded adversarial input $u(t) = \operatorname{sgn}(w(T - t))$ ($|u(t)| \le 1$), which forces $y(T) = \int_0^T |w(\tau)|\,d\tau \to \infty$ as $T \to \infty$ whenever $\|w\|_1 = \infty$.
+   The eigenvalues of $\mathbf{A}$ are $\lambda_1 = -2$ and $\lambda_2 = +1 > 0$. Because $\lambda_2 > 0$, the system is **internally unstable**: even with $u(t) \equiv 0$, any tiny initial perturbation $x_2(0) \neq 0$ grows exponentially as $x_2(t) = x_2(0)e^t \to \infty$. However, computing the input-output transfer function via the state resolvent $(s\mathbf{I} - \mathbf{A})^{-1}$ gives:
 
-In the Laplace domain, for a rational transfer function $W(s) = N(s)/D(s)$ (reduced to coprime form), partial fraction expansion yields modes $e^{p_k t}$. Since $\int_0^\infty |e^{p_k t}|\,dt < \infty \iff \operatorname{Re}(p_k) < 0$, a rational LTI system is BIBO stable **if and only if all poles of $W(s)$ lie strictly in the open left-half plane**:
-$$\boxed{\operatorname{Re}(p_k) < 0 \quad \forall k}$$
+   $$
+   W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} = \begin{bmatrix} 3 & 5 \end{bmatrix} \begin{bmatrix} (s+2)^{-1} & 0 \\ 0 & (s-1)^{-1} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \frac{3}{s + 2}
+   $$
 
-### Internal Asymptotic Stability vs. BIBO Stability (Minimality Equivalence)
+   Because $\mathbf{B} = [1, 0]^T$ multiplies the second column by zero, the unstable mode $(s - 1)^{-1}$ cancels completely from $W(s)$. Starting from rest ($\mathbf{x}(0) = \mathbf{0}$), $x_2(t)$ stays identically zero and every bounded input produces a bounded output governed by the single LHP pole $p_1 = -2$ (**BIBO stable**).
 
-The poles of $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$ are always a **subset** of the eigenvalues of $\mathbf{A}$:
-1. **Internal Asymptotic Stability $\implies$ BIBO Stability (Always True):** If every $\operatorname{Re}(\lambda_i(\mathbf{A})) < 0$, then every pole of $W(s)$ also satisfies $\operatorname{Re}(p_k) < 0$.
-2. **BIBO Stability $\not\implies$ Internal Asymptotic Stability (In General):** An unstable eigenvalue ($\operatorname{Re}(\lambda_i) \ge 0$) can be hidden from $W(s)$ by a pole-zero cancellation if that mode is uncontrollable or unobservable.
-3. **Equivalence Condition:** $\text{Internal Asymptotic Stability} \iff \text{BIBO Stability}$ holds **if and only if** the realization $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ is **minimal** (completely controllable and completely observable).
-
-[the figure](#fig-bibo-internal) illustrates this set relationship, explicitly showing that **simply (marginally) stable** systems with $j\omega$-axis poles (such as $W(s) = 1/s$) lie **outside** the BIBO-stable set.
+2. **Frictionless Integrator ($W(s) = 1/s$):** Its impulse response is the unit step $w(t) = 1(t)$. Under zero input ($\dot{x} = 0$), the state stays constant at $x(t) = x(0)$, so the system is **internally simply stable**. Yet applying a bounded unit step input $u(t) = 1(t)$ produces an unbounded ramp $y(t) = \int_0^t 1 \cdot 1\,d\tau = t \to \infty$, so an integrator is **not BIBO stable**.
 
 <figure id="fig-bibo-internal" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-bibo-internal.svg" alt="Relationship between Internal Asymptotic Stability, BIBO Stability, and Simple (Marginal) Stability. Systems with poles on the imaginary axis (e.g., $W(s) = 1/s$) are internally simply stable but lie strictly outside the BIBO-stable region." />
-  <figcaption>Relationship between Internal Asymptotic Stability, BIBO Stability, and Simple (Marginal) Stability. Systems with poles on the imaginary axis (e.g., $W(s) = 1/s$) are internally simply stable but lie strictly outside the BIBO-stable region.</figcaption>
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-bibo-internal.svg" alt="Relationship between Internal Asymptotic Stability, BIBO Stability, and Simple (Marginal) Stability. Systems with poles on the imaginary axis (e.g., W(s) = 1/s) are internally simply stable but lie strictly outside the BIBO-stable region." />
+  <figcaption>Set relationship between internal asymptotic stability, BIBO stability, and simple stability: imaginary-axis systems like $W(s) = 1/s$ sit outside the BIBO-stable set, while non-minimal systems can be BIBO stable without being internally stable.</figcaption>
 </figure>
 
-<Divider />
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="For the system $\mathbf{A} = \begin{bmatrix} -2 & 0 \\ 0 & 1 \end{bmatrix}$, $\mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$, $\mathbf{C} = \begin{bmatrix} 3 & 5 \end{bmatrix}$, $D = 0$, which classification holds?"
+  options={[
+    "Both internally asymptotically stable and BIBO stable",
+    "BIBO stable (pole at $s = -2$), yet internally unstable (eigenvalue $\\lambda_2 = +1$)",
+    "Internally simply stable, yet not BIBO stable"
+  ]}
+  correctIndex={1}
+  explanation="The actuator $\mathbf{B} = [1, 0]^T$ cannot excite state $x_2$, hiding $\lambda_2 = +1$ from $W(s) = \frac{3}{s+2}$. Input-output behavior is BIBO stable, while internal stability fails."
+/>
 
-## Operational Algorithm (Written Exam Core)
+<Divider label="2 · Theory" />
 
-To test BIBO stability and compare it with internal stability:
-1. **From $w(t)$:** Compute $\|w\|_1 = \int_0^\infty |w(t)|\,dt$. Finite $\implies$ BIBO stable; infinite $\implies$ BIBO unstable.
-2. **From $W(s)$:** Cancel any common numerator/denominator factors to obtain reduced $W(s) = N(s)/D(s)$ and verify all roots of $D(s) = 0$ satisfy $\operatorname{Re}(p_k) < 0$ (no $j\omega$-axis or RHP poles).
-3. **From $(\mathbf{A}, \mathbf{B}, \mathbf{C})$:** Compute both $\operatorname{eig}(\mathbf{A})$ (for internal stability) and $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$ (for BIBO stability). Any eigenvalue of $\mathbf{A}$ missing from $W(s)$ is an uncontrollable or unobservable hidden mode.
+### External Boundedness Definition
 
-<Divider />
+While [Lyapunov Internal State Stability](/dynamic-courses/systems-theory/04-stability-routh/02-lyapunov-spectral-internal-stability/) examines internal states $\mathbf{x}(t)$ under zero input, **Bounded-Input Bounded-Output (BIBO) stability** is a purely **external (input-output) property** evaluated from rest ($\mathbf{x}(0) = \mathbf{0}$). Setting $\mathbf{x}(0) = \mathbf{0}$ isolates the forced response $y(t) = \int_0^t w(\tau) u(t - \tau)\,d\tau$ from initial-condition transients. A continuous-time LTI system with impulse response $w(t)$ and transfer function $W(s)$ is **BIBO stable** if and only if every bounded input yields a bounded output:
 
-## Worked Exam Archetype and Pitfalls
+$$\forall u(t) \;:\; \sup_{t \ge 0} |u(t)| \le M_u < \infty \implies \sup_{t \ge 0} |y(t)| \le M_y < \infty$$
 
-### Worked Example: Hidden Unstable Mode
+for finite constants $M_u, M_y > 0$.
 
-Given $\mathbf{A} = \begin{bmatrix} -2 & 0 \\ 0 & 1 \end{bmatrix}$, $\mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$, $\mathbf{C} = \begin{bmatrix} 3 & 5 \end{bmatrix}$, $D = 0$:
-1. **Internal Stability:** Eigenvalues of $\mathbf{A}$ are $\lambda_1 = -2$ and $\lambda_2 = +1 > 0$. Internally **unstable**.
-2. **Transfer Function:**
-   $$W(s) = \begin{bmatrix} 3 & 5 \end{bmatrix} \begin{bmatrix} (s+2)^{-1} & 0 \\ 0 & (s-1)^{-1} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \frac{3}{s + 2}$$
-3. **BIBO Stability:** The only pole of $W(s)$ is $p_1 = -2 < 0$, so the system **is BIBO stable** despite being internally unstable! Any nonzero initial condition $x_2(0) \neq 0$ grows as $e^t \to \infty$ even when $u(t) \equiv 0$.
+### Time-Domain and Frequency Criteria
 
-<Callout type="warning" title="Exam Pitfall: Assuming Simple Stability Implies BIBO Stability">
+From the convolution integral $y(t) = \int_0^t w(\tau) u(t - \tau)\,d\tau$, applying the triangle inequality whenever $|u(t)| \le M_u$ gives:
 
-An integrator $W(s) = 1/s$ or undamped oscillator $W(s) = 1/(s^2 + \omega_0^2)$ is simply (marginally) stable in the sense of Lyapunov, **never** BIBO stable. A bounded step or resonant cosine input drives the output to infinity.
+$$|y(t)| \le \int_0^t |w(\tau)|\,|u(t - \tau)|\,d\tau \le M_u \int_0^t |w(\tau)|\,d\tau \le M_u \int_0^\infty |w(\tau)|\,d\tau$$
 
-</Callout>
+Thus **absolute integrability** of the impulse response ($L_1$ norm) is sufficient to guarantee $|y(t)| \le M_u \|w\|_1 < \infty$:
+
+$$\boxed{\|w\|_1 = \int_0^\infty |w(t)| \, dt < \infty}$$
+
+To prove necessity, suppose $\|w\|_1 = \infty$. For any chosen horizon $T > 0$, construct the unit-bounded adversarial input $u_T(t) = \operatorname{sgn}(w(T - t))$ for $0 \le t \le T$ (so $|u_T(t)| \le 1$). At time $t = T$, the output becomes $y(T) = \int_0^T w(\tau)\operatorname{sgn}(w(\tau))\,d\tau = \int_0^T |w(\tau)|\,d\tau$, which grows without bound as $T \to \infty$.
+
+In the Laplace domain, reduce a rational transfer function $W(s) = N(s)/D(s)$ to coprime form (canceling any common factors between numerator and denominator). Partial fraction expansion decomposes $w(t)$ into modes $t^k e^{p_k t}$ for each pole $p_k$. When $\operatorname{Re}(p_k) < 0$, exponential decay tames any polynomial factor ($\int_0^\infty t^k e^{-|\sigma_k|t}\,dt = \frac{k!}{|\sigma_k|^{k+1}} < \infty$). By contrast, any pole on the imaginary axis ($\operatorname{Re}(p_k) = 0$, such as $1(t)$ or $\cos(\omega_0 t)$) or in the RHP ($\operatorname{Re}(p_k) > 0$) has an infinite $L_1$ integral. Therefore, a rational LTI system is BIBO stable **if and only if all poles of reduced $W(s)$ lie strictly in the open left-half plane**:
+
+$$\boxed{\operatorname{Re}(p_k) < 0 \quad \forall k}$$
+
+### Internal vs. BIBO Equivalence
+
+Because $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D} = \frac{\mathbf{C}\operatorname{adj}(s\mathbf{I} - \mathbf{A})\mathbf{B}}{\det(s\mathbf{I} - \mathbf{A})} + \mathbf{D}$, every pole of $W(s)$ must be a root of $\det(s\mathbf{I} - \mathbf{A}) = 0$, unless a factor cancels with the numerator. Hence the poles of $W(s)$ are always a **subset** of the eigenvalues of $\mathbf{A}$:
+
+1. **Internal Asymptotic Stability $\implies$ BIBO Stability (Always True):** If every eigenvalue of $\mathbf{A}$ satisfies $\operatorname{Re}(\lambda_i) < 0$, then every pole of $W(s)$—being a subset of $\sigma(\mathbf{A})$—must also satisfy $\operatorname{Re}(p_k) < 0$.
+2. **BIBO Stability $\not\implies$ Internal Asymptotic Stability (In General):** An unstable eigenvalue ($\operatorname{Re}(\lambda_i) \ge 0$) can cancel out of $W(s)$ if that mode is either **uncontrollable** (cannot be excited by $\mathbf{B}$) or **unobservable** (cannot be seen by $\mathbf{C}$), leaving $W(s)$ BIBO stable while internal states diverge.
+3. **Minimality Equivalence:** Internal asymptotic stability is equivalent to BIBO stability **if and only if** the state-space realization $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ is **minimal** (both completely controllable and completely observable), because minimality guarantees zero pole-zero cancellations.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="When does BIBO stability of $W(s)$ guarantee internal asymptotic stability of $(\mathbf{A}, \mathbf{B}, \mathbf{C})$?"
+  options={[
+    "Always, because transfer poles and eigenvalues are identical",
+    "If and only if $(\\mathbf{A}, \\mathbf{B}, \\mathbf{C})$ is minimal (completely controllable and observable)",
+    "Whenever the system has zero feedthrough ($\\mathbf{D} = \\mathbf{0}$)"
+  ]}
+  correctIndex={1}
+  explanation="Minimality guarantees no pole-zero cancellations occur between $\det(s\mathbf{I}-\mathbf{A})$ and $W(s)$, so every eigenvalue of $\mathbf{A}$ appears as a pole of $W(s)$."
+/>
 
 <Callout type="bridge" title="SDU Robotics Bridge: AGV Velocity vs. Position Loops">
 
@@ -92,84 +116,113 @@ A DC-motor velocity loop $G_v(s) = \frac{K_m}{\tau_m s + 1}$ ($\tau_m > 0$) has 
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Stability Property | Spectral / $s$-Domain Condition | Integrator $W(s) = 1/s$ | Hidden RHP Mode |
+| :--- | :--- | :--- | :--- |
+| **Internal Asymptotic** | All $\operatorname{Re}(\lambda_i(\mathbf{A})) < 0$ | Fails | Fails |
+| **Simple Lyapunov** | $\operatorname{Re}(\lambda_i) \le 0$, $m_g = m_a$ on $j\omega$-axis | Holds | Fails |
+| **BIBO Stability** | $\lVert w\rVert_1 < \infty$ ($\operatorname{Re}(p_k) < 0$ on reduced $W(s)$) | Fails | May hold (non-minimal) |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Verification Procedure
 
-## Chapter Exercises
+1. **From $w(t)$:** Evaluate $\|w\|_1 = \int_0^\infty |w(t)|\,dt$; finite implies BIBO stable, infinite implies BIBO unstable.
+2. **From $W(s)$:** Reduce $W(s) = N(s)/D(s)$ to coprime form and verify all poles satisfy $\operatorname{Re}(p_k) < 0$ (no $j\omega$-axis or RHP poles).
+3. **From $(\mathbf{A}, \mathbf{B}, \mathbf{C})$:** Compare $\sigma(\mathbf{A})$ against the poles of $W(s) = \mathbf{C}(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$; any missing eigenvalue is an uncontrollable or unobservable hidden mode.
 
-<Exercise client:load id="ex-16-1" title="Exercise 16.1" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Sufficiency & Necessity of $\|w\|_1 < \infty$:** $|y(t)| \le M_u \|w\|_1$ proves sufficiency, while $u(t) = \operatorname{sgn}(w(T - t))$ yields $y(T) = \int_0^T |w(\tau)|\,d\tau \to \infty$ when $\|w\|_1 = \infty$.
+- **Poles vs. Eigenvalues:** $\operatorname{poles}(W(s)) \subseteq \sigma(\mathbf{A})$, with equality holding across all modes when $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ is minimal.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Simple Stability $\neq$ BIBO Stability:** An integrator $1/s$ or undamped oscillator $1/(s^2 + \omega_0^2)$ is simply stable under zero input, **never** BIBO stable.
+2. **Ignoring Hidden Modes:** Checking only $W(s)$ misses unstable uncontrollable or unobservable internal states; always inspect $\sigma(\mathbf{A})$ when a state-space model is given.
+3. **Unreduced Transfer Functions:** Cancel common factors in $W(s)$ only to test *external* BIBO behavior, never to falsely declare a non-minimal loop internally stable.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-16-1" title="Exercise 16.1 — L₁ Norm and Integrator Poles" level="Warm-Up">
 
 Consider two continuous-time LTI systems with impulse responses:
+
 1. $w_1(t) = 5 e^{-2t} \cdot 1(t)$
 2. $w_2(t) = 3 \cdot 1(t)$
 
 Evaluate the $L_1$ norm $\|w\|_1 = \int_0^\infty |w(t)| \, dt$ for each system, determine which system is BIBO stable, and verify your conclusion from the poles of $W_1(s)$ and $W_2(s)$.
 
-<StepCheck client:load prompt="Evaluate the L₁ norm ∫₀^∞ |5 e^(−2t)| dt for w₁(t):" expected={2.5} tolerance={0.02} explanation="5 / 2 = 2.5 < ∞, so system 1 is BIBO stable." />
+<StepCheck
+  client:load
+  prompt="Evaluate the $L_1$ norm $\int_0^\infty |5 e^{-2t}|\,dt$ for $w_1(t)$:"
+  expected={2.5}
+  tolerance={0.02}
+  unit=""
+  explanation="$5 / 2 = 2.5 < \infty$, so system 1 is BIBO stable."
+/>
 
-<StepCheck client:load mode="choice" prompt="Is system 2 with w₂(t) = 3·1(t) (pole at s = 0) BIBO stable?" options={["Yes, poles on jω axis are BIBO stable", "No, ∫|3|dt diverges to ∞"]} correctIndex={1} explanation="An integrator pole at s = 0 is simply stable, NOT BIBO stable." />
-
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Is system 2 with $w_2(t) = 3 \cdot 1(t)$ (pole at $s = 0$) BIBO stable?"
+  options={[
+    "Yes, poles on the $j\\omega$-axis are BIBO stable",
+    "No, $\\int_0^\\infty |3|\\,dt$ diverges to $\\infty$"
+  ]}
+  correctIndex={1}
+  explanation="An integrator pole at $s = 0$ is simply stable, not BIBO stable."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 1. For $w_1(t) = 5 e^{-2t} \cdot 1(t)$:
-   The $L_1$ norm is:
-   $$\|w_1\|_1 = \int_0^\infty |5 e^{-2t}| \, dt = 5 \int_0^\infty e^{-2t} \, dt = 5 \left[ -\frac{1}{2} e^{-2t} \right]_0^\infty = 5 \left( 0 - \left(-\frac{1}{2}\right) \right) = \frac{5}{2} = 2.5 < \infty$$
-   Since the impulse response is absolutely integrable ($\|w_1\|_1 < \infty$), the system is **BIBO stable**.
-   Taking the Laplace transform of $w_1(t)$:
-   $$W_1(s) = \mathcal{L}\{5 e^{-2t}\} = \frac{5}{s+2}$$
-   The single pole is $p = -2$. Since $\operatorname{Re}(p) = -2 < 0$, it lies strictly in the open left-half complex plane, confirming BIBO stability.
-
+   $$\|w_1\|_1 = \int_0^\infty |5 e^{-2t}| \, dt = 5 \left[ -\frac{1}{2} e^{-2t} \right]_0^\infty = 5 \left( 0 - \left(-\frac{1}{2}\right) \right) = \frac{5}{2} = 2.5 < \infty$$
+   Since $\|w_1\|_1 < \infty$, the system is **BIBO stable**. Its Laplace transform $W_1(s) = \frac{5}{s+2}$ has pole $p = -2$ strictly in the open LHP.
 2. For $w_2(t) = 3 \cdot 1(t)$:
-   The $L_1$ norm is:
    $$\|w_2\|_1 = \int_0^\infty |3| \, dt = \lim_{T \to \infty} 3T = +\infty$$
-   The integral diverges to infinity. Therefore, the system is **strictly NOT BIBO stable**.
-   Taking the Laplace transform:
-   $$W_2(s) = \mathcal{L}\{3 \cdot 1(t)\} = \frac{3}{s}$$
-   The pole is located at the origin $s = 0$. Because $\operatorname{Re}(p) = 0 \not< 0$, the pole does not lie strictly inside the open left-half plane, confirming the system fails the BIBO stability requirement.
+   The integral diverges, so the system is **not BIBO stable**. Its transfer function $W_2(s) = \frac{3}{s}$ has its pole at $s = 0$, failing $\operatorname{Re}(p) < 0$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-16-2" title="Exercise 16.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-16-2" title="Exercise 16.2 — Uncontrollable RHP Mode" level="Exam Standard">
 
 A continuous-time system has state-space realization:
+
 $$\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & 2 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 4 \end{bmatrix}, \quad D = 0$$
+
 1. Compute the eigenvalues of $\mathbf{A}$ and classify the internal Lyapunov stability of $\mathbf{x}_e = \mathbf{0}$.
 2. Compute the transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$.
 3. Find the poles of $W(s)$ and determine whether the system is BIBO stable.
 4. Explain why the input-output response stays bounded despite $\mathbf{A}$ having an RHP eigenvalue, and identify whether that eigenvalue is uncontrollable or unobservable.
 
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Why does the RHP eigenvalue $\lambda_2 = +2$ disappear from $W(s) = \frac{2}{s+3}$?"
+  options={[
+    "Because $\\lambda_2 = +2$ is completely unobservable through $\\mathbf{C}$",
+    "Because $\\lambda_2 = +2$ is completely uncontrollable through $\\mathbf{B} = [1, 0]^T$",
+    "Because $D = 0$ cancels the unstable pole"
+  ]}
+  correctIndex={1}
+  explanation="The controllability matrix $\mathcal{M}_c = [\mathbf{B} \;\; \mathbf{A}\mathbf{B}] = \begin{bmatrix}1 & -3 \\ 0 & 0\end{bmatrix}$ has rank $1 < 2$: input $u(t)$ never drives $x_2$, making $\lambda_2 = +2$ uncontrollable while $W(s)$ remains BIBO stable."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Eigenvalues of matrix $\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & 2 \end{bmatrix}$:
-   Because $\mathbf{A}$ is diagonal, its eigenvalues are directly the diagonal entries:
-   $$\lambda_1 = -3, \quad \lambda_2 = +2$$
-   Since $\lambda_2 = +2 > 0$ has a positive real part ($\operatorname{Re}(\lambda_2) > 0$), the natural state mode $e^{+2t}$ diverges exponentially as $t \to \infty$. The unforced equilibrium state $\mathbf{x}_e = \mathbf{0}$ is **unstable** in the sense of Lyapunov.
-
+1. Eigenvalues of diagonal matrix $\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & 2 \end{bmatrix}$ are $\lambda_1 = -3$ and $\lambda_2 = +2$. Because $\operatorname{Re}(\lambda_2) > 0$, $\mathbf{x}_e = \mathbf{0}$ is **internally unstable**.
 2. Transfer function calculation:
-   The resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$ is:
-   $$(s\mathbf{I} - \mathbf{A})^{-1} = \begin{bmatrix} s+3 & 0 \\ 0 & s-2 \end{bmatrix}^{-1} = \begin{bmatrix} \frac{1}{s+3} & 0 \\ 0 & \frac{1}{s-2} \end{bmatrix}$$
-   The transfer function is:
-   $$W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} = \begin{bmatrix} 2 & 4 \end{bmatrix} \begin{bmatrix} \frac{1}{s+3} & 0 \\ 0 & \frac{1}{s-2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} \frac{2}{s+3} & \frac{4}{s-2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \frac{2}{s+3}$$
-
+   $$W(s) = \begin{bmatrix} 2 & 4 \end{bmatrix} \begin{bmatrix} \frac{1}{s+3} & 0 \\ 0 & \frac{1}{s-2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 2 & 4 \end{bmatrix} \begin{bmatrix} \frac{1}{s+3} \\ 0 \end{bmatrix} = \frac{2}{s+3}$$
 3. Poles of $W(s)$ and BIBO stability:
-   The transfer function $W(s) = \frac{2}{s+3}$ has a single pole at:
-   $$p = -3$$
-   Since all poles of $W(s)$ have strictly negative real parts ($\operatorname{Re}(p) = -3 < 0$), the input-output mapping is **BIBO stable**. Any bounded input $u(t)$ with $|u(t)| \le M < \infty$ generates a strictly bounded zero-state output $|y(t)| \le M \|w\|_1 = \frac{2}{3}M$.
-
-4. Resolution of the apparent paradox:
-   The state-space realization is **non-minimal**. Computing the controllability matrix:
-   $$\mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} \end{bmatrix} = \begin{bmatrix} 1 & -3 \\ 0 & 0 \end{bmatrix} \implies \operatorname{rank}(\mathcal{M}_c) = 1 < 2$$
-   The second state variable $x_2$ corresponds to the unstable mode $\lambda_2 = +2$, and satisfies the decoupled state equation:
-   $$\dot{x}_2(t) = 2x_2(t) + 0 \cdot u(t) = 2x_2(t)$$
-   The input $u(t)$ has zero coupling into state $x_2$; the unstable eigenvalue $\lambda_2 = +2$ is **completely uncontrollable**. Thus, the pole at $s = 2$ is cancelled from the transfer function $W(s)$.
-   While the zero-state input-output response remains bounded (BIBO stable), any non-zero initial disturbance $x_2(0) \ne 0$ in the state causes exponential explosion $x_2(t) = x_2(0)e^{2t}$, illustrating why BIBO stability does not imply internal stability when the realization is non-minimal.
+   The sole pole $p = -3$ satisfies $\operatorname{Re}(p) < 0$, so the system is **BIBO stable** ($|y(t)| \le \frac{2}{3}M_u$ from zero initial state).
+4. Resolution of the paradox:
+   The realization is non-minimal with controllability matrix $\mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} \end{bmatrix} = \begin{bmatrix} 1 & -3 \\ 0 & 0 \end{bmatrix}$ ($\operatorname{rank}(\mathcal{M}_c) = 1 < 2$). State $x_2$ evolves as $\dot{x}_2 = 2x_2 + 0\cdot u$, so $\lambda_2 = +2$ is **completely uncontrollable** and cancels from $W(s)$ while diverging internally whenever $x_2(0) \neq 0$.
 
 </details>
 

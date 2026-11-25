@@ -1,35 +1,43 @@
 ---
-title: Dynamic Courses
-description: Interactive, pageless engineering textbooks with Matryoshka mind maps, live simulators, and step-by-step practice.
-template: splash
-hero:
-  title: Dynamic Courses
-  tagline: Pageless engineering textbooks built for physical intuition, oral-proof clarity, and interactive exam mastery.
-  actions:
-    - text: Open Linear Systems Theory
-      link: /dynamic-courses/systems-theory/
-      icon: right-arrow
-    - text: Apri Elettronica (IT)
-      link: /dynamic-courses/elettronica/
-      icon: right-arrow
-    - text: Jump to Bode Diagrams (Ch. 17)
-      link: /dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/
-      variant: secondary
+title: Courses
+description: Engineering course index.
+tableOfContents: false
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+<div className="dc-course-grid">
+  <a className="dc-course-card" href="/dynamic-courses/systems-theory/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">EN</span>
+      <span>29 Chapters · 8 Parts</span>
+    </div>
+    <h2>Linear Systems Theory</h2>
+    <p>State-space models, Laplace resolvent, matrix exponential, Routh-Hurwitz, Bode diagrams, Kalman structure, pole placement, and Luenberger observers.</p>
+    <div className="dc-course-links">
+      <span>Preface &amp; Exam Scope →</span>
+    </div>
+  </a>
 
-<CardGrid>
-  <Card title="Matryoshka Mind Maps" icon="open-book">
-    Every chapter opens with a collapsible, zoomable Markmap hierarchy mapping the mental model before diving into algebra.
-  </Card>
-  <Card title="Interactive Simulators" icon="rocket">
-    Explore Bode magnitude and phase plots, sweep Routh feedback gain $K \to K_{\text{crit}}$ on the $s$-plane, and animate $e^{\mathbf{A}t}\mathbf{x}_0$ phase flows.
-  </Card>
-  <Card title="Stateless Active Recall" icon="approve-check">
-    Short inline step checks validate numeric answers with tolerance and reveal step-by-step worked solutions on demand.
-  </Card>
-  <Card title="Instant Search" icon="magnifier">
-    Full-text Pagefind search across every chapter, theorem, formula, and worked exam archetype.
-  </Card>
-</CardGrid>
+  <a className="dc-course-card" href="/dynamic-courses/elettronica/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">IT</span>
+      <span>24 Capitoli · 6 Parti</span>
+    </div>
+    <h2>Elettronica (Microelettronica)</h2>
+    <p>Fisica dei semiconduttori, diodi, MOSFET, amplificatori operazionali, stadi a singolo transistore, risposta in frequenza, logica CMOS, memorie e LTspice.</p>
+    <div className="dc-course-links">
+      <span>Prefazione e Programma d&rsquo;Esame →</span>
+    </div>
+  </a>
+
+  <a className="dc-course-card" href="/dynamic-courses/computer-architecture/">
+    <div className="dc-course-meta">
+      <span className="dc-course-lang">EN</span>
+      <span>23 Chapters · 6 Parts</span>
+    </div>
+    <h2>Computer Architecture</h2>
+    <p>Synchronous digital logic, Mealy/Moore sequence detectors, CPU performance &amp; Amdahl&rsquo;s law, RISC-V assembly &amp; stack frames, 5-stage pipelined hazards, and cache hierarchies.</p>
+    <div className="dc-course-links">
+      <span>Preface &amp; Exam Scope →</span>
+    </div>
+  </a>
+</div>

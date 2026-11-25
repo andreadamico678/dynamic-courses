@@ -1,0 +1,55 @@
+# Global Symbol Registry — Computer Architecture
+# Enforce across all 23 chapters and exercises.
+
+digital_systems_and_fsm:
+  xy: "2-bit parallel synchronous input symbol in {00, 01, 11, 10} (Gray column order in exam tables: 00, 01, 11, 10)"
+  u: "Scalar binary output in {0, 1}"
+  S_t: "Present state at discrete clock cycle t (S_0, S_1, ...)"
+  S_next: "Next state S^(t+1) = delta(S^t, xy^t)"
+  delta: "Next-state transition function"
+  lambda_fn: "Output function: lambda(S^t, xy^t) for Mealy; lambda(S^t) for Moore"
+  Q_i: "Present state bit of flip-flop i"
+  Q_i_star: "Next state bit Q_i^* (or Q_i^+) of flip-flop i"
+  J_i_K_i: "Excitation inputs of JK flip-flop i"
+  S_i_R_i: "Excitation inputs of SR flip-flop i"
+  D_i_T_i: "Excitation inputs of D or T flip-flop i"
+  X_dont_care: "Don't-care condition ('X' or '-') in Karnaugh maps and excitation tables"
+
+performance_and_amdahl:
+  T_exec: "CPU execution time (IC * CPI * T_clk)"
+  IC: "Dynamic Instruction Count executed by a program"
+  CPI: "Average Clock Cycles Per Instruction"
+  T_clk: "Clock cycle period (1 / f_clk)"
+  f_clk: "Clock frequency in Hz"
+  F_enh: "Original fraction of execution time affected by an enhancement (0 <= F <= 1)"
+  S_enh: "Local speedup factor of the enhanced portion"
+  S_tot: "Overall speedup 1 / ((1 - F) + F / S)"
+
+riscv_isa_and_abi:
+  x0_zero: "Hardwired zero register (reads 0, writes ignored)"
+  ra_x1: "Return address register (caller-saved if non-leaf)"
+  sp_x2: "Stack pointer (16-byte or 4-byte word aligned, grows downward toward lower addresses)"
+  a0_a7: "Function arguments (a0-a7) and return values (a0-a1); a7 holds RARS/Venus ecall service code"
+  t0_t6: "Caller-saved temporary registers (volatile across jal)"
+  s0_s11: "Callee-saved registers (must be preserved on stack if modified by callee)"
+  PC: "32-bit Program Counter holding byte address of current instruction"
+
+pipeline_microarchitecture:
+  stages: "IF (Instruction Fetch), ID (Instruction Decode), EX (Execute), MEM (Memory Access), WB (Write Back)"
+  pipe_regs: "IF/ID, ID/EX, EX/MEM, MEM/WB interstage pipeline registers"
+  ForwardA_ForwardB: "2-bit multiplexer control signals (00 = ID/EX, 10 = EX/MEM, 01 = MEM/WB)"
+  CPI_pipe: "Effective pipelined CPI = 1 + sum(f_hazard * Penalty)"
+
+cache_hierarchy:
+  C_size: "Total cache data capacity in bytes"
+  B_size: "Cache block (line) size in bytes"
+  N_ways: "Associativity degree (1 = direct-mapped, N = N-way set-associative)"
+  NB: "Total number of cache blocks C / B"
+  NS: "Total number of cache sets NB / N"
+  m_offset: "Byte/word offset bit width log2(B)"
+  n_index: "Cache set index bit width log2(NS)"
+  t_tag: "Address tag bit width (32 - n - m)"
+  t_hit: "Cache hit access time (in cycles or ns)"
+  MR: "Cache miss rate (misses / accesses)"
+  MP: "Cache miss penalty (additional cycles/time to fetch block from lower level)"
+  AMAT: "Average Memory Access Time = t_hit + MR * MP"

@@ -1,0 +1,64 @@
+---
+title: "Part V — Introduction: Pipelined Processor"
+description: "Conceptual overview, embedded CPU context, and shared RISC-V calibration loop for Part V: Pipelined Processor Microarchitecture."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part V Roadmap" markdown={`# Part V: Pipelined Processor
+  - 14. Five-Stage Pipeline
+    - Stage latches IF/ID, ID/EX, EX/MEM, MEM/WB
+    - Slowest-stage clock period $T_{\\text{clk}}$
+  - 15. Structural Hazards
+    - Unified memory port stalls
+    - Register File split-cycle double-pumping
+  - 16. Data Hazards and Forwarding
+    - RAW distances and Forwarding Unit equations
+    - Load-Use interlock and compiler scheduling
+  - 17. Control Hazards and Branching
+    - Branch flush penalties across ID, EX, MEM
+    - Predict-Untaken and ALU-to-Branch rules
+  - 18. Pipeline Performance
+    - Additive $\\text{CPI}_{\\text{pipe}}$ cycle accounting
+    - Producer vs. consumer phrasing and decoy traps`} />
+
+## Introduction
+
+In [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/), execution time factored into $T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}}$, while Parts III and IV translated C loops and subroutines into 32-bit [RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/). If a processor executes each RV32I instruction from start to finish inside one unsegmented clock cycle, $T_{\text{clk}}$ must stretch to accommodate the slowest possible path—fetching the instruction, reading registers, computing a memory address in the ALU, accessing data memory, and writing back to the Register File for every `lw`.
+
+Part V builds the canonical **5-stage pipelined microarchitecture** (`IF`, `ID`, `EX`, `MEM`, `WB`). By inserting clocked interstage registers (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) between functional units, up to five consecutive instructions overlap in flight simultaneously, shrinking $T_{\text{clk}}$ toward a single stage delay while keeping the ideal throughput near one instruction per clock cycle ($\text{CPI}_{\text{ideal}} = 1$). Whenever overlapping instructions contend for the same memory port, read uncommitted register operands, or branch to a new target address, **pipeline hazards** arise—requiring forwarding buses, stall interlocks, branch predictors, or compiler instruction scheduling.
+
+### Practical Hardware Perspective
+
+- **Deterministic Embedded Cores:** Real-time microcontrollers in motor drives and flight controllers (such as ARM Cortex-M4/M7 and embedded RISC-V RV32IM cores) use compact scalar in-order pipelines. Knowing exact Load-Use and branch stall counts lets firmware engineers bound worst-case execution time (WCET) inside $1\text{ kHz}$ control interrupts.
+- **Compiler Backend Scheduling:** Optimizing compilers (`gcc -O2`, `clang`) construct dependency graphs for basic blocks and reorder independent loads and pointer updates into delay slots, eliminating hardware stall bubbles at zero silicon cost.
+- **Wide Superscalar Front-Ends:** High-throughput desktop and server cores (AMD Zen, Apple M-series) generalize these exact forwarding networks, hazard checks, and branch target predictors across deep, multi-issue out-of-order pipelines.
+
+### Shared Running Loop
+
+Across Chapters 14–18, we revisit one compact RV32I sensor-calibration loop that reads raw 32-bit samples from an array pointed to by `s0` (up to end address `s1`), subtracts a constant zero-offset of `128`, and accumulates the calibrated sum in `s2`:
+
+```asm
+loop:
+  lw   t0, 0(s0)       # 1. Load raw 32-bit sample from buffer
+  addi t1, t0, -128    # 2. Remove sensor offset (Load-Use RAW on t0)
+  add  s2, s2, t1      # 3. Accumulate sum (ALU-to-ALU RAW on t1)
+  addi s0, s0, 4       # 4. Advance array pointer by 4 bytes
+  bne  s0, s1, loop    # 5. Loop back if s0 != s1 (RAW on s0 + Control hazard)
+```
+
+Every hazard class appears directly inside these five lines: `lw` exercises all five hardware stages and collides with instruction fetch if data and code share a single-port memory; `lw -> addi` triggers a 1-cycle **Load-Use stall**, whereas `addi -> add` resolves in zero stalls via `EX/MEM` forwarding; moving `addi s0, s0, 4` up into the Load-Use slot eliminates the data stall in software; and `addi -> bne` exposes both conditional branch flush penalties and early-`ID` comparison hazards.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[14. Five-Stage Pipeline](/dynamic-courses/computer-architecture/05-pipelined-processor/14-five-stage-pipeline/)** — Slice the RISC-V datapath into `IF`, `ID`, `EX`, `MEM`, and `WB`, pipeline control signals through interstage latches, and compute $T_{\text{clk}}$ from the slowest stage plus register overhead.
+2. **[15. Structural Hazards](/dynamic-courses/computer-architecture/05-pipelined-processor/15-structural-hazards/)** — Quantify unified-memory port stalls ($+1 \times f_{\text{mem}}$), eliminate them with split Harvard L1 caches, and resolve `WB`/`ID` Register File contention via split-cycle double-pumping.
+3. **[16. Data Hazards and Forwarding](/dynamic-courses/computer-architecture/05-pipelined-processor/16-data-hazards/)** — Trace Read-After-Write (`RAW`) stalls at distances $1, 2, 3$, derive `ForwardA`/`ForwardB` Boolean logic (`EX/MEM` priority and `x0` guard), detect 1-cycle Load-Use stalls, and reschedule instructions in software.
+4. **[17. Control Hazards and Branching](/dynamic-courses/computer-architecture/05-pipelined-processor/17-control-hazards/)** — Compare branch resolution in `ID` ($1$), `EX` ($2$), and `MEM` ($3$), contrast Predict-Untaken against stall-always policies, and isolate when `ALU -> Branch` dependencies cost an extra stall.
+5. **[18. Pipeline Performance](/dynamic-courses/computer-architecture/05-pipelined-processor/18-pipeline-performance/)** — Combine structural, data, and control stall frequencies into $\text{CPI}_{\text{pipe}} = 1 + \sum (f_i \times \text{Penalty}_i)$, distinguish producer- vs. consumer-relative percentages, and filter out decoy dependencies.

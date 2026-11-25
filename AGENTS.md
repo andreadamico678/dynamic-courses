@@ -10,15 +10,16 @@ Welcome, **agy**. You are the lead authoring, interactive-visualization, and bui
    - Canonical chapters live in `src/content/docs/<course-slug>/` as `.mdx` files—one continuous scrolling page per chapter, organized with `<Divider />` breaks and built-in Pagefind full-text search.
    - Use **pnpm** exclusively (`pnpm dev`, `pnpm build`, `pnpm lint`). Never use `npm`.
 2. **Strict Monotonic Dependency (Zero Forward References):**
-   - Concepts build in linear prerequisite order:
-     $$\text{Intuition} \longrightarrow \text{Formal Definition \& Derivation} \longrightarrow \text{Operational Algorithm} \longrightarrow \text{Worked Archetype \& Interactive Practice}$$
+   - Concepts build silently from concrete to abstract:
+     $$\text{Concrete Example} \longrightarrow \text{General Theory \& Proofs} \longrightarrow \text{Exam Summary} \longrightarrow \text{Exercises}$$
    - Never introduce or evaluate a mechanism before its underlying primitives and vocabulary are defined in earlier chapters.
-3. **Mandatory 4-Pillar Chapter Architecture:**
-   - Every chapter opens with a Matryoshka `<MindMap />` summarizing the chapter's mental model, followed by four separated sections via `<Divider />`:
-     1. **Intuition & Physical Meaning** — Plain-language physical/engineering grounding; zero premature formalism.
-     2. **Formal Definition & Derivation (Oral Core)** — Definitions and proofs in body prose (never buried in callouts), clearly fenced as *Derivation / Oral Proof*.
-     3. **Operational Algorithm (Written Exam Core)** — Single-source-of-truth lookup tables and step-by-step execution rules (including the *Pencil-on-Paper Graphical Standard* for plotting methods).
-     4. **Worked Exam Archetype & Interactive Exercises** — One complete hand-solved exam problem, targeted `<Callout type="warning">` pitfalls, and inline Brilliant-style `<Exercise>` / `<StepCheck>` blocks with revealable solutions.
+3. **Clean Textbook Structure (Invisible Pedagogy):**
+   - Every Part opens with `00-introduction.mdx` (`00-introduzione.mdx` for Italian courses, `sidebar.order: 0`) featuring an expanded Part `<MindMap />`, a brief overview, and one shared running system revisited across the Part's chapters.
+   - Every chapter opens with a collapsed-by-default `<MindMap client:load defaultCollapsed ... />`, a short opening problem (1 paragraph, no formal walls), and four `<Divider />`-separated sections with simple, direct labels:
+     1. **`1 · Example`** (`1 · Esempio`) — Work a concrete numerical system *first* alongside its diagram and brief intuitive explanation, plus an interactive explorer and quick `<StepCheck>`.
+     2. **`2 · Theory`** (`2 · Teoria`) — General definitions and step-by-step proofs in connected body prose (never buried in callouts), with an inline `<StepCheck>` check.
+     3. **`3 · Summary`** (`3 · Sintesi`) — One reference table, a short calculation procedure, key proofs to know, and `<Callout type="warning">` common mistakes.
+     4. **`4 · Exercises`** (`4 · Esercizi`) — Progress quietly from a full worked example to fill-in-the-step problems to mixed cross-chapter problems using plain titles (`Exercise N.k — <Topic>`). Never print internal pedagogical labels (*Toy Case*, *Worked Archetype*, *Faded Completion*, *Interleaved*, *Why This Matters*, *Oral Proof:*) in headings or prose.
 4. **Interactive Visuals & Mind Maps:**
    - Prefer live interactive React simulators (`<BodeExplorer />`, `<RouthExplorer />`, `<PhaseFlowExplorer />`) or clean static SVGs over static diagrams whenever parameters vary continuously.
    - Every chapter includes a collapsible `<MindMap />` powered by Markmap so students see the high-level hierarchy before diving into math.

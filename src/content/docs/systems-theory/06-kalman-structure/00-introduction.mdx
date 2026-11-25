@@ -1,0 +1,43 @@
+---
+title: "Part VI — Introduction: Kalman Structural Properties"
+description: "Conceptual overview and real-world framing for Part VI of Linear Systems Theory."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part VI Roadmap" markdown={`# Part VI: Kalman Structure
+  - 20. Kalman Controllability Criterion
+    - Actuator authority over all states
+  - 21. Kalman Observability Criterion
+    - Sensor visibility & duality
+  - 22. Kalman Canonical Decomposition
+    - 4-subspace state partition & minimality
+  - 23. Stabilizability & Detectability
+    - Relaxed practical thresholds`} />
+
+## Introduction
+
+Classical transfer functions $W(s)$ only tell you what happens between the input terminal and the sensor terminal—they silently discard internal physics whenever poles and zeros cancel. Before spending hours synthesizing a state-feedback controller or Kalman estimator, you must answer two structural questions about the plant matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C})$:
+
+1. **Controllability:** Do your actuators actually reach and steer every internal state?
+2. **Observability:** Do your sensors let you reconstruct every internal state from output measurements?
+
+Part VI develops Rudolf Kalman's rank criteria, the eigenvector PBH modal tests, and the **Kalman Canonical Decomposition** that splits any state space into four structural compartments—revealing which parts participate in $W(s)$ and establishing the weaker, real-world requirements of **stabilizability** and **detectability**.
+
+### Practical Real-World Perspective
+
+- **Motor Failure & Fault Tolerance:** If one motor fails on a hexacopter versus a quadcopter, recomputing $\operatorname{rank}(\mathcal{R})$ immediately tells the flight computer whether the remaining propellers still span all 3D attitude and altitude states or whether emergency landing is the only option.
+- **Hidden Gyro Bias Estimation:** An IMU gyroscope suffers from slow drift bias $b_g$ that has no direct sensor. Kalman observability proves that coupling an accelerometer angle measurement with rate integration makes the hidden bias observable so an EKF can estimate and cancel it automatically.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[20. Kalman Controllability Criterion](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/)** — Test full state steering via $\operatorname{rank}(\mathcal{R}) = n$ and the left-eigenvector PBH condition.
+2. **[21. Kalman Observability Criterion](/dynamic-courses/systems-theory/06-kalman-structure/02-kalman-observability-matrix-rank-criterion/)** — Reconstruct initial states via $\operatorname{rank}(\mathcal{O}) = n$, right-eigenvector tests, and Kalman duality.
+3. **[22. Kalman Canonical Decomposition](/dynamic-courses/systems-theory/06-kalman-structure/03-kalman-canonical-subspace-decomposition/)** — Partition state space into $\mathcal{X}_{co}, \mathcal{X}_{c\bar{o}}, \mathcal{X}_{\bar{c}o}, \mathcal{X}_{\bar{c}\bar{o}}$ and extract minimal transfer realizations.
+4. **[23. Stabilizability and Detectability](/dynamic-courses/systems-theory/06-kalman-structure/04-uncontrollable-mode-stabilizability-verification/)** — Verify via PBH tests that any uncontrollable or unobservable modes are naturally stable.

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import MathText from './MathText';
 
 interface NumericProps {
   mode?: 'numeric';
@@ -20,6 +21,8 @@ interface ChoiceProps {
 }
 
 type StepCheckProps = NumericProps | ChoiceProps;
+
+const CHOICE_KEYS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 export default function StepCheck(props: StepCheckProps) {
   const [input, setInput] = useState('');
@@ -46,35 +49,38 @@ export default function StepCheck(props: StepCheckProps) {
   };
 
   return (
-    <div className="dc-step-box">
-      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{props.prompt}</div>
+    <div className="dc-step-box not-content">
+      <div className="dc-step-prompt">
+        <MathText text={props.prompt} />
+      </div>
 
       {props.mode === 'choice' ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {props.options.map((opt, idx) => (
-            <button
-              key={idx}
-              type="button"
-              className="dc-btn"
-              style={{
-                borderColor:
-                  selected === idx
-                    ? status === 'ok'
-                      ? 'var(--dc-ok)'
-                      : 'var(--dc-err)'
-                    : undefined,
-              }}
-              onClick={() => pickChoice(idx)}
-            >
-              {opt}
-            </button>
-          ))}
+        <div className="dc-choice-list" role="radiogroup">
+          {props.options.map((opt, idx) => {
+            const isPicked = selected === idx;
+            const stateClass = isPicked
+              ? status === 'ok'
+                ? 'is-ok'
+                : 'is-err'
+              : '';
+            return (
+              <button
+                key={idx}
+                type="button"
+                className={`dc-choice-btn ${stateClass}`}
+                aria-pressed={isPicked}
+                onClick={() => pickChoice(idx)}
+              >
+                <span className="dc-choice-key">{CHOICE_KEYS[idx] ?? idx + 1}</span>
+                <span className="dc-choice-text">
+                  <MathText text={opt} />
+                </span>
+              </button>
+            );
+          })}
         </div>
       ) : (
-        <form
-          onSubmit={checkNumeric}
-          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.55rem' }}
-        >
+        <form onSubmit={checkNumeric} className="dc-numeric-form">
           <input
             type="text"
             className="dc-input"
@@ -85,7 +91,11 @@ export default function StepCheck(props: StepCheckProps) {
               setStatus('idle');
             }}
           />
-          {props.unit && <span style={{ fontSize: '0.88rem', opacity: 0.8 }}>{props.unit}</span>}
+          {props.unit && (
+            <span className="dc-unit">
+              <MathText text={props.unit} />
+            </span>
+          )}
           <button type="submit" className="dc-btn dc-btn-primary">
             {isIt ? 'Verifica' : 'Check'}
           </button>
@@ -93,12 +103,13 @@ export default function StepCheck(props: StepCheckProps) {
       )}
 
       {status === 'ok' && (
-        <div className="dc-feedback-ok" style={{ marginTop: '0.5rem' }}>
-          {isIt ? '✓ Corretto!' : '✓ Correct!'} {props.explanation ?? ''}
+        <div className="dc-feedback dc-feedback-ok">
+          <strong>{isIt ? '✓ Corretto!' : '✓ Correct!'}</strong>{' '}
+          {props.explanation ? <MathText text={props.explanation} /> : null}
         </div>
       )}
       {status === 'err' && (
-        <div className="dc-feedback-err" style={{ marginTop: '0.5rem' }}>
+        <div className="dc-feedback dc-feedback-err">
           {isIt
             ? '✕ Risposta errata — ricontrolla segni, unità di misura o formule e riprova.'
             : '✕ Not quite — double check your signs, corner order, or units and try again.'}

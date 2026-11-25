@@ -88,11 +88,11 @@ export default function MosfetExplorer() {
     .join(' ');
 
   return (
-    <div className="dc-widget">
+    <div className="dc-widget not-content">
       <div className="dc-widget-header">
-        <div>
-          <span className="dc-badge">Simulatore Interattivo</span>{' '}
-          <span className="dc-widget-title">Caratteristica I_D–V_DS e Retta di Carico MOSFET</span>
+        <div className="dc-widget-heading">
+          <span className="dc-badge">Simulatore Interattivo</span>
+          <span className="dc-widget-title">Caratteristica I<sub>D</sub>–V<sub>DS</sub> e Retta di Carico MOSFET</span>
         </div>
         <span className="dc-badge">{data.region}</span>
       </div>
@@ -101,41 +101,41 @@ export default function MosfetExplorer() {
         <div className="dc-explorer-sidebar">
           <div className="dc-controls" style={{ marginBottom: 0 }}>
             <label>
-              <strong>V_GS = {vgs.toFixed(1)} V</strong>
+              <span>V<sub>GS</sub> = {vgs.toFixed(1)} V</span>
               <input type="range" min={0.5} max={4.0} step={0.1} value={vgs} onChange={(e) => setVgs(Number(e.target.value))} />
             </label>
             <label>
-              <strong>V_th = {vth.toFixed(1)} V</strong>
+              <span>V<sub>th</sub> = {vth.toFixed(1)} V</span>
               <input type="range" min={0.5} max={1.5} step={0.1} value={vth} onChange={(e) => setVth(Number(e.target.value))} />
             </label>
             <label>
-              <strong>K_n = {knMa.toFixed(1)} mA/V²</strong>
+              <span>K<sub>n</sub> = {knMa.toFixed(1)} mA/V²</span>
               <input type="range" min={0.5} max={5.0} step={0.25} value={knMa} onChange={(e) => setKnMa(Number(e.target.value))} />
             </label>
             <label>
-              <strong>λ = {lambda.toFixed(2)} V⁻¹</strong>
+              <span>λ = {lambda.toFixed(2)} V⁻¹</span>
               <input type="range" min={0} max={0.1} step={0.01} value={lambda} onChange={(e) => setLambda(Number(e.target.value))} />
             </label>
             <label>
-              <strong>V_DD = {vdd.toFixed(1)} V</strong>
+              <span>V<sub>DD</sub> = {vdd.toFixed(1)} V</span>
               <input type="range" min={3.0} max={10.0} step={0.5} value={vdd} onChange={(e) => setVdd(Number(e.target.value))} />
             </label>
             <label>
-              <strong>R_D = {rdK.toFixed(1)} kΩ</strong>
+              <span>R<sub>D</sub> = {rdK.toFixed(1)} kΩ</span>
               <input type="range" min={0.4} max={4.0} step={0.1} value={rdK} onChange={(e) => setRdK(Number(e.target.value))} />
             </label>
           </div>
 
           <div className="dc-step-box" style={{ marginTop: 0, display: 'grid', gap: '0.35rem', fontSize: '0.86rem' }}>
-            <span><strong>V_OV = V_GS − V_th:</strong> {data.vov.toFixed(2)} V</span>
-            <span><strong>I_D(Q):</strong> {data.idQ.toFixed(2)} mA</span>
-            <span><strong>V_DS(Q):</strong> {data.vdsQ.toFixed(2)} V</span>
-            <span><strong>g_m:</strong> {data.gmMaV.toFixed(2)} mA/V</span>
-            <span><strong>r_o:</strong> {Number.isFinite(data.roK) ? `${data.roK.toFixed(1)} kΩ` : '∞'}</span>
+            <span><strong>V<sub>OV</sub> = V<sub>GS</sub> − V<sub>th</sub>:</strong> {data.vov.toFixed(2)} V</span>
+            <span><strong>I<sub>D</sub>(Q):</strong> {data.idQ.toFixed(2)} mA</span>
+            <span><strong>V<sub>DS</sub>(Q):</strong> {data.vdsQ.toFixed(2)} V</span>
+            <span><strong>g<sub>m</sub>:</strong> {data.gmMaV.toFixed(2)} mA/V</span>
+            <span><strong>r<sub>o</sub>:</strong> {Number.isFinite(data.roK) ? `${data.roK.toFixed(1)} kΩ` : '∞'}</span>
           </div>
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: '620px', height: 'auto', display: 'block' }}>
           <line x1={padL} y1={toY(0)} x2={W - padR} y2={toY(0)} stroke="var(--sl-color-hairline-light)" strokeWidth={1.3} />
           <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--sl-color-hairline-light)" strokeWidth={1.3} />
           <text x={W - padR} y={H - 8} textAnchor="end" fontSize="11" fill="var(--sl-color-gray-3)">V_DS [V]</text>

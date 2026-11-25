@@ -5,6 +5,7 @@ interface BodeExplorerProps {
   initialType?: number;
   initialPole?: number;
   initialZero?: number;
+  initialRhpZero?: boolean;
   showComplexOption?: boolean;
 }
 
@@ -13,12 +14,14 @@ export default function BodeExplorer({
   initialType = 1,
   initialPole = 2,
   initialZero = 5,
+  initialRhpZero = false,
   showComplexOption = true,
 }: BodeExplorerProps) {
   const [kb, setKb] = useState(initialKb);
   const [g, setG] = useState(initialType);
   const [wp, setWp] = useState(initialPole);
   const [useZero, setUseZero] = useState(true);
+  const [rhpZero, setRhpZero] = useState(initialRhpZero);
   const [wz, setWz] = useState(initialZero);
   const [useComplex, setUseComplex] = useState(false);
   const [wn, setWn] = useState(15);
@@ -31,12 +34,12 @@ export default function BodeExplorer({
   const logMax = Math.log10(wMax);
 
   const W = 680;
-  const Hm = 220;
-  const Hp = 200;
-  const padL = 56;
-  const padR = 20;
-  const padT = 18;
-  const padB = 30;
+  const Hm = 178;
+  const Hp = 166;
+  const padL = 54;
+  const padR = 18;
+  const padT = 14;
+  const padB = 26;
 
   const toX = (w: number) =>
     padL + ((Math.log10(w) - logMin) / (logMax - logMin)) * (W - padL - padR);
@@ -57,7 +60,7 @@ export default function BodeExplorer({
     let ph = -g * 90 - (Math.atan(w / wp) * 180) / Math.PI;
     if (useZero) {
       mag += 10 * Math.log10(1 + (w / wz) ** 2);
-      ph += (Math.atan(w / wz) * 180) / Math.PI;
+      ph += (rhpZero ? -1 : 1) * ((Math.atan(w / wz) * 180) / Math.PI);
     }
     if (useComplex) {
       const r = w / wn;
@@ -109,7 +112,8 @@ export default function BodeExplorer({
         { w: 10 * wp, ds: 45 },
       ];
       if (useZero) {
-        phEvents.push({ w: 0.1 * wz, ds: 45 }, { w: 10 * wz, ds: -45 });
+        const zSign = rhpZero ? -1 : 1;
+        phEvents.push({ w: 0.1 * wz, ds: 45 * zSign }, { w: 10 * wz, ds: -45 * zSign });
       }
       if (useComplex) {
         phEvents.push({ w: 0.1 * wn, ds: -90 }, { w: 10 * wn, ds: 90 });
@@ -169,7 +173,7 @@ export default function BodeExplorer({
         wc: foundWc,
         pm,
       };
-    }, [kb, g, wp, useZero, wz, useComplex, wn, zeta]);
+    }, [kb, g, wp, useZero, rhpZero, wz, useComplex, wn, zeta]);
 
   const mrDb =
     useComplex && zeta < Math.SQRT1_2
@@ -177,103 +181,117 @@ export default function BodeExplorer({
       : null;
 
   return (
-    <div className="dc-widget">
+    <div className="dc-widget not-content">
       <div className="dc-widget-header">
-        <div>
-          <span className="dc-badge">Interactive Lab</span>{' '}
+        <div className="dc-widget-heading">
+          <span className="dc-badge">Interactive Lab</span>
           <span className="dc-widget-title">Bode Magnitude &amp; Phase Explorer</span>
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.84rem' }}>
+        <label className="dc-check-inline">
           <input
             type="checkbox"
             checked={showExact}
             onChange={(e) => setShowExact(e.target.checked)}
           />
-          Show exact curve
+          <span>Show exact curve</span>
         </label>
       </div>
 
-      <div className="dc-controls">
-        <label>
-          <span>
-            Bode Gain K<sub>B</sub> = {kb.toFixed(1)} ({(20 * Math.log10(kb)).toFixed(1)} dB)
-          </span>
-          <input
-            type="range"
-            min={0.5}
-            max={40}
-            step={0.5}
-            value={kb}
-            onChange={(e) => setKb(Number(e.target.value))}
-          />
-        </label>
-
-        <label>
-          <span>System Type g = {g}</span>
-          <input
-            type="range"
-            min={-1}
-            max={2}
-            step={1}
-            value={g}
-            onChange={(e) => setG(Number(e.target.value))}
-          />
-        </label>
-
-        <label>
-          <span>Real Pole ω<sub>p</sub> = {wp} rad/s</span>
-          <input
-            type="range"
-            min={0.5}
-            max={30}
-            step={0.5}
-            value={wp}
-            onChange={(e) => setWp(Number(e.target.value))}
-          />
-        </label>
-
-        <label>
-          <span>
-            <input
-              type="checkbox"
-              checked={useZero}
-              onChange={(e) => setUseZero(e.target.checked)}
-            />{' '}
-            Real Zero ω<sub>z</sub> = {wz} rad/s
-          </span>
-          <input
-            type="range"
-            min={0.5}
-            max={40}
-            step={0.5}
-            disabled={!useZero}
-            value={wz}
-            onChange={(e) => setWz(Number(e.target.value))}
-          />
-        </label>
-
-        {showComplexOption && (
+      <div className="dc-explorer-grid">
+        <div className="dc-explorer-sidebar">
           <label>
             <span>
-              <input
-                type="checkbox"
-                checked={useComplex}
-                onChange={(e) => setUseComplex(e.target.checked)}
-              />{' '}
-              Complex Poles (ω<sub>n</sub>={wn}, ζ={zeta.toFixed(2)})
+              Bode Gain K<sub>B</sub> = {kb.toFixed(1)} ({(20 * Math.log10(kb)).toFixed(1)} dB)
             </span>
             <input
               type="range"
-              min={0.08}
-              max={1.1}
-              step={0.02}
-              disabled={!useComplex}
-              value={zeta}
-              onChange={(e) => setZeta(Number(e.target.value))}
+              min={0.5}
+              max={40}
+              step={0.5}
+              value={kb}
+              onChange={(e) => setKb(Number(e.target.value))}
             />
           </label>
-        )}
-      </div>
+
+          <label>
+            <span>System Type g = {g}</span>
+            <input
+              type="range"
+              min={-1}
+              max={2}
+              step={1}
+              value={g}
+              onChange={(e) => setG(Number(e.target.value))}
+            />
+          </label>
+
+          <label>
+            <span>Real Pole ω<sub>p</sub> = {wp} rad/s</span>
+            <input
+              type="range"
+              min={0.5}
+              max={30}
+              step={0.5}
+              value={wp}
+              onChange={(e) => setWp(Number(e.target.value))}
+            />
+          </label>
+
+          <label>
+            <span className="dc-check-inline">
+              <input
+                type="checkbox"
+                checked={useZero}
+                onChange={(e) => setUseZero(e.target.checked)}
+              />
+              <span>Real Zero ω<sub>z</sub> = {wz} rad/s</span>
+            </span>
+            <input
+              type="range"
+              min={0.5}
+              max={40}
+              step={0.5}
+              disabled={!useZero}
+              value={wz}
+              onChange={(e) => setWz(Number(e.target.value))}
+            />
+          </label>
+
+          {useZero && (
+            <label className="dc-check-inline">
+              <input
+                type="checkbox"
+                checked={rhpZero}
+                onChange={(e) => setRhpZero(e.target.checked)}
+              />
+              <span>RHP zero (1 − s/ω<sub>z</sub>)</span>
+            </label>
+          )}
+
+          {showComplexOption && (
+            <label>
+              <span className="dc-check-inline">
+                <input
+                  type="checkbox"
+                  checked={useComplex}
+                  onChange={(e) => setUseComplex(e.target.checked)}
+                />
+                <span>Complex Poles (ω<sub>n</sub>={wn}, ζ={zeta.toFixed(2)})</span>
+              </span>
+              <input
+                type="range"
+                min={0.08}
+                max={1.1}
+                step={0.02}
+                disabled={!useComplex}
+                value={zeta}
+                onChange={(e) => setZeta(Number(e.target.value))}
+              />
+            </label>
+          )}
+        </div>
+
+        <div className="dc-explorer-plots">
 
       {/* Magnitude SVG */}
       <svg viewBox={`0 0 ${W} ${Hm}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
@@ -323,22 +341,22 @@ export default function BodeExplorer({
           </g>
         ))}
 
-        <path d={magAsymPath} fill="none" stroke="#3b82f6" strokeWidth={2.5} />
+        <path d={magAsymPath} fill="none" stroke="var(--sl-color-accent)" strokeWidth={2.5} />
         {showExact && (
           <path
             d={magExactPath}
             fill="none"
-            stroke="#ef4444"
+            stroke="var(--dc-err)"
             strokeWidth={2}
             strokeDasharray="6 4"
           />
         )}
 
         {/* Anchor dot at omega = 1 */}
-        <circle cx={toX(1)} cy={toYm(anchorY)} r={4.5} fill="#10b981" />
+        <circle cx={toX(1)} cy={toYm(anchorY)} r={4.5} fill="var(--dc-ok)" />
         {/* Vertices */}
         {vertices.slice(1, -1).map((v, idx) => (
-          <circle key={idx} cx={toX(v.w)} cy={toYm(v.db)} r={4} fill="#3b82f6" />
+          <circle key={idx} cx={toX(v.w)} cy={toYm(v.db)} r={4} fill="var(--sl-color-accent)" />
         ))}
       </svg>
 
@@ -378,12 +396,12 @@ export default function BodeExplorer({
             </text>
           </g>
         ))}
-        <path d={phAsymPath} fill="none" stroke="#3b82f6" strokeWidth={2.5} />
+        <path d={phAsymPath} fill="none" stroke="var(--sl-color-accent)" strokeWidth={2.5} />
         {showExact && (
           <path
             d={phExactPath}
             fill="none"
-            stroke="#ef4444"
+            stroke="var(--dc-err)"
             strokeWidth={2}
             strokeDasharray="6 4"
           />
@@ -393,28 +411,38 @@ export default function BodeExplorer({
         </text>
       </svg>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem', fontSize: '0.84rem', marginTop: '0.4rem' }}>
+      <div className="dc-metrics-bar">
         <span>
-          <strong style={{ color: '#10b981' }}>● Anchor (1 rad/s):</strong> {(20 * Math.log10(kb)).toFixed(2)} dB
+          <strong style={{ color: 'var(--dc-ok)' }}>● Anchor (1 rad/s):</strong> {(20 * Math.log10(kb)).toFixed(2)} dB
         </span>
         <span>
-          <strong>Gain Crossover ω_c:</strong> {wc ? `${wc.toFixed(2)} rad/s` : 'none in window'}
+          <strong>Gain Crossover ω<sub>gc</sub>:</strong> {wc ? `${wc.toFixed(2)} rad/s` : 'none in window'}
         </span>
         <span>
-          <strong>Phase Margin φ_m:</strong>{' '}
+          <strong>Phase Margin φ<sub>m</sub>:</strong>{' '}
           {pm !== null ? (
-            <span style={{ color: pm > 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+            <span style={{ color: pm > 0 ? 'var(--dc-ok)' : 'var(--dc-err)', fontWeight: 700 }}>
               {pm.toFixed(1)}°
             </span>
           ) : (
             '—'
           )}
         </span>
-        {mrDb !== null && (
+        {useZero && (
           <span>
-            <strong>Resonant Peak M_r:</strong> +{mrDb.toFixed(2)} dB (ζ &lt; 0.707)
+            <strong>Zero Half-Plane:</strong>{' '}
+            <span style={{ color: rhpZero ? 'var(--dc-err)' : 'var(--dc-ok)', fontWeight: 700 }}>
+              {rhpZero ? `RHP (1 - s/${wz}) [NMP]` : `LHP (1 + s/${wz}) [MP]`}
+            </span>
           </span>
         )}
+        {mrDb !== null && (
+          <span>
+            <strong>Resonant Peak M<sub>r</sub>:</strong> +{mrDb.toFixed(2)} dB (ζ &lt; 0.707)
+          </span>
+        )}
+      </div>
+        </div>
       </div>
     </div>
   );

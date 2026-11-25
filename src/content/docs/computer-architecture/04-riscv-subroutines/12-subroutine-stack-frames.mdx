@@ -1,0 +1,700 @@
+---
+title: "12. Subroutine Stack Frames"
+description: "Computer Architecture — Chapter 12: Subroutine Stack Frames"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 12 Map" markdown={`# Ch. 12: Subroutine Stack Frames
+  - Dual-Buffer Main Frame Example
+    - 48-byte aligned layout for buffers and registers
+    - Passing stack pointers via addi a0, sp, offset
+  - ABI Register Split
+    - Caller-saved volatile (t0-t6, a0-a7, ra)
+    - Callee-saved preserved (s0-s11, sp)
+    - Leaf vs. non-leaf subroutines
+  - Prologue and Epilogue Mechanics
+    - 16-byte sp alignment formula
+    - Local C arrays vs. register-named helper variables`} />
+
+## Subroutine Stack Frames
+
+As soon as `main` invokes a helper subroutine such as `call strlen`, the processor executes `jal ra, strlen` and overwrites register **`ra`** with the return address inside `main`, while the helper itself needs working registers and local storage without corrupting `main`'s variables. The RISC-V **Application Binary Interface (ABI)** solves both hazards with a strict division between volatile caller-saved registers and preserved callee-saved registers, backed by 16-byte-aligned **stack frames** allocated downward from the stack pointer **`sp`**.
+
+<Divider label="1 · Example" />
+
+### Dual-Buffer Main Frame
+
+Before stating general ABI rules, let us budget and trace a concrete non-leaf `main` function that allocates two local 16-byte C arrays on the stack, calls `strlen` ([Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/)) on each buffer, and prints the sum of their lengths:
+
+```c
+int main(void) {
+    char prima[16];
+    char seconda[16];
+    int len1, len2;
+
+    scanf("%s", prima);
+    len1 = strlen(prima);
+    scanf("%s", seconda);
+    len2 = strlen(seconda);
+
+    printf("%d\n", len1 + len2);
+    return 0;
+}
+```
+
+Because `prima` and `seconda` are declared locally inside `main`, they belong on the **runtime stack**, not in `.data`. In addition, `main` calls `strlen` twice: it must save **`ra`** (because `main` is a non-leaf function) and keep `len1` in callee-saved register **`s0`** (and `len2` in **`s1`**) so the second `call strlen` cannot clobber `len1`. Summing the raw storage requirements gives:
+
+$$\underbrace{16\text{ B}}_{\texttt{prima[16]}} + \underbrace{16\text{ B}}_{\texttt{seconda[16]}} + \underbrace{4\text{ B}}_{\texttt{s1}} + \underbrace{4\text{ B}}_{\texttt{s0}} + \underbrace{4\text{ B}}_{\texttt{ra}} = 44\text{ B}$$
+
+Rounding $44\text{ B}$ up to the nearest multiple of $16\text{ B}$ yields an aligned frame size of **$K = 48\text{ bytes}$** (`32(sp)`–`35(sp)` remains unused 4-byte alignment padding, or holds an extra `s2` when needed):
+
+<figure id="fig-stack-frame" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-stack-frame.svg" alt="Stack Frame Layout for a 48-byte aligned non-leaf procedure containing saved registers (ra, s0, s1) at high offsets and two 16-byte local character buffers (seconda at sp+16, prima at sp+0)." />
+  <figcaption>48-byte aligned stack frame for a non-leaf `main`: local buffers `prima[16]` (`0(sp)`) and `seconda[16]` (`16(sp)`) sit at the base, while saved registers (`s1`, `s0`, `ra`) sit at the top word slots (`36(sp)`–`44(sp)`).</figcaption>
+</figure>
+
+Matching the layout in [the figure](#fig-stack-frame), `prima` starts at `sp + 0`, `seconda` starts at `sp + 16`, and `strlen` executes at the bottom as a **leaf function** using only `t0`–`t1` with zero stack overhead:
+
+```asm
+.text
+.globl main
+
+main:
+    # --- PROLOGUE: Allocate 48-byte frame (48 mod 16 == 0) ---
+    addi sp, sp, -48
+    sw   ra, 44(sp)          # Save return address
+    sw   s0, 40(sp)          # Save s0 (will hold len1)
+    sw   s1, 36(sp)          # Save s1 (will hold len2)
+
+    # 1. Read prima into stack slot [sp + 0 .. sp + 15]
+    addi a0, sp, 0           # a0 = &prima[0]
+    li   a1, 16
+    li   a7, 8               # ReadString
+    ecall
+
+    addi a0, sp, 0           # Pass &prima[0] to strlen
+    call strlen              # jal ra, strlen -> returns length in a0
+    mv   s0, a0              # s0 = len1 (survives across the next call!)
+
+    # 2. Read seconda into stack slot [sp + 16 .. sp + 31]
+    addi a0, sp, 16          # a0 = &seconda[0]
+    li   a1, 16
+    li   a7, 8               # ReadString
+    ecall
+
+    addi a0, sp, 16          # Pass &seconda[0] to strlen
+    call strlen
+    mv   s1, a0              # s1 = len2
+
+    # 3. Print len1 + len2 followed by '\n'
+    add  a0, s0, s1
+    li   a7, 1               # PrintInt
+    ecall
+
+    li   a0, 10
+    li   a7, 11              # PrintChar ('\n')
+    ecall
+
+    # --- EPILOGUE: Restore saved registers & release 48-byte frame ---
+    lw   s1, 36(sp)
+    lw   s0, 40(sp)
+    lw   ra, 44(sp)
+    addi sp, sp, 48
+
+    li   a7, 10              # Clean Exit
+    ecall
+
+# Leaf helper: uses only caller-saved t0, t1 -> 0 stack bytes needed
+strlen:
+    mv   t0, a0
+strlen_loop:
+    lbu  t1, 0(t0)
+    beqz t1, strlen_done
+    addi t0, t0, 1
+    j    strlen_loop
+strlen_done:
+    sub  a0, t0, a0
+    ret                      # Expands to: jalr zero, 0(ra)
+```
+
+<StepCheck
+  client:load
+  prompt="Suppose a non-leaf function declares one local buffer `char tag[20]` and saves `ra` and `s0` ($20 + 4 + 4 = 28$ raw bytes). How many bytes $K$ must its prologue subtract from `sp` to satisfy 16-byte ABI alignment?"
+  expected={32}
+  tolerance={0}
+  unit="bytes"
+  explanation="Rounding $28$ bytes up to the next integer multiple of $16$ gives $\lceil 28 / 16 \rceil \times 16 = 2 \times 16 = 32$ bytes (`addi sp, sp, -32`)."
+/>
+
+<Divider label="2 · Theory" />
+
+### Caller and Callee Registers
+
+Without a shared register convention, every function call would have to spill all 31 general-purpose registers to memory just in case the callee modified them. Instead, the RISC-V RV32 ABI splits registers into two preservation contracts:
+
+1. **Caller-Saved (Volatile) Registers (`t0`–`t6`, `a0`–`a7`, `ra`):**
+   - **`t0`–`t6`** (`x5`–`x7`, `x28`–`x31`) are scratch temporaries, **`a0`–`a7`** (`x10`–`x17`) carry up to 8 incoming arguments (with return values placed in **`a0`**–**`a1`**), and **`ra`** (`x1`) holds the return address written by `jal`.
+   - A callee may overwrite `t0`–`t6` and `a0`–`a7` freely without saving or restoring them. Never assume a value left in `t0` or `a0` before `call helper` still exists after `call helper` returns.
+2. **Callee-Saved (Preserved) Registers (`s0`–`s11`, `sp`):**
+   - **`s0`–`s11`** (`x8`–`x9`, `x18`–`x27`) and the stack pointer **`sp`** (`x2`) are guaranteed unchanged across any `call`.
+   - If a callee chooses to modify `s0`, the callee **must** save the caller's old `s0` onto its stack frame in its prologue and restore `s0` in its epilogue before `ret`. Because every compliant callee honors this contract, a caller can keep loop indices (`i`) and intermediate results (`len1`) safely inside `s0`–`s11` across any number of subroutine and `ecall` invocations.
+
+### Leaf and Non-Leaf Functions
+
+Every procedure in a call graph belongs to one of two structural classes that determine whether `ra` must be spilled to memory:
+
+- **Leaf Function:** Invokes **no** other subroutines inside its body (neither `call` nor `jal`). Because `ra` still holds the return address placed there by the caller, and because all temporary arithmetic can live inside volatile `t0`–`t6` and `a0`–`a7`, a leaf helper without large local arrays executes with **zero stack frame allocation** and returns in one instruction via `ret` (`jalr zero, 0(ra)`).
+- **Non-Leaf Function:** Invokes at least one subroutine via `call target` (which expands to `auipc` + `jalr` or `jal ra, target`). Hardware execution of `jal` overwrites `ra` with `PC + 4` inside the non-leaf function, permanently destroying the non-leaf function's own return address unless **`ra` was saved onto the stack in the prologue**.
+
+### Prologue and Epilogue Template
+
+The RISC-V runtime stack grows **downward toward lower byte addresses**: subtracting from `sp` allocates space, and adding the exact same constant back to `sp` deallocates it. At every subroutine call boundary, `sp` must remain a multiple of **16 bytes**:
+
+$$K = 16 \cdot \left\lceil \frac{B_{\text{buffers}} + 4 \cdot N_{\text{regs}}}{16} \right\rceil, \qquad \mathrm{sp} \equiv 0 \pmod{16}$$
+
+Every non-leaf procedure follows one mechanical **Prologue $\to$ Body $\to$ Epilogue** skeleton:
+
+```asm
+non_leaf_fn:
+    # --- PROLOGUE ---
+    addi sp, sp, -32         # 1. Allocate 16-byte-aligned frame (-16, -32, -48, ...)
+    sw   ra, 28(sp)          # 2. Save ra at top word slot (K - 4)
+    sw   s0, 24(sp)          # 3. Save every s-register modified in this function
+    sw   s1, 20(sp)
+
+    # --- BODY ---
+    mv   s0, a0              # Keep live parameter across nested calls
+    call helper_fn           # Safe: ra, s0, s1 are backed up in our frame
+    add  a0, a0, s0          # Place final return value in a0
+
+    # --- EPILOGUE (exact mirror of prologue) ---
+    lw   s1, 20(sp)          # 1. Restore saved s-registers
+    lw   s0, 24(sp)
+    lw   ra, 28(sp)          # 2. Restore original return address
+    addi sp, sp, 32          # 3. Deallocate frame (+K matches -K)
+    ret                      # 4. Return to caller: jalr zero, 0(ra)
+```
+
+### Stack Buffers and Exam Rules
+
+When a C function declares a local array such as `char buf[16];` or `int vec[4];`, allocate those bytes at low offsets (`0(sp)`, `16(sp)`, ...) inside the function's stack frame and compute the base pointer using **`addi`**:
+
+```asm
+addi a0, sp, 0               # a0 = &buf[0] (pointer to stack slot sp + 0)
+addi a1, sp, 16              # a1 = &second_buf[0] (pointer to stack slot sp + 16)
+```
+
+Never return the address of a local stack array (`addi a0, sp, 0` followed by `addi sp, sp, K; ret`) to a caller: once `sp` moves back up, that memory lies below `sp` and will be overwritten by the very next function call or interrupt.
+
+Two practical conventions govern Question 6 grading in RARS:
+
+1. **Register-Named C Variables in Helpers:** Exam prompts frequently write leaf C helpers with local integers deliberately named `int s0, s1, s2;`. In C, `s0` is an ordinary variable identifier, **not** an instruction to touch hardware register `x8`! Inside a leaf helper, map all local C variables to caller-saved temporaries (`t0`–`t6`). Writing to hardware `s0` inside a zero-stack leaf helper silently clobbers `main`'s loop counter `s0`!
+2. **Self-Contained RARS File:** RARS does not link `libc`. Whenever C code calls `strlen`, append the leaf `strlen` subroutine directly at the bottom of `.text` so all labels assemble without unresolved symbol errors.
+
+<Callout type="bridge" title="Embedded Firmware Bridge: RTOS Stack Watermarks and Guard Pages">
+
+On desktop Linux, overflowing the stack crosses an unmapped virtual **guard page** and triggers a clean `SIGSEGV` fault. On bare-metal Cortex-M and RISC-V flight controllers running FreeRTOS without full virtual memory, every task's stack sits right next to another task's TCB or global RAM: allocating `char frame_buf[4096]` on a $2\text{ KiB}$ thread stack silently corrupts neighboring tasks mid-flight. Embedded engineers place large buffers in static SRAM or DMA pools and audit worst-case frame sums at compile time (`-fstack-usage`).
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="A C exam problem defines `int helper(char *p) { int s0 = 0; ... }` as a leaf function called inside `main`'s `for` loop (where `main` stores loop index `i` in `s0`). What is the cleanest ABI-compliant register choice for C variable `s0` inside `helper`?"
+  options={[
+    "Map C variable `s0` directly to hardware `s0` without allocating a stack frame",
+    "Map C variable `s0` to a volatile temporary register such as `t0` so `helper` stays zero-stack and preserves `main`'s `s0`",
+    "Store C variable `s0` inside `.data` using `.word`"
+  ]}
+  correctIndex={1}
+  explanation="Hardware `s0` is callee-saved: modifying it without saving/restoring corrupts `main`'s loop index `i`. Mapping the C variable `s0` to `t0` keeps `helper` a fast, zero-stack leaf function while honoring the ABI."
+/>
+
+<Divider label="3 · Summary" />
+
+| Register(s) | Hardware Names | ABI Role | Preserved Across `call`? | Mechanical Rule |
+| :--- | :---: | :--- | :---: | :--- |
+| **`zero`** | `x0` | Hardwired constant `0` | Immutable | Reads `0`; writes discarded |
+| **`ra`** | `x1` | Return address | **No** (clobbered by `jal`) | Non-leaf functions **must** `sw ra, (K-4)(sp)` |
+| **`sp`** | `x2` | Stack pointer | **Yes** (Callee-saved) | Keep $K \equiv 0 \pmod{16}$; match `-K` and `+K` |
+| **`a0`–`a1`** | `x10`–`x11` | Args 1–2 & return values | **No** (Caller-saved) | Move needed inputs to `s0`–`s11` before `call` |
+| **`a2`–`a7`** | `x12`–`x17` | Args 3–8 (`a7` = syscall ID) | **No** (Caller-saved) | Freely overwritten by callees and `ecall` |
+| **`t0`–`t6`** | `x5`–`x7`, `x28`–`x31` | Scratch temporaries | **No** (Caller-saved) | Default registers for leaf helper variables |
+| **`s0`–`s11`** | `x8`–`x9`, `x18`–`x27` | Saved local variables | **Yes** (Callee-saved) | Save in prologue & restore in epilogue if used |
+
+### Stack Frame Budgeting Procedure
+
+1. **Classify the Function:** If it makes zero `call`/`jal` instructions and has no local arrays, write a **zero-stack leaf** using only `t0`–`t6` and `a0`–`a7`, ending with `ret`.
+2. **Sum Raw Frame Bytes:** For a non-leaf function (or one with local arrays), sum all local buffer capacities plus $4\text{ bytes}$ for `ra` and $4\text{ bytes}$ for each `s` register modified by the function.
+3. **Align to 16 Bytes:** Compute $K = 16 \cdot \lceil B_{\text{raw}} / 16 \rceil \in \{16, 32, 48, 64, \dots\}$.
+4. **Assign Non-Overlapping Offsets:** Place local arrays starting at `0(sp)` upward, and place saved registers descending from `(K - 4)(sp)` (`ra` at `K - 4`, `s0` at `K - 8`, `s1` at `K - 12`, ...).
+5. **Write Mirrored Prologue & Epilogue:** Emit `addi sp, sp, -K` + `sw` stores at entry, pass stack buffer pointers via `addi aX, sp, offset`, and emit matching `lw` loads + `addi sp, sp, K` + `ret` (or `ecall 10` in `main`) at exit.
+
+### Key Rules
+
+- **Non-Leaf `ra` Mandate:** Any function executing `call` (`jal`) must save `ra` on its stack frame before the first call and restore `ra` before returning.
+- **Stack Buffer Addressing:** Local C arrays live inside `sp` frames (never `.data`) and are passed by address via `addi a0, sp, offset`.
+- **Leaf Scratch Discipline:** Implement leaf helpers solely with `t0`–`t6` and `a0`–`a7` regardless of what the C variable names look like.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Placing Local C Buffers in `.data`:** Declaring `prima: .space 16` in `.data` when C declares `char prima[16];` inside `main()` violates stack allocation rules (and breaks re-entrancy).
+2. **Forgetting `sw ra` in `main` or Nested Helpers:** Without `sw ra, (K-4)(sp)`, the first `call strlen` overwrites `ra`.
+3. **Using `lw a0, 0(sp)` Instead of `addi a0, sp, 0`:** `lw` loads the first 4 characters inside the buffer rather than computing the buffer's memory address `&buf[0]`.
+4. **Unaligned Stack Allocations:** Writing `addi sp, sp, -12` or `addi sp, sp, -40` breaks the $16$-byte ABI boundary ($12 \bmod 16 \neq 0$, $40 \bmod 16 = 8 \neq 0$).
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-12-1"
+  title="Exercise 12.1 — Stack Buffer Validation Program"
+  level="Warm-Up"
+  hint="Budget `buf[32]` (32 B) + `ra` (4 B) + `s0` (4 B) + `s1` (4 B) = 44 B -> 48 B frame. Implement both `count_digits` and `strlen` as zero-stack leaf functions at the bottom of `.text`."
+>
+
+Translate the following C program into complete, standalone RARS assembly with proper 16-byte stack alignment:
+
+```c
+int count_digits(char *s, int n) {
+    int i, cnt = 0;
+    for (i = 0; i < n; i++) {
+        if (s[i] >= '0' && s[i] <= '9') cnt++;
+    }
+    return cnt;
+}
+
+int main(void) {
+    char buf[32];
+    int n, digits;
+    scanf("%s", buf);
+    n = strlen(buf);
+    digits = count_digits(buf, n);
+    printf("Digits: %d\n", digits);
+    return 0;
+}
+```
+
+<StepCheck
+  client:load
+  prompt="With `buf[32]` (32 B) plus `ra`, `s0` (`n`), and `s1` (`digits`) saved in `main`, what aligned frame size $K$ (in bytes) is allocated in `main`'s prologue?"
+  expected={48}
+  tolerance={0}
+  unit="bytes"
+  explanation="$32 + 4 + 4 + 4 = 44$ bytes raw; rounding up to a multiple of $16$ gives $\lceil 44 / 16 \rceil \times 16 = 48$ bytes."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+```asm
+.data
+str_out: .asciz "Digits: "
+
+.text
+.globl main
+
+# Frame budget: buf[32] (0..31) + pad (32..35) + s1 (36) + s0 (40) + ra (44) = 48 B
+main:
+    addi sp, sp, -48
+    sw   ra, 44(sp)
+    sw   s0, 40(sp)              # s0 = n
+    sw   s1, 36(sp)              # s1 = digits
+
+    # scanf("%s", buf)
+    addi a0, sp, 0               # a0 = &buf[0]
+    li   a1, 32
+    li   a7, 8                   # ReadString
+    ecall
+
+    # n = strlen(buf)
+    addi a0, sp, 0
+    call strlen
+    mv   s0, a0                  # s0 = n
+
+    # digits = count_digits(buf, n)
+    addi a0, sp, 0               # Arg 1: buf
+    mv   a1, s0                  # Arg 2: n
+    call count_digits
+    mv   s1, a0                  # s1 = digits
+
+    # printf("Digits: %d\n", digits)
+    la   a0, str_out
+    li   a7, 4
+    ecall
+
+    mv   a0, s1
+    li   a7, 1
+    ecall
+
+    li   a0, 10
+    li   a7, 11                  # '\n'
+    ecall
+
+    lw   s1, 36(sp)
+    lw   s0, 40(sp)
+    lw   ra, 44(sp)
+    addi sp, sp, 48
+
+    li   a7, 10
+    ecall
+
+# Leaf helper: count_digits(a0 = char *s, a1 = int n) -> a0 = cnt
+count_digits:
+    li   t0, 0                   # i = 0
+    li   t1, 0                   # cnt = 0
+    li   t2, 48                  # '0'
+    li   t3, 57                  # '9'
+cd_loop:
+    bge  t0, a1, cd_done
+    add  t4, a0, t0              # &s[i]
+    lbu  t5, 0(t4)               # s[i]
+    blt  t5, t2, cd_next
+    blt  t3, t5, cd_next
+    addi t1, t1, 1               # cnt++
+cd_next:
+    addi t0, t0, 1
+    j    cd_loop
+cd_done:
+    mv   a0, t1
+    ret
+
+# Leaf helper: strlen(a0 = char *str) -> a0 = length
+strlen:
+    mv   t0, a0
+sl_loop:
+    lbu  t1, 0(t0)
+    beqz t1, sl_done
+    addi t0, t0, 1
+    j    sl_loop
+sl_done:
+    sub  a0, t0, a0
+    ret
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-12-2"
+  title="Exercise 12.2 — Avoiding Callee-Saved Clobbering"
+  level="Intermediate"
+  hint="In `main`, save `ra`, `s0` (`i`), `s1` (`limit = 3`), and `word[16]` (total 16 + 12 = 28 -> 32 B frame). Inside leaf `score`, map C variables `s0` and `s1` to `t0` and `t1`!"
+>
+
+Notice how the C helper `score` below names its local integers `s0` and `s1` while `main` runs a 3-iteration loop. Budget `main`'s stack frame and write both `main` and leaf `score` so `main`'s loop index is never corrupted:
+
+```c
+int score(char *w) {
+    int s0 = 0, s1 = 0;   // C variable names!
+    while (w[s0] != '\0' && w[s0] != '\n') {
+        if (w[s0] >= 'a' && w[s0] <= 'z') s1 += (w[s0] - 'a');
+        s0++;
+    }
+    return s1;
+}
+
+int main(void) {
+    char word[16];
+    int i, val;
+    for (i = 0; i < 3; i++) {
+        scanf("%s", word);
+        val = score(word);
+        printf("%d\n", val);
+    }
+    return 0;
+}
+```
+
+<StepCheck
+  client:load
+  prompt="If `main` allocates `word[16]` (16 B) and saves `ra`, `s0` (`i`), and `s1` (`val` or loop bound `3`) on the stack ($16 + 12 = 28$ B), what is `ra`'s byte offset `(K - 4)` from `sp`?"
+  expected={28}
+  tolerance={0}
+  unit="bytes"
+  explanation="The aligned frame size is $K = 32$ bytes (`addi sp, sp, -32`), placing the top 4-byte word slot `K - 4` at offset `28(sp)`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+```asm
+.text
+.globl main
+
+# Frame budget: word[16] (0..15) + pad (16..19) + s1 (20) + s0 (24) + ra (28) = 32 B
+main:
+    addi sp, sp, -32
+    sw   ra, 28(sp)
+    sw   s0, 24(sp)              # s0 = loop counter i
+    sw   s1, 20(sp)              # s1 = loop bound 3
+
+    li   s0, 0                   # i = 0
+    li   s1, 3                   # bound = 3
+
+for_i:
+    bge  s0, s1, end_main
+
+    addi a0, sp, 0               # &word[0]
+    li   a1, 16
+    li   a7, 8                   # ReadString
+    ecall
+
+    addi a0, sp, 0
+    call score                   # Returns val in a0 without touching hardware s0/s1!
+
+    # a0 already holds val -> PrintInt directly
+    li   a7, 1
+    ecall
+
+    li   a0, 10
+    li   a7, 11                  # '\n'
+    ecall
+
+    addi s0, s0, 1               # i++
+    j    for_i
+
+end_main:
+    lw   s1, 20(sp)
+    lw   s0, 24(sp)
+    lw   ra, 28(sp)
+    addi sp, sp, 32
+
+    li   a7, 10
+    ecall
+
+# Leaf helper: score(a0 = char *w) -> a0 = sum of lowercase offsets
+# Maps C 's0' -> t0 and C 's1' -> t1 (ZERO hardware s-registers modified!)
+score:
+    li   t0, 0                   # C var s0 = index = 0
+    li   t1, 0                   # C var s1 = accumulator = 0
+    li   t2, 10                  # '\n'
+    li   t3, 97                  # 'a'
+    li   t4, 122                 # 'z'
+
+score_loop:
+    add  t5, a0, t0              # &w[index]
+    lbu  t6, 0(t5)               # w[index]
+    beqz t6, score_done          # Stop at '\0'
+    beq  t6, t2, score_done      # Stop at '\n'
+
+    blt  t6, t3, score_next      # Skip if < 'a'
+    blt  t4, t6, score_next      # Skip if > 'z'
+    addi t6, t6, -97             # w[index] - 'a'
+    add  t1, t1, t6              # accumulator += offset
+
+score_next:
+    addi t0, t0, 1               # index++
+    j    score_loop
+
+score_done:
+    mv   a0, t1
+    ret
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-12-3"
+  title="Exercise 12.3 — Equal-Length String Pair Processor"
+  level="Exam"
+  hint="Allocate a 48-byte frame in `main` (`prima[16]` at `0(sp)`, `seconda[16]` at `16(sp)`, `s2` at `32(sp)`, `s1` at `36(sp)`, `s0` at `40(sp)`, `ra` at `44(sp)`), plus save `s3` or compare `s0` against `li t0, 3`. Write both `elabora` and `strlen` as zero-stack leaf functions."
+>
+
+Translate the complete Question 6 C program below (modeled on the January 2026 C1 session) into a standalone RARS file:
+
+```c
+int elabora(char *p, char *s, int n) {
+    int i, v, ris = 0, t = 1;
+    for (i = n - 1; i >= 0; i--) {
+        v = p[i] - s[i];
+        if (v >= 1) ris = ris + v * t;
+        t = t * 10;
+    }
+    return ris;
+}
+
+int main(void) {
+    char prima[16], seconda[16];
+    int i, pa2, res;
+    for (i = 0; i < 3; i++) {
+        printf("First numeric string:\n");
+        scanf("%s", prima);
+        pa2 = strlen(prima);
+        do {
+            printf("Second string (same length):\n");
+            scanf("%s", seconda);
+        } while (strlen(seconda) != pa2);
+
+        res = elabora(prima, seconda, pa2);
+        printf("%d ) Result = %d\n", i, res);
+    }
+    return 0;
+}
+```
+
+<StepCheck
+  client:load
+  prompt='Trace `elabora("529", "345", 3)` by hand ($i = 2, 1, 0$ with $t = 1, 10, 100$). What integer `ris` is returned in `a0`?'
+  expected={204}
+  tolerance={0}
+  unit=""
+  explanation="At $i=2$: `'9'-'5' = 4 >= 1` -> `ris = 4*1 = 4`, `t = 10`. At $i=1$: `'2'-'4' = -2 < 1` (skipped), `t = 100`. At $i=0$: `'5'-'3' = 2 >= 1` -> `ris = 4 + 2*100 = 204`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+Note that in `main` we compare `s0` (`i`) against a temporary `li t0, 3` at the top of `for_main` so only `s0`, `s1`, `s2`, and `ra` need to be saved (zero unsaved `s3` leakage!), fitting cleanly inside a **48-byte** stack frame (`16 + 16 + 4*4 = 48` bytes):
+
+```asm
+.data
+str_prompt1: .asciz "First numeric string:\n"
+str_prompt2: .asciz "Second string (same length):\n"
+str_fmt_idx: .asciz " ) Result = "
+
+.text
+.globl main
+
+# Frame budget: prima[16] (0..15) + seconda[16] (16..31) + s2(32) + s1(36) + s0(40) + ra(44) = 48 B
+main:
+    addi sp, sp, -48
+    sw   ra, 44(sp)              # Preserve return address
+    sw   s0, 40(sp)              # s0 = loop index i
+    sw   s1, 36(sp)              # s1 = pa2 = strlen(prima)
+    sw   s2, 32(sp)              # s2 = res = elabora(...)
+
+    li   s0, 0                   # i = 0
+
+for_main:
+    li   t0, 3
+    bge  s0, t0, exit_main       # Exit loop when i >= 3
+
+    # 1. Read prima and measure pa2 = strlen(prima)
+    la   a0, str_prompt1
+    li   a7, 4
+    ecall
+
+    addi a0, sp, 0               # &prima[0]
+    li   a1, 16
+    li   a7, 8
+    ecall
+
+    addi a0, sp, 0
+    call strlen
+    mv   s1, a0                  # s1 = pa2
+
+    # 2. do-while: read seconda until strlen(seconda) == pa2
+do_seconda:
+    la   a0, str_prompt2
+    li   a7, 4
+    ecall
+
+    addi a0, sp, 16              # &seconda[0]
+    li   a1, 16
+    li   a7, 8
+    ecall
+
+    addi a0, sp, 16
+    call strlen
+    bne  a0, s1, do_seconda      # Repeat if strlen(seconda) != pa2
+
+    # 3. res = elabora(prima, seconda, pa2)
+    addi a0, sp, 0               # Arg 1: prima
+    addi a1, sp, 16              # Arg 2: seconda
+    mv   a2, s1                  # Arg 3: pa2
+    call elabora
+    mv   s2, a0                  # s2 = res
+
+    # 4. printf("%d ) Result = %d\n", i, res)
+    mv   a0, s0
+    li   a7, 1
+    ecall
+
+    la   a0, str_fmt_idx
+    li   a7, 4
+    ecall
+
+    mv   a0, s2
+    li   a7, 1
+    ecall
+
+    li   a0, 10
+    li   a7, 11                  # '\n'
+    ecall
+
+    addi s0, s0, 1               # i++
+    j    for_main
+
+exit_main:
+    lw   s2, 32(sp)
+    lw   s1, 36(sp)
+    lw   s0, 40(sp)
+    lw   ra, 44(sp)
+    addi sp, sp, 48
+
+    li   a7, 10
+    ecall
+
+# Leaf helper: elabora(a0 = char *p, a1 = char *s, a2 = int n) -> a0 = ris
+elabora:
+    li   t1, 0                   # ris = 0
+    li   t2, 1                   # t = 1
+    addi t0, a2, -1              # i = n - 1
+
+elabora_loop:
+    blt  t0, zero, elabora_done  # Exit when i < 0
+
+    add  t4, a0, t0              # &p[i]
+    lbu  t5, 0(t4)               # p[i]
+    add  t4, a1, t0              # &s[i]
+    lbu  t6, 0(t4)               # s[i]
+    sub  t3, t5, t6              # v = p[i] - s[i]
+
+    li   t4, 1
+    blt  t3, t4, skip_accum      # Skip if v < 1
+    mul  t5, t3, t2              # v * t
+    add  t1, t1, t5              # ris += v * t
+
+skip_accum:
+    li   t4, 10
+    mul  t2, t2, t4              # t *= 10
+    addi t0, t0, -1              # i--
+    j    elabora_loop
+
+elabora_done:
+    mv   a0, t1
+    ret
+
+# Leaf helper: strlen(a0 = char *str) -> a0 = length (excluding '\n' and '\0')
+strlen:
+    mv   t0, a0
+    li   t2, 10                  # Stop at '\n' as well so RARS console Enter matches scanf("%s")
+strlen_loop:
+    lbu  t1, 0(t0)
+    beqz t1, strlen_done
+    beq  t1, t2, strlen_done
+    addi t0, t0, 1
+    j    strlen_loop
+strlen_done:
+    sub  a0, t0, a0
+    ret
+```
+
+</details>
+
+</Exercise>

@@ -11,225 +11,344 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 11" markdown={`# Cap. 11: Circuiti Computazionali ad Op-Amp
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Il Sommatore Invertente Pesato
-    - Convertitori Digitale-Analogico (DAC): Pesi Binari vs Scala $R\text{-}2R$
-    - L'Amplificatore Sottrattore Differenziale a Quattro Resistori
-    - Circuiti di Integrazione e Derivazione
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 11" markdown={`# Cap. 11: Circuiti Computazionali ad Op-Amp
+  - 1. Sommatore Invertente Pesato
+    - Esempio: Mixer Analogico a Due Ingressi
+    - Teoria: Combinazione Lineare e Assenza di Diafonia
+  - 2. Convertitori Digitale-Analogico (DAC)
+    - Esempio: Conversione a 3 Bit e Confronto R-2R
+    - Teoria: DAC a Pesi Binari e Invarianza della Scala R-2R
+  - 3. Amplificatore Differenziale
+    - Esempio: Estrazione di Segnale da Disturbo Comune
+    - Teoria: Sovrapposizione e Condizione di Bilanciamento
+  - 4. Circuiti Integratore e Derivatore
+    - Esempio: Integrazione, Deriva DC e Derivazione
+    - Teoria: Integratore di Miller, Smorzato e Derivatore`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
+Gli amplificatori operazionali devono il loro nome ai primi calcolatori analogici, in cui eseguivano somme, differenze, integrali e derivazioni direttamente sulle tensioni sfruttando la massa virtuale del [Capitolo 10](/dynamic-courses/elettronica/03-amplificatori-operazionali/10-opamp-ideale/).
 
+Oggi ritroviamo questi stessi circuiti ovunque: i **sommatori invertenti** miscelano segnali senza interferenze; i **DAC a scala $R\text{-}2R$** convertono bit digitali in tensioni analogiche usando solo due valori di resistenza; gli **amplificatori differenziali** estraggono piccoli segnali eliminando i disturbi comuni; gli **integratori e derivatori** modellano la risposta nel tempo e in frequenza.
 
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+<Divider label="1 · Sommatore Invertente Pesato" />
 
-## Il Sommatore Invertente Pesato
+### Esempio — Mixer Analogico a Due Ingressi
 
-Sfruttando la proprietà della massa virtuale ($v^- = 0$), possiamo collegare molteplici rami di segnale indipendenti al medesimo nodo invertente senza che essi interferiscano mutuamente ([la figura](#fig-summing-opamp)).
+Costruiamo un semplice mixer a due ingressi usando il sommatore invertente di [la figura](#fig-summing-opamp) ($n = 2$), con $R_1 = 10\,\text{k}\Omega$, $R_2 = 20\,\text{k}\Omega$ e $R_f = 40\,\text{k}\Omega$. Applichiamo in ingresso $v_1 = +0.5\,\text{V}$ e $v_2 = -1.2\,\text{V}$.
 
 <figure id="fig-summing-opamp" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-summing-opamp.svg" alt="Schema del sommatore analogico invertente pesato a n ingressi." />
   <figcaption>Schema del sommatore analogico invertente pesato a $n$ ingressi.</figcaption>
 </figure>
 
-Applichiamo la KCL al nodo di massa virtuale $v^-$:
-$$ i_1 + i_2 + \dots + i_n = i_f + i^- $$
+1. **Massa virtuale:** poiché $v^+ = 0\,\text{V}$, la retroazione negativa blocca il nodo sommatore a $v^- = 0\,\text{V}$.
+2. **Correnti indipendenti:** ogni sorgente vede solo il proprio resistore verso zero volt, senza accorgersi dell'altra:
 
-Poiché l'Op-Amp ideale non assorbe corrente ($i^- = 0$):
-$$ \sum_{k=1}^n i_k = i_f $$
+$$
+i_1 = \frac{0.5\,\text{V}}{10\,\text{k}\Omega} = 50\,\mu\text{A}, \qquad i_2 = \frac{-1.2\,\text{V}}{20\,\text{k}\Omega} = -60\,\mu\text{A}
+$$
 
-Esprimiamo le correnti attraverso la legge di Ohm, ricordando che $v^- = 0$:
-$$ i_k = \frac{v_k - v^-}{R_k} = \frac{v_k}{R_k}, \qquad i_f = \frac{v^- - v_o}{R_f} = -\frac{v_o}{R_f} $$
+3. **Somma in uscita:** siccome $i^- = 0$, la somma delle due correnti ($i_f = 50 - 60 = -10\,\mu\text{A}$) scorre tutta in $R_f = 40\,\text{k}\Omega$, fissando l'uscita:
 
-Sostituendo:
-$$ \sum_{k=1}^n \frac{v_k}{R_k} = -\frac{v_o}{R_f} $$
+$$
+v_o = -R_f (i_1 + i_2) = -(40\,\text{k}\Omega)(-10\,\mu\text{A}) = +0.4\,\text{V}
+$$
 
-Esplicitando la tensione di uscita $v_o$:
-$$ v_o = -\left( \frac{R_f}{R_1} v_1 + \frac{R_f}{R_2} v_2 + \dots + \frac{R_f}{R_n} v_n \right) = -\sum_{k=1}^n \frac{R_f}{R_k} v_k $$
+Il circuito ha calcolato $v_o = -(4\,v_1 + 2\,v_2)$ senza che i due canali si influenzassero a vicenda.
 
-### La Proprietà dell'Assenza di Interferenza (Zero Cross-Talk)
-Un vantaggio fondamentale di questa topologia risiede nel fatto che ciascun ingresso $v_k$ vede verso massa una resistenza di ingresso puramente locale pari a $R_{in,k} = R_k$. 
-Poiché il nodo sommatore $v^-$ è vincolato rigidamente a potenziale zero volt dall'azione della retroazione, **variazioni di tensione su un canale $v_1$ non inducono alcuna corrente né alterazione di potenziale sugli altri rami $v_2 \dots v_n$**. Questa immunità assoluta da diafonia (*cross-talk*) è alla base dei mixer audio analogici e dei circuiti di conversione D/A.
+<StepCheck client:load lang="it" prompt="Se portiamo $v_1$ a $+1.0\,\text{V}$ mantenendo $v_2 = -1.2\,\text{V}$, $R_1 = 10\,\text{k}\Omega$, $R_2 = 20\,\text{k}\Omega$ e $R_f = 40\,\text{k}\Omega$, quanto vale la nuova tensione d'uscita $v_o$?" expected={-1.6} tolerance={0.05} unit="$\text{V}$" explanation="Con i guadagni di ramo $-4$ e $-2$, risulta $v_o = -(4 \cdot 1.0 + 2 \cdot (-1.2)) = -(4.0 - 2.4) = -1.6\,\text{V}$." />
 
-## Convertitori Digitale-Analogico (DAC): Pesi Binari vs Scala $R\text{-}2R$
+### Teoria — Combinazione Lineare e Assenza di Diafonia
 
-Un'applicazione diretta del sommatore è il convertitore Digitale-Analogico (DAC), che trasforma una parola binaria di $N$ bit ($b_1 b_2 \dots b_N$, dove ciascun bit $b_k \in \{0, 1\}$ controlla un interruttore collegato a una tensione di riferimento stabile $-V_{ref}$) in una tensione continua proporzionale.
+Collegando $n$ rami resistivi al nodo di massa virtuale ($v^- = 0\,\text{V}$) di [la figura](#fig-summing-opamp), ciascun ingresso invia la corrente $i_k = v_k / R_k$. Poiché nell'Op-Amp non entra corrente ($i^- = 0$), tutte queste correnti si sommano nel solo resistore di retroazione $R_f$, dove $i_f = -v_o / R_f$. Ricaviamo quindi la formula del **sommatore invertente pesato**:
 
-### 1. DAC a Resistori Pesati Binari ([la figura](#fig-weighted-dac))
-In questa architettura ([la figura](#fig-weighted-dac)), ciascun ramo d'ingresso impiega una resistenza scalata per potenze di due:
-$$ R_1 = R, \quad R_2 = 2R, \quad R_3 = 4R, \quad \dots \quad R_N = 2^{N-1} R $$
-con resistenza di retroazione $R_f = R/2$.
+$$
+v_o = -\left( \frac{R_f}{R_1} v_1 + \frac{R_f}{R_2} v_2 + \dots + \frac{R_f}{R_n} v_n \right)
+$$
+
+Ogni ingresso ha un peso indipendente $-R_f/R_k$ (se tutti i resistori sono uguali, si ottiene la somma invertita pura).
+
+Il grande pregio di questo circuito è l'**assenza di diafonia**: ogni sorgente vede verso massa solo il proprio resistore ($R_{in,k} = R_k$). Poiché il nodo $v^-$ resta sempre inchiodato a $0\,\text{V}$, variare $v_1$ non sposta il potenziale del nodo e non disturba gli altri canali.
+
+<Divider label="2 · Convertitori Digitale-Analogico (DAC)" />
+
+### Esempio — Conversione a 3 Bit con Pesi Binari e Scala R-2R
+
+Confrontiamo due modi per costruire un **DAC a 3 bit** con $R = 10\,\text{k}\Omega$ e riferimento $V_{ref} = 4.0\,\text{V}$, applicando la parola binaria $b_1 b_2 b_3 = 110$ ($b_1$ è il bit più significativo, MSB):
 
 <figure id="fig-weighted-dac" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-weighted-dac.svg" alt="Convertitore Digitale-Analogico (DAC) a resistori pesati binari." />
   <figcaption>Convertitore Digitale-Analogico (DAC) a resistori pesati binari.</figcaption>
 </figure>
 
-La tensione di uscita vale:
-$$ v_o = V_{ref} \left( \frac{R_f}{R_1} b_1 + \frac{R_f}{R_2} b_2 + \dots + \frac{R_f}{R_N} b_N \right) = V_{ref} \left( \frac{b_1}{2^1} + \frac{b_2}{2^2} + \dots + \frac{b_N}{2^N} \right) $$
-
-All'aumentare della risoluzione $N$, il rapporto tra la resistenza del bit meno significativo (LSB) e quella del bit più significativo (MSB) cresce esponenzialmente:
-$$ \frac{R_{LSB}}{R_{MSB}} = \frac{2^{N-1} R}{R} = 2^{N-1} $$
-Per un convertitore a $N = 12\text{ bit}$, il rapporto vale $2^{11} = 2048$. Nei circuiti integrati monolitici è tecnologicamente proibitivo fabbricare resistori che spaziano su oltre tre ordini di grandezza mantenendo un matching di precisione inferiore al peso dell'LSB.
-
-### 2. DAC a Scala $R\text{-}2R$ ([la figura](#fig-r2r-dac))
-Per superare la limitazione dei pesi binari, l'industria impiega universalmente la **rete a scala $R\text{-}2R$**, che richiede **solo due valori di resistenza**: $R$ e $2R$.
+1. **DAC a pesi binari** ([la figura](#fig-weighted-dac)): scegliamo $R_1 = 10\,\text{k}\Omega$, $R_2 = 20\,\text{k}\Omega$, $R_3 = 40\,\text{k}\Omega$ e $R_f = R/2 = 5\,\text{k}\Omega$. Con $-V_{ref} = -4.0\,\text{V}$ sui bit a $1$ ($b_1, b_2$) e massa su $b_3 = 0$, entrano nel nodo virtuale $i_1 = 400\,\mu\text{A}$ e $i_2 = 200\,\mu\text{A}$. Su $R_f = 5\,\text{k}\Omega$ si ottiene $v_o = (5\,\text{k}\Omega)(600\,\mu\text{A}) = +3.0\,\text{V}$ (con passo minimo $\Delta V_{LSB} = 4.0/8 = 0.50\,\text{V}$). Il difetto? A $12\,\text{bit}$ servirebbe un resistore da oltre $20\,\text{M}\Omega$, impossibile da realizzare con precisione su chip.
 
 <figure id="fig-r2r-dac" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-r2r-dac.svg" alt="Convertitore Digitale-Analogico a scala R-2R a 3 bit con sommatore di corrente su massa virtuale." />
   <figcaption>Convertitore Digitale-Analogico a scala $R\text{-}2R$ a 3 bit con sommatore di corrente su massa virtuale.</figcaption>
 </figure>
 
-La corrente complessiva che raggiunge il nodo di massa virtuale $v^-$ e la tensione d'uscita (con $R_f = 2R$) valgono:
-$$ i_{tot} = \frac{V_{ref}}{2R} \left( \frac{b_1}{2^1} + \frac{b_2}{2^2} + \dots + \frac{b_N}{2^N} \right) \implies v_o = -R_f i_{tot} = -V_{ref} \sum_{k=1}^N \frac{b_k}{2^k} $$
+2. **DAC a scala $R\text{-}2R$** ([la figura](#fig-r2r-dac)): qui usiamo solo resistori da $R = 10\,\text{k}\Omega$ e $2R = 20\,\text{k}\Omega$ (con $R_f = 2R = 20\,\text{k}\Omega$). Partendo da sinistra, ogni ramo verticale da $20\,\text{k}\Omega$ finisce sempre a $0\,\text{V}$ (massa reale o virtuale). Al primo nodo a sinistra, $20 \parallel 20 = 10\,\text{k}\Omega$, che sommato al resistore orizzontale da $10\,\text{k}\Omega$ ridà $20\,\text{k}\Omega$: lo schema si ripete identico fino a $b_1$!
+   Di conseguenza, $V_{ref} = 4.0\,\text{V}$ vede $R = 10\,\text{k}\Omega$ ed eroga $I = 400\,\mu\text{A}$, che si dimezza a ogni nodo: $I_1 = 200\,\mu\text{A}$, $I_2 = 100\,\mu\text{A}$, $I_3 = 50\,\mu\text{A}$. Per il codice $110$ sommiamo $I_1 + I_2 = 300\,\mu\text{A}$ su $R_f = 20\,\text{k}\Omega$:
 
-### Dimostrazione Matematica: Invarianza dell'Impedenza e Partizione di Corrente nella Scala $R\text{-}2R$
+$$
+v_o = -(20\,\text{k}\Omega)(300\,\mu\text{A}) = -6.0\,\text{V} \quad (\text{o } -3.0\,\text{V}\text{ con } R_f = R)
+$$
 
-Osservando la scala $R\text{-}2R$ da sinistra verso destra (con tutti i rami collegati a massa o a massa virtuale per il calcolo delle resistenze equivalenti):
-1. All'estrema sinistra, il ramo terminatore $2R$ è in parallelo al ramo verticale del bit meno significativo ($2R$): la resistenza equivalente vista dal nodo $N_3$ verso sinistra vale $2R \parallel 2R = R$.
-2. Questa resistenza equivalente $R$ si trova in serie con il resistore orizzontale $R$, presentando al nodo adiacente $N_2$ una resistenza pari a $R + R = 2R$.
-3. Al nodo $N_2$, questa impedenza $2R$ si trova nuovamente in parallelo con il ramo verticale $2R$, ricreando esattamente $2R \parallel 2R = R$.
-Per induzione, in ogni nodo della scala **la resistenza vista guardando verso sinistra è sempre rigorosamente pari a $2R$**, indipendentemente dal numero di bit $N$. Di conseguenza, la corrente iniettata da ciascun bit si dimezza esattamente ($50\%$ e $50\%$) ad ogni nodo attraversato verso l'uscita.
+<StepCheck client:load lang="it" prompt="Nel DAC a scala $R\text{-}2R$ a $3\,\text{bit}$ di figura ($V_{ref} = 4.0\,\text{V}$, $R = 10\,\text{k}\Omega$, $R_f = 2R = 20\,\text{k}\Omega$), quale tensione d'uscita $v_o$ (in $\text{V}$) si ottiene applicando il codice binario $b_1 b_2 b_3 = 011$?" expected={-1.5} tolerance={0.05} unit="$\text{V}$" explanation="Con la formula della scala di figura $v_o = -V_{ref}(b_1/2 + b_2/4 + b_3/8) = -4.0 \cdot (0 + 1/4 + 1/8) = -4.0 \cdot 3/8 = -1.5\,\text{V}$." />
 
-<Callout type="tip" title="Vantaggio Industriale: Perché la Scala R-2R è Compatta e Precisa sul Silicio">
+### Teoria — DAC a Pesi Binari e Invarianza della Scala R-2R
 
-Questa configurazione a scala $R\text{-}2R$ ha un vantaggio pratico enorme rispetto al DAC a pesi binari: nel DAC a pesi binari a $12\text{ bit}$, se $R = 1\,\text{k}\Omega$, l'ultimo resistore deve valere $2048\,\text{k}\Omega \approx 2\,\text{M}\Omega$, occupando un'area di silicio spropositata e rendendo impossibile garantire un matching preciso tra componenti così diversi. La scala $R\text{-}2R$ utilizza invece **un solo elemento base ripetuto** (il resistore unitario $R$, mentre $2R$ si ottiene semplicemente ponendo due resistori identici $R$ in serie): il layout sul microchip risulta estremamente compatto, modulare e insensibile alle derive termiche e di processo, perché tutti i resistori sono geometricamente identici.
+Un **DAC** trasforma una parola binaria di $N$ bit ($b_1 b_2 \dots b_N$) in una tensione continua proporzionale. Ogni bit pilota un interruttore: se $b_k = 1$ collega il ramo alla tensione di riferimento, se $b_k = 0$ lo collega a massa.
+
+#### DAC a Pesi Binari
+
+Nel **DAC a pesi binari** ([la figura](#fig-weighted-dac)), i resistori raddoppiano a ogni bit ($R, 2R, 4R, \dots, 2^{N-1}R$) e $R_f = R/2$. Con riferimento $-V_{ref}$, l'uscita vale:
+
+$$
+v_o = V_{ref} \left( \frac{b_1}{2^1} + \frac{b_2}{2^2} + \dots + \frac{b_N}{2^N} \right)
+$$
+
+Il bit $b_1$ (MSB) pesa metà riferimento, mentre l'ultimo bit (LSB) fissa il passo minimo $\Delta V_{LSB} = V_{ref}/2^N$. Il problema è che il rapporto tra il resistore più grande e il più piccolo cresce come $2^{N-1}$: già a $12\,\text{bit}$ vale $2048$, rendendo impossibile fabbricare resistori così diversi con la precisione richiesta su un microchip.
+
+#### DAC a Scala R-2R
+
+La **scala $R\text{-}2R$** ([la figura](#fig-r2r-dac)) risolve il problema usando solo due valori: $R$ e $2R$. Poiché ogni ramo verticale $2R$ va sempre a potenziale $0\,\text{V}$ (massa reale se $b_k = 0$, massa virtuale se $b_k = 1$), guardando verso sinistra da qualsiasi nodo si vede sempre il parallelo $2R \parallel 2R = R$ in serie con $R$, cioè di nuovo $2R$.
+
+Per questo motivo la corrente totale $I = V_{ref}/R$ si divide esattamente a metà a ogni nodo ($I/2, I/4, \dots, I/2^N$). Con $R_f = 2R$, l'uscita diventa:
+
+$$
+v_o = -V_{ref} \sum_{k=1}^N \frac{b_k}{2^k}
+$$
+
+Otteniamo la stessa conversione binaria esatta, ma replicando un unico resistore elementare $R$ facile da integrare sul silicio.
+
+<Callout type="tip" title="Vantaggi della Scala R-2R">
+
+A $12\,\text{bit}$, invece di resistori da $1\,\text{k}\Omega$ fino a oltre $2\,\text{M}\Omega$, la scala $R\text{-}2R$ usa solo unità identiche di valore $R$ (e $2R$ come serie di due $R$). Il circuito integrato risulta compatto e molto più preciso al variare della temperatura.
 
 </Callout>
 
-## L'Amplificatore Sottrattore Differenziale a Quattro Resistori
+<Divider label="3 · Amplificatore Differenziale" />
 
-L'amplificatore sottrattore ([la figura](#fig-difference-opamp)) amplifica la differenza tra due segnali $v_2 - v_1$, rigettando la componente di modo comune.
+### Esempio — Estrazione di Segnale Differenziale da Disturbo di Modo Comune
+
+Supponiamo che un sensore a ponte fornisca due tensioni molto vicine: $v_1 = 2.00\,\text{V}$ e $v_2 = 2.05\,\text{V}$. Il segnale utile è solo la piccola differenza $v_2 - v_1 = 50\,\text{mV}$, mentre i $2\,\text{V}$ comuni a entrambi i fili sono un livello di disturbo da scartare. Usiamo l'**amplificatore differenziale** di [la figura](#fig-difference-opamp) con $R_1 = R_3 = 10\,\text{k}\Omega$ e $R_2 = R_4 = 100\,\text{k}\Omega$ (guadagno nominale $10$).
 
 <figure id="fig-difference-opamp" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-difference-opamp.svg" alt="Amplificatore sottrattore differenziale a quattro resistori." />
   <figcaption>Amplificatore sottrattore differenziale a quattro resistori.</figcaption>
 </figure>
 
-Applicando il principio di sovrapposizione degli effetti, la tensione di uscita totale vale:
-$$ v_o = v_{o1} + v_{o2} = -\frac{R_2}{R_1} v_1 + \left( 1 + \frac{R_2}{R_1} \right) \left( \frac{R_4}{R_3 + R_4} \right) v_2 $$
+1. **Partitore sull'ingresso $+$:** poiché $i^+ = 0$, $R_3$ e $R_4$ dividono $v_2 = 2.05\,\text{V}$ fissando $v^+ = 2.05 \cdot \frac{100}{110} \approx 1.86\,\text{V}$.
+2. **Corto virtuale e corrente su $R_1$:** per retroazione negativa anche $v^- = v^+ \approx 1.86\,\text{V}$. Tra $v_1 = 2.00\,\text{V}$ e $v^-$ cade una piccola tensione che fa scorrere in $R_1 = 10\,\text{k}\Omega$ una corrente $i_1 = (2.00 - 1.86)/10\,\text{k}\Omega \approx 13.6\,\mu\text{A}$ (in frazione esatta $\frac{0.15}{11}\,\text{mA}$).
+3. **Uscita:** questa corrente prosegue in $R_2 = 100\,\text{k}\Omega$, portando l'uscita esattamente a:
 
-Affinché l'amplificatore rigetti completamente i disturbi di modo comune ($A_c = 0 \iff \text{CMRR} \to \infty$), i quattro resistori devono soddisfare la **condizione di bilanciamento a ponte**:
-$$ \frac{R_2}{R_1} = \frac{R_4}{R_3} \implies v_o = \frac{R_2}{R_1} (v_2 - v_1) = A_d v_{id} $$
+$$
+v_o = \frac{R_2}{R_1}(v_2 - v_1) = 10 \cdot (2.05\,\text{V} - 2.00\,\text{V}) = +0.50\,\text{V}
+$$
 
-### Dimostrazione Matematica: Sovrapposizione degli Effetti e Condizione di Bilanciamento per $\text{CMRR} \to \infty$
+I $2.00\,\text{V}$ comuni su entrambi gli ingressi si sono cancellati completamente.
 
-1. **Sovrapposizione degli effetti:** Spegnendo $v_2 = 0$, si ha $v^+ = 0$ e il circuito opera come invertente puro con $v_{o1} = -(R_2/R_1)v_1$. Spegnendo $v_1 = 0$, il partitore $R_3, R_4$ fissa $v^+ = v_2 \frac{R_4}{R_3 + R_4}$, che viene amplificato dalla rete non invertente $1 + R_2/R_1$, dando $v_{o2} = \left(1 + \frac{R_2}{R_1}\right)\left(\frac{R_4}{R_3 + R_4}\right)v_2$.
-2. **Annullamento del modo comune:** Ponendo $v_1 = v_2 = v_{ic}$ e imponendo $v_o = 0$:
-   $$ -\frac{R_2}{R_1} + \left( \frac{R_1 + R_2}{R_1} \right) \left( \frac{R_4}{R_3 + R_4} \right) = 0 \implies \frac{R_2}{R_1 + R_2} = \frac{R_4}{R_3 + R_4} $$
-   Passando ai reciproci: $1 + \frac{R_1}{R_2} = 1 + \frac{R_3}{R_4} \implies \frac{R_2}{R_1} = \frac{R_4}{R_3}$.
+<StepCheck client:load lang="it" mode="choice" prompt="Quale condizione sui resistori garantisce il rigetto completo del modo comune ($A_{cm} = 0$) in un amplificatore differenziale a quattro resistori?" options={["$R_1 = R_2$ e $R_3 = R_4$", "$R_2 / R_1 = R_4 / R_3$", "$R_1 R_2 = R_3 R_4$", "$R_1 + R_2 = R_3 + R_4$"]} correctIndex={1} explanation="Ponendo $v_1 = v_2 = v_{cm}$ e imponendo $v_o = 0$, si ricava la condizione di bilanciamento a ponte $R_2 / R_1 = R_4 / R_3$." />
 
-Nella pratica, anche impiegando un Op-Amp ideale, una tolleranza finita $\epsilon = \Delta R / R$ sui quattro resistori rompe il bilanciamento esatto e genera un guadagno di modo comune residuo $A_c \neq 0$, limitando superiormente il CMRR del circuito.
+### Teoria — Sovrapposizione degli Effetti e Condizione di Bilanciamento
 
-## Circuiti di Integrazione e Derivazione
+L'**amplificatore differenziale** (o sottrattore, [la figura](#fig-difference-opamp)) amplifica la differenza $v_2 - v_1$ eliminando i disturbi uguali sui due fili (come il ronzio a $50\,\text{Hz}$). Possiamo ricavare la sua uscita usando la **sovrapposizione degli effetti**, accendendo un ingresso alla volta:
+1. **Con $v_2 = 0$:** il morsetto $+$ è a massa ($v^+ = 0$), quindi il circuito è un semplice stadio invertente: $v_{o1} = -\frac{R_2}{R_1} v_1$.
+2. **Con $v_1 = 0$:** il partitore $R_3\text{--}R_4$ porta sull'ingresso $+$ la frazione $v^+ = v_2 \frac{R_4}{R_3 + R_4}$, che viene poi amplificata dallo stadio non invertente: $v_{o2} = \left(1 + \frac{R_2}{R_1}\right)\frac{R_4}{R_3 + R_4} v_2$.
 
-Inserendo elementi reattivi (condensatori) nella rete di retroazione, l'Op-Amp opera trasformazioni dinamiche nel dominio del tempo e della frequenza.
+Sommando i due contributi si ottiene l'uscita generale. Affinché un segnale uguale sui due ingressi ($v_1 = v_2 = v_{cm}$) produca uscita nulla ($A_{cm} = 0$), i due coefficienti devono essere uguali e opposti; ciò accade esattamente quando vale la **condizione di bilanciamento**:
 
-### 1. L'Integratore Ideale di Miller ([la figura](#fig-miller-integrator))
-Sostituendo il resistore di retroazione $R_2$ con un condensatore $C$ nella configurazione invertente:
+$$
+\frac{R_2}{R_1} = \frac{R_4}{R_3}
+$$
+
+Quando i rapporti sono bilanciati (di solito scegliendo $R_3 = R_1$ e $R_4 = R_2$), il circuito diventa un sottrattore perfetto:
+
+$$
+v_o = \frac{R_2}{R_1} (v_2 - v_1)
+$$
+
+Nota pratica: se i resistori reali hanno tolleranze dell'$1\%$, il bilanciamento non è perfetto e una piccola parte del disturbo comune riesce comunque a passare in uscita.
+
+<Divider label="4 · Circuiti Integratore e Derivatore" />
+
+### Esempio — Integrazione di un Impulso, Deriva DC e Derivazione
+
+Analizziamo l'**integratore di Miller** ([la figura](#fig-miller-integrator)) e il **derivatore** ([la figura](#fig-differentiator-opamp)) usando $R = 10\,\text{k}\Omega$, $C = 100\,\text{nF}$ (costante di tempo $\tau = RC = 1.0\,\text{ms}$) e alimentazione $\pm 12\,\text{V}$.
 
 <figure id="fig-miller-integrator" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-miller-integrator.svg" alt="Circuito dell'integratore di Miller ideale e reale (con resistore di smorzamento R_f in parallelo)." />
   <figcaption>Circuito dell'integratore di Miller ideale e reale (con resistore di smorzamento $R_f$ in parallelo).</figcaption>
 </figure>
 
-Nel dominio temporale, applicando la KCL al nodo di massa virtuale ($v^- = 0$):
-$$ i_R(t) = i_C(t) \implies \frac{v_i(t) - 0}{R} = C \frac{d(0 - v_o(t))}{dt} = -C \frac{dv_o(t)}{dt} $$
+1. **Integrazione di un gradino (senza $R_f$, $v_o(0) = 0\,\text{V}$):** applichiamo $v_i = +1.0\,\text{V}$ per $\Delta t = 2.0\,\text{ms}$. Poiché $v^- = 0\,\text{V}$, in $R$ entra una corrente costante $i_R = 1.0\,\text{V} / 10\,\text{k}\Omega = 100\,\mu\text{A}$ che carica linearmente $C$, facendo scendere l'uscita di $-1.0\,\text{V}$ ogni millisecondo:
 
-Separando le variabili ed integrando tra $0$ e $t$:
-$$ v_o(t) = -\frac{1}{R C} \int_0^t v_i(\tau) \, d\tau + v_o(0) $$
-dove $v_o(0)$ è la tensione iniziale presente ai capi del condensatore.
+$$
+v_o(2.0\,\text{ms}) = -\frac{1}{RC} \int_0^{2\,\text{ms}} 1.0\,dt = -\frac{1.0\,\text{V}}{1.0\,\text{ms}} \cdot 2.0\,\text{ms} = -2.0\,\text{V}
+$$
 
-Nel dominio di Laplace ($s$):
-$$ H(s) = \frac{V_o(s)}{V_i(s)} = -\frac{Z_C(s)}{R} = -\frac{1 / (sC)}{R} = -\frac{1}{s R C} $$
-
-La funzione di trasferimento presenta:
-* Un **polo nell'origine** ($s = 0$): a frequenze angolari $\omega \to 0$ (regime continuo DC), l'impedenza del condensatore tende all'infinito ($Z_C \to \infty$) e il guadagno ad anello aperto diverge: $|H(0)| \to \infty$.
-* **Frequenza di Guadagno Unitario (Frequenza di Integrazione):**
-  $$ |H(j\omega_{int})| = \frac{1}{\omega_{int} R C} = 1 \implies \omega_{int} = \frac{1}{R C} \implies f_{int} = \frac{1}{2\pi R C} $$
-
-### Il Problema dell'Instabilità DC dell'Integratore Ideale
-Nel mondo reale, un Op-Amp non è ideale: presenta una tensione di offset d'ingresso $V_{OS}$ e correnti di polarizzazione continue $I_B$.
-Anche con ingresso nullo ($v_i = 0$), la tensione di offset $V_{OS}$ agisce come un segnale costante applicato all'ingresso:
-$$ v_o(t) = -\frac{1}{R C} \int_0^t V_{OS} \, d\tau = -\frac{V_{OS}}{R C} \cdot t $$
-La tensione di uscita **rampa linearmente all'infinito nel tempo** fino a raggiungere rapidamente la tensione di saturazione dell'alimentazione ($\pm V_{CC}$), bloccando il circuito e rendendolo totalmente inservibile per l'elaborazione del segnale.
-
-### L'Integratore Smorzato (Lossy Integrator)
-Per stabilizzare il circuito in continua, si inserisce un resistore di retroazione ad alto valore $R_f$ in parallelo al condensatore $C$ ([la figura](#fig-miller-integrator)).
-
-L'impedenza equivalente di retroazione diventa:
-$$ Z_f(s) = R_f \parallel \frac{1}{sC} = \frac{R_f}{1 + s R_f C} $$
-
-La funzione di trasferimento ad anello chiuso vale:
-$$ H(s) = -\frac{Z_f(s)}{R} = -\frac{R_f / R}{1 + s R_f C} $$
-
-Analisi del comportamento in frequenza:
-1. **In Continua ($s = 0$):** Il condensatore è un circuito aperto; il guadagno è finito e bloccato a:
-   $$ H(0) = -\frac{R_f}{R} $$
-   La tensione di offset in uscita non diverge più, ma viene amplificata solo del fattore costante $V_{o,DC} = -(1 + R_f / R) V_{OS}$, impedendo la saturazione.
-2. **Polo di Taglio:** Il polo si sposta dall'origine alla frequenza angolare:
-   $$ \omega_0 = \frac{1}{R_f C} \implies f_0 = \frac{1}{2\pi R_f C} $$
-3. **Regioni Operative:**
-   * Per $f \ll f_0$: il circuito si comporta come un normale amplificatore invertente con guadagno statico $-R_f / R$.
-   * Per $f \gg f_0$: l'impedenza del condensatore diventa molto minore di $R_f$ ($1/(\omega C) \ll R_f$); il resistore $R_f$ diventa trascurabile e il circuito si comporta come un **integratore ideale quasi puro** con pendenza $-20\text{ dB/decade}$.
-
-### 2. Il Circuito Derivatore ([la figura](#fig-differentiator-opamp))
-Scambiando la posizione del resistore e del condensatore rispetto all'integratore — ossia ponendo il condensatore $C$ sul ramo d'ingresso e il resistore $R$ nell'anello di retroazione — si ottiene il **circuito derivatore invertente** ([la figura](#fig-differentiator-opamp)).
+2. **Perché serve $R_f = 100\,\text{k}\Omega$ in parallelo a $C$:** anche a ingresso spento ($v_i = 0$), un Op-Amp reale ha una piccola tensione di offset (es. $V_{OS} = +2.0\,\text{mV}$). Senza $R_f$, il condensatore si carica continuamente con l'offset fino a far saturare l'uscita a $-12\,\text{V}$ in appena $6$ secondi! Inserendo $R_f = 100\,\text{k}\Omega$ in parallelo a $C$, in continua il circuito ha un guadagno finito $-R_f/R = -10$ (limitando l'errore a circa $-22\,\text{mV}$), mentre sopra $f_0 = \frac{1}{2\pi R_f C} \approx 16\,\text{Hz}$ continua a integrare normalmente.
 
 <figure id="fig-differentiator-opamp" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-differentiator-opamp.svg" alt="Circuito derivatore invertente ad amplificatore operazionale." />
   <figcaption>Circuito derivatore invertente ad amplificatore operazionale.</figcaption>
 </figure>
 
-Per la massa virtuale ($v^- = 0$) e l'assenza di corrente assorbita dal morsetto invertente ($i^- = 0$), la corrente nel condensatore d'ingresso uguaglia la corrente nel resistore di retroazione:
-$$ i_C(t) = C \frac{dv_i(t)}{dt} = i_R(t) = -\frac{v_o(t)}{R} \implies v_o(t) = -R C \frac{dv_i(t)}{dt} $$
-Nel dominio di Laplace, la funzione di trasferimento presenta uno zero nell'origine:
-$$ H(s) = \frac{V_o(s)}{V_i(s)} = -\frac{R}{1/(sC)} = -s R C $$
-Il modulo del guadagno $|H(j\omega)| = \omega R C$ cresce con pendenza di $+20\text{ dB/decade}$: di conseguenza il derivatore puro amplifica fortemente il rumore ad alta frequenza ed è raramente impiegato senza un resistore serie di limitazione in ingresso.
+3. **Derivazione di una rampa ([la figura](#fig-differentiator-opamp)):** scambiando $R$ e $C$ ($\tau = RC = 1.0\,\text{ms}$) e applicando una rampa che cresce di $+500\,\text{V/s}$, in $C$ scorre la corrente costante $i_C = C \frac{dv_i}{dt} = 50\,\mu\text{A}$, che su $R = 10\,\text{k}\Omega$ dà l'uscita costante:
 
-<Callout type="tip" title="Regola Pratica di Laboratorio: Integratore Reale con R_f vs Derivatore Limitato">
+$$
+v_o(t) = -RC \frac{dv_i(t)}{dt} = -(1.0\,\text{ms})(500\,\text{V/s}) = -0.50\,\text{V}
+$$
 
-Nelle applicazioni industriali reali non si monta mai un integratore con il solo condensatore $C$ in retroazione, né un derivatore con il solo condensatore $C$ in ingresso:
-* Nell'**integratore**, a frequenza zero il condensatore è un circuito aperto e l'Op-Amp rimane privo di retroazione in continua: basta un microvolt di offset per saturare l'uscita contro l'alimentazione. L'aggiunta del resistore $R_f$ in parallelo a $C$ fornisce il cammino DC indispensabile per tenere stabile il punto di lavoro.
-* Nel **derivatore**, l'impedenza di $C$ tende a zero ad alta frequenza, esaltando qualsiasi disturbo elettromagnetico o rumore termico. Per questo negli schemi pratici si preferisce sempre progettare filtri e controllori basandosi su blocchi integratori anziché derivatori.
+<StepCheck client:load lang="it" prompt="Se all'integratore di Miller ideale con $R = 20\,\text{k}\Omega$ e $C = 50\,\text{nF}$ ($\tau = RC = 1.0\,\text{ms}$), inizialmente scarico ($v_o(0) = 0\,\text{V}$), applichiamo un impulso costante $v_i = -1.5\,\text{V}$ per una durata di $3.0\,\text{ms}$, quale tensione $v_o$ (in $\text{V}$) raggiungerà l'uscita al termine dell'impulso?" expected={4.5} tolerance={0.05} unit="$\text{V}$" explanation="$v_o = -(1/\tau) \cdot v_i \cdot \Delta t = -(1 / 1.0\,\text{ms}) \cdot (-1.5\,\text{V}) \cdot 3.0\,\text{ms} = +4.5\,\text{V}$." />
+
+### Teoria — Integratore di Miller, Integratore Smorzato e Derivatore
+
+Sostituendo uno dei resistori dello stadio invertente con un condensatore $C$ (dove $i_C = C \frac{dv_C}{dt}$), l'Op-Amp esegue integrali o derivate nel tempo.
+
+#### Integratore Ideale e Smorzato
+
+Nell'**integratore di Miller** ([la figura](#fig-miller-integrator)), $R$ è in ingresso e $C$ in retroazione. Poiché $v^- = 0$ e $i^- = 0$, la corrente d'ingresso $v_i/R$ carica direttamente il condensatore ($v_C = -v_o$), da cui:
+
+$$
+\frac{v_i(t)}{R} = -C \frac{dv_o(t)}{dt} \implies v_o(t) = -\frac{1}{RC} \int_0^t v_i(\tau)\,d\tau + v_o(0)
+$$
+
+Nel dominio di Laplace, sostituendo $Z_C(s) = 1/(sC)$ nella formula invertente, si ha $H(s) = -\frac{1}{sRC}$: il guadagno scende di $-20\,\text{dB/decade}$ con la frequenza e attraversa $0\,\text{dB}$ a $f_{int} = \frac{1}{2\pi RC}$.
+
+In pratica, però, in continua ($f = 0$) il condensatore è un circuito aperto e lascia l'anello aperto: qualsiasi piccola tensione di offset $V_{OS}$ viene integrata fino a mandare l'uscita in saturazione. Per questo si aggiunge sempre un resistore $R_f$ in parallelo a $C$ (**integratore smorzato**). Con $Z_f(s) = R_f \parallel \frac{1}{sC} = \frac{R_f}{1 + s R_f C}$, la funzione di trasferimento diventa quella di un passa-basso del primo ordine:
+
+$$
+H(s) = -\frac{R_f / R}{1 + s R_f C}
+$$
+
+Al di sotto della frequenza di taglio $f_0 = \frac{1}{2\pi R_f C}$, il circuito ha guadagno DC finito pari a $-R_f/R$ (niente saturazione da offset); ben al di sopra ($f \gg f_0$), $R_f$ è trascurabile rispetto a $C$ e il circuito torna a integrare come quello ideale.
+
+#### Circuito Derivatore
+
+Mettendo $C$ in ingresso e $R$ in retroazione ([la figura](#fig-differentiator-opamp)), la corrente del condensatore $C \frac{dv_i}{dt}$ scorre in $R$ dando:
+
+$$
+v_o(t) = -RC \frac{dv_i(t)}{dt}, \qquad H(s) = -sRC
+$$
+
+Il derivatore trasforma ad esempio un'onda triangolare in un'onda quadra. Il suo limite è che il guadagno cresce a $+20\,\text{dB/decade}$ con la frequenza, amplificando molto il rumore ad alta frequenza; per evitarlo, nella pratica si mette un piccolo resistore in serie a $C$ che limita il guadagno massimo.
+
+<Callout type="tip" title="Integratore Reale vs Derivatore">
+
+* **Integratore:** in continua $C$ è aperto, quindi serve sempre $R_f$ in parallelo per evitare la saturazione da offset.
+* **Derivatore:** amplifica il rumore ad alta frequenza; per questo nei filtri e nei controlli automatici si preferisce usare integratori.
 
 </Callout>
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+<Divider label="5 · Sintesi" />
 
-### Sintesi Operativa — Stadi Computazionali Lineari
+| Circuito Computazionale | Relazione d'Uscita | Nota Progettuale |
+| :--- | :--- | :--- |
+| **Sommatore invertente** | $v_o = -\sum_k \frac{R_f}{R_k} v_k$ | $R_{in,k} = R_k$; assenza di diafonia |
+| **DAC a scala $R\text{-}2R$** | $v_o = -V_{ref} \sum_{k=1}^N \frac{b_k}{2^k}$ | Solo due valori resistivi ($R, 2R$) |
+| **Sottrattore differenziale** | $v_o = \frac{R_2}{R_1}(v_2 - v_1)$ | Richiede $\frac{R_2}{R_1} = \frac{R_4}{R_3}$ per $A_{cm} = 0$ |
+| **Integratore smorzato** | $H(s) = -\frac{R_f / R}{1 + s R_f C}$ | Polo in $f_0 = \frac{1}{2\pi R_f C}$; guadagno DC $-R_f/R$ |
+| **Derivatore invertente** | $v_o(t) = -RC\frac{dv_i}{dt}$ ($H(s) = -sRC$) | Guadagno cresce a $+20\,\text{dB/dec}$ (rumore HF) |
 
-1. **Sommatore invertente:** applicare la KCL al nodo di massa virtuale: $v_{out} = -\sum_k \frac{R_f}{R_k} v_k$.
-2. **Sottrattore differenziale ($R_2/R_1 = R_4/R_3$):** $v_{out} = \frac{R_2}{R_1}(v_2 - v_1)$; per evitare il carico sulle sorgenti si usa la configurazione da strumentazione.
-3. **DAC a scala $R\text{-}2R$ vs Pesi Binari:** la scala $R\text{-}2R$ usa solo due valori resistivi indipendentemente dal numero di bit $N$, evitando rapporti esponenziali $2^{N-1}$ irrealizzabili su silicio.
-4. **Integratore smorzato:** il resistore $R_2 \parallel C$ limita il guadagno DC a $-R_2/R_1$ e fissa il polo reale a $f_p = \frac{1}{2\pi R_2 C}$ per evitare la saturazione causata da $V_{OS}$ e $I_B$.
+### Procedura di Analisi
 
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
+1. **Sommatore invertente:** fissare $v^- = 0$ e sommare le correnti $v_k / R_k$ uguagliandole a $-v_o / R_f$.
+2. **Sottrattore a 4 resistori:** verificare sempre la condizione di bilanciamento $R_2/R_1 = R_4/R_3$ prima di usare $v_o = \frac{R_2}{R_1}(v_2 - v_1)$.
+3. **Circuiti con condensatori:** scrivere l'impedenza di retroazione $Z_f(s)$ e calcolare $H(s) = -Z_f(s)/Z_i(s)$, controllando che in DC ($s=0$) esista un percorso resistivo chiuso.
 
-<Callout type="warning" title="Trappola d'Esame: Perché l'Integratore di Miller Ideale Satura in DC">
+### Dimostrazioni Chiave
 
-A $f = 0$ il condensatore di retroazione $C$ è un circuito aperto: l'anello di retroazione negativa in continua si interrompe e qualsiasi minuscola tensione di offset $V_{OS}$ o corrente di bias $I_B$ viene integrata fino a spingere l'uscita contro i rail di alimentazione $\pm V_{sat}$.
+* **Invarianza della scala $R\text{-}2R$:** da sinistra verso destra ogni nodo vede $2R \parallel 2R + R = 2R$, dimezzando la corrente a ogni stadio.
+* **Bilanciamento del differenziale:** ponendo $v_1 = v_2 = v_{cm}$ nella sovrapposizione degli effetti, l'uscita si annulla solo se $R_2/R_1 = R_4/R_3$.
+* **Integratore smorzato:** il parallelo $R_f \parallel C$ sposta il polo da $0$ a $f_0 = \frac{1}{2\pi R_f C}$ e fissa il guadagno DC a $-R_f/R$.
+
+<Callout type="warning" title="Errori Comuni">
+
+* **Saturazione dell'integratore ideale:** senza $R_f$ in parallelo a $C$, l'anello DC è aperto e l'offset fa saturare l'uscita.
+* **Impedenze sbilanciate nel sottrattore:** il ramo invertente ha $R_{in1} = R_1$ mentre quello non invertente ha $R_{in2} = R_3 + R_4$; con sensori ad alta impedenza servono dei buffer in ingresso.
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-11-1" title="Esercizio 11.1: Sottrattore Differenziale e Integratore Smorzato" level="Livello 2 · Esame" hint="Per il sottrattore bilanciato v_out = (R2/R1)*(v2 - v1). Per l'integratore smorzato f_p = 1/(2*pi*R2*C).">
+<Divider label="6 · Esercizi" />
 
-1. Un amplificatore differenziale a 4 resistori ha $R_1 = R_3 = 10\,\text{k}\Omega$, $R_2 = R_4 = 50\,\text{k}\Omega$, $v_1 = 1.2\,\text{V}$ e $v_2 = 1.5\,\text{V}$.
-2. Un integratore di Miller smorzato usa $R_1 = 10\,\text{k}\Omega$, $R_2 = 100\,\text{k}\Omega$ e $C = 100\,\text{nF}$.
+<Exercise client:load lang="it" id="ex-11-1" title="Esercizio 11.1 — Differenziale e Integratore Smorzato" level="Livello Esame" hint="Per il sottrattore bilanciato $v_o = (R_2/R_1)(v_2 - v_1)$. Per l'integratore smorzato $f_0 = 1/(2\pi R_f C)$.">
 
-<StepCheck client:load lang="it" prompt="Calcola v_out del sottrattore differenziale (in V):" expected={1.5} tolerance={0.03} unit="V" explanation="v_out = (50/10) * (1.5 - 1.2) = 5 * 0.3 = 1.5 V." />
+1. Un amplificatore differenziale a $4$ resistori ha $R_1 = R_3 = 10\,\text{k}\Omega$, $R_2 = R_4 = 50\,\text{k}\Omega$, $v_1 = 1.2\,\text{V}$ e $v_2 = 1.5\,\text{V}$.
+2. Un integratore di Miller smorzato usa $R = 10\,\text{k}\Omega$, $R_f = 100\,\text{k}\Omega$ e $C = 100\,\text{nF}$.
 
-<StepCheck client:load lang="it" prompt="Calcola la frequenza di taglio inferiore f_p dell'integratore smorzato (in Hz):" expected={15.92} tolerance={0.2} unit="Hz" explanation="f_p = 1 / (2 * pi * 100e3 * 100e-9) ≈ 15.92 Hz (guadagno DC = -10)." />
+<StepCheck client:load lang="it" prompt="Calcola $v_o$ del sottrattore differenziale (in $\text{V}$):" expected={1.5} tolerance={0.03} unit="$\text{V}$" explanation="$v_o = (50/10) \cdot (1.5 - 1.2) = 5 \cdot 0.3 = 1.5\,\text{V}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola la frequenza di taglio $f_0$ dell'integratore smorzato (in $\text{Hz}$):" expected={15.92} tolerance={0.2} unit="$\text{Hz}$" explanation="$f_0 = 1 / (2 \pi \cdot 100\,\text{k}\Omega \cdot 100\,\text{nF}) \approx 15.92\,\text{Hz}$ (con guadagno DC pari a $-10$)." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. **Sottrattore:** essendo $R_2/R_1 = R_4/R_3 = 5$, $A_{cm} = 0$ e $v_{out} = 5(1.5 - 1.2) = 1.5\,\text{V}$.
-2. **Integratore smorzato:** $A_{DC} = -\frac{R_2}{R_1} = -10$, e il polo si colloca a $f_p = \frac{1}{2\pi R_2 C} = \frac{1}{2\pi(10^5)(10^{-7})} \approx 15.92\,\text{Hz}$.
+1. **Sottrattore differenziale:**
+   * Verifichiamo prima la condizione di bilanciamento:
+
+$$
+\frac{R_2}{R_1} = \frac{50\,\text{k}\Omega}{10\,\text{k}\Omega} = 5, \qquad \frac{R_4}{R_3} = \frac{50\,\text{k}\Omega}{10\,\text{k}\Omega} = 5
+$$
+
+   * I rapporti sono uguali, quindi il guadagno di modo comune è nullo ($A_{cm} = 0$) e il guadagno differenziale vale $A_d = 5$. Applicando la formula del sottrattore bilanciato:
+
+$$
+v_o = \frac{R_2}{R_1}(v_2 - v_1) = 5 \cdot (1.5\,\text{V} - 1.2\,\text{V}) = 5 \cdot 0.3\,\text{V} = 1.5\,\text{V}
+$$
+
+2. **Integratore smorzato:**
+   * In continua ($s = 0$) il condensatore $C$ è aperto, quindi il guadagno statico vale:
+
+$$
+A_{DC} = -\frac{R_f}{R} = -\frac{100\,\text{k}\Omega}{10\,\text{k}\Omega} = -10\,\text{V/V}
+$$
+
+   * Il polo di taglio è determinato esclusivamente dalla costante di tempo $\tau = R_f C$ della rete di retroazione:
+
+$$
+\tau = R_f C = (100 \times 10^3\,\Omega)(100 \times 10^{-9}\,\text{F}) = 10^{-2}\,\text{s} = 10\,\text{ms}
+$$
+
+$$
+f_0 = \frac{1}{2\pi \tau} = \frac{1}{2\pi \cdot 10^{-2}\,\text{s}} \approx 15.92\,\text{Hz}
+$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-11-2" title="Esercizio 11.2 — DAC a Scala R-2R" level="Intermedio" hint="Con $R_f = 2R$ la formula d'uscita vale $v_o = -V_{ref} \sum_{k=1}^N b_k / 2^k$.">
+
+Un DAC a scala $R\text{-}2R$ a $N = 3\,\text{bit}$ utilizza $R = 10\,\text{k}\Omega$, $R_f = 2R = 20\,\text{k}\Omega$ e una tensione di riferimento $V_{ref} = 8\,\text{V}$. Si applica in ingresso la parola binaria $b_1 b_2 b_3 = 101$ (dove $b_1$ è il bit più significativo MSB).
+
+<StepCheck client:load lang="it" prompt="Calcola il passo di quantizzazione corrispondente all'LSB (in $\text{V}$):" expected={1.0} tolerance={0.02} unit="$\text{V}$" explanation="Il peso del bit meno significativo $b_3$ vale $V_{ref} / 2^3 = 8 / 8 = 1.0\,\text{V}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola la tensione di uscita $v_o$ per la parola $101$ (in $\text{V}$):" expected={-5.0} tolerance={0.05} unit="$\text{V}$" explanation="$v_o = -8 \cdot (1/2 + 0/4 + 1/8) = -8 \cdot (5/8) = -5.0\,\text{V}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Risoluzione LSB:** per un DAC a $N = 3\,\text{bit}$, il peso in modulo del bit meno significativo $b_3$ corrisponde alla frazione $1/2^3 = 1/8$ del riferimento:
+
+$$
+\Delta V_{LSB} = \frac{V_{ref}}{2^3} = \frac{8\,\text{V}}{8} = 1.0\,\text{V}
+$$
+
+2. **Tensione d'uscita** ($b_1 b_2 b_3 = 101$): la corrente totale convogliata nel nodo di massa virtuale vale:
+
+$$
+i_{tot} = \frac{V_{ref}}{2R}\left(\frac{b_1}{2} + \frac{b_2}{4} + \frac{b_3}{8}\right) = \frac{8\,\text{V}}{20\,\text{k}\Omega}\left(\frac{1}{2} + 0 + \frac{1}{8}\right) = 0.4\,\text{mA} \cdot \frac{5}{8} = 0.25\,\text{mA}
+$$
+
+   Questa corrente attraversa $R_f = 2R = 20\,\text{k}\Omega$, producendo in uscita:
+
+$$
+v_o = -R_f i_{tot} = -(20\,\text{k}\Omega)(0.25\,\text{mA}) = -5.0\,\text{V}
+$$
 
 </details>
 

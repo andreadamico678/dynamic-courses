@@ -27,7 +27,7 @@ def strip_jsx_for_llm(mdx: str) -> str:
     txt = re.sub(r'<Divider\s+label="([^"]+)"\s*/>', r"\n---\n### [\1]\n", txt)
     txt = re.sub(r"<Divider\s*/>", "\n---\n", txt)
     txt = re.sub(
-        r"<(BodeExplorer|RouthExplorer|PhaseFlowExplorer|DiodeRectifierExplorer|MosfetExplorer|SingleStageExplorer|CmosVtcExplorer)[^>]*/?>",
+        r"<(BodeExplorer|RouthExplorer|PhaseFlowExplorer|DiodeRectifierExplorer|MosfetExplorer|SingleStageExplorer|CmosVtcExplorer|AmdahlExplorer|PipelineExplorer|CacheAddressExplorer)[^>]*/?>",
         r"[Interactive Simulator: \1]",
         txt,
     )

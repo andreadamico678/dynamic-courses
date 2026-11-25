@@ -11,209 +11,359 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 18" markdown={`# Cap. 18: Metriche dei Circuiti Digitali
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Caratteristica di Trasferimento di Tensione (VTC) e Livelli Logici
-    - Margini di Rumore (Noise Margins)
-    - Metriche Temporali e Ritardi di Propagazione
-    - Dissipazione di Potenza nei Circuiti Digitali
-    - Prodotto Ritardo-Potenza (PDP) ed Energy-Delay Product (EDP)
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 18" markdown={`# Cap. 18: Metriche dei Circuiti Digitali
+  - 1. Caratteristica VTC e Margini di Rumore
+    - Esempio: Livelli Logici, Rigenerazione e Margini Statici
+    - Teoria: Curva VTC, Punti a Pendenza -1 e Rigenerazione
+  - 2. Ritardi di Propagazione e Modello RC
+    - Esempio: Transitori di Carica/Scarica RC e Tempi Dinamici
+    - Teoria: Metriche Temporali e Costanti ln(2) e ln(9)
+  - 3. Dissipazione di Potenza ed Efficienza PDP / EDP
+    - Esempio: Bilancio Energetico di Ciclo, Potenza e PDP/EDP
+    - Teoria: Potenza Dinamica, Cortocircuito, Leakage e Figure di Merito`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
-La progettazione dei circuiti integrati digitali si fonda sull'astrazione dei dispositivi elettronici a commutatori binari. Tuttavia, la fisica dei semiconduttori impone vincoli deterministici su livelli di tensione, ritardi di commutazione e consumo energetico. L'analisi quantitativa di una qualsiasi famiglia logica richiede la definizione formale di tre classi di grandezze:
-1. **Metriche statiche (Robustezza e Margini di Rumore):** derivate dalla caratteristica di trasferimento di tensione (VTC, *Voltage Transfer Characteristic*), quantificano la capacità della porta logica di rigenerare i livelli booleani in presenza di disturbi di modo comune, accoppiamento capacitivo o cadute resistive sulle linee di alimentazione ($IR$-drop).
-2. **Metriche dinamiche (Velocità e Ritardi di Propagazione):** derivate dalla dinamica di carica e scarica delle capacità parassite equivalenti di nodo, definiscono la massima frequenza operativa raggiungibile dal sistema.
-3. **Metriche energetiche (Potenza e Prodotto Ritardo-Potenza, PDP):** definiscono il bilancio termico del chip e l'autonomia energetica dei dispositivi alimentati a batteria.
+Nel mondo digitale ragioniamo in termini di `0` e `1`, ma dentro un chip i segnali sono pur sempre tensioni analogiche continue. Lungo le piste di rame subiscono disturbi elettrici, impiegano un tempo finito per caricare e scaricare i nodi e consumano energia a ogni commutazione. Per capire se una porta logica è affidabile, veloce ed efficiente ci servono tre metriche fondamentali: i **margini di rumore** ($NM_H, NM_L$) per l'immunità ai disturbi, i **ritardi di propagazione** ($t_p$) per la velocità, e la **potenza dinamica** ($P_{dyn}$) insieme alle figure di merito **PDP** ed **EDP** per il bilancio energetico.
 
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+<Divider label="1 · Caratteristica VTC e Margini di Rumore" />
 
-## Caratteristica di Trasferimento di Tensione (VTC) e Livelli Logici
+### Esempio — Livelli Logici, Rigenerazione e Margini $NM_H, NM_L$
 
-La caratteristica statica di trasferimento di tensione di una porta invertente correla la tensione di uscita $v_{out}$ alla tensione di ingresso $v_{in}$ in condizioni stazionarie ($C_L \frac{dv_o}{dt} \to 0$):
-$$
-v_{out} = f(v_{in})
-$$
+Consideriamo una porta invertente CMOS alimentata a $V_{DD} = 1.8\,\text{V}$. La sua caratteristica statica di trasferimento (**VTC**, [la figura](#fig-digital-vtc)) ha livelli d'uscita nominali $V_{OH} = 1.8\,\text{V}$ e $V_{OL} = 0\,\text{V}$, soglia centrale $V_M = 0.9\,\text{V}$ e due punti a pendenza unitaria ($\frac{dv_{out}}{dv_{in}} = -1$) in $V_{IL} = 0.75\,\text{V}$ e $V_{IH} = 1.05\,\text{V}$.
 
 <figure id="fig-digital-vtc" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-digital-vtc.svg" alt="Caratteristica di trasferimento di tensione (VTC) di un invertitore con identificazione dei quattro punti critici a pendenza differenziale unitaria." />
   <figcaption>Caratteristica di trasferimento di tensione (VTC) di un invertitore con identificazione dei quattro punti critici a pendenza differenziale unitaria.</figcaption>
 </figure>
 
-Sulla VTC si definiscono rigorosamente quattro livelli di tensione caratteristici:
-- **$V_{OH}$ (Output High Voltage):** la tensione minima erogata in uscita quando l'ingresso garantisce uno zero logico nominale ($v_{in} = 0\text{ V} \implies v_{out} = V_{OH} = V_{DD}$).
-- **$V_{OL}$ (Output Low Voltage):** la tensione massima erogata in uscita quando l'ingresso garantisce un uno logico nominale ($v_{in} = V_{DD} \implies v_{out} = V_{OL} = 0\text{ V}$).
-- **$V_{IL}$ (Input Low Voltage):** la massima tensione di ingresso che viene univocamente interpretata come uno zero logico. È definita matematicamente come il punto a pendenza differenziale unitaria negativa con $v_{in} < V_M$:
-  $$ \left. \frac{dv_{out}}{dv_{in}} \right|_{v_{in} = V_{IL}} = -1 $$
-- **$V_{IH}$ (Input High Voltage):** la minima tensione di ingresso che viene univocamente interpretata come un uno logico. È definita matematicamente come il punto a pendenza differenziale unitaria negativa con $v_{in} > V_M$:
-  $$ \left. \frac{dv_{out}}{dv_{in}} \right|_{v_{in} = V_{IH}} = -1 $$
-- **$V_M$ (Soglia Logica di Commutazione / Logic Threshold):** il punto sulla VTC in cui la tensione di ingresso coincide perfettamente con la tensione di uscita:
-  $$ v_{out} = v_{in} = V_M $$
+1. **Calcolo dei margini di rumore statici ($NM_L$ e $NM_H$):**
+   Quando questa porta pilota uno stadio identico a valle ([la figura](#fig-noise-margins)), confrontiamo ciò che il primo stadio garantisce in uscita con ciò che il secondo stadio accetta in ingresso:
 
-### Significato Fisico dei Punti a Guadagno Unitario ($\frac{dv_{out}}{dv_{in}} = -1$)
-
-La scelta convenzionale della pendenza $-1$ deriva dal principio di **rigenerazione del segnale** (*signal restoration*). 
-Se due invertitori identici sono collegati in cascata, una perturbazione infinitesima di ampiezza $\Delta v$ sovrapposta all'ingresso produce all'uscita del primo stadio una variazione:
 $$
-\Delta v_{o1} = \left(\frac{dv_{out}}{dv_{in}}\right) \Delta v
+NM_L = V_{IL} - V_{OL} = 0.75\,\text{V} - 0\,\text{V} = 0.75\,\text{V}, \qquad NM_H = V_{OH} - V_{IH} = 1.8\,\text{V} - 1.05\,\text{V} = 0.75\,\text{V}
 $$
-Se $|\frac{dv_{out}}{dv_{in}}| < 1$ (regioni statiche esterne: $v_{in} < V_{IL}$ oppure $v_{in} > V_{IH}$), la variazione subisce un'attenuazione ($|\Delta v_{o1}| < |\Delta v|$). Attraverso cascate successive di porte logiche, il disturbo si estingue asintoticamente tornando ai livelli di riposo $V_{DD}$ o $0$.
-Al contrario, nella **zona di incertezza** compresa tra $V_{IL}$ e $V_{IH}$, il guadagno differenziale eccede l'unità ($|\frac{dv_{out}}{dv_{in}}| > 1$): qualsiasi fluttuazione o rumore viene amplificato, rendendo impossibile stabilire lo stato booleano. Tale intervallo deve essere attraversato esclusivamente durante le commutazioni dinamiche.
 
-## Margini di Rumore (Noise Margins)
-
-I margini di rumore quantificano la massima ampiezza di tensione di disturbo estrinseco che può essere sommata al segnale logico al nodo di interconnessione tra due stadi in cascata senza provocare errori di decodifica nello stadio a valle:
+   Entrambi i margini superano il $40\%$ dell'alimentazione: uno `'0'` logico ($0\,\text{V}$) può raccogliere fino a $+0.75\,\text{V}$ di disturbo lungo il collegamento ed essere comunque letto senza errori come `'0'` dallo stadio successivo (e lo stesso vale per un `'1'` a $1.8\,\text{V}$ rispetto a una caduta fino a $-0.75\,\text{V}$).
 
 <figure id="fig-noise-margins" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-noise-margins.svg" alt="Definizione geometrica dei margini di rumore alto (NM_H) e basso (NM_L) nell'interconnessione tra due stadi logici." />
   <figcaption>Definizione geometrica dei margini di rumore alto ($NM_H$) e basso ($NM_L$) nell'interconnessione tra due stadi logici.</figcaption>
 </figure>
 
-Le espressioni formali dei margini di rumore sono:
+2. **Rigenerazione del segnale dentro e fuori la zona di incertezza:**
+   La fascia centrale tra $V_{IL} = 0.75\,\text{V}$ e $V_{IH} = 1.05\,\text{V}$ (larga $0.30\,\text{V}$) è la **zona di incertezza**.
+   - Se un `'0'` in ingresso subisce un disturbo di $+0.40\,\text{V}$, resta comunque sotto $V_{IL}$. In quella zona piatta della VTC la pendenza è bassa (ad esempio $|\frac{dv_{out}}{dv_{in}}| \approx 0.15 < 1$), quindi in uscita lo scostamento si riduce a $0.15 \times 0.40\,\text{V} = 0.06\,\text{V}$, e dopo un altro stadio scende a $9\,\text{mV}$: il segnale viene **rigenerato**.
+   - Se invece il disturbo porta l'ingresso nella fascia centrale (es. $v_{in} = 0.90\,\text{V}$), dove la curva è ripida ($|\frac{dv_{out}}{dv_{in}}| = 8 > 1$), una piccola fluttuazione di $20\,\text{mV}$ viene **amplificata** a $160\,\text{mV}$, corrompendo lo stato logico.
+
+<StepCheck client:load lang="it" mode="choice" prompt="In quale intervallo di tensione d'ingresso $v_{in}$ una porta logica amplifica i disturbi invece di attenuarli?" options={["$0 \\le v_{in} < V_{IL}$", "$V_{IL} < v_{in} < V_{IH}$", "$V_{IH} < v_{in} \\le V_{DD}$"]} correctIndex={1} explanation="Tra $V_{IL}$ e $V_{IH}$ la pendenza della VTC soddisfa $|dv_{out}/dv_{in}| > 1$: la porta opera nella zona di incertezza e amplifica eventuali fluttuazioni." />
+
+### Teoria — Curva VTC, Rigenerazione del Segnale e Margini Statici
+
+La caratteristica statica di trasferimento (**VTC**, *Voltage Transfer Characteristic*) descrive il legame $v_{out} = f(v_{in})$ a regime, cioè dopo che tutti i transitori di carica e scarica si sono esauriti. Sulla curva ([la figura](#fig-digital-vtc)) si leggono cinque livelli chiave:
+
+* **$V_{OH}$ e $V_{OL}$:** le tensioni d'uscita nominali per l'`'1'` e lo `'0'` logici (nel CMOS ideale coincidono con $V_{DD}$ e $0\,\text{V}$).
+* **$V_M$ (Soglia Logica):** il punto centrale in cui ingresso e uscita si equivalgono ($v_{out} = v_{in} = V_M$).
+* **$V_{IL}$ e $V_{IH}$:** rispettivamente la massima tensione riconosciuta come `'0'` ($v_{in} < V_M$) e la minima riconosciuta come `'1'` ($v_{in} > V_M$). Per convenzione si fissano nei due punti in cui la pendenza della VTC vale esattamente $-1$:
+
 $$
-NM_H \triangleq V_{OH} - V_{IH}
-$$
-$$
-NM_L \triangleq V_{IL} - V_{OL}
+\left. \frac{dv_{out}}{dv_{in}} \right|_{v_{in} = V_{IL}} = -1 \qquad \text{e} \qquad \left. \frac{dv_{out}}{dv_{in}} \right|_{v_{in} = V_{IH}} = -1
 $$
 
-Nel caso ideale di un invertitore logico simmetrico a piena escursione (*rail-to-rail*):
-$$
-V_{OH} = V_{DD}, \quad V_{OL} = 0\text{ V}, \quad V_{IL} = V_{IH} = V_M = \frac{V_{DD}}{2}
-$$
-I margini di rumore assumono il massimo valore teorico realizzabile:
-$$
-NM_H = NM_L = \frac{V_{DD}}{2}
-$$
-Nelle tecnologie CMOS reali, i margini tipici si attestano attorno al $40\%\div 45\%$ della tensione di alimentazione $V_{DD}$.
+Perché proprio i punti a pendenza $-1$? Per il principio della **rigenerazione del segnale**. Quando un piccolo disturbo $\Delta v$ entra in una porta, in uscita produce una variazione $\Delta v_{o1} \approx \left(\frac{dv_{out}}{dv_{in}}\right) \Delta v$:
+- Fuori dalla zona di incertezza ($v_{in} < V_{IL}$ oppure $v_{in} > V_{IH}$), la curva è quasi piatta e $|\frac{dv_{out}}{dv_{in}}| < 1$: ogni stadio attenua il disturbo e riporta il segnale verso $V_{DD}$ o $0\,\text{V}$.
+- Dentro la **zona di incertezza** ($V_{IL} < v_{in} < V_{IH}$), la pendenza supera $1$ in modulo: la porta si comporta come un amplificatore analogico e amplifica il rumore. Per questo i segnali digitali devono sostare sempre fuori da $[V_{IL}, V_{IH}]$ e attraversare questa fascia solo durante le commutazioni.
 
-## Metriche Temporali e Ritardi di Propagazione
+I **margini di rumore** ([la figura](#fig-noise-margins)) misurano quanto disturbo può sopportare il collegamento tra due porte prima che lo stadio ricevente entri nella zona di incertezza:
 
-I ritardi dinamici di commutazione sono imposti dal tempo necessario affinché i transistori conducano corrente sufficiente a caricare o scaricare la capacità parassita totale vista al nodo di uscita, modellata come un condensatore concentrato di carico $C_L$.
+$$
+NM_H = V_{OH} - V_{IH}, \qquad NM_L = V_{IL} - V_{OL}
+$$
+
+Nel caso limite ideale di una VTC a gradino verticale centrata a $V_{DD}/2$, entrambi i margini varrebbero $V_{DD}/2$. Nelle porte CMOS reali la transizione ha una pendenza finita, ma garantisce comunque margini eccellenti intorno al $40\%\div 45\%$ di $V_{DD}$.
+
+<Divider label="2 · Ritardi di Propagazione e Modello RC" />
+
+### Esempio — Transitori di Scarica/Carica RC e Tempi $t_p, t_r, t_f$
+
+Valutiamo ora la velocità ([la figura](#fig-timing-metrics)) della stessa porta CMOS a $V_{DD} = 1.8\,\text{V}$ quando pilota una capacità di carico complessiva $C_L = 40\,\text{fF}$ (somma delle capacità di drain, della pista e dei gate a valle). I transistori NMOS e PMOS hanno tensione di soglia $V_{tn} = |V_{tp}| = 0.6\,\text{V}$ e fattore di guadagno bilanciato $K_n = K_p \approx 556\,\mu\text{A/V}^2$:
 
 <figure id="fig-timing-metrics" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-timing-metrics.svg" alt="Definizione delle metriche temporali dinamiche: ritardi di propagazione t_pHL e t_pLH, tempo di salita t_r e tempo di discesa t_f." />
   <figcaption>Definizione delle metriche temporali dinamiche: ritardi di propagazione $t_{pHL}$ e $t_{pLH}$, tempo di salita $t_r$ e tempo di discesa $t_f$.</figcaption>
 </figure>
 
-### Definizioni Rigorose
+1. **Resistenze equivalenti e costante di tempo $\tau$:**
+   Sostituendo ciascun MOSFET acceso con la sua resistenza equivalente in regione lineare ([la figura](#fig-cmos-rc-switch-model)):
 
-1. **Tempo di salita ($t_r$, *Rise Time*):** l'intervallo temporale impiegato dalla tensione di uscita per transitare dal $10\%$ al $90\%$ dell'escursione logica totale ($V_{OL} \to V_{OH}$).
-2. **Tempo di discesa ($t_f$, *Fall Time*):** l'intervallo temporale impiegato dalla tensione di uscita per transitare dal $90\%$ al $10\%$ dell'escursione logica totale ($V_{OH} \to V_{OL}$).
-3. **Ritardo di propagazione alto-basso ($t_{pHL}$, *Propagation Delay High-to-Low*):** l'intervallo tra l'istante in cui la transizione di ingresso raggiunge il $50\%$ del suo valore finale e l'istante in cui l'uscita scende al $50\%$ del livello $V_{DD}$.
-4. **Ritardo di propagazione basso-alto ($t_{pLH}$, *Propagation Delay Low-to-High*):** l'intervallo tra il passaggio per il $50\%$ dell'ingresso e il superamento del $50\%$ della tensione di uscita in fase di salita.
-5. **Ritardo di propagazione medio ($t_p$, *Average Propagation Delay*):**
-   $$ t_p \triangleq \frac{t_{pHL} + t_{pLH}}{2} $$
+$$
+R_n = R_p = \frac{1}{K_n(V_{DD} - V_{tn})} \approx \frac{1}{556\,\mu\text{A/V}^2 \times (1.8 - 0.6)\,\text{V}} \approx 1.5\,\text{k}\Omega
+$$
 
-### Modello a Interruttore RC e Calcolo di $t_{pHL}, t_{pLH}, t_f, t_r$
-
-Nel modello lineare a interruttore ([la figura](#fig-cmos-rc-switch-model)), ciascun transistore acceso viene rappresentato mediante un interruttore ideale in serie alla propria resistenza di conduzione equivalente in regione lineare:
-$$ R_n = \frac{1}{k_n (V_{DD} - V_{Tn})}, \qquad R_p = \frac{1}{k_p (V_{DD} - |V_{Tp}|)} $$
+   La costante di tempo del circuito RC formato con $C_L = 40\,\text{fF}$ è $\tau = R_n C_L = 1.5\,\text{k}\Omega \times 40\,\text{fF} = 60\,\text{ps}$.
 
 <figure id="fig-cmos-rc-switch-model" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cmos-rc-switch-model.svg" alt="Modello equivalente a interruttore RC dell'invertitore CMOS durante (a) la transizione alto-basso attraverso R_n e (b) la transizione basso-alto attraverso R_p." />
   <figcaption>Modello equivalente a interruttore RC dell'invertitore CMOS durante (a) la transizione alto-basso attraverso $R_n$ e (b) la transizione basso-alto attraverso $R_p$.</figcaption>
 </figure>
 
-Utilizzando il modello RC del primo ordine, i ritardi di propagazione (al $50\%$) e i tempi di transizione ($10\% \leftrightarrow 90\%$) valgono:
-$$ t_{pHL} = \ln(2) \, R_n C_L \approx 0.69 \, R_n C_L, \qquad t_{pLH} = \ln(2) \, R_p C_L \approx 0.69 \, R_p C_L $$
-$$ t_f = \ln(9) \, R_n C_L \approx 2.2 \, R_n C_L, \qquad t_r = \ln(9) \, R_p C_L \approx 2.2 \, R_p C_L $$
+2. **Ritardi di propagazione al $50\%$ ($t_{pHL}, t_{pLH}, t_p$):**
+   Il ritardo di propagazione si misura quando l'uscita attraversa metà dell'escursione logica ($0.5\,V_{DD}$), che per un esponenziale corrisponde a $\ln(2)\,\tau \approx 0.69\,\tau$:
 
-### Dimostrazione Matematica: Calcolo di $\ln(2) \approx 0.69$ e $\ln(9) \approx 2.2$ sul Transitorio RC
+$$
+t_{pHL} = t_{pLH} \approx 0.69\,R_n C_L = 0.69 \times 1.5\,\text{k}\Omega \times 40\,\text{fF} = 41.4\,\text{ps} \implies t_p = \frac{t_{pHL} + t_{pLH}}{2} = 41.4\,\text{ps}
+$$
 
-Durante la scarica alto-basso ($v_o(0) = V_{DD} \to 0$), la tensione sul condensatore $C_L$ decade esponenzialmente con costante di tempo $\tau_{HL} = R_n C_L$: $v_o(t) = V_{DD} e^{-t/(R_n C_L)}$.
-* **Tempo di propagazione $t_{pHL}$ (al $50\%$ di $V_{DD}$):**
-  $$ v_o(t_{pHL}) = 0.5 \, V_{DD} \implies e^{-\frac{t_{pHL}}{R_n C_L}} = \frac{1}{2} \implies t_{pHL} = \ln(2) \, R_n C_L \approx 0.69 \, R_n C_L $$
-* **Tempo di discesa $t_f$ (dal $90\%$ al $10\%$ di $V_{DD}$):** Siano $t_{90} = R_n C_L \ln(1/0.9)$ e $t_{10} = R_n C_L \ln(1/0.1)$:
-  $$ t_f = t_{10} - t_{90} = R_n C_L \ln\left(\frac{0.9}{0.1}\right) = \ln(9) \, R_n C_L \approx 2.2 \, R_n C_L $$
-espressioni identiche valgono per la carica basso-alto $v_o(t) = V_{DD}(1 - e^{-t/(R_p C_L)})$ sostituendo $R_n$ con $R_p$.
+3. **Tempi di salita e discesa ($10\% \leftrightarrow 90\%$):**
+   I tempi di transizione dei fronti coprono dal $10\%$ al $90\%$ dell'escursione ($\ln(9)\,\tau \approx 2.2\,\tau$), risultando circa tre volte più lunghi del ritardo al $50\%$:
 
-## Dissipazione di Potenza nei Circuiti Digitali
+$$
+t_f = t_r \approx 2.2\,R_n C_L = 2.2 \times 1.5\,\text{k}\Omega \times 40\,\text{fF} = 132\,\text{ps}
+$$
 
-La potenza totale dissipata da una porta logica CMOS operante a frequenza di commutazione $f_{clk}$ è data dalla somma di tre componenti fisiche distinte:
+<StepCheck client:load lang="it" prompt="Se la capacità di carico collegata alla porta dell'esempio ($R_n = 1.5\,\text{k}\Omega$) sale a $C_L = 100\,\text{fF}$, quanto vale il nuovo ritardo di propagazione $t_{pHL}$ (in $\text{ps}$)?" expected={103.5} tolerance={1.5} unit="$\text{ps}$" explanation="$t_{pHL} = 0.69 \, R_n C_L = 0.69 \times 1.5\,\text{k}\Omega \times 100\,\text{fF} = 103.5\,\text{ps}$." />
+
+### Teoria — Metriche Temporali e Costanti $\ln(2)$ e $\ln(9)$
+
+La velocità di una porta digitale dipende da quanto rapidamente i transistori riescono a caricare e scaricare la capacità totale di uscita $C_L$. Le metriche temporali standard ([la figura](#fig-timing-metrics)) sono:
+
+1. **Tempo di salita ($t_r$) e di discesa ($t_f$):** intervallo impiegato dall'uscita per passare dal $10\%$ al $90\%$ (o viceversa) dell'escursione logica.
+2. **Ritardi di propagazione ($t_{pHL}$ e $t_{pLH}$):** intervallo tra il passaggio al $50\%$ del fronte di ingresso e il passaggio al $50\%$ del fronte di uscita, rispettivamente in discesa (High-to-Low) e in salita (Low-to-High).
+3. **Ritardo di propagazione medio ($t_p$):** media dei due ritardi direzionali:
+
+$$
+t_p = \frac{t_{pHL} + t_{pLH}}{2}
+$$
+
+Per stimare questi tempi senza integrare le equazioni non lineari del MOSFET, si usa il **modello a interruttore RC** ([la figura](#fig-cmos-rc-switch-model)): ogni transistore acceso viene rappresentato da una resistenza equivalente costante in regione lineare (dalle [caratteristiche statiche del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/) con $V_{GS} = V_{DD}$):
+
+$$
+R_n = \frac{1}{K_n (V_{DD} - V_{th,n})}, \qquad R_p = \frac{1}{K_p (V_{DD} - |V_{th,p}|)}
+$$
+
+Si nota subito che abbassare troppo $V_{DD}$ vicino alla tensione di soglia fa crescere rapidamente $R_n$ e $R_p$, rallentando il circuito.
+
+* **Scarica attraverso $R_n$ ($t_{pHL}$ e $t_f$):** il condensatore $C_L$ si scarica secondo $v_o(t) = V_{DD}\,e^{-t/(R_n C_L)}$. Imponendo il passaggio al $50\%$ ($v_o = 0.5\,V_{DD}$) si ricava $t_{pHL} = \ln(2)\,R_n C_L \approx 0.69\,R_n C_L$. Misurando invece l'intervallo tra $0.9\,V_{DD}$ e $0.1\,V_{DD}$ si ottiene $t_f = \ln(9)\,R_n C_L \approx 2.2\,R_n C_L$.
+* **Carica attraverso $R_p$ ($t_{pLH}$ e $t_r$):** in salita la legge è complementare, $v_o(t) = V_{DD}\big(1 - e^{-t/(R_p C_L)}\big)$, quindi compaiono le stesse costanti con $R_p$ al posto di $R_n$:
+
+$$
+t_{pLH} = \ln(2)\,R_p C_L \approx 0.69\,R_p C_L, \qquad t_r = \ln(9)\,R_p C_L \approx 2.2\,R_p C_L
+$$
+
+Per avere fronti e ritardi simmetrici ($t_{pHL} = t_{pLH}$) bisogna quindi dimensionare i transistori in modo che sia $R_n = R_p$.
+
+<Divider label="3 · Dissipazione di Potenza ed Efficienza PDP / EDP" />
+
+### Esempio — Bilancio Energetico di Ciclo, Potenza Dinamica e PDP/EDP
+
+Calcoliamo i consumi della stessa porta CMOS ($V_{DD} = 1.8\,\text{V}$, $C_L = 40\,\text{fF}$, $t_p = 41.4\,\text{ps}$) quando lavora con un clock a $f_{clk} = 500\,\text{MHz}$, fattore di attività $\alpha = 0.5$ e corrente statica di perdita $I_{leak} = 10\,\text{nA}$:
+
+1. **Energia per ciclo completo ($0 \to 1 \to 0$):**
+   L'energia prelevata dall'alimentazione per ogni ciclo di carica e scarica è:
+
+$$
+E_{cycle} = C_L V_{DD}^2 = (40 \times 10^{-15}\,\text{F}) \times (1.8\,\text{V})^2 = 129.6\,\text{fJ}
+$$
+
+   Metà di questa energia ($64.8\,\text{fJ}$) viene dissipata in calore nel PMOS durante la carica, e l'altra metà nell'NMOS durante la successiva scarica.
+
+2. **Potenza dinamica e potenza statica:**
+   Con $\alpha = 0.5$ e $f_{clk} = 500\,\text{MHz}$, la porta compie in media $2.5 \times 10^8$ cicli completi al secondo, dissipando una potenza dinamica:
+
+$$
+P_{dyn} = \alpha\,C_L\,V_{DD}^2\,f_{clk} = 0.5 \times 129.6\,\text{fJ} \times 500\,\text{MHz} = 32.4\,\mu\text{W}
+$$
+
+   A riposo, la corrente di perdita genera invece una potenza statica $P_{stat} = V_{DD} I_{leak} = 1.8\,\text{V} \times 10\,\text{nA} = 18\,\text{nW}$: minuscola per una singola porta, ma significativa in *stand-by* quando si sommano miliardi di transistori.
+
+3. **Figure di merito PDP ed EDP:**
+   L'energia media spesa per singola transizione (**Power-Delay Product**) e il prodotto energia-ritardo (**Energy-Delay Product**) valgono:
+
+$$
+\text{PDP} = \frac{1}{2} C_L V_{DD}^2 = 64.8\,\text{fJ}, \qquad \text{EDP} = \text{PDP} \times t_p = 64.8\,\text{fJ} \times 41.4\,\text{ps} \approx 2.68 \times 10^{-24}\,\text{J}\cdot\text{s}
+$$
+
+<StepCheck client:load lang="it" prompt="Se l'alimentazione del circuito precedente viene dimezzata a $V_{DD} = 0.9\,\text{V}$ mantenendo invariati $C_L$, $\alpha$ e $f_{clk}$, quanto vale la nuova potenza dinamica $P_{dyn}$?" expected={8.1} tolerance={0.2} unit="$\mu\text{W}$" explanation="Poiché $P_{dyn} \propto V_{DD}^2$, dimezzare $V_{DD}$ riduce la potenza a un quarto: $32.4 / 4 = 8.1\,\mu\text{W}$." />
+
+### Teoria — Potenza Dinamica, Cortocircuito, Leakage e Figure di Merito
+
+La potenza totale dissipata da una porta CMOS è la somma di tre contributi:
+
 $$
 P_{tot} = P_{dyn} + P_{sc} + P_{stat}
 $$
 
-### 1. Potenza Dinamica Capacitiva ($P_{dyn}$)
+1. **Potenza dinamica di commutazione ($P_{dyn}$):**
+   È la voce principale quando il circuito elabora dati. Per caricare il condensatore $C_L$ da $0$ a $V_{DD}$, il generatore di alimentazione deve fornire una carica $Q = C_L V_{DD}$ alla tensione costante $V_{DD}$, erogando quindi un'energia $E_{VDD} = Q V_{DD} = C_L V_{DD}^2$.
+   Sul condensatore carico resta però immagazzinata solo l'energia elettrostatica $E_{cap} = \frac{1}{2} C_L V_{DD}^2$: la prima metà viene inevitabilmente persa in calore nella resistenza del PMOS durante la carica, e la seconda metà si dissipa nell'NMOS durante la successiva scarica verso massa, **qualunque sia il valore di $R_n$ e $R_p$**. In un ciclo completo $0 \to 1 \to 0$ si consuma dunque sempre:
 
-È la componente dominante nelle tecnologie digitali standard. In un ciclo completo di carica e scarica ($0 \to 1 \to 0$) del condensatore di carico $C_L$, viene dissipata per effetto Joule un'energia pari a $E_{cycle} = C_L V_{DD}^2$ (metà nella rete PMOS durante la carica, metà nella rete NMOS durante la scarica). Moltiplicando per la frequenza di commutazione effettiva $f_{eff} = \alpha \cdot f_{clk}$ (dove $\alpha \in [0, 1]$ è il **fattore di attività**):
 $$
-P_{dyn} = \alpha \, C_L \, V_{DD}^2 \, f_{clk}
+E_{cycle} = C_L V_{DD}^2
 $$
 
-### Dimostrazione Matematica: Bilancio Energetico di Carica e Scarica di $C_L$
+   Moltiplicando per il numero medio di cicli completi al secondo $\alpha f_{clk}$ (dove $\alpha \in [0, 1]$ è il **fattore di attività**, ossia la probabilità di una transizione $0 \to 1$ a ogni colpo di clock), si ottiene la formula fondamentale della potenza dinamica:
 
-Ad ogni transizione $0 \to V_{DD}$, il generatore di alimentazione eroga una carica totale $Q_{tot} = C_L V_{DD}$, fornendo l'energia:
-$$ E_{VDD} = \int_0^\infty i_{VDD}(t) V_{DD} \, dt = V_{DD} \int_0^{Q_{tot}} dq = C_L V_{DD}^2 $$
-Poiché l'energia elettrostatica effettivamente immagazzinata nel condensatore a fine carica vale solo $E_{cap} = \frac{1}{2} C_L V_{DD}^2$, la restante metà $E_{diss,PUN} = E_{VDD} - E_{cap} = \frac{1}{2} C_L V_{DD}^2$ viene dissipata in calore nel PMOS (indipendentemente dal valore di $R_p$!). Nella successiva transizione $V_{DD} \to 0$, l'alimentazione è isolata e l'energia $E_{cap} = \frac{1}{2} C_L V_{DD}^2$ viene interamente dissipata in calore nell'NMOS verso massa ($E_{diss,PDN} = \frac{1}{2} C_L V_{DD}^2$), portando il bilancio per ciclo a $E_{cycle} = C_L V_{DD}^2$.
+$$
+P_{dyn} = \alpha\,C_L\,V_{DD}^2\,f_{clk}
+$$
 
-<Callout type="tip" title="Impatto Industriale: Perché le Tensioni V_DD Sono Scendute da 5 V a 0.8 V">
+<Callout type="tip" title="Riduzione Storica della Tensione di Alimentazione">
 
-La formula $P_{dyn} = \alpha C_L V_{DD}^2 f_{clk}$ rivela un fatto fisicamente sorprendente e cruciale: l'energia consumata per ciclo **non dipende dalla resistenza $R_{on}$ dei transistori**, ma solo da $C_L$ e dal **quadrato** della tensione di alimentazione $V_{DD}^2$. È proprio per sfruttare questo esponente quadratico che nell'industria microelettronica la tensione di alimentazione dei processori è stata progressivamente abbassata dai classici $5\,\text{V}$ degli anni '80 a $3.3\,\text{V}$, $1.8\,\text{V}$ fino agli attuali $0.7\div 0.9\,\text{V}$: dimezzare $V_{DD}$ riduce immediatamente a un quarto la potenza dinamica dissipata a parità di frequenza di clock.
+L'energia consumata per ciclo dipende dal quadrato di $V_{DD}$ e non dalle resistenze dei transistori. Proprio per sfruttare questa dipendenza quadratica, l'industria ha abbassato le tensioni dai $5\,\text{V}$ degli anni '80 agli attuali $0.7\div 0.9\,\text{V}$: dimezzare $V_{DD}$ riduce la potenza dinamica a un quarto.
 
 </Callout>
 
-### 2. Potenza di Cortocircuito ($P_{sc}$)
+2. **Potenza di cortocircuito ($P_{sc}$):**
+   Durante un fronte di ingresso con pendenza finita, per un breve istante in cui $V_{tn} < v_{in}(t) < V_{DD} - |V_{tp}|$, sia l'NMOS sia il PMOS sono accesi insieme, creando un percorso diretto tra $V_{DD}$ e massa che dissipa $P_{sc} = I_{sc,\text{media}}\,V_{DD}$.
 
-Durante il transitorio di commutazione finito ($t_r, t_f > 0$), per l'intervallo temporale in cui la tensione di ingresso soddisfa la condizione $V_{Tn} < v_{in}(t) < V_{DD} - |V_{Tp}|$, sia i transistori NMOS della rete di pull-down sia i transistori PMOS della rete di pull-up risultano simultaneamente accesi. Si stabilisce una corrente diretta di cortocircuito $i_{sc}(t)$ che fluisce da $V_{DD}$ a massa senza caricare la capacità di carico, dissipando una potenza media $P_{sc} = I_{sc,media} V_{DD}$.
+3. **Potenza statica di perdita ($P_{stat}$):**
+   In teoria, a riposo uno dei due transistori è sempre spento e il consumo sarebbe nullo. Nei dispositivi reali scorre comunque una piccola corrente di perdita $I_{leak}$ (conduzione sottosoglia e correnti di giunzione) che produce:
 
-### 3. Potenza Statica di Perdita ($P_{stat}$)
-
-In assenza di commutazioni ($f_{clk} = 0$), una porta CMOS ideale presenta consumo statico nullo ($P_{stat} = 0$) poiché, in entrambi gli stati logici stazionari ($v_{in} = 0$ e $v_{in} = V_{DD}$), uno dei due transistori complementari è in interdizione. Nei dispositivi reali scorre unicamente una debolissima corrente di perdita inversa delle giunzioni e di sottosoglia $I_{leak}$, a cui corrisponde $P_{stat} = V_{DD} I_{leak}$.
-
-## Prodotto Ritardo-Potenza (PDP) ed Energy-Delay Product (EDP)
-
-Per quantificare l'efficienza globale di una tecnologia o topologia logica, considerare separatamente la velocità (minimo ritardo $t_p$) o il consumo (minima potenza $P$) risulterebbe fuorviante, poiché un circuito può sempre essere reso più veloce aumentando la corrente erogata a scapito di consumi spropositati.
-
-Il **Power-Delay Product (PDP)** rappresenta l'energia media consumata dalla porta per compiere una singola transizione logica:
 $$
-PDP \triangleq P_{tot} \times t_p \approx \left(C_L V_{DD}^2 f_{clk}\right) \times \left(\frac{1}{2 f_{clk}}\right) = \frac{1}{2} C_L V_{DD}^2
+P_{stat} = V_{DD}\,I_{leak}
 $$
-L'unità di misura del PDP è il Joule ($\text{J}$, o femtojoule $\text{fJ}$). Minore è il PDP, maggiore è l'efficienza energetica della famiglia logica.
 
-Per architetture a calcolo intensivo (GPU, CPU per guida autonoma) in cui le prestazioni pure sono prioritarie, si adotta la figura di merito **Energy-Delay Product (EDP)**:
+4. **Figure di merito energetiche (PDP ed EDP):**
+   Abbassare $V_{DD}$ riduce la potenza ma aumenta i ritardi $t_p$. Per confrontare due soluzioni tenendo conto sia del consumo sia della velocità si usano:
+   - **Power-Delay Product (PDP):** misura l'energia spesa per singola commutazione:
+
 $$
-EDP \triangleq PDP \times t_p = E_{ops} \times t_p
+\text{PDP} = P_{tot} \times t_p \approx \frac{1}{2} C_L V_{DD}^2
 $$
-con unità di misura $\text{J}\cdot\text{s}$, che penalizza quadraticamente le perdite di velocità computazionale.
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+   - **Energy-Delay Product (EDP):** moltiplica il PDP per un ulteriore fattore $t_p$, penalizzando le soluzioni troppo lente a bassissima tensione:
 
-### Tabella delle Metriche Digitali CMOS
+$$
+\text{EDP} = \text{PDP} \times t_p = P_{tot}\,t_p^2
+$$
 
-| Metrica | Definizione | Formula |
+<Divider label="4 · Sintesi" />
+
+### Tabella delle Metriche Digitali
+
+| Metrica | Significato Fisico | Formula |
 | :--- | :--- | :--- |
-| Margini di Rumore | Immunità statica ai disturbi | $NM_H = V_{OH} - V_{IH},\quad NM_L = V_{IL} - V_{OL}$ |
-| Ritardo di Propagazione | Media al $50\%$ della transizione | $t_p = \frac{t_{pHL} + t_{pLH}}{2} \approx 0.69 R_{eq} C_L$ |
-| Potenza Dinamica | Carica/scarica di $C_L$ | $P_{\text{dyn}} = \alpha C_L V_{DD}^2 f$ |
-| Power-Delay Product | Energia per commutazione | $\text{PDP} = P_{\text{dyn}} \cdot t_p = C_L V_{DD}^2$ ($\alpha=1$) |
+| **Margini di Rumore** | Immunità statica ai disturbi | $NM_H = V_{OH} - V_{IH}$, $NM_L = V_{IL} - V_{OL}$ |
+| **Ritardi al $50\%$** | Velocità di commutazione RC | $t_{pHL} \approx 0.69\,R_n C_L$, $t_{pLH} \approx 0.69\,R_p C_L$, $t_p = \frac{t_{pHL}+t_{pLH}}{2}$ |
+| **Tempi di Transizione** | Pendenza fronti ($10\% \leftrightarrow 90\%$) | $t_f \approx 2.2\,R_n C_L$, $t_r \approx 2.2\,R_p C_L$ |
+| **Potenza Dinamica** | Carica/scarica ciclica di $C_L$ | $P_{dyn} = \alpha\,C_L\,V_{DD}^2\,f_{clk}$ |
+| **PDP ed EDP** | Energia per bit e figura prestazioni | $\text{PDP} = P_{tot}\,t_p$, $\text{EDP} = \text{PDP}\,t_p$ |
 
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
+### Procedura di Valutazione
 
-<Callout type="warning" title="Trappola d'Esame: Fattore di Attività α e Dipendenza Quadratica da V_DD">
+1. **Estrarre i livelli VTC:** identificare $V_{OH}, V_{OL}$ e i punti a pendenza $-1$ ($V_{IL}, V_{IH}$) per calcolare $NM_L$ e $NM_H$.
+2. **Stimare le resistenze equivalenti:** calcolare $R_n$ e $R_p$ in regione lineare e ricavare $t_{pHL}$, $t_{pLH}$ e $t_p$.
+3. **Calcolare la potenza dissipata:** valutare $P_{dyn} = \alpha\,C_L\,V_{DD}^2\,f_{clk}$ e sommare eventuali termini statici o di cortocircuito.
+4. **Confrontare l'efficienza:** ricavare $\text{PDP}$ ed $\text{EDP}$ per confrontare tecnologie o alimentazioni diverse.
 
-Nel calcolo della potenza dinamica $P_{\text{dyn}} = \alpha C_L V_{DD}^2 f$, il fattore $\alpha$ rappresenta la frazione di cicli di clock in cui avviene una transizione $0 \to 1$ (per un segnale periodico alternante a ogni colpo di clock $\alpha = 0.5$; se non specificato si assume $\alpha = 1$). Ridurre $V_{DD}$ abbatte la potenza in modo **quadratico**, ma aumenta $t_p$ degradando la velocità.
+### Dimostrazioni Chiave
+
+* **Costanti $\ln(2)$ e $\ln(9)$ sul transitorio RC:** dalla scarica esponenziale $v_o(t) = V_{DD} e^{-t/(R_n C_L)}$, imponendo $v_o = 0.5\,V_{DD}$ si ottiene $t_{pHL} = \ln(2)\,R_n C_L$, mentre tra $90\%$ e $10\%$ si ricava $t_f = \ln(9)\,R_n C_L$.
+* **Bilancio energetico $E_{cycle} = C_L V_{DD}^2$:** in carica il generatore eroga $C_L V_{DD}^2$ (metà su $C_L$, metà dissipata nel PMOS); in scarica l'altra metà si dissipa nell'NMOS indipendentemente da $R_n$ e $R_p$.
+
+<Callout type="warning" title="Errori Comuni">
+
+Nella formula $P_{dyn} = \alpha\,C_L\,V_{DD}^2\,f_{clk}$, il fattore di attività $\alpha$ è la frazione di cicli in cui avviene una transizione $0 \to 1$ (per un segnale che alterna a ogni colpo di clock vale $\alpha = 0.5$; se non è specificato si assume $\alpha = 1$). Ridurre $V_{DD}$ abbatte la potenza in modo quadratico, ma fa crescere $R_n$ e $R_p$, rallentando $t_p$.
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-18-1" title="Esercizio 18.1: Margini di Rumore e Potenza Dinamica CMOS" level="Livello 1 · Base" hint="NM_L = V_IL - V_OL, NM_H = V_OH - V_IH, e P_dyn = alpha * C_L * V_DD^2 * f.">
+<Divider label="5 · Esercizi" />
+
+<Exercise client:load lang="it" id="ex-18-1" title="Esercizio 18.1 — Margini di Rumore e Potenza Dinamica" level="Base" hint="$NM_L = V_{IL} - V_{OL}$, $NM_H = V_{OH} - V_{IH}$ e $P_{dyn} = \alpha\,C_L\,V_{DD}^2\,f$.">
 
 1. Una porta CMOS alimentata a $V_{DD} = 3.3\,\text{V}$ presenta $V_{OH} = 3.3\,\text{V}$, $V_{OL} = 0\,\text{V}$, $V_{IL} = 1.25\,\text{V}$ e $V_{IH} = 2.05\,\text{V}$.
 2. Un nodo digitale con capacità di carico $C_L = 50\,\text{fF}$ commuta a $f = 500\,\text{MHz}$ con $V_{DD} = 1.8\,\text{V}$ e fattore di attività $\alpha = 0.25$.
 
-<StepCheck client:load lang="it" prompt="Calcola il margine di rumore basso NM_L (in V):" expected={1.25} tolerance={0.02} unit="V" explanation="NM_L = V_IL - V_OL = 1.25 - 0 = 1.25 V (e NM_H = 3.3 - 2.05 = 1.25 V)." />
+<StepCheck client:load lang="it" prompt="Calcola il margine di rumore basso $NM_L$ (in $\text{V}$):" expected={1.25} tolerance={0.02} unit="$\text{V}$" explanation="$NM_L = V_{IL} - V_{OL} = 1.25 - 0 = 1.25\,\text{V}$ (e $NM_H = 3.3 - 2.05 = 1.25\,\text{V}$)." />
 
-<StepCheck client:load lang="it" prompt="Calcola la potenza dinamica dissipata P_dyn (in μW):" expected={20.25} tolerance={0.3} unit="μW" explanation="P_dyn = 0.25 * 50e-15 * (1.8)^2 * 500e6 = 20.25 μW." />
+<StepCheck client:load lang="it" prompt="Calcola la potenza dinamica dissipata $P_{dyn}$ (in $\mu\text{W}$):" expected={20.25} tolerance={0.3} unit="$\mu\text{W}$" explanation="$P_{dyn} = 0.25 \cdot (50\times 10^{-15}) \cdot (1.8)^2 \cdot (500\times 10^6) = 20.25\,\mu\text{W}$." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. $NM_L = V_{IL} - V_{OL} = 1.25\,\text{V}$; $NM_H = V_{OH} - V_{IH} = 3.3 - 2.05 = 1.25\,\text{V}$.
-2. $P_{\text{dyn}} = \alpha C_L V_{DD}^2 f = 0.25 \cdot (50\times 10^{-15}) \cdot (1.8)^2 \cdot (500\times 10^6) = 20.25\,\mu\text{W}$.
+1. **Margini di rumore:**
+
+   $$
+   NM_L = V_{IL} - V_{OL} = 1.25 - 0 = 1.25\,\text{V}, \qquad NM_H = V_{OH} - V_{IH} = 3.3 - 2.05 = 1.25\,\text{V}
+   $$
+
+2. **Potenza dinamica dissipata:**
+
+   $$
+   P_{dyn} = \alpha\,C_L\,V_{DD}^2\,f = 0.25 \cdot (50 \times 10^{-15}\,\text{F}) \cdot (1.8\,\text{V})^2 \cdot (500 \times 10^6\,\text{Hz}) = 20.25\,\mu\text{W}
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-18-2" title="Esercizio 18.2 — Ritardi RC e Prodotto Ritardo-Potenza" level="Intermedio" hint="Usa $t_{pHL} = 0.69\,R_n C_L$, $t_f = 2.2\,R_n C_L$ e $E_{cycle} = C_L V_{DD}^2$ con $\alpha = 1$.">
+
+Un invertitore CMOS alimentato a $V_{DD} = 1.2\,\text{V}$ pilota una capacità $C_L = 60\,\text{fF}$ con resistenze equivalenti $R_n = 1.0\,\text{k}\Omega$ e $R_p = 1.5\,\text{k}\Omega$.
+
+<StepCheck client:load lang="it" prompt="Calcola il ritardo di propagazione medio $t_p$ (in $\text{ps}$):" expected={51.75} tolerance={1.0} unit="$\text{ps}$" explanation="$t_{pHL} = 0.69 \cdot 1000 \cdot 60\times 10^{-15} = 41.4\,\text{ps}$, $t_{pLH} = 0.69 \cdot 1500 \cdot 60\times 10^{-15} = 62.1\,\text{ps}$, quindi $t_p = (41.4 + 62.1)/2 = 51.75\,\text{ps}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola l'energia dissipata per singolo ciclo completo $E_{cycle}$ (in $\text{fJ}$):" expected={86.4} tolerance={1.0} unit="$\text{fJ}$" explanation="$E_{cycle} = C_L V_{DD}^2 = 60\,\text{fF} \cdot (1.2\,\text{V})^2 = 86.4\,\text{fJ}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Ritardi alto-basso e basso-alto:**
+
+   $$
+   t_{pHL} = 0.69\,R_n C_L = 0.69 \cdot 1.0\,\text{k}\Omega \cdot 60\,\text{fF} = 41.4\,\text{ps}, \qquad t_{pLH} = 0.69\,R_p C_L = 0.69 \cdot 1.5\,\text{k}\Omega \cdot 60\,\text{fF} = 62.1\,\text{ps}
+   $$
+
+2. **Ritardo di propagazione medio:**
+
+   $$
+   t_p = \frac{t_{pHL} + t_{pLH}}{2} = \frac{41.4 + 62.1}{2} = 51.75\,\text{ps}
+   $$
+
+3. **Energia dissipata per ciclo completo ($0 \to 1 \to 0$):**
+
+   $$
+   E_{cycle} = C_L V_{DD}^2 = (60 \times 10^{-15}\,\text{F}) \cdot (1.2\,\text{V})^2 = 86.4\,\text{fJ}
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-18-3" title="Esercizio 18.3 — Resistenza Lineare e Compromesso Tensione-Velocità" level="Livello Esame" hint="Ricava $R_n = [K_n(V_{DD}-V_{tn})]^{-1}$, poi calcola $t_{pHL}$ e $P_{dyn}$ nei due regimi di alimentazione.">
+
+Un transistore NMOS con $K_n = 1.0\,\text{mA/V}^2$ e $V_{tn} = 0.6\,\text{V}$ scarica un carico $C_L = 100\,\text{fF}$ a frequenza $f_{clk} = 250\,\text{MHz}$ ($\alpha = 0.4$). Si confrontano l'alimentazione nominale $V_{DD1} = 1.8\,\text{V}$ e una modalità a basso consumo $V_{DD2} = 1.2\,\text{V}$.
+
+<StepCheck client:load lang="it" prompt="Calcola $t_{pHL}$ all'alimentazione ridotta $V_{DD2} = 1.2\,\text{V}$ (in $\text{ps}$):" expected={115.0} tolerance={2.0} unit="$\text{ps}$" explanation="$R_{n2} = [10^{-3}(1.2 - 0.6)]^{-1} = 1.667\,\text{k}\Omega$; $t_{pHL2} = 0.69 \cdot 1.667\,\text{k}\Omega \cdot 100\,\text{fF} \approx 115\,\text{ps}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola il rapporto tra la potenza dinamica a $1.2\,\text{V}$ e quella a $1.8\,\text{V}$ ($P_{dyn2} / P_{dyn1}$):" expected={0.444} tolerance={0.015} explanation="$P_{dyn2}/P_{dyn1} = (1.2 / 1.8)^2 = (2/3)^2 \approx 0.444$ (risparmio del $55.6\%$, a fronte di un raddoppio di $R_n$ e $t_{pHL}$)." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Regime nominale ($V_{DD1} = 1.8\,\text{V}$):**
+
+   $$
+   R_{n1} = \frac{1}{1.0\,\text{mA/V}^2 \cdot (1.8 - 0.6)\,\text{V}} \approx 833\,\Omega \implies t_{pHL1} = 0.69 \cdot 833\,\Omega \cdot 100\,\text{fF} = 57.5\,\text{ps}
+   $$
+
+   $$
+   P_{dyn1} = 0.4 \cdot 100\,\text{fF} \cdot (1.8)^2 \cdot 250\,\text{MHz} = 32.4\,\mu\text{W}
+   $$
+
+2. **Regime a basso consumo ($V_{DD2} = 1.2\,\text{V}$):**
+
+   $$
+   R_{n2} = \frac{1}{1.0\,\text{mA/V}^2 \cdot (1.2 - 0.6)\,\text{V}} \approx 1.67\,\text{k}\Omega \implies t_{pHL2} = 0.69 \cdot 1667\,\Omega \cdot 100\,\text{fF} = 115\,\text{ps}
+   $$
+
+3. **Rapporto di potenza dinamica:** poiché $\alpha$, $C_L$ e $f_{clk}$ non cambiano:
+
+   $$
+   \frac{P_{dyn2}}{P_{dyn1}} = \left(\frac{V_{DD2}}{V_{DD1}}\right)^2 = \left(\frac{1.2}{1.8}\right)^2 = \frac{4}{9} \approx 0.444
+   $$
+
+   La potenza scende a $14.4\,\mu\text{W}$ (risparmio di oltre metà energia) a fronte del raddoppio del ritardo.
 
 </details>
 

@@ -11,50 +11,213 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 4 Mental Model" markdown={`# Ch. 4: Unilateral Laplace Transform
-  - Mathematical Definition and Region of Convergence
-  - Canonical Operational Signals and Transform Pairs
-  - Fundamental Operational Theorems
-    - 1. Linearity
-    - 2. Time Translation (Pure Delay)
-    - 3. Complex Frequency Translation (Exponential Modulation)
-    - 4. Time Differentiation
-    - 5. Time Integration
-    - 6. Complex Frequency Differentiation (Multiplication by $t$)
-    - 7. Initial and Final Value Theorems`} />
+<MindMap client:load defaultCollapsed title="Chapter 4 Outline" markdown={`# Ch. 4: Unilateral Laplace Transform
+  - Initial-Condition ODE Example
+    - Differentiating with $t = 0^-$ terms
+    - Region of convergence and limits
+  - Operational Foundations
+    - Integral definition and ROC
+    - Linearity and shifting theorems
+    - Differentiation and integration
+    - Initial and final value theorems`} />
 
-## Mathematical Definition and Region of Convergence
+## Introduction
 
-The Laplace transform is the operational bridge converting continuous-time differential equations into algebraic polynomials in the complex frequency variable $s \in \mathbb{C}$. In causal engineering systems where excitations and states are initialized at $t = 0^-$, we employ the **Unilateral Laplace Transform**.
+Solving coupled linear differential equations directly in the time domain requires guessing homogeneous and particular solutions and fitting initial conditions every time an input changes. The **Unilateral Laplace Transform** trades calculus for ordinary algebra: time derivatives become multiplication by $s$, integrals become division by $s$, and initial conditions at $t = 0^-$ enter automatically as algebraic terms.
 
-<Callout type="note" title="Definition: Unilateral Laplace Transform">
+In practical control work—whether analyzing a motor's response to a voltage step or predicting steady-state tracking error using the Final Value Theorem—working in the $s$-domain lets you inspect transient decay rates, delays, and final values before ever inverting back to time.
 
-Let $f(t): [0, \infty) \to \mathbb{R}$ be a piecewise continuous function of exponential order, such that $|f(t)| \le M e^{\sigma_0 t}$ for all $t \ge 0$ with constants $M > 0, \sigma_0 \in \mathbb{R}$. The unilateral Laplace transform of $f(t)$ is defined as:
-$$F(s) \triangleq \mathcal{L}\{f(t)\} = \int_{0^-}^\infty f(t) e^{-st} \, dt$$
-where $s = \sigma + j\omega \in \mathbb{C}$ is the complex frequency variable.
+<Divider label="1 · Example" />
 
-</Callout>
+### Initial-Condition ODE Transform
 
-The integral the equation above converges in an open right half-plane of the complex plane termed the **Region of Convergence (ROC)**:
+In [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/), we saw that physical systems with mass, springs, or capacitors store internal energy at the start of an experiment ($t = 0^-$). In classical time-domain calculus, solving a differential equation with non-zero initial energy requires finding a homogeneous solution, guessing a particular solution for the input, adding them together, and then solving simultaneous equations for the arbitrary constants. The **Unilateral Laplace Transform** replaces that multi-stage procedure with a single algebraic equation in the complex frequency variable $s$.
 
-$$\operatorname{ROC} = \left\{ s \in \mathbb{C} \;\middle|\; \operatorname{Re}(s) = \sigma > \sigma_0 \right\}$$
+Consider a damped second-order mechanical axis excited at $t = 0$ by a constant step force $u(t) = 6 \cdot 1(t)$, starting from an initial displaced position $y(0^-) = 1\text{ m}$ and zero initial velocity $\dot{y}(0^-) = 0\text{ m/s}$:
 
-where $\sigma_0$ is the **abscissa of absolute convergence**.
+$$\ddot{y}(t) + 3\dot{y}(t) + 2y(t) = 6 \cdot 1(t), \qquad y(0^-) = 1, \quad \dot{y}(0^-) = 0$$
+
+To move this differential equation into the $s$-domain, we apply the Laplace differentiation formulas $\mathcal{L}\{\dot{y}(t)\} = sY(s) - y(0^-)$ and $\mathcal{L}\{\ddot{y}(t)\} = s^2 Y(s) - s y(0^-) - \dot{y}(0^-)$ to the left-hand side, and the step transform $\mathcal{L}\{6 \cdot 1(t)\} = \frac{6}{s}$ to the right-hand side. Substituting the initial values $y(0^-) = 1$ and $\dot{y}(0^-) = 0$ term by term gives:
+
+$$\underbrace{\big(s^2 Y(s) - s(1) - 0\big)}_{\mathcal{L}\{\ddot{y}(t)\}} + 3\underbrace{\big(s Y(s) - 1\big)}_{\mathcal{L}\{\dot{y}(t)\}} + 2 Y(s) = \frac{6}{s}$$
+
+Notice how the derivatives $\ddot{y}$ and $\dot{y}$ have turned into polynomial multipliers $s^2$ and $3s$ acting on $Y(s)$, while the initial position $y(0^-) = 1$ has produced the algebraic terms $-s$ and $-3$. Grouping all terms multiplying $Y(s)$ on the left-hand side and moving the initial-condition polynomial $(s + 3)$ to the right-hand side yields:
+
+$$(s^2 + 3s + 2) Y(s) = (s + 3) + \frac{6}{s} = \frac{s(s + 3) + 6}{s} = \frac{s^2 + 3s + 6}{s}$$
+
+Here the polynomial multiplying $Y(s)$ is the system's characteristic polynomial $p(s) = s^2 + 3s + 2 = (s + 1)(s + 2)$. Dividing both sides by $(s^2 + 3s + 2)$ solves for $Y(s)$ completely and separates the total response into two physically distinct pieces:
+
+$$Y(s) = \underbrace{\frac{s + 3}{(s + 1)(s + 2)}}_{Y_{\text{free}}(s)} + \underbrace{\frac{6}{s(s + 1)(s + 2)}}_{Y_{\text{forced}}(s)} = \frac{s^2 + 3s + 6}{s(s+1)(s+2)}$$
+
+The first fraction $Y_{\text{free}}(s)$ is the **free response**, generated exclusively by the initial stored energy $y(0^-) = 1$ even if the external force were zero. The second fraction $Y_{\text{forced}}(s)$ is the **forced response**, generated exclusively by the external step force $\frac{6}{s}$ acting from rest. Because the denominator of $Y(s)$ has roots (poles) at $s = 0$, $s = -1$, and $s = -2$, the rightmost pole lies at $\sigma_0 = 0$, meaning the Laplace integral converges absolutely for every complex frequency in the open right half-plane $\operatorname{Re}(s) > 0$, as illustrated in [the figure](#fig-laplace-roc).
 
 <figure id="fig-laplace-roc" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-laplace-roc.svg" alt="The complex $s$-plane showing the abscissa of convergence $\sigma_0$ and the semi-infinite Region of Convergence (ROC) guaranteeing absolute convergence $\int_0^\infty |f(t)e^{-st}|dt < \infty$." />
   <figcaption>The complex $s$-plane showing the abscissa of convergence $\sigma_0$ and the semi-infinite Region of Convergence (ROC) guaranteeing absolute convergence $\int_0^\infty |f(t)e^{-st}|dt < \infty$.</figcaption>
 </figure>
 
-<Divider />
+Even before inverting $Y(s)$ back into a function of time $t$ (which we will do via partial fractions in [Partial Fraction Expansion](/dynamic-courses/systems-theory/02-laplace-resolvent/02-partial-fraction-expansion-heaviside-residues/)), we can check the starting position $y(0^+)$ and final resting equilibrium $y(\infty)$ directly from $Y(s)$. Multiplying $Y(s)$ by $s$ cancels the factor of $s$ in the denominator to give $sY(s) = \frac{s^2 + 3s + 6}{(s+1)(s+2)}$. Taking the high-frequency limit $s \to \infty$ by dividing numerator and denominator by $s^2$ checks the initial value right after $t = 0$:
 
-## Canonical Operational Signals and Transform Pairs
+$$y(0^+) = \lim_{s \to \infty} s Y(s) = \lim_{s \to \infty} \frac{s^2 + 3s + 6}{s^2 + 3s + 2} = \lim_{s \to \infty} \frac{1 + \frac{3}{s} + \frac{6}{s^2}}{1 + \frac{3}{s} + \frac{2}{s^2}} = 1$$
 
-Evaluating the equation above across standard testing signals yields the foundational transformation dictionary:
+Because $y(0^+) = 1$ matches $y(0^-) = 1$, the mass position does not suffer an unphysical jump discontinuity at $t = 0$. Finally, because both poles of $sY(s) = \frac{s^2 + 3s + 6}{(s+1)(s+2)}$ lie strictly in the stable open left half-plane ($s = -1 < 0$ and $s = -2 < 0$), all exponential transients die out and the Final Value Theorem gives the steady-state displacement as $s \to 0$:
 
-| Signal Name | Time-Domain Function $f(t)$ ($t \ge 0^-$) | Laplace Transform $F(s)$ | Abscissa of Convergence $\sigma_0$ |
+$$y(\infty) = \lim_{s \to 0} s Y(s) = \lim_{s \to 0} \frac{s^2 + 3s + 6}{(s+1)(s+2)} = \frac{0 + 0 + 6}{(0+1)(0+2)} = \frac{6}{2} = 3$$
+
+Physically, once acceleration $\ddot{y}$ and velocity $\dot{y}$ settle to zero in the original ODE $\ddot{y} + 3\dot{y} + 2y = 6$, the spring force balances the external force at $2y(\infty) = 6 \implies y(\infty) = 3\text{ m}$, matching our $s$-domain limit.
+
+<StepCheck
+  client:load
+  prompt="For the second-order response $Y(s) = \frac{s^2 + 3s + 6}{s(s+1)(s+2)}$ above, what is the steady-state value $y(\infty)$?"
+  expected={3}
+  tolerance={0.05}
+  unit=""
+  explanation="Since all poles of $sY(s) = \frac{s^2 + 3s + 6}{(s+1)(s+2)}$ lie in the open left half-plane, the Final Value Theorem gives $y(\infty) = \lim_{s\to 0} sY(s) = 6/2 = 3$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Definition and Convergence Region
+
+In real engineering control loops, an actuator command or disturbance begins at a specific initial instant $t = 0$, while the plant may already hold stored energy just prior to switching on (at $t = 0^-$) or experience an impulsive hit $\delta(t)$ right at $t = 0$. To capture initial conditions at $t = 0^-$ and impulses at $t = 0$ without needing to know the system's history over $t \in (-\infty, 0)$, we integrate from the lower limit $t = 0^-$.
+
+Let $f(t): [0, \infty) \to \mathbb{R}$ be a locally integrable signal of **exponential order**, meaning there exist constants $M > 0$ and $\sigma_0 \in \mathbb{R}$ such that $|f(t)| \le M e^{\sigma_0 t}$ for all $t \ge 0$. The **Unilateral Laplace Transform** $F(s) = \mathcal{L}\{f(t)\}$ projects $f(t)$ onto the complex exponential basis $e^{-st}$, where $s = \sigma + j\omega \in \mathbb{C}$ is the complex frequency variable:
+
+$$F(s) \triangleq \mathcal{L}\{f(t)\} = \int_{0^-}^\infty f(t) e^{-st} \, dt$$
+
+Because $s = \sigma + j\omega$ has real damping part $\sigma$ and imaginary oscillatory part $\omega$, the kernel factors as $e^{-st} = e^{-\sigma t} e^{-j\omega t}$ with $|e^{-j\omega t}| = 1$. Bounding the magnitude of the integrand shows when the improper integral is finite:
+
+$$\int_{0^-}^\infty \left| f(t) e^{-st} \right| dt = \int_{0^-}^\infty |f(t)| e^{-\sigma t} \, dt \le \int_{0}^\infty M e^{\sigma_0 t} e^{-\sigma t} \, dt = M \int_0^\infty e^{-(\sigma - \sigma_0)t} \, dt = \frac{M}{\sigma - \sigma_0} < \infty$$
+
+This upper bound converges if and only if the real damping $\sigma = \operatorname{Re}(s)$ is strictly greater than the signal's natural growth rate $\sigma_0$. The vertical half-plane of all complex frequencies $s$ for which the integral converges absolutely is called the **Region of Convergence (ROC)**:
+
+$$\operatorname{ROC} = \left\{ s \in \mathbb{C} \;\middle|\; \operatorname{Re}(s) = \sigma > \sigma_0 \right\}$$
+
+where the threshold $\sigma_0$ is the **abscissa of absolute convergence** (located at the real part of the rightmost pole of $F(s)$).
+
+Using this integral definition, let us derive the fundamental transform pairs that build every rational transfer function:
+- For the **Dirac impulse** $\delta(t)$ concentrated at $t = 0$ (which lies strictly inside $[0^-, \infty)$), the sifting property evaluates $e^{-st}$ at $t = 0$:
+  $$\mathcal{L}\{\delta(t)\} = \int_{0^-}^\infty \delta(t) e^{-st} \, dt = e^{-s(0)} = 1, \qquad \operatorname{ROC} = \mathbb{C}$$
+- For the **causal exponential** $f(t) = e^{at} \cdot 1(t)$ ($a \in \mathbb{C}$), integrating directly for $\operatorname{Re}(s) > \operatorname{Re}(a)$ yields:
+  $$\mathcal{L}\{e^{at} \cdot 1(t)\} = \int_0^\infty e^{-(s - a)t} \, dt = \left[ -\frac{1}{s - a} e^{-(s - a)t} \right]_0^\infty = 0 - \left(-\frac{1}{s - a}\right) = \frac{1}{s - a}$$
+  Setting $a = 0$ gives the **Heaviside unit step** transform $\mathcal{L}\{1(t)\} = \frac{1}{s}$ for $\operatorname{Re}(s) > 0$.
+- For **sinusoidal harmonics**, substituting Euler's identities $\cos(\omega t) = \frac{e^{j\omega t} + e^{-j\omega t}}{2}$ and $\sin(\omega t) = \frac{e^{j\omega t} - e^{-j\omega t}}{2j}$ into the exponential pair with $a = \pm j\omega$ gives:
+  $$\mathcal{L}\{\cos(\omega t) \cdot 1(t)\} = \frac{1}{2}\left(\frac{1}{s - j\omega} + \frac{1}{s + j\omega}\right) = \frac{s}{s^2 + \omega^2}, \qquad \mathcal{L}\{\sin(\omega t) \cdot 1(t)\} = \frac{1}{2j}\left(\frac{1}{s - j\omega} - \frac{1}{s + j\omega}\right) = \frac{\omega}{s^2 + \omega^2}$$
+  Notice that cosine has $s$ in the numerator (because $\cos(0) = 1$ requires high-frequency behavior $s/s^2 = 1/s$), whereas sine has the constant $\omega$ in the numerator (because $\sin(0) = 0$).
+
+### Linearity and Shifting Theorems
+
+Rather than computing improper integrals for every composite signal, operational theorems translate time delays, exponential envelopes, and linear combinations into immediate algebraic rules in the $s$-domain.
+
+Because integration is a linear operator, the Laplace transform satisfies **superposition (linearity)** for any scalar weights $\alpha, \beta \in \mathbb{C}$:
+
+$$\mathcal{L}\{\alpha f_1(t) + \beta f_2(t)\} = \int_{0^-}^\infty \big(\alpha f_1(t) + \beta f_2(t)\big) e^{-st} \, dt = \alpha F_1(s) + \beta F_2(s)$$
+
+When a causal waveform $f(t)1(t)$ is delayed by $\tau > 0$ seconds—for example, across a digital communication buffer or fluid pipe—it becomes $f(t - \tau) 1(t - \tau)$, which is zero for $t < \tau$. Changing the integration variable to $\sigma = t - \tau$ (so $t = \sigma + \tau$ and $dt = d\sigma$) yields the **Time Translation (Pure Delay) Theorem**:
+
+$$\mathcal{L}\{f(t - \tau) 1(t - \tau)\} = \int_\tau^\infty f(t - \tau) e^{-st} \, dt = \int_0^\infty f(\sigma) e^{-s(\sigma + \tau)} \, d\sigma = e^{-s\tau} \int_0^\infty f(\sigma) e^{-s\sigma} \, d\sigma = e^{-s\tau} F(s)$$
+
+Delaying a signal by $\tau$ seconds in the time domain therefore multiplies its Laplace transform by the non-rational phase factor $e^{-s\tau}$.
+
+Dually, multiplying a signal $f(t)$ by an exponential damping or growth factor $e^{at}$ in the time domain combines the exponents $e^{at}e^{-st} = e^{-(s-a)t}$ inside the integral, yielding the **Frequency Translation Theorem**:
+
+$$\mathcal{L}\{e^{at} f(t)\} = \int_{0^-}^\infty f(t) e^{-(s - a)t} \, dt = F(s - a)$$
+
+Geometrically, multiplying a waveform by a decaying envelope $e^{-\alpha t}$ ($a = -\alpha < 0$) replaces $s$ with $(s + \alpha)$ in $F(s)$, shifting every pole of $F(s)$ to the left by $\alpha$ in the complex $s$-plane—which turns undamped $\frac{s}{s^2+\omega^2}$ and $\frac{\omega}{s^2+\omega^2}$ immediately into the damped cosine $\frac{s+\alpha}{(s+\alpha)^2+\omega^2}$ and damped sine $\frac{\omega}{(s+\alpha)^2+\omega^2}$.
+
+### Differentiation and Integration
+
+The central power of the Laplace transform is that it reduces time differentiation and time integration to algebraic multiplication and division by $s$. Let us derive the **Time Differentiation Theorem** by integrating $\int_{0^-}^\infty \dot{f}(t) e^{-st}\,dt$ by parts, choosing $u = e^{-st}$ ($du = -s e^{-st}\,dt$) and $dv = \dot{f}(t)\,dt$ ($v = f(t)$):
+
+$$
+\begin{aligned}
+\mathcal{L}\{\dot{f}(t)\} &= \int_{0^-}^\infty \dot{f}(t) e^{-st} \, dt = \left[ f(t) e^{-st} \right]_{0^-}^\infty - \int_{0^-}^\infty f(t) (-s e^{-st}) \, dt \\
+&= \left( \lim_{t \to \infty} f(t) e^{-st} - f(0^-) e^{-s(0)} \right) + s \int_{0^-}^\infty f(t) e^{-st} \, dt = s F(s) - f(0^-)
+\end{aligned}
+$$
+
+Inside the Region of Convergence ($\operatorname{Re}(s) > \sigma_0$), the upper boundary limit $\lim_{t\to\infty} f(t)e^{-st}$ vanishes identically, leaving $sF(s)$ minus the initial condition $f(0^-)$ stored at $t = 0^-$. To find the transform of the second derivative $\ddot{f}(t) = \frac{d}{dt}\big(\dot{f}(t)\big)$, we apply the first-derivative formula to $g(t) = \dot{f}(t)$ and substitute $G(s) = sF(s) - f(0^-)$:
+
+$$\mathcal{L}\{\ddot{f}(t)\} = s G(s) - g(0^-) = s\big(s F(s) - f(0^-)\big) - \dot{f}(0^-) = s^2 F(s) - s f(0^-) - \dot{f}(0^-)$$
+
+Repeating this induction $n$ times yields the general **$n$-th Order Time Differentiation Theorem**:
+
+$$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - s^{n-1} f(0^-) - s^{n-2} \dot{f}(0^-) - \dots - s f^{(n-2)}(0^-) - f^{(n-1)}(0^-) = s^n F(s) - \sum_{k=1}^n s^{n-k} f^{(k-1)}(0^-)$$
+
+When all initial conditions at $t = 0^-$ are zero, $n$-th order differentiation simplifies purely to multiplication by $s^n$.
+
+Conversely, to transform a causal **time integral** $g(t) = \int_{0^-}^t f(\tau)\,d\tau$, note that $\dot{g}(t) = f(t)$ and $g(0^-) = \int_{0^-}^{0^-} f(\tau)\,d\tau = 0$. Applying the differentiation formula gives $F(s) = \mathcal{L}\{\dot{g}(t)\} = s G(s) - g(0^-) = s G(s)$, so dividing by $s$ yields the **Time Integration Theorem**:
+
+$$\mathcal{L}\left\{ \int_{0^-}^t f(\tau) \, d\tau \right\} = \frac{1}{s} F(s)$$
+
+This confirms why every integrator block $\int dt$ in a state-space diagram has transfer function $\frac{1}{s}$. Finally, differentiating $F(s) = \int_{0^-}^\infty f(t)e^{-st}\,dt$ with respect to the complex variable $s$ brings down $-t$ from the exponent $e^{-st}$, establishing **Frequency Differentiation**:
+
+$$\frac{d}{ds} F(s) = \int_{0^-}^\infty \frac{\partial}{\partial s}\left(f(t) e^{-st}\right) dt = -\int_{0^-}^\infty t f(t) e^{-st} \, dt \implies \mathcal{L}\{t f(t)\} = -\frac{d}{ds} F(s)$$
+
+Applying $-\frac{d}{ds}$ repeatedly $n$ times gives $\mathcal{L}\{t^n f(t)\} = (-1)^n \frac{d^n}{ds^n} F(s)$. In particular, starting from $\mathcal{L}\{1(t)\} = \frac{1}{s}$, differentiating $n$ times gives $\mathcal{L}\left\{\frac{t^n}{n!} 1(t)\right\} = \frac{1}{s^{n+1}}$, and shifting $s \to s - a$ gives $\mathcal{L}\left\{\frac{t^n}{n!} e^{at} 1(t)\right\} = \frac{1}{(s - a)^{n+1}}$.
+
+### Initial and Final Value
+
+When analyzing a step or impulse response $F(s)$, we often want to know its starting value $f(0^+)$ right after $t = 0$ and its steady-state resting value $\lim_{t\to\infty} f(t)$ without performing a full partial fraction inversion. Both endpoints follow directly from taking limits of the time-differentiation identity:
+
+$$\int_{0^-}^\infty \dot{f}(t) e^{-st} \, dt = s F(s) - f(0^-)$$
+
+To find the initial value $f(0^+)$ (allowing for a possible jump impulse $\big[f(0^+) - f(0^-)\big]\delta(t)$ in $\dot{f}(t)$ at $t = 0$), split the integral at $t = 0^+$:
+
+$$\int_{0^-}^{0^+} \dot{f}(t) e^{-st} \, dt + \int_{0^+}^\infty \dot{f}(t) e^{-st} \, dt = \big(f(0^+) - f(0^-)\big) + \int_{0^+}^\infty \dot{f}(t) e^{-st} \, dt = s F(s) - f(0^-)$$
+
+Taking the limit as $s \to \infty$ (along the positive real axis) drives $e^{-st} \to 0$ for all $t > 0$, making $\int_{0^+}^\infty \dot{f}(t)e^{-st}\,dt \to 0$. Cancelling $-f(0^-)$ from both sides proves the **Initial Value Theorem (IVT)**:
+
+$$f(0^+) = \lim_{s \to \infty} s F(s)$$
+
+Physically, high frequencies $s \to \infty$ correspond to tiny time scales $t \to 0^+$.
+
+To find the steady-state value as $t \to \infty$, we instead take the low-frequency limit $s \to 0$ in $\int_{0^-}^\infty \dot{f}(t)e^{-st}\,dt = sF(s) - f(0^-)$. Provided that **every pole of $sF(s)$ lies strictly in the open left half-plane** ($\operatorname{Re}(s) < 0$), $s = 0$ lies inside the Region of Convergence of $\dot{f}(t)$, allowing us to pass the limit $s \to 0$ inside the integral ($e^{-0\cdot t} = 1$):
+
+$$\lim_{s \to 0} \big(s F(s) - f(0^-)\big) = \int_{0^-}^\infty \dot{f}(t) \, dt = \lim_{t \to \infty} f(t) - f(0^-)$$
+
+Adding $f(0^-)$ to both sides proves the **Final Value Theorem (FVT)**:
+
+$$\lim_{t \to \infty} f(t) = \lim_{s \to 0} s F(s) \qquad \big(\text{valid iff all poles of } sF(s) \text{ satisfy } \operatorname{Re}(p_i) < 0\big)$$
+
+<Callout type="warning" title="Final Value Theorem Precondition">
+
+The Final Value Theorem is **invalid** whenever $s F(s)$ has any poles on the imaginary axis or in the right half-plane. For instance, $f(t) = \sin(\omega t)$ has $F(s) = \frac{\omega}{s^2 + \omega^2}$. Evaluating $\lim_{s \to 0} s F(s) = 0$ is meaningless because $sF(s)$ has poles at $\pm j\omega$, and $\lim_{t \to \infty} \sin(\omega t)$ does not exist.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="For which Laplace transform $F(s)$ is applying the Final Value Theorem $\lim_{s\to 0} sF(s)$ strictly VALID?"
+  options={[
+    "$F(s) = \\frac{4}{s(s - 1)}$",
+    "$F(s) = \\frac{5}{s(s + 3)}$",
+    "$F(s) = \\frac{2}{s^2 + 9}$"
+  ]}
+  correctIndex={1}
+  explanation="For $F(s) = \frac{5}{s(s+3)}$, $sF(s) = \frac{5}{s+3}$ has its only pole at $s = -3$ (strictly in the open LHP). The other two have poles at $s = +1$ (RHP) and $s = \pm j3$ (imaginary axis)."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Telemetry Network Latency">
+
+In remote drone operations over wireless links, communication latency $\tau$ between the ground station and the vehicle acts as a pure transport delay. By the time translation theorem, this delay multiplies the open-loop transfer function by $e^{-s\tau}$. On the imaginary axis $s = j\omega$:
+
+$$e^{-j\omega\tau} = 1 \cdot e^{-j\omega\tau}$$
+
+The delay leaves gain unchanged ($|e^{-j\omega\tau}| = 1$) while adding phase lag:
+
+$$\phi_{\text{delay}}(\omega) = -\omega \tau \text{ radians} = -\frac{180^\circ}{\pi} \omega \tau$$
+
+Because phase lag grows linearly with $\omega$, excessive latency erodes phase margin and destabilizes position loops.
+
+</Callout>
+
+<Divider label="3 · Summary" />
+
+| Signal Name | Time-Domain Function $f(t)$ ($t \ge 0^-$) | Laplace Transform $F(s)$ | Region of Convergence |
 | :--- | :--- | :--- | :--- |
-| **Dirac Delta** | $\delta(t)$ | $1$ | $-\infty$ (entire complex plane $\mathbb{C}$) |
+| **Dirac Delta** | $\delta(t)$ | $1$ | Entire plane $\mathbb{C}$ |
 | **Heaviside Step** | $1(t)$ | $\dfrac{1}{s}$ | $\operatorname{Re}(s) > 0$ |
 | **Unit Ramp** | $t \cdot 1(t)$ | $\dfrac{1}{s^2}$ | $\operatorname{Re}(s) > 0$ |
 | **Polynomial Monomial** | $\dfrac{t^n}{n!} \cdot 1(t)$ ($n \in \mathbb{N}$) | $\dfrac{1}{s^{n+1}}$ | $\operatorname{Re}(s) > 0$ |
@@ -64,74 +227,29 @@ Evaluating the equation above across standard testing signals yields the foundat
 | **Damped Cosine** | $e^{-\alpha t}\cos(\omega t) \cdot 1(t)$ | $\dfrac{s + \alpha}{(s+\alpha)^2 + \omega^2}$ | $\operatorname{Re}(s) > -\alpha$ |
 | **Damped Sine** | $e^{-\alpha t}\sin(\omega t) \cdot 1(t)$ | $\dfrac{\omega}{(s+\alpha)^2 + \omega^2}$ | $\operatorname{Re}(s) > -\alpha$ |
 
-<Divider />
+### Transform Procedure
 
-## Fundamental Operational Theorems
+1. **Apply Differentiation Rules:** Replace each derivative $y^{(k)}(t)$ with $s^k Y(s)$ minus its initial-condition polynomial evaluated at $t = 0^-$.
+2. **Transform Inputs:** Convert every forcing function $u(t)$ into $U(s)$ using linearity, shifting, and standard pairs.
+3. **Separate Responses:** Factor $P(s)Y(s)$ to isolate $Y_{\text{free}}(s)$ (from initial conditions) and $Y_{\text{forced}}(s)$ (from $U(s)$).
+4. **Verify Endpoints:** Check $y(0^+)$ with IVT and, once LHP stability of $sY(s)$ is confirmed, verify $y(\infty)$ with FVT.
 
-The power of the Laplace transform lies in its operational properties, which convert calculus operations (derivatives, integrals, convolutions) into simple algebra.
+### Key Proofs
 
-### 1. Linearity
-$$\mathcal{L}\{\alpha f_1(t) + \beta f_2(t)\} = \alpha F_1(s) + \beta F_2(s), \quad \forall \alpha, \beta \in \mathbb{C}$$
+- **Time Derivative Rule:** Integrating $\int_{0^-}^\infty \dot{f}(t)e^{-st}\,dt$ by parts yields $[f(t)e^{-st}]_{0^-}^\infty + s\int_{0^-}^\infty f(t)e^{-st}\,dt = sF(s) - f(0^-)$.
+- **Time Delay Rule:** Substituting $\sigma = t - \tau$ in $\int_\tau^\infty f(t-\tau)e^{-st}\,dt$ pulls out $e^{-s\tau}$ to give $e^{-s\tau}F(s)$.
 
-### 2. Time Translation (Pure Delay)
-Shifting a causal waveform by $\tau > 0$:
-$$\mathcal{L}\{f(t - \tau) 1(t - \tau)\} = \int_\tau^\infty f(t - \tau) e^{-st} \, dt = e^{-s\tau} \int_0^\infty f(\sigma) e^{-s\sigma} \, d\sigma = e^{-s\tau} F(s)$$
+<Callout type="warning" title="Common Mistakes">
 
-### 3. Complex Frequency Translation (Exponential Modulation)
-$$\mathcal{L}\{e^{at} f(t)\} = \int_0^\infty f(t) e^{-(s-a)t} \, dt = F(s - a)$$
-
-### 4. Time Differentiation
-Integrating by parts:
-$$\mathcal{L}\{\dot{f}(t)\} = \int_{0^-}^\infty \dot{f}(t) e^{-st} \, dt = \left[ f(t) e^{-st} \right]_{0^-}^\infty - \int_{0^-}^\infty f(t) (-s e^{-st}) \, dt = s F(s) - f(0^-)$$
-
-For higher-order derivatives:
-$$\mathcal{L}\{\ddot{f}(t)\} = s^2 F(s) - s f(0^-) - \dot{f}(0^-)$$
-$$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - \sum_{k=1}^n s^{n-k} f^{(k-1)}(0^-)$$
-
-At **zero initial conditions** ($f(0^-) = \dot{f}(0^-) = \dots = 0$), differentiation is equivalent to multiplication by $s$:
-$$\frac{d}{dt} \iff s$$
-
-### 5. Time Integration
-$$\mathcal{L}\left\{ \int_{0^-}^t f(\tau) \, d\tau \right\} = \frac{1}{s} F(s)$$
-Integration in the time domain is equivalent to division by $s$ in the complex frequency domain.
-
-### 6. Complex Frequency Differentiation (Multiplication by $t$)
-Differentiating the equation above under the integral with respect to $s$:
-$$\frac{d}{ds} F(s) = \frac{d}{ds} \int_0^\infty f(t) e^{-st} \, dt = \int_0^\infty (-t) f(t) e^{-st} \, dt = -\mathcal{L}\{t f(t)\}$$
-$$\mathcal{L}\{t^n f(t)\} = (-1)^n \frac{d^n}{ds^n} F(s)$$
-
-### 7. Initial and Final Value Theorems
-* **Initial Value Theorem:** If $f(t)$ and $\dot{f}(t)$ are Laplace-transformable, the initial state is recovered by the high-frequency limit:
-  $$f(0^+) = \lim_{s \to \infty} s F(s)$$
-* **Final Value Theorem:** If all poles of $s F(s)$ lie strictly in the open left-half complex plane ($\operatorname{Re}(s) < 0$), the asymptotic steady state is:
-  $$\lim_{t \to \infty} f(t) = \lim_{s \to 0} s F(s)$$
-
-<Callout type="warning" title="Precondition of the Final Value Theorem">
-
-The final value theorem is **invalid** if $s F(s)$ possesses any poles on the imaginary axis or in the right-half plane. For example, for $f(t) = \sin(\omega t)$, $F(s) = \frac{\omega}{s^2 + \omega^2}$. Evaluating $\lim_{s \to 0} s F(s) = \lim_{s \to 0} \frac{s\omega}{s^2 + \omega^2} = 0$. However, $\lim_{t \to \infty} \sin(\omega t)$ does not exist; it oscillates perpetually between $-1$ and $+1$!
+1. **Unchecked Final Value Theorem:** Computing $\lim_{s\to 0} sF(s)$ when $sF(s)$ has poles on the imaginary axis or in the RHP produces false finite numbers for oscillating or diverging signals.
+2. **Dropped Initial Conditions:** Using $\mathcal{L}\{\ddot{y}\} = s^2 Y(s)$ without $-sy(0^-) - \dot{y}(0^-)$ discards the entire free response.
+3. **Delay Argument Mismatch:** The delay theorem requires $f(t - \tau)1(t - \tau)$; if a function is written in terms of $t$ instead of $(t-\tau)$, rewrite it in shifted form before pulling out $e^{-s\tau}$.
 
 </Callout>
 
-<Callout type="bridge" title="SDU Robotics Bridge: Telemetry Latency in Drone Network Links">
+<Divider label="4 · Exercises" />
 
-In robotic UAS operations (such as remote control of drones over 4G/5G or Wi-Fi links at SDU's drone test facility), communication latency $\tau$ between the ground station and the vehicle introduces a pure transport delay.
-According to the equation above, this delay introduces a factor of $e^{-s\tau}$ into the open-loop transfer function.
-On the imaginary axis $s = j\omega$:
-$$e^{-j\omega\tau} = 1 \cdot e^{-j\omega\tau}$$
-This delay maintains unit gain $|e^{-j\omega\tau}| = 1$ but introduces a phase lag:
-$$\phi_{\text{delay}}(\omega) = -\omega \tau \text{ radians} = -\frac{180^\circ}{\pi} \omega \tau$$
-Because phase lag increases linearly with frequency $\omega$, excessive transport delay degrades the phase margin and causes drone position loops to oscillate or become unstable.
-
-</Callout>
-
-<Divider />
-
-
-<Divider label="Interactive Practice & Exam Drills" />
-
-## Chapter Exercises
-
-<Exercise client:load id="ex-4-1" title="Exercise 4.1: Elementary Laplace Transform Pairs" level="LEVEL 1: WARM-UP DRILL">
+<Exercise client:load id="ex-4-1" title="Exercise 4.1 — Elementary Laplace Transform Pairs" level="Warm-Up">
 
 Compute the unilateral Laplace transform $F(s) = \mathcal{L}\{f(t)\}$ for the following fundamental test signals:
 
@@ -139,43 +257,77 @@ Compute the unilateral Laplace transform $F(s) = \mathcal{L}\{f(t)\}$ for the fo
 2. $f_2(t) = t e^{-3t} 1(t)$ using the frequency shift theorem $\mathcal{L}\{e^{-at}g(t)\} = G(s+a)$.
 3. $f_3(t) = \cos(4t) 1(t)$ using Euler's identity.
 
+<StepCheck
+  client:load
+  prompt="After combining $F_1(s) = \frac{3}{s+2} - \frac{5}{s+4}$ over a common denominator, what is the zero of $F_1(s)$?"
+  expected={1}
+  tolerance={0.05}
+  unit=""
+  explanation="$F_1(s) = \frac{3(s+4) - 5(s+2)}{(s+2)(s+4)} = \frac{-2s + 2}{(s+2)(s+4)}$, whose numerator vanishes at $s = 1$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Applying linearity and standard exponential transforms:
-   $$F_1(s) = \mathcal{L}\{3e^{-2t} - 5e^{-4t}\} = \frac{3}{s + 2} - \frac{5}{s + 4} = \frac{3(s + 4) - 5(s + 2)}{(s + 2)(s + 4)} = \frac{-2s + 2}{(s + 2)(s + 4)}$$
-2. Using the frequency shift theorem $\mathcal{L}\{e^{-at}g(t)\} = G(s+a)$ with $g(t) = t \leftrightarrow \frac{1}{s^2}$:
-   $$F_2(s) = \mathcal{L}\{t e^{-3t}\} = \frac{1}{(s + 3)^2}$$
-3. Using Euler's identity $\cos(4t) = \frac{e^{j4t} + e^{-j4t}}{2}$:
-   $$F_3(s) = \frac{1}{2}\left( \frac{1}{s - j4} + \frac{1}{s + j4} \right) = \frac{1}{2}\frac{2s}{s^2 + 16} = \frac{s}{s^2 + 16}$$
+1. Using linearity and the exponential pair $\mathcal{L}\{e^{at}1(t)\} = \frac{1}{s-a}$ with $a = -2$ and $a = -4$:
+   $$
+   \begin{aligned}
+   F_1(s) &= 3\mathcal{L}\{e^{-2t}1(t)\} - 5\mathcal{L}\{e^{-4t}1(t)\} = \frac{3}{s + 2} - \frac{5}{s + 4} \\
+   &= \frac{3(s + 4) - 5(s + 2)}{(s + 2)(s + 4)} = \frac{3s + 12 - 5s - 10}{(s + 2)(s + 4)} = \frac{-2s + 2}{(s + 2)(s + 4)}
+   \end{aligned}
+   $$
+   Setting the numerator $-2s + 2 = 0$ shows a real right-half-plane zero at $s = 1$, with Region of Convergence $\operatorname{Re}(s) > -2$.
+2. Starting from the unit ramp $g(t) = t \cdot 1(t) \leftrightarrow G(s) = \frac{1}{s^2}$ and applying the frequency translation theorem $\mathcal{L}\{e^{-3t}g(t)\} = G(s + 3)$:
+   $$F_2(s) = \mathcal{L}\{t e^{-3t} 1(t)\} = \left. \frac{1}{u^2} \right|_{u = s + 3} = \frac{1}{(s + 3)^2}, \qquad \operatorname{ROC}: \operatorname{Re}(s) > -3$$
+3. Expanding $\cos(4t) = \frac{e^{j4t} + e^{-j4t}}{2}$ via Euler's identity and transforming each complex exponential term:
+   $$
+   \begin{aligned}
+   F_3(s) &= \frac{1}{2}\mathcal{L}\{e^{j4t}1(t)\} + \frac{1}{2}\mathcal{L}\{e^{-j4t}1(t)\} = \frac{1}{2}\left( \frac{1}{s - j4} + \frac{1}{s + j4} \right) \\
+   &= \frac{1}{2}\frac{(s + j4) + (s - j4)}{(s - j4)(s + j4)} = \frac{1}{2}\frac{2s}{s^2 - (j4)^2} = \frac{s}{s^2 + 16}, \qquad \operatorname{ROC}: \operatorname{Re}(s) > 0
+   \end{aligned}
+   $$
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-4-2" title="Exercise 4.2: Time-Shifted Waveforms and Initial Value ODEs" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-4-2" title="Exercise 4.2 — Delayed Waveforms and ODEs" level="Exam Standard">
 
 1. Compute the Laplace transform of the delayed quadratic signal $g_1(t) = (t - 2)^2 1(t - 2)$ using the time delay theorem $\mathcal{L}\{f(t-t_0)1(t-t_0)\} = e^{-s t_0} F(s)$.
 2. Compute the Laplace transform of the damped sinusoid $g_2(t) = e^{-2t}\sin(3t) 1(t)$ using completion of the square.
 3. Given the second-order differential equation with non-zero initial conditions:
    $$\ddot{y}(t) + 4\dot{y}(t) + 3y(t) = 2 u(t), \quad y(0^-) = 1, \; \dot{y}(0^-) = -2$$
-   Apply the derivative operational theorem $\mathcal{L}\{\dot{y}(t)\} = sY(s) - y(0^-)$ and $\mathcal{L}\{\ddot{y}(t)\} = s^2Y(s) - sy(0^-) - \dot{y}(0^-)$ to express $Y(s)$ in algebraic form, separating the free response and forced response terms.
+   Apply the derivative operational theorems $\mathcal{L}\{\dot{y}(t)\} = sY(s) - y(0^-)$ and $\mathcal{L}\{\ddot{y}(t)\} = s^2Y(s) - sy(0^-) - \dot{y}(0^-)$ to express $Y(s)$ in algebraic form, separating the free response and forced response terms.
+
+<StepCheck
+  client:load
+  prompt="In part 3, when $Y_{\text{free}}(s)$ is written as $\frac{s + c}{s^2 + 4s + 3}$, what is the constant $c$?"
+  expected={2}
+  tolerance={0.05}
+  unit=""
+  explanation="$(s^2 Y - s + 2) + 4(sY - 1) + 3Y = 2U \implies (s^2+4s+3)Y = (s+2) + 2U$, so $c = 2$."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Applying the time translation theorem $\mathcal{L}\{f(t - \tau) 1(t - \tau)\} = e^{-s\tau} F(s)$ with $\tau = 2$ and $f(t) = t^2 \leftrightarrow \frac{2}{s^3}$:
-   $$G_1(s) = \mathcal{L}\{(t - 2)^2 1(t - 2)\} = e^{-2s} \frac{2}{s^3} = \frac{2 e^{-2s}}{s^3}$$
-2. Using the frequency-shifted damped sine pair:
-   $$G_2(s) = \mathcal{L}\{e^{-2t}\sin(3t)\} = \frac{3}{(s + 2)^2 + 3^2} = \frac{3}{s^2 + 4s + 13}$$
-3. Applying Laplace differentiation with initial conditions $y(0^-) = 1, \dot{y}(0^-) = -2$:
-   $$\mathcal{L}\{\ddot{y}(t)\} = s^2 Y(s) - s y(0^-) - \dot{y}(0^-) = s^2 Y(s) - s - (-2) = s^2 Y(s) - s + 2$$
-   $$\mathcal{L}\{4\dot{y}(t)\} = 4[s Y(s) - y(0^-)] = 4s Y(s) - 4(1) = 4s Y(s) - 4$$
-   $$\mathcal{L}\{3y(t)\} = 3 Y(s)$$
-   Substituting into the ODE:
-   $$(s^2 Y(s) - s + 2) + (4s Y(s) - 4) + 3 Y(s) = 2 U(s)$$
+1. Identify the unshifted base waveform $f(t) = t^2 \cdot 1(t) = 2 \cdot \frac{t^2}{2!} 1(t)$, whose Laplace transform is $F(s) = 2 \cdot \frac{1}{s^{2+1}} = \frac{2}{s^3}$. Because $g_1(t) = f(t - 2)1(t - 2)$ is delayed by $t_0 = 2\text{ s}$, the time translation theorem multiplies $F(s)$ by $e^{-2s}$:
+   $$G_1(s) = \mathcal{L}\left\{(t - 2)^2 1(t - 2)\right\} = e^{-2s} F(s) = \frac{2 e^{-2s}}{s^3}$$
+2. Start from the undamped sine pair $\mathcal{L}\{\sin(3t)1(t)\} = \frac{3}{s^2 + 3^2}$ and apply the frequency translation theorem for $e^{-2t}$ ($s \to s + 2$):
+   $$G_2(s) = \mathcal{L}\left\{e^{-2t}\sin(3t)1(t)\right\} = \frac{3}{(s + 2)^2 + 3^2} = \frac{3}{(s^2 + 4s + 4) + 9} = \frac{3}{s^2 + 4s + 13}$$
+3. Transforming each derivative term with $y(0^-) = 1$ and $\dot{y}(0^-) = -2$:
+   $$
+   \begin{aligned}
+   \mathcal{L}\{\ddot{y}(t)\} &= s^2 Y(s) - s y(0^-) - \dot{y}(0^-) = s^2 Y(s) - s(1) - (-2) = s^2 Y(s) - s + 2 \\
+   \mathcal{L}\{4\dot{y}(t)\} &= 4\big[s Y(s) - y(0^-)\big] = 4s Y(s) - 4(1) = 4s Y(s) - 4 \\
+   \mathcal{L}\{3y(t)\} &= 3 Y(s)
+   \end{aligned}
+   $$
+   Substituting these three terms into the left-hand side of $\ddot{y} + 4\dot{y} + 3y = 2u$ gives:
+   $$\big(s^2 Y(s) - s + 2\big) + \big(4s Y(s) - 4\big) + 3 Y(s) = 2 U(s)$$
+   Grouping the $Y(s)$ polynomial and combining the initial-condition constants $(-s + 2 - 4) = -(s + 2)$:
    $$(s^2 + 4s + 3) Y(s) - (s + 2) = 2 U(s) \implies (s^2 + 4s + 3) Y(s) = (s + 2) + 2 U(s)$$
-   Solving for $Y(s)$:
+   Dividing through by $p(s) = s^2 + 4s + 3 = (s + 1)(s + 3)$ isolates the free and forced responses:
    $$Y(s) = \underbrace{\frac{s + 2}{s^2 + 4s + 3}}_{Y_{\text{free}}(s)} + \underbrace{\frac{2}{s^2 + 4s + 3} U(s)}_{Y_{\text{forced}}(s)}$$
 
 </details>

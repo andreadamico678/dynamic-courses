@@ -83,41 +83,41 @@ export default function CmosVtcExplorer() {
     .join(' ');
 
   return (
-    <div className="dc-widget">
+    <div className="dc-widget not-content">
       <div className="dc-widget-header">
-        <div>
-          <span className="dc-badge">Simulatore Interattivo</span>{' '}
+        <div className="dc-widget-heading">
+          <span className="dc-badge">Simulatore Interattivo</span>
           <span className="dc-widget-title">Caratteristica VTC dell'Invertitore CMOS</span>
         </div>
-        <span className="dc-badge">V_M = {vtc.vm.toFixed(2)} V</span>
+        <span className="dc-badge">V<sub>M</sub> = {vtc.vm.toFixed(2)} V</span>
       </div>
 
       <div className="dc-explorer-grid">
         <div className="dc-explorer-sidebar">
           <div className="dc-controls" style={{ marginBottom: 0 }}>
             <label>
-              <strong>V_DD = {vdd.toFixed(1)} V</strong>
+              <span>V<sub>DD</sub> = {vdd.toFixed(1)} V</span>
               <input type="range" min={1.8} max={5.0} step={0.1} value={vdd} onChange={(e) => setVdd(Number(e.target.value))} />
             </label>
             <label>
-              <strong>V_th = {vth.toFixed(2)} V</strong>
+              <span>V<sub>th</sub> = {vth.toFixed(2)} V</span>
               <input type="range" min={0.4} max={1.1} step={0.05} value={vth} onChange={(e) => setVth(Number(e.target.value))} />
             </label>
             <label>
-              <strong>Rapporto K_n / K_p = {kr.toFixed(2)}</strong>
+              <span>Rapporto K<sub>n</sub> / K<sub>p</sub> = {kr.toFixed(2)}</span>
               <input type="range" min={0.25} max={4.0} step={0.05} value={kr} onChange={(e) => setKr(Number(e.target.value))} />
             </label>
           </div>
           <div className="dc-step-box" style={{ marginTop: 0, display: 'grid', gap: '0.35rem', fontSize: '0.86rem' }}>
-            <span><strong>V_M:</strong> {vtc.vm.toFixed(2)} V (V_DD/2 = {(vdd / 2).toFixed(2)} V)</span>
-            <span><strong>V_IL:</strong> {vtc.vilNum.toFixed(2)} V</span>
-            <span><strong>V_IH:</strong> {vtc.vihNum.toFixed(2)} V</span>
-            <span><strong>NM_L:</strong> {vtc.nml.toFixed(2)} V</span>
-            <span><strong>NM_H:</strong> {vtc.nmh.toFixed(2)} V</span>
+            <span><strong>V<sub>M</sub>:</strong> {vtc.vm.toFixed(2)} V (V<sub>DD</sub>/2 = {(vdd / 2).toFixed(2)} V)</span>
+            <span><strong>V<sub>IL</sub>:</strong> {vtc.vilNum.toFixed(2)} V</span>
+            <span><strong>V<sub>IH</sub>:</strong> {vtc.vihNum.toFixed(2)} V</span>
+            <span><strong>NM<sub>L</sub>:</strong> {vtc.nml.toFixed(2)} V</span>
+            <span><strong>NM<sub>H</sub>:</strong> {vtc.nmh.toFixed(2)} V</span>
           </div>
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: '620px', height: 'auto', display: 'block' }}>
           <line x1={padL} y1={toY(0)} x2={W - padR} y2={toY(0)} stroke="var(--sl-color-hairline-light)" strokeWidth={1.3} />
           <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--sl-color-hairline-light)" strokeWidth={1.3} />
           <line x1={toX(0)} y1={toY(0)} x2={toX(vdd)} y2={toY(vdd)} stroke="var(--sl-color-gray-3)" strokeWidth={1.2} strokeDasharray="5 4" />

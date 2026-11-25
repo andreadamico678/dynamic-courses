@@ -11,104 +11,143 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 7" markdown={`# Cap. 7: Modello di Piccolo Segnale
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Separazione tra Circuito DC e Circuito AC di Piccolo Segnale
-    - Principi di Linearizzazione del MOSFET in Saturazione
-    - La Transconduttanza di Gate $g_m$ e le Tre Formulazioni Canoniche
-    - La Resistenza Differenziale di Uscita $r_o$
-    - La Transconduttanza di Body (Back-Gate) $g_{mb}$
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 7" markdown={`# Cap. 7: Modello di Piccolo Segnale
+  - 1. Separazione DC/AC e Linearizzazione in Saturazione
+    - Esempio: Condizione di Piccolo Segnale e Disaccoppiamento Capacitivo
+    - Teoria: Analisi DC vs Centro Banda e Sviluppo di Taylor
+  - 2. Parametri Differenziali e Guadagno Intrinseco
+    - Esempio: Calcolo di $g_m$, $r_o$, $g_{mb}$ e Guadagno Intrinseco $\\mu_f$
+    - Teoria: Tre Formule di $g_m$, Resistenza $r_o$, Back-Gate $g_{mb}$ e $\\mu_f$
+  - 3. Modelli Equivalenti a $\\pi$ Ibrido e a T
+    - Esempio: Corrente Incrementale e Resistenza Vista dal Source
+    - Teoria: Modello a $\\pi$ Ibrido e Modello Equivalente a T`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
-Il modello di piccolo segnale costituisce lo strumento fondamentale per analizzare tutti i circuiti analogici lineari a transistori (amplificatori Common Source, Common Drain, Common Gate e specchi di corrente). In questo capitolo esaminiamo il principio di separazione tra analisi statica DC e analisi dinamica AC mediante condensatori di accoppiamento e di bypass, la deduzione analitica delle tre formulazioni equivalenti della transconduttanza $g_m$, la resistenza di uscita $r_o$, la transconduttanza di substrato $g_{mb}$, il fattore di amplificazione intrinseco $\mu_f = g_m r_o$ e i circuiti equivalenti a $\pi$ ibrido e a T.
+In regione di saturazione ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)), la corrente di Drain del MOSFET dipende dal *quadrato* della tensione Gate-Source: è una legge intrinsecamente non lineare. Eppure un amplificatore audio o un ricevitore radio deve ingrandire fedelmente un segnale variabile nel tempo senza deformarne la forma d'onda. Come conciliare una legge quadratica con l'amplificazione lineare?
 
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+La risposta risiede nel principio fondamentale dell'elettronica analogica: prima si fissa un **punto di lavoro statico** $Q$ mediante una rete di polarizzazione continua (analisi DC), poi si applica il segnale utile come una piccola perturbazione attorno a $Q$ (**analisi di piccolo segnale AC**), sostituendo il dispositivo non lineare con i parametri differenziali ($g_m, r_o, g_{mb}, \mu_f$) nei modelli equivalenti lineari a **$\pi$ ibrido** e a **T**.
 
-## Separazione tra Circuito DC e Circuito AC di Piccolo Segnale
+<Divider label="1 · Separazione DC/AC e Linearizzazione in Saturazione" />
 
-In un amplificatore a transistore, i segnali variabili nel tempo che devono essere amplificati coesistono con le tensioni e le correnti continue necessarie a mantenere il MOSFET acceso nella regione di saturazione (punto di riposo $Q$). Per impedire che la sorgente di segnale $v_i$ e il carico esterno $R_L$ alterino il punto di lavoro statico $Q$, si impiegano **condensatori di accoppiamento** ($C_G$ in ingresso, $C_D$ in uscita) e **condensatori di bypass** ($C_S$ sul terminale di Source), come mostrato in [la figura](#fig-separazione-dc-ac).
+### Esempio — Limite di Piccolo Segnale e Separazione con Condensatori
+
+Consideriamo lo stadio amplificatore di [la figura](#fig-separazione-dc-ac), in cui un transistore NMOS è polarizzato in saturazione nel punto di riposo $Q$ con corrente continua $I_D = 1.0\,\text{mA}$ e overdrive $V_{OV} = V_{GS} - V_{th} = 0.5\,\text{V}$ (da cui $K_n = 2 I_D / V_{OV}^2 = 8.0\,\text{mA/V}^2$). La rete comprende i resistori di partitore $R_1 = R_2 = 100\,\text{k}\Omega$, il resistore di Drain $R_D = 2.5\,\text{k}\Omega$ verso $V_{DD} = 5\,\text{V}$ e un carico esterno $R_L = 5\,\text{k}\Omega$ accoppiato tramite condensatori:
 
 <figure id="fig-separazione-dc-ac" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-separazione-dc-ac.svg" alt="Ruolo dei condensatori di accoppiamento (C_G, C_D) e di bypass (C_S) nella separazione tra l'analisi del punto di riposo DC (b) e l'analisi di piccolo segnale AC a centro banda (c)." />
   <figcaption>Ruolo dei condensatori di accoppiamento ($C_G, C_D$) e di bypass ($C_S$) nella separazione tra l'analisi del punto di riposo DC (b) e l'analisi di piccolo segnale AC a centro banda (c).</figcaption>
 </figure>
 
-Grazie alla linearità dell'equivalente differenziale nell'intorno del punto $Q$, lo studio dell'amplificatore si scompone in due passi indipendenti:
-1. **Analisi in Continua (Circuito Equivalente DC, $\omega = 0$):** Si spengono tutti i generatori di segnale variabili nel tempo ($v_i = 0$) e si sostituiscono tutti i condensatori con **circuiti aperti** ($Z_C = \frac{1}{j\omega C} \to \infty$ per $\omega \to 0$). In questo modo la sorgente $v_i$ e il carico $R_L$ risultano completamente isolati dalla rete di polarizzazione ([la figura](#fig-separazione-dc-ac)(b)), mentre il resistore $R_S$ stabilizza il punto di lavoro $Q(I_D, V_{GS}, V_{DS})$ da cui si calcolano i parametri differenziali $g_m$ e $r_o$.
-2. **Analisi di Piccolo Segnale a Centro Banda (Circuito Equivalente AC):** Alle frequenze del segnale utile (centro banda), i condensatori di accoppiamento $C_G, C_D$ e il condensatore di bypass $C_S$ sono dimensionati per avere impedenza trascurabile ($Z_C \to 0$) e vengono sostituiti con **cortocircuiti ideali**. Simultaneamente, i generatori di tensione continua costante (come l'alimentazione $V_{DD}$) presentano variazione nulla ($\Delta V_{DD} = 0$) e diventano **nodi di massa dinamica (GND AC)**. Di conseguenza ([la figura](#fig-separazione-dc-ac)(c)), $R_1$ e $R_2$ risultano in parallelo verso massa, $R_S$ viene cortocircuitato a massa da $C_S$ per massimizzare il guadagno AC, e $R_D$ risulta in parallelo a $R_L$.
+1. **Separazione tra continua (DC) e centro banda (AC):**
+   - **In DC ($\omega = 0$, [la figura](#fig-separazione-dc-ac)(b)):** i condensatori $C_G, C_D, C_S$ si comportano come **circuiti aperti**. Il carico $R_L = 5\,\text{k}\Omega$ è isolato dal Drain, quindi la tensione continua sul Drain vale semplicemente $V_D = V_{DD} - R_D I_D = 5.0 - 2.5 \times 1.0 = 2.5\,\text{V}$, senza che $R_L$ alteri la polarizzazione.
+   - **In AC a centro banda ([la figura](#fig-separazione-dc-ac)(c)):** i condensatori diventano **cortocircuiti ideali** e l'alimentazione continua $V_{DD}$ diventa **massa dinamica (GND AC)**. Così $C_S$ porta a massa AC il Source, mentre sul Drain $R_D$ e $R_L$ risultano in parallelo.
 
-## Principi di Linearizzazione del MOSFET in Saturazione
+2. **Verifica della condizione di piccolo segnale ($|v_{gs}| \ll 2V_{OV}$):**
+   Se sovrapponiamo al Gate un piccolo segnale sinusoidale $v_{gs} = 10\,\text{mV}$ attorno a $V_{OV} = 0.5\,\text{V}$, nella legge quadratica $i_D = \frac{1}{2} K_n (V_{OV} + v_{gs})^2$ compaiono un termine lineare utile ($K_n V_{OV} v_{gs} = 40\,\mu\text{A}$) e un piccolo termine distorsivo quadratico ($\frac{1}{2} K_n v_{gs}^2 = 0.4\,\mu\text{A}$). Il rapporto tra distorsione e segnale lineare è appena $\frac{v_{gs}}{2V_{OV}} = \frac{10\,\text{mV}}{1000\,\text{mV}} = 1\%$: poiché $10\,\text{mV} \ll 2 V_{OV} = 1.0\,\text{V}$, il MOSFET si comporta in modo praticamente lineare.
 
-Nei circuiti analogici di amplificazione, il transistore MOSFET viene polarizzato stabilmente nella **regione di saturazione** ($V_{GS} > V_{th}$ e $V_{DS} \ge V_{GS} - V_{th}$), dove opera come un generatore di corrente controllato in tensione (VCCS).
+<StepCheck client:load lang="it" prompt="Se l'overdrive di riposo di un MOSFET è $V_{OV} = 0.4\,\text{V}$, qual è la massima ampiezza di picco $|v_{gs}|$ (in $\text{mV}$) affinché il rapporto $|v_{gs}| / (2 V_{OV})$ non superi il $5\%$?" expected={40} tolerance={1} unit="mV" explanation="Imponendo $|v_{gs}| / (2 V_{OV}) = 0.05$ con $2 V_{OV} = 0.8\,\text{V} = 800\,\text{mV}$, si ottiene $|v_{gs}| = 0.05 \cdot 800\,\text{mV} = 40\,\text{mV}$." />
 
-Consideriamo l'equazione di saturazione quadratica completa di modulazione della lunghezza di canale:
-$$ i_D(v_{GS}, v_{DS}, v_{SB}) = \frac{1}{2} k_n' \frac{W}{L} [v_{GS} - V_{th}(v_{SB})]^2 (1 + \lambda v_{DS}) $$
+### Teoria — Principio di Sovrapposizione DC/AC e Linearizzazione
 
-Applicando ai terminali del transistore piccole variazioni incrementali dinamiche attorno al punto statico di lavoro $Q(V_{GS}, V_{DS}, V_{SB}, I_D)$:
-$$ v_{GS}(t) = V_{GS} + v_{gs}(t), \quad v_{DS}(t) = V_{DS} + v_{ds}(t), \quad v_{BS}(t) = V_{BS} + v_{bs}(t) $$
+In un amplificatore a MOSFET, il segnale variabile $v_i(t)$ convive con le tensioni continue che tengono acceso il transistore in saturazione. Per evitare che la sorgente di segnale o il carico $R_L$ sbilancino il punto di lavoro $Q$, si usano i **condensatori di accoppiamento** ($C_G, C_D$) e di **bypass** ($C_S$) mostrati in [la figura](#fig-separazione-dc-ac).
 
-Sviluppando la corrente totale $i_D$ in serie di Taylor troncata al primo ordine (approssimazione lineare):
-$$ i_D(t) \approx I_D + \left. \frac{\partial i_D}{\partial v_{GS}} \right|_Q v_{gs}(t) + \left. \frac{\partial i_D}{\partial v_{DS}} \right|_Q v_{ds}(t) + \left. \frac{\partial i_D}{\partial v_{BS}} \right|_Q v_{bs}(t) $$
+Questo ci permette di spezzare l'analisi in due circuiti separati:
+1. **Analisi in Continua (DC):** si spengono i generatori di segnale AC e si aprono tutti i condensatori ([la figura](#fig-separazione-dc-ac)(b)), trovando così il punto di lavoro $Q(I_D, V_{GS}, V_{DS})$.
+2. **Analisi a Centro Banda (AC):** alla frequenza del segnale utile i condensatori agiscono da **cortocircuiti ideali** e l'alimentazione $V_{DD}$ (avendo tensione costante) funge da **massa dinamica** (GND AC, [la figura](#fig-separazione-dc-ac)(c)).
 
-La corrente dinamica incrementale di Drain vale:
-$$ i_d(t) = i_D(t) - I_D = g_m v_{gs}(t) + \frac{1}{r_o} v_{ds}(t) + g_{mb} v_{bs}(t) $$
-dove i tre coefficienti differenziali rappresentano i parametri canonici del modello a piccolo segnale.
+Se il segnale sul Gate è abbastanza piccolo rispetto all'overdrive di riposo:
 
-## La Transconduttanza di Gate $g_m$ e le Tre Formulazioni Canoniche
+$$
+|v_{gs}| \ll 2 V_{OV}
+$$
 
-La **transconduttanza ($g_m$)** quantifica l'efficacia del Gate nel convertire una variazione di tensione d'ingresso in una variazione della corrente d'uscita. Esistono **tre formulazioni analitiche equivalenti** fondamentali per l'analisi e il progetto:
-$$ g_m = k_n' \frac{W}{L} V_{OV} = \frac{2 I_D}{V_{OV}} = \sqrt{2 k_n' \frac{W}{L} I_D} $$
+il termine quadratico $v_{gs}^2$ diventa trascurabile rispetto a $2 V_{OV} v_{gs}$ e la curva caratteristica del MOSFET attorno a $Q$ può essere approssimata con una retta. Scomponendo ogni grandezza nella parte continua (maiuscola) più la piccola variazione di segnale (minuscola), la **corrente incrementale di Drain** $i_d$ diventa una combinazione lineare delle piccole variazioni di tensione ai morsetti:
 
-### Dimostrazione Matematica: Derivazione delle Tre Formule di $g_m$, di $r_o$ e di $g_{mb}$
+$$
+i_d(t) = g_m v_{gs}(t) + \frac{1}{r_o} v_{ds}(t) + g_{mb} v_{bs}(t)
+$$
 
-1. **Derivata rispetto a $v_{GS}$ ($g_m$):** Trascurando il fattore $(1 + \lambda v_{DS}) \approx 1$ nella derivata parziale rispetto a $v_{GS}$:
-   $$ g_m = \left. \frac{\partial i_D}{\partial v_{GS}} \right|_Q = \frac{\partial}{\partial v_{GS}} \left[ \frac{1}{2} k_n' \frac{W}{L} (v_{GS} - V_{th})^2 \right]_Q = k_n' \frac{W}{L} (V_{GS} - V_{th}) = k_n' \frac{W}{L} V_{OV} $$
-   Dalla legge quadratica $I_D = \frac{1}{2} k_n' \frac{W}{L} V_{OV}^2$, ricavando $k_n' \frac{W}{L} V_{OV} = \frac{2 I_D}{V_{OV}}$ si ottiene la seconda formula $g_m = \frac{2 I_D}{V_{OV}}$, mentre sostituendo $V_{OV} = \sqrt{\frac{2 I_D}{k_n' (W/L)}}$ nella prima si ottiene la terza formula $g_m = \sqrt{2 k_n' \frac{W}{L} I_D}$.
-2. **Derivata rispetto a $v_{DS}$ ($1/r_o$):**
-   $$ \frac{1}{r_o} = \left. \frac{\partial i_D}{\partial v_{DS}} \right|_Q = \lambda \left[ \frac{1}{2} k_n' \frac{W}{L} (V_{GS} - V_{th})^2 \right] \approx \lambda I_D \implies r_o = \frac{1}{\lambda I_D} = \frac{V_A}{I_D} = \frac{V_A' L}{I_D} $$
-3. **Derivata rispetto a $v_{BS}$ ($g_{mb}$):** Applicando la regola della catena attraverso la tensione di soglia $V_{th}(v_{SB})$:
-   $$ g_{mb} = \left. \frac{\partial i_D}{\partial v_{BS}} \right|_Q = -\left( \left. \frac{\partial i_D}{\partial V_{th}} \right|_Q \cdot \left. \frac{\partial V_{th}}{\partial v_{SB}} \right|_Q \right) = -(-g_m) \cdot \frac{\gamma}{2 \sqrt{2\phi_F + V_{SB}}} = \chi g_m $$
+<Divider label="2 · Parametri Differenziali e Guadagno Intrinseco" />
 
-### Confronto Progettuale tra le Tre Formulazioni
-Ciascuna equazione offre una visione architetturale differente a seconda del vincolo progettuale imposto (la tabella di riferimento):
+### Esempio — Calcolo di $g_m$, $r_o$, $g_{mb}$ e Guadagno Intrinseco $\mu_f$
+
+Calcoliamo l'intero set di parametri differenziali a piccolo segnale per un transistore NMOS polarizzato in saturazione con corrente $I_D = 1.0\,\text{mA}$, overdrive $V_{OV} = 0.5\,\text{V}$ ($K_n = 8.0\,\text{mA/V}^2$), tensione di Early $V_A = 40\,\text{V}$ ($\lambda = 0.025\,\text{V}^{-1}$) e parametri di substrato $\gamma = 0.45\,\text{V}^{1/2}$, $2\phi_F = 0.80\,\text{V}$ con $V_{SB} = 1.45\,\text{V}$:
+
+1. **Transconduttanza di Gate ($g_m$) verificata con le tre formule:**
+
+$$
+g_m = \frac{2 I_D}{V_{OV}} = \frac{2 \times 1.0\,\text{mA}}{0.5\,\text{V}} = 4.0\,\text{mA/V}
+$$
+
+   Verifichiamo che anche le altre due espressioni restituiscano lo stesso identico valore: $g_m = K_n V_{OV} = 8.0 \times 0.5 = 4.0\,\text{mA/V}$ e $g_m = \sqrt{2 K_n I_D} = \sqrt{2 \times 8.0 \times 1.0} = 4.0\,\text{mA/V}$.
+
+2. **Resistenza d'uscita ($r_o$) e Guadagno Intrinseco ($\mu_f$):**
+
+$$
+r_o = \frac{V_A}{I_D} = \frac{40\,\text{V}}{1.0\,\text{mA}} = 40\,\text{k}\Omega \implies \mu_f = g_m r_o = (4.0\,\text{mA/V})(40\,\text{k}\Omega) = 160\,\text{V/V}
+$$
+
+   Applicando $v_{gs} = 10\,\text{mV}$ con Drain chiuso su un carico ideale a circuito aperto ($i_d = 0$), si ottiene la massima tensione d'uscita $v_{out} = -\mu_f v_{gs} = -160 \times 10\,\text{mV} = -1.6\,\text{V}$.
+
+3. **Transconduttanza di Body ($g_{mb}$):**
+   Quando il Source non è a massa AC ($v_{bs} \ne 0$), il fattore di accoppiamento di substrato $\chi$ e la transconduttanza di back-gate $g_{mb}$ valgono:
+
+$$
+\chi = \frac{\gamma}{2\sqrt{2\phi_F + V_{SB}}} = \frac{0.45}{2\sqrt{0.80 + 1.45}} = \frac{0.45}{2 \times 1.50} = 0.15 \implies g_{mb} = \chi g_m = 0.15 \times 4.0\,\text{mA/V} = 0.60\,\text{mA/V}
+$$
+
+<StepCheck client:load lang="it" prompt="Calcola il fattore di amplificazione intrinseco $\mu_f = g_m r_o$ del MOSFET nell'esempio ($g_m = 4.0\,\text{mA/V}$, $r_o = 40\,\text{k}\Omega$):" expected={160} tolerance={2} explanation="$\mu_f = g_m r_o = (4.0\times 10^{-3}\,\text{A/V}) \cdot (40\times 10^3\,\Omega) = 160$." />
+
+### Teoria — Le Tre Formule di $g_m$, Resistenza $r_o$, Effetto Body $g_{mb}$ e Guadagno $\mu_f$
+
+1. **Transconduttanza di Gate ($g_m$):**
+   Misura quanto efficacemente una piccola variazione di tensione sul Gate modula la corrente di Drain. Derivando l'espressione di $i_D$ rispetto a $v_{GS}$ al punto $Q$ (trascurando nei conti manuali il piccolo fattore $1 + \lambda V_{DS} \approx 1$), otteniamo la prima forma fondamentale:
+
+$$
+g_m = \left. \frac{\partial i_D}{\partial v_{GS}} \right|_Q = \frac{\partial}{\partial v_{GS}} \left[ \frac{1}{2} k_n' \frac{W}{L} (v_{GS} - V_{th})^2 \right]_Q = k_n' \frac{W}{L} (V_{GS} - V_{th}) = k_n' \frac{W}{L} V_{OV}
+$$
+
+   Usando la relazione DC di saturazione $I_D = \frac{1}{2} k_n' \frac{W}{L} V_{OV}^2$, ricaviamo subito le altre due forme algebricamente equivalenti ($k_n'\frac{W}{L}V_{OV} = \frac{2I_D}{V_{OV}}$ e $V_{OV} = \sqrt{2I_D / (k_n' W/L)}$):
+
+$$
+g_m = k_n' \frac{W}{L} V_{OV} = \frac{2 I_D}{V_{OV}} = \sqrt{2 k_n' \frac{W}{L} I_D}
+$$
+
+   Anche se rappresentano lo stesso numero fisico al punto $Q$, ciascuna formula mette in evidenza un diverso vincolo di progetto:
 
 | Formulazione di $g_m$ | Parametro Fissato | Dipendenza da Variabili Libere | Contesto Progettuale |
 | :--- | :--- | :--- | :--- |
 | $g_m = k_n' \frac{W}{L} V_{OV}$ | $V_{OV}$ costante | Proporzionale a $W/L$ | Progetto a dinamica di tensione fissata: per aumentare $g_m$ occorre allargare l'area di silicio ($W$). |
-| $g_m = \frac{2 I_D}{V_{OV}}$ | $I_D$ costante | Inversamente proporzionale a $V_{OV}$ | Progetto a basso consumo di potenza ($I_D$ vincolata dal budget energetico): per massimizzare il guadagno occorre ridurre l'overdrive $V_{OV}$ verso la debole inversione. |
-| $g_m = \sqrt{2 k_n' \frac{W}{L} I_D}$ | Geometria $W/L$ costante | Proporzionale a $\sqrt{I_D}$ | Curva di polarizzazione: raddoppiare la corrente di bias $I_D$ aumenta la transconduttanza solo di un fattore $\sqrt{2} \approx 1.414$. |
+| $g_m = \frac{2 I_D}{V_{OV}}$ | $I_D$ costante | Inversamente proporzionale a $V_{OV}$ | Progetto a basso consumo di potenza ($I_D$ vincolata): per massimizzare il guadagno occorre ridurre $V_{OV}$. |
+| $g_m = \sqrt{2 k_n' \frac{W}{L} I_D}$ | Geometria $W/L$ costante | Proporzionale a $\sqrt{I_D}$ | Curva di polarizzazione: raddoppiare $I_D$ aumenta la transconduttanza solo di $\sqrt{2} \approx 1.414$. |
 
-*Tabella: Le tre formulazioni della transconduttanza $g_m$ e i relativi trade-off.*
-## La Resistenza Differenziale di Uscita $r_o$
+2. **Resistenza Differenziale d'Uscita ($r_o$):**
+   Nasce dall'effetto di modulazione della lunghezza di canale discusso nel [Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/). Derivando $i_D$ rispetto a $v_{DS}$ al punto $Q$:
 
-La resistenza differenziale d'uscita del MOSFET in saturazione vale:
-$$ r_o = \frac{1}{\lambda I_D} = \frac{V_A}{I_D} = \frac{V_A' \cdot L}{I_D} $$
+$$
+\frac{1}{r_o} = \left. \frac{\partial i_D}{\partial v_{DS}} \right|_Q = \lambda \left[ \frac{1}{2} k_n' \frac{W}{L} (V_{GS} - V_{th})^2 \right] \approx \lambda I_D \implies r_o = \frac{1}{\lambda I_D} = \frac{V_A}{I_D} = \frac{V_A' \cdot L}{I_D}
+$$
 
-La resistenza d'uscita $r_o$:
-1. È **inversamente proporzionale alla corrente continua $I_D$**: correnti più basse aumentano l'impedenza d'uscita.
-2. È **direttamente proporzionale alla lunghezza del canale $L$**.
+3. **Transconduttanza di Body ($g_{mb}$):**
+   Quando il Source non è a massa in AC (come negli stadi Common Drain o Common Gate), il segnale fa oscillare la tensione tra Source e Body ($v_{bs} = -v_{sb} \ne 0$). Questo fa variare dinamicamente la tensione di soglia $V_{th}$ per effetto Body, modulando la corrente di Drain attraverso la transconduttanza di substrato $g_{mb}$:
 
-## La Transconduttanza di Body (Back-Gate) $g_{mb}$
+$$
+g_{mb} = \chi g_m, \qquad \chi = \frac{\gamma}{2 \sqrt{2\phi_F + V_{SB}}}
+$$
 
-Se il terminale di Body non è a massa con il Source ma subisce variazioni di potenziale dinamico ($v_{bs} \ne 0$), l'effetto Body modula la tensione di soglia e il substrato agisce come un secondo elettrodo di controllo ("porta posteriore" o *back-gate*), caratterizzato dalla transconduttanza di substrato:
-$$ g_{mb} = \chi g_m, \qquad \chi = \frac{g_{mb}}{g_m} = \frac{\gamma}{2 \sqrt{2\phi_F + V_{SB}}} $$
+   Nei processi CMOS tipici, il fattore $\chi$ vale tra $0.1$ e $0.25$.
 
-Tipicamente, per processi CMOS standard, $\chi$ assume valori compresi tra $0.1$ e $0.25$ (ovvero $g_{mb}$ vale circa il $10\%\div 25\%$ di $g_m$). Il generatore dipendente di Body $g_{mb} v_{bs}$ si colloca sempre in parallelo al generatore principale $g_m v_{gs}$.
+4. **Fattore di Amplificazione Intrinseco ($\mu_f$):**
+   Rappresenta il massimo guadagno di tensione in modulo ottenibile da un singolo MOSFET, raggiunto quando il Drain è chiuso su un carico ideale a circuito aperto ($i_d = 0$, $v_{bs} = 0$), per cui $v_{ds} = -g_m r_o v_{gs}$:
 
-## Fattore di Amplificazione $\mu_f$ e Guadagno Intrinseco $A_{v0}$
+$$
+\mu_f = g_m r_o = \left(\frac{2 I_D}{V_{OV}}\right) \left(\frac{V_A}{I_D}\right) = \frac{2 V_A}{V_{OV}} = \frac{2}{\lambda V_{OV}} = \frac{2 V_A' \cdot L}{V_{OV}}
+$$
 
-Il **fattore di amplificazione intrinseco ($\mu_f$)** del MOSFET definisce il massimo guadagno di tensione in modulo ottenibile da un singolo transistore quando il terminale di Drain è chiuso su un carico ideale a circuito aperto ($R_L \to \infty$, per cui $i_d = 0$):
-$$ \mu_f = g_m r_o = \frac{2}{\lambda V_{OV}} = \frac{2 V_A}{V_{OV}} = \frac{2 V_A' \cdot L}{V_{OV}}, \qquad A_{v0} = \left. \frac{v_{ds}}{v_{gs}} \right|_{i_d=0} = -\mu_f = -g_m r_o $$
+   A parità di overdrive $V_{OV}$, il guadagno intrinseco $\mu_f$ è **indipendente dalla corrente** $I_D$: per aumentarlo occorre ridurre $V_{OV}$ oppure aumentare la lunghezza di canale $L$.
 
-Questa relazione svela una proprietà fondamentale dell'elettronica integrata:
-1. Il guadagno intrinseco $\mu_f = g_m r_o$ è **indipendente dalla corrente di polarizzazione $I_D$** a $V_{OV}$ fissato (all'aumentare di $I_D$, $g_m$ cresce della stessa proporzione con cui $r_o$ diminuisce; a geometria $W/L$ fissata decresce invece come $1/\sqrt{I_D}$ poiché $V_{OV} \propto \sqrt{I_D}$).
-2. Per massimizzare il guadagno di tensione, il progettista deve **ridurre l'overdrive $V_{OV}$** e **aumentare la lunghezza del canale $L$**.
-
-Nei processi CMOS integrati, $\mu_f$ varia tipicamente tra $15\,\text{V/V}$ (canali corti) e $80\div 100\,\text{V/V}$ (canali lunghi).
+<StepCheck client:load lang="it" mode="choice" prompt="Se in un progetto a corrente di polarizzazione costante ($I_D = \text{cost}$) si raddoppia il rapporto geometrico $W/L$ del MOSFET, come varia la transconduttanza $g_m$?" options={["Raddoppia ($2 g_m$) perché $g_m = K_n V_{OV}$", "Cresce di un fattore $\\sqrt{2}$ perché $g_m = \\sqrt{2 k_n' (W/L) I_D}$", "Rimane invariata perché $I_D$ è costante", "Si dimezza perché $V_{OV}$ raddoppia"]} correctIndex={1} explanation="A $I_D$ fissata, raddoppiare $W/L$ riduce $V_{OV}$ di un fattore $\sqrt{2}$, quindi $g_m = \sqrt{2 k_n' (W/L) I_D} = 2I_D/V_{OV}$ cresce di $\sqrt{2}$." />
 
 <Callout type="tip" title="Scelta Progettuale sul Silicio: L = L_min nel Digitale vs L > L_min nell'Analogico">
 
@@ -116,61 +155,177 @@ Questa espressione spiega perché sullo stesso microchip coesistono transistori 
 
 </Callout>
 
-## Circuiti Equivalenti a Piccolo Segnale: Modello a $\pi$ Ibrido e Modello a T
+<Divider label="3 · Modelli Equivalenti a π Ibrido e a T" />
 
-In regime di piccolo segnale, il transistore viene sostituito dal suo circuito lineare equivalente ([la figura](#fig-mos-small-signal)).
+### Esempio — Resistenza Vista dal Source e Equivalenza tra Modello a π e a T
 
-### Il Modello a $\pi$ Ibrido ([la figura](#fig-mos-small-signal)(a))
-È il modello canonico standard:
-* **Porta d'ingresso Gate-Source:** A bassa frequenza, il Gate è isolato dall'ossido $\text{SiO}_2$, per cui l'impedenza di ingresso è idealmente infinita ($r_{in} \to \infty$, circuito aperto e $i_g = 0$).
-* **Porta d'uscita Drain-Source:** Un generatore di corrente controllato in tensione $g_m v_{gs}$ diretto dal Drain al Source, posto in parallelo alla resistenza di uscita $r_o$.
+Confrontiamo i due circuiti equivalenti a piccolo segnale di [la figura](#fig-mos-small-signal) per il nostro MOSFET con $g_m = 4.0\,\text{mA/V}$ (trascurando inizialmente $r_o \to \infty$ e $g_{mb} = 0$):
 
 <figure id="fig-mos-small-signal" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-mos-small-signal.svg" alt="Circuiti equivalenti a piccolo segnale del MOSFET: (a) modello a pi ibrido; (b) modello equivalente a T, che evidenzia la resistenza 1/g_m vista guardando dentro il terminale di Source." />
   <figcaption>Circuiti equivalenti a piccolo segnale del MOSFET: (a) modello a $\pi$ ibrido; (b) modello equivalente a T, che evidenzia la resistenza $1/g_m$ vista guardando dentro il terminale di Source.</figcaption>
 </figure>
 
-### Il Modello a T ([la figura](#fig-mos-small-signal)(b))
-Nel caso in cui il terminale di Source non sia direttamente a massa (come nello stadio Common Source con resistenza di degenerazione $R_S$, nello stadio Common Drain o nello stadio Common Gate), l'analisi risulta immediata impiegando il **modello a T**:
-* Applicando una trasformazione circuitale equivalente al generatore controllato $g_m v_{gs}$, il ramo tra il nodo di Gate e il terminale di Source presenta una resistenza pari a:
-  $$ r_s = \frac{1}{g_m} $$
-* Dal terminale di Gate non viene comunque assorbita alcuna corrente ($i_g = 0$), mentre la corrente $i_s = g_m v_{gs}$ che attraversa il resistore $1/g_m$ proviene interamente dal generatore controllato posto sul ramo di Drain ($i_d = i_s$). Ciò dimostra immediatamente la regola fondamentale d'ispezione visiva: **guardando dentro il terminale di Source (con Gate a massa dinamica e trascurando $r_o$), si vede una resistenza equivalente pari a $1/g_m$**, mentre guardando dentro il Drain si vede una resistenza elevatissima ($r_o \to \infty$).
+1. **Resistenza vista guardando dentro il Source ($r_s = 1/g_m$):**
+   Nel **modello a T** ([la figura](#fig-mos-small-signal)(b)), tra il nodo di Gate e il terminale di Source compare esplicitamente il resistore:
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+$$
+r_s = \frac{1}{g_m} = \frac{1}{4.0\,\text{mA/V}} = 0.25\,\text{k}\Omega = 250\,\Omega
+$$
 
-### Le Tre Formulazioni Canoniche di $g_m$ e Parametri AC
+2. **Partitore immediato su un resistore di Source non bypassato ($R_S = 750\,\Omega$):**
+   Se colleghiamo tra Source e massa un resistore $R_S = 750\,\Omega$ e applichiamo un segnale $v_{in} = 100\,\text{mV}$ al Gate, il modello a T mostra a colpo d'occhio che $r_s = 250\,\Omega$ e $R_S = 750\,\Omega$ formano un semplice **partitore resistivo** in serie (poiché dal Gate non entra corrente, $i_g = 0$):
+   - La tensione sul terminale di Source sale a $v_s = v_{in} \frac{R_S}{r_s + R_S} = 100\,\text{mV} \times \frac{750}{250 + 750} = 75\,\text{mV}$.
+   - La frazione di segnale che cade effettivamente tra Gate e Source è $v_{gs} = v_{in} - v_s = 25\,\text{mV}$.
+   - La corrente di Drain prodotta vale $i_d = g_m v_{gs} = \frac{v_{in}}{r_s + R_S} = \frac{100\,\text{mV}}{1000\,\Omega} = 100\,\mu\text{A}$, identica in entrambi i modelli.
 
-| Parametro | Espressioni equivalenti | Nota operativa |
+<StepCheck client:load lang="it" prompt="Quanto vale la resistenza di piccolo segnale $r_s = 1/g_m$ vista guardando dentro il terminale di Source di un MOSFET con $g_m = 2.5\,\text{mA/V}$ (in $\Omega$, trascurando $r_o$ e $g_{mb}$)?" expected={400} tolerance={2} unit="$\Omega$" explanation="$r_s = 1 / g_m = 1 / (2.5 \times 10^{-3}\,\text{A/V}) = 400\,\Omega$." />
+
+### Teoria — Topologia a π Ibrido e Trasformazione nel Modello a T
+
+Per risolvere rapidamente qualsiasi amplificatore a centro banda, sostituiamo il MOSFET con uno dei due circuiti equivalenti lineari mostrati in [la figura](#fig-mos-small-signal), che descrivono esattamente lo stesso comportamento elettrico ai morsetti esterni (Gate, Drain, Source):
+
+1. **Modello a $\pi$ Ibrido ([la figura](#fig-mos-small-signal)(a)):**
+   Poiché il terminale di Gate è isolato dall'ossido $\text{SiO}_2$, a bassa e media frequenza rimane un **circuito aperto** ($i_g = 0$, resistenza d'ingresso infinita). Tra Drain e Source agisce il generatore di corrente controllato in tensione $g_m v_{gs}$ posto in parallelo alla resistenza differenziale d'uscita $r_o$ (più l'eventuale generatore $g_{mb} v_{bs}$ se il Source varia rispetto al Body). Questo modello è il più diretto quando il terminale di Source è collegato direttamente a massa AC.
+
+2. **Modello Equivalente a T ([la figura](#fig-mos-small-signal)(b)):**
+   Quando il Source non è a massa dinamica (ad esempio negli stadi Common Source con degenerazione su $R_S$, Common Drain o Common Gate), conviene passare al **modello a T**. Si sostituisce il ramo Gate-Source con un resistore di valore:
+
+$$
+r_s = \frac{1}{g_m}
+$$
+
+   posto in serie al terminale di Source, mentre sul ramo di Drain agisce il generatore controllato $i_d = g_m v_{gs}$ (o $i_d = i_s$) che preleva corrente dal nodo centrale tra Gate e $r_s$. Si dimostra subito l'equivalenza rigorosa ai tre morsetti:
+   - **Al nodo centrale di Gate:** la corrente generata verso il Drain ($g_m v_{gs}$) è esattamente uguale alla corrente che scende attraverso il resistore $r_s = 1/g_m$ verso il Source ($i_s = \frac{v_{gs}}{1/g_m} = g_m v_{gs}$). Per la legge di Kirchhoff alle correnti sul nodo centrale, la corrente assorbita dal terminale esterno di Gate resta identicamente nulla: $i_g = i_s - i_d = g_m v_{gs} - g_m v_{gs} = 0$.
+   - **Ai morsetti di Drain e Source:** esce dal Source e rientra nel Drain la stessa corrente $i_d = i_s = g_m v_{gs}$ del modello a $\pi$ ibrido.
+
+   Il modello a T rende immediatamente visibile una regola cardine dell'elettronica analogica: guardando dentro il terminale di Source (con Gate a massa AC e trascurando $r_o$) si vede una **bassa resistenza equivalente** pari a $1/g_m$ (o $1/(g_m + g_{mb})$ in presenza di effetto Body).
+
+<Divider label="4 · Sintesi" />
+
+### Tabella di Riferimento Rapido
+
+| Parametro | Espressioni Equivalenti | Nota Operativa |
 | :--- | :--- | :--- |
-| Transconduttanza $g_m$ | $K_n V_{OV} = \sqrt{2 K_n I_D} = \frac{2 I_D}{V_{OV}}$ | Trascura $(1 + \lambda V_{DS})$ nei conti manuali |
-| Resistenza d'uscita $r_o$ | $r_o = \frac{1}{\lambda I_D} = \frac{V_A}{I_D}$ | Infinita solo se $\lambda = 0$ |
-| Guadagno intrinseco $\mu_f$ | $\mu_f = g_m r_o$ ($A_{v0} = -g_m r_o$) | Massimo guadagno ottenibile da un singolo MOS |
-| Effetto Body AC | $g_{mb} = \chi g_m,\; \chi = \frac{\gamma}{2\sqrt{2\phi_F + V_{SB}}}$ | Presente solo se $v_{sb} \ne 0$ (es. Source Follower) |
+| **Transconduttanza $g_m$** | $K_n V_{OV} = \sqrt{2 K_n I_D} = \frac{2 I_D}{V_{OV}}$ | Trascura $(1 + \lambda V_{DS})$ nei conti manuali |
+| **Resistenza d'uscita $r_o$** | $r_o = \frac{1}{\lambda I_D} = \frac{V_A}{I_D} = \frac{V_A' L}{I_D}$ | Infinita solo se $\lambda = 0$ |
+| **Guadagno intrinseco $\mu_f$** | $\mu_f = g_m r_o = \frac{2 V_A}{V_{OV}}$ ($A_{v0} = -g_m r_o$) | Massimo guadagno ottenibile da un singolo MOS |
+| **Effetto Body AC $g_{mb}$** | $g_{mb} = \chi g_m,\; \chi = \frac{\gamma}{2\sqrt{2\phi_F + V_{SB}}}$ | Presente solo se $v_{sb} \ne 0$ (es. Source Follower) |
+| **Resistenza al Source** | $r_s = \frac{1}{g_m}$ | Impedenza vista dal Source nel modello a T ($r_o \to \infty$) |
 
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
+### Procedura di Analisi
 
-<Callout type="warning" title="Trappola d'Esame: Scegliere la Formula Sbagliata di g_m in Base ai Dati">
+1. **Analisi DC preliminare:** aprire tutti i condensatori, risolvere il punto di lavoro $Q(I_D, V_{GS}, V_{DS})$ e verificare la saturazione.
+2. **Estrazione parametri differenziali:** calcolare $g_m$, $r_o = 1/(\lambda I_D)$ ed eventualmente $g_{mb} = \chi g_m$ se $v_{sb} \ne 0$.
+3. **Circuito equivalente AC:** spegnere i generatori DC indipendenti ($V_{DD} \to \text{GND}$ AC) e sostituire i condensatori di accoppiamento/bypass con cortocircuiti ideali.
+4. **Risoluzione lineare:** sostituire il MOSFET con il modello a $\pi$ ibrido (Source a massa AC) o a T (Source non a massa AC) e ricavare $A_v, R_{in}, R_{out}$.
 
-Se si raddoppia $W/L$ mantenendo costante $I_D$, $g_m = \sqrt{2 k_n' (W/L) I_D}$ cresce solo di $\sqrt{2}$ (perché $V_{OV}$ si riduce!); se invece si mantiene costante $V_{OV}$, $g_m = 2I_D/V_{OV}$ cresce linearmente con $I_D$. Scegliere sempre la forma in cui la variabile tenuta fissa è esplicita.
+### Dimostrazioni Chiave
+
+* **Tre formulazioni di $g_m$:** derivazione parziale $\partial i_D / \partial v_{GS}$ al punto $Q$ e sostituzioni algebriche mediante $I_D = \frac{1}{2} K_n V_{OV}^2$.
+* **Parametri $r_o$ e $g_{mb}$:** derivazione parziale rispetto a $v_{DS}$ e applicazione della regola della catena tramite $V_{th}(v_{SB})$.
+* **Modelli a $\pi$ e T:** conservazione di $i_g = 0$, $i_d = g_m v_{gs}$ e $i_s = g_m v_{gs}$ ai tre morsetti del MOSFET.
+
+<Callout type="warning" title="Errori Comuni">
+
+Se si raddoppia $W/L$ mantenendo costante $I_D$, $g_m = \sqrt{2 k_n' (W/L) I_D}$ cresce solo di $\sqrt{2}$ (perché $V_{OV}$ si riduce); se invece si mantiene costante $V_{OV}$, $g_m = 2I_D/V_{OV}$ cresce linearmente con $I_D$. Scegliere sempre la forma in cui la variabile tenuta fissa è esplicita. Ricorda inoltre di verificare la condizione di piccolo segnale $|v_{gs}| \ll 2 V_{OV}$ e di non includere $g_{mb}$ quando il terminale di Source è a massa dinamica ($v_{sb} = 0$).
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-7-1" title="Esercizio 7.1: Parametri di Piccolo Segnale e Guadagno Intrinseco" level="Livello 1 · Base" hint="Usa g_m = sqrt(2 * K_n * I_D), r_o = 1 / (lambda * I_D) e mu_f = g_m * r_o.">
+<Divider label="5 · Esercizi" />
+
+<Exercise client:load lang="it" id="ex-7-1" title="Esercizio 7.1 — Parametri di Piccolo Segnale e Guadagno Intrinseco" level="Base" hint="Usa $g_m = \sqrt{2 K_n I_D}$, $r_o = \frac{1}{\lambda I_D}$ e $\mu_f = g_m r_o$.">
 
 Un transistore NMOS con $K_n = 4\,\text{mA/V}^2$ e $\lambda = 0.025\,\text{V}^{-1}$ è polarizzato in saturazione con $I_D = 2\,\text{mA}$.
 
-<StepCheck client:load lang="it" prompt="Calcola la transconduttanza g_m (in mA/V):" expected={4.0} tolerance={0.05} unit="mA/V" explanation="g_m = sqrt(2 * 4e-3 * 2e-3) = 4.0 mA/V." />
+<StepCheck client:load lang="it" prompt="Calcola la transconduttanza $g_m$ (in $\text{mA/V}$):" expected={4.0} tolerance={0.05} unit="mA/V" explanation="$g_m = \sqrt{2 \cdot 4\times 10^{-3} \cdot 2\times 10^{-3}} = 4.0\,\text{mA/V}$." />
 
-<StepCheck client:load lang="it" prompt="Calcola la resistenza differenziale di uscita r_o (in kΩ):" expected={20.0} tolerance={0.2} unit="kΩ" explanation="r_o = 1 / (0.025 * 2e-3) = 20 kΩ." />
+<StepCheck client:load lang="it" prompt="Calcola la resistenza differenziale di uscita $r_o$ (in $\text{k}\Omega$):" expected={20.0} tolerance={0.2} unit="$\text{k}\Omega$" explanation="$r_o = \frac{1}{0.025 \cdot 2\times 10^{-3}} = 20\,\text{k}\Omega$." />
 
-<StepCheck client:load lang="it" prompt="Calcola il fattore di amplificazione intrinseco μ_f = g_m * r_o:" expected={80.0} tolerance={1.0} explanation="μ_f = 4 mA/V * 20 kΩ = 80." />
+<StepCheck client:load lang="it" prompt="Calcola il fattore di amplificazione intrinseco $\mu_f = g_m r_o$:" expected={80.0} tolerance={1.0} explanation="$\mu_f = 4\,\text{mA/V} \cdot 20\,\text{k}\Omega = 80$." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. $g_m = \sqrt{2 K_n I_D} = \sqrt{2(4\,\text{mA/V}^2)(2\,\text{mA})} = 4.0\,\text{mA/V}$.
-2. $r_o = \frac{1}{\lambda I_D} = \frac{1}{0.025 \cdot 2\times 10^{-3}} = 20\,\text{k}\Omega$.
-3. $\mu_f = g_m r_o = (4\times 10^{-3})(20\times 10^3) = 80$, e $V_{OV} = \frac{2 I_D}{g_m} = \frac{4}{4} = 1.0\,\text{V}$.
+1. Poiché conosciamo $K_n$ e la corrente di polarizzazione $I_D$, scegliamo la formulazione della transconduttanza in funzione di queste due grandezze:
+   $$
+   g_m = \sqrt{2 K_n I_D} = \sqrt{2 \times (4 \times 10^{-3}\,\text{A/V}^2) \times (2 \times 10^{-3}\,\text{A})} = \sqrt{16 \times 10^{-6}} = 4.0 \times 10^{-3}\,\text{A/V} = 4.0\,\text{mA/V}
+   $$
+   Per verifica, l'overdrive di lavoro vale $V_{OV} = 2I_D / g_m = 4\,\text{mA} / 4\,\text{mA/V} = 1.0\,\text{V}$.
+2. Calcoliamo la resistenza differenziale d'uscita $r_o$ dovuta alla modulazione di canale:
+   $$
+   r_o = \frac{1}{\lambda I_D} = \frac{1}{0.025\,\text{V}^{-1} \times 2 \times 10^{-3}\,\text{A}} = \frac{1}{5.0 \times 10^{-5}\,\text{S}} = 20 \times 10^3\,\Omega = 20\,\text{k}\Omega
+   $$
+3. Moltiplichiamo $g_m$ e $r_o$ per ottenere il fattore di amplificazione intrinseco $\mu_f$:
+   $$
+   \mu_f = g_m r_o = (4.0 \times 10^{-3}\,\text{A/V})(20 \times 10^3\,\Omega) = 80
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-7-2" title="Esercizio 7.2 — Effetto Body AC e Scalamento di $W/L$" level="Intermedio" hint="Calcola $\chi = \frac{\gamma}{2\sqrt{2\phi_F + V_{SB}}}$ e ricorda che a $I_D$ fissa vale $g_m = \sqrt{2 K_n I_D}$.">
+
+Un transistore NMOS con $K_n = 2.0\,\text{mA/V}^2$, $\gamma = 0.40\,\text{V}^{1/2}$ e $2\phi_F = 0.70\,\text{V}$ lavora in saturazione con $I_D = 1.0\,\text{mA}$ e $V_{SB} = 0.90\,\text{V}$.
+
+<StepCheck client:load lang="it" prompt="Calcola la transconduttanza di Body $g_{mb}$ (in $\text{mA/V}$):" expected={0.316} tolerance={0.01} unit="mA/V" explanation="$g_m = \sqrt{2 \cdot 2.0 \cdot 1.0} = 2.0\,\text{mA/V}$; $\chi = \frac{0.40}{2\sqrt{1.6}} \approx 0.1581$, quindi $g_{mb} = \chi g_m \approx 0.316\,\text{mA/V}$." />
+
+<StepCheck client:load lang="it" prompt="Se raddoppiamo $W/L$ (portando $K_n$ a $4.0\,\text{mA/V}^2$) mantenendo fissa la corrente $I_D = 1.0\,\text{mA}$, quanto vale la nuova $g_m'$ (in $\text{mA/V}$)?" expected={2.828} tolerance={0.03} unit="mA/V" explanation="$g_m' = \sqrt{2 \cdot 4.0 \cdot 1.0} = \sqrt{8} \approx 2.828\,\text{mA/V}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. Calcoliamo dapprima la transconduttanza di Gate iniziale $g_m$ usando $K_n$ e $I_D$:
+   $$
+   g_m = \sqrt{2 K_n I_D} = \sqrt{2 \times (2.0\,\text{mA/V}^2) \times (1.0\,\text{mA})} = \sqrt{4.0} = 2.0\,\text{mA/V}
+   $$
+2. Calcoliamo il rapporto adimensionale $\chi$ dell'effetto Body al punto di lavoro $V_{SB} = 0.90\,\text{V}$:
+   $$
+   \chi = \frac{\gamma}{2\sqrt{2\phi_F + V_{SB}}} = \frac{0.40}{2\sqrt{0.70 + 0.90}} = \frac{0.40}{2\sqrt{1.60}} = \frac{0.40}{2 \times 1.2649} \approx 0.1581
+   $$
+   Moltiplicando per $g_m$ troviamo la transconduttanza di substrato:
+   $$
+   g_{mb} = \chi g_m = 0.1581 \times 2.0\,\text{mA/V} \approx 0.316\,\text{mA/V}
+   $$
+3. Raddoppiando il rapporto geometrico $W/L$ mentre la corrente $I_D = 1.0\,\text{mA}$ rimane fissata, il parametro geometrico diventa $K_n' = 2 K_n = 4.0\,\text{mA/V}^2$ e la tensione di overdrive si riduce di un fattore $\sqrt{2}$. La nuova transconduttanza vale quindi:
+   $$
+   g_m' = \sqrt{2 K_n' I_D} = \sqrt{2 \times (4.0\,\text{mA/V}^2) \times (1.0\,\text{mA})} = \sqrt{8.0} \approx 2.828\,\text{mA/V}
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-7-3" title="Esercizio 7.3 — Dal Punto di Lavoro DC al Guadagno di Piccolo Segnale" level="Livello Esame" hint="Calcola prima $I_D$ in saturazione ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)), poi $g_m$ e $r_o$, e infine $A_v = -g_m (R_D \parallel R_L \parallel r_o)$.">
+
+Nell'amplificatore a centro banda di [la figura](#fig-separazione-dc-ac), il MOSFET ($k_n' = 250\,\mu\text{A/V}^2$, $W/L = 16$, $V_{th} = 0.7\,\text{V}$, $V_A = 50\,\text{V}$) è polarizzato con $V_{GS} = 1.2\,\text{V}$ e $V_{DS} = 2.5\,\text{V}$ (con $C_S$ che cortocircuita il Source a massa AC). Sul Drain agiscono il resistore di polarizzazione $R_D = 10\,\text{k}\Omega$ e il carico accoppiato in AC $R_L = 10\,\text{k}\Omega$.
+
+<StepCheck client:load lang="it" prompt="Calcola la corrente di polarizzazione $I_D$ (con $\lambda \approx 0$ in DC, in $\text{mA}$):" expected={0.5} tolerance={0.02} unit="mA" explanation="$K_n = 0.25 \cdot 16 = 4.0\,\text{mA/V}^2$; $V_{OV} = 1.2 - 0.7 = 0.5\,\text{V}$, quindi $I_D = 0.5 \cdot 4.0 \cdot 0.5^2 = 0.50\,\text{mA}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola la resistenza equivalente totale vista dal Drain $R_{out,tot} = R_D \parallel R_L \parallel r_o$ (in $\text{k}\Omega$):" expected={4.76} tolerance={0.08} unit="$\text{k}\Omega$" explanation="$r_o = 50 / 0.5 = 100\,\text{k}\Omega$; $R_D \parallel R_L = 5\,\text{k}\Omega$, quindi $5 \parallel 100 = \frac{500}{105} \approx 4.762\,\text{k}\Omega$." />
+
+<StepCheck client:load lang="it" prompt="Calcola il modulo del guadagno di tensione a centro banda $|A_v| = g_m (R_D \parallel R_L \parallel r_o)$ (in $\text{V/V}$):" expected={9.52} tolerance={0.15} unit="V/V" explanation="$g_m = \frac{2 I_D}{V_{OV}} = \frac{1.0}{0.5} = 2.0\,\text{mA/V}$, da cui $|A_v| = 2.0 \cdot 4.762 \approx 9.52\,\text{V/V}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Analisi DC ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)):** calcoliamo $K_n = k_n'(W/L) = 0.25 \times 16 = 4.0\,\text{mA/V}^2$ e l'overdrive $V_{OV} = V_{GS} - V_{th} = 1.2 - 0.7 = 0.5\,\text{V}$. Poiché $V_{DS} = 2.5\,\text{V} \ge V_{OV} = 0.5\,\text{V}$, il MOSFET è in saturazione e la corrente statica vale:
+   $$
+   I_D = \frac{1}{2} K_n V_{OV}^2 = \frac{1}{2}(4.0\,\text{mA/V}^2)(0.5\,\text{V})^2 = 0.50\,\text{mA}
+   $$
+2. **Parametri di piccolo segnale:** valutiamo $g_m$ e $r_o$ nel punto di lavoro $Q$:
+   $$
+   g_m = \frac{2 I_D}{V_{OV}} = \frac{2 \times 0.50\,\text{mA}}{0.5\,\text{V}} = 2.0\,\text{mA/V}, \qquad r_o = \frac{V_A}{I_D} = \frac{50\,\text{V}}{0.50\,\text{mA}} = 100\,\text{k}\Omega
+   $$
+3. **Guadagno AC a centro banda:** sostituendo i condensatori $C_G, C_D, C_S$ con cortocircuiti e $V_{DD}$ con massa dinamica ([la figura](#fig-separazione-dc-ac)(c)), il generatore $g_m v_{gs}$ vede in uscita il parallelo tra $r_o$, $R_D$ e $R_L$:
+   $$
+   R_{out,tot} = R_D \parallel R_L \parallel r_o = (10\,\text{k}\Omega \parallel 10\,\text{k}\Omega) \parallel 100\,\text{k}\Omega = 5\,\text{k}\Omega \parallel 100\,\text{k}\Omega = \frac{5 \times 100}{5 + 100} \approx 4.762\,\text{k}\Omega
+   $$
+   La tensione d'uscita vale $v_{out} = -g_m R_{out,tot} v_{gs}$, da cui il modulo del guadagno:
+   $$
+   |A_v| = g_m R_{out,tot} = (2.0\,\text{mA/V}) \times (4.762\,\text{k}\Omega) \approx 9.52\,\text{V/V}
+   $$
 
 </details>
 

@@ -76,13 +76,13 @@ export default function DiodeRectifierExplorer() {
     .join(' ');
 
   return (
-    <div className="dc-widget">
+    <div className="dc-widget not-content">
       <div className="dc-widget-header">
-        <div>
-          <span className="dc-badge">Simulatore Interattivo</span>{' '}
+        <div className="dc-widget-heading">
+          <span className="dc-badge">Simulatore Interattivo</span>
           <span className="dc-widget-title">Raddrizzatore con Filtro Capacitivo</span>
         </div>
-        <div style={{ display: 'flex', gap: '0.45rem' }}>
+        <div className="dc-btn-group">
           <button
             type="button"
             className={`dc-btn ${topology === 'half' ? 'dc-btn-primary' : ''}`}
@@ -104,23 +104,23 @@ export default function DiodeRectifierExplorer() {
         <div className="dc-explorer-sidebar">
           <div className="dc-controls" style={{ marginBottom: 0 }}>
             <label>
-              Picco <strong>Vₚ = {vp} V</strong>
+              <span>Picco <strong>V<sub>p</sub> = {vp} V</strong></span>
               <input type="range" min={5} max={25} step={1} value={vp} onChange={(e) => setVp(Number(e.target.value))} />
             </label>
             <label>
-              Frequenza <strong>f = {freq} Hz</strong>
+              <span>Frequenza <strong>f = {freq} Hz</strong></span>
               <input type="range" min={50} max={200} step={25} value={freq} onChange={(e) => setFreq(Number(e.target.value))} />
             </label>
             <label>
-              Carico <strong>R_L = {rl} Ω</strong>
+              <span>Carico <strong>R<sub>L</sub> = {rl} Ω</strong></span>
               <input type="range" min={100} max={2000} step={50} value={rl} onChange={(e) => setRl(Number(e.target.value))} />
             </label>
             <label>
-              Filtro <strong>C = {capUf} μF</strong>
+              <span>Filtro <strong>C = {capUf} μF</strong></span>
               <input type="range" min={0} max={220} step={5} value={capUf} onChange={(e) => setCapUf(Number(e.target.value))} />
             </label>
             <label>
-              Modello diodo
+              <span>Modello diodo</span>
               <select value={vOn} onChange={(e) => setVOn(Number(e.target.value))}>
                 <option value={0.7}>CVD (0.7 V)</option>
                 <option value={0}>Ideale (0 V)</option>
@@ -128,15 +128,15 @@ export default function DiodeRectifierExplorer() {
             </label>
           </div>
           <div className="dc-step-box" style={{ marginTop: 0, display: 'grid', gap: '0.35rem', fontSize: '0.86rem' }}>
-            <span><strong>V_out,max:</strong> {stats.vPeakOut.toFixed(2)} V</span>
-            <span><strong>Ripple V_r (simulato):</strong> {stats.vrSim.toFixed(2)} V</span>
-            <span><strong>Stima V_r:</strong> {stats.vrApprox.toFixed(2)} V</span>
+            <span><strong>V<sub>out,max</sub>:</strong> {stats.vPeakOut.toFixed(2)} V</span>
+            <span><strong>Ripple V<sub>r</sub> (simulato):</strong> {stats.vrSim.toFixed(2)} V</span>
+            <span><strong>Stima V<sub>r</sub>:</strong> {stats.vrApprox.toFixed(2)} V</span>
             <span><strong>ΔT conduzione:</strong> {stats.deltaTMs.toFixed(2)} ms</span>
             <span><strong>PIV richiesto:</strong> {stats.piv.toFixed(1)} V</span>
           </div>
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: '620px', height: 'auto', display: 'block' }}>
           <line x1={padL} y1={toY(0)} x2={W - padR} y2={toY(0)} stroke="var(--sl-color-hairline-light)" strokeWidth={1.2} />
           <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--sl-color-hairline-light)" strokeWidth={1.2} />
           <text x={padL - 8} y={toY(vp) + 4} textAnchor="end" fontSize="11" fill="var(--sl-color-gray-3)">+{vp}V</text>

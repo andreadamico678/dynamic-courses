@@ -11,83 +11,398 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 25 Mental Model" markdown={`# Ch. 25: Ackermann Feedback Formula
-  - The Formula and Matrix Polynomial
-  - Practical Execution Protocol`} />
+<MindMap client:load defaultCollapsed title="Chapter 25 Outline" markdown={`# Ch. 25: Ackermann Feedback Formula
+  - Ackermann Gain Formula
+    - Matrix polynomial $p^*(\\mathbf{A})$
+    - Last-row extraction $\\mathbf{t}_n^T = \\mathbf{e}_n^T \\mathcal{R}^{-1}$
+  - Cayley-Hamilton Derivation
+    - Canonical expansion $\\mathbf{K} = \\mathbf{K}_c \\mathbf{T}^{-1}$
+    - Closed-loop matrix power proof
+  - Efficient Numerical Execution
+    - Solving $\\mathbf{t}_n^T \\mathcal{R} = \\mathbf{e}_n^T$
+    - Left-to-right row vector iteration`} />
 
-In [Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/), we established that arbitrary pole placement for a single-input controllable system can be computed by transforming the state coordinates into Controllable Canonical Form. While conceptually illuminating, calculating the canonical similarity transformation $\mathbf{T} = \mathcal{R}\mathcal{R}_c^{-1}$ and inverting it adds unnecessary symbolic and numerical overhead.
+## Introduction
 
-The **Ackermann formula** provides a direct closed-form expression for the state feedback gain vector $\mathbf{K}$ using only the controllability matrix $\mathcal{R}$ and the matrix polynomial evaluation of the desired characteristic equation.
+Converting a plant into Controllable Canonical Form by hand, solving for $\mathbf{K}_c$, and transforming back to original coordinates requires building $\mathbf{T}^{-1}$, computing the open-loop characteristic polynomial $p(s)$, and multiplying multiple matrices—slow on paper and redundant in embedded flight software where aerodynamic parameters update continuously with airspeed.
 
-<Divider />
+**Ackermann's Formula** collapses that entire multi-step coordinate change into a single closed-form matrix equation using only the controllability matrix $\mathcal{R}$ and the target polynomial evaluated at $\mathbf{A}$. Even better, because the Cayley-Hamilton theorem automatically annihilates the open-loop polynomial $p(\mathbf{A}) = \mathbf{0}$, you do not even need to compute the open-loop coefficients $a_i$ to synthesize $\mathbf{K}$.
 
-## The Formula and Matrix Polynomial
+<Divider label="1 · Example" />
 
-Let $(\mathbf{A}, \mathbf{B})$ be a completely controllable single-input pair with $\mathbf{A} \in \mathbb{R}^{n \times n}$ and $\mathbf{B} \in \mathbb{R}^{n \times 1}$. Let $\{\mu_1, \mu_2, \dots, \mu_n\}$ be the desired closed-loop poles, yielding the target characteristic polynomial:
-$$p^*(s) = \prod_{i=1}^n (s - \mu_i) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_1 s + \alpha_0$$
+### Direct Gain Synthesis Without Canonical Conversion
 
-<Callout type="note" title="Theorem: Ackermann's Gain Formula">
+Consider a non-companion second-order plant given by:
 
-The unique state feedback gain vector $\mathbf{K} \in \mathbb{R}^{1 \times n}$ such that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$ is:
-$$\boxed{\mathbf{K} = \begin{bmatrix} 0 & 0 & \dots & 0 & 1 \end{bmatrix} \mathcal{R}^{-1} p^*(\mathbf{A})}$$
-where $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$ is the Kalman controllability matrix, and $p^*(\mathbf{A})$ is the matrix polynomial:
-$$p^*(\mathbf{A}) = \mathbf{A}^n + \alpha_{n-1}\mathbf{A}^{n-1} + \dots + \alpha_1 \mathbf{A} + \alpha_0 \mathbf{I}_n$$
+$$
+\mathbf{A} = \begin{bmatrix} 1 & 2 \\ 0 & -1 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 1 \end{bmatrix}
+$$
 
-</Callout>
+Because $\mathbf{A}$ is upper triangular, its open-loop eigenvalues sit directly on the main diagonal at $\lambda_1 = +1$ and $\lambda_2 = -1$, with open-loop characteristic polynomial $p(s) = \det(s\mathbf{I}_2 - \mathbf{A}) = (s - 1)(s + 1) = s^2 - 1$. The positive eigenvalue at $+1$ makes the unforced plant exponentially unstable, and the input vector $\mathbf{B} = \begin{bmatrix} 1 & 1 \end{bmatrix}^T$ drives both state differential equations simultaneously rather than only the bottom row.
+
+Suppose we want to stabilize the system and place its closed-loop eigenvalues at $\mu_1 = -2$ and $\mu_2 = -3$, which defines the desired characteristic polynomial:
+
+$$
+p^*(s) = (s - (-2))(s - (-3)) = (s + 2)(s + 3) = s^2 + 5s + 6
+$$
+
+Instead of constructing $\mathbf{T}^{-1}$ to convert the system into companion coordinates as in [Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/), **Ackermann's formula** factors the gain calculation into two independent branches:
+
+1. **Controllability branch:** First compute $\mathbf{A}\mathbf{B} = \begin{bmatrix} 1 & 2 \\ 0 & -1 \end{bmatrix}\begin{bmatrix} 1 \\ 1 \end{bmatrix} = \begin{bmatrix} 3 \\ -1 \end{bmatrix}$, so the Kalman controllability matrix is $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} \end{bmatrix} = \begin{bmatrix} 1 & 3 \\ 1 & -1 \end{bmatrix}$ with $\det(\mathcal{R}) = (1)(-1) - (3)(1) = -4 \neq 0$. Rather than inverting all of $\mathcal{R}$, solve the linear system $\mathbf{t}_2^T \mathcal{R} = \begin{bmatrix} 0 & 1 \end{bmatrix}$ directly for the last row $\mathbf{t}_2^T = \begin{bmatrix} t_{21} & t_{22} \end{bmatrix}$ of $\mathcal{R}^{-1}$:
+   $$
+   \begin{bmatrix} t_{21} & t_{22} \end{bmatrix} \begin{bmatrix} 1 & 3 \\ 1 & -1 \end{bmatrix} = \begin{bmatrix} 0 & 1 \end{bmatrix} \implies \begin{cases} t_{21} + t_{22} = 0 \\ 3t_{21} - t_{22} = 1 \end{cases} \implies \mathbf{t}_2^T = \begin{bmatrix} 0.25 & -0.25 \end{bmatrix}
+   $$
+   Geometrically, this row vector $\mathbf{t}_2^T$ isolates the state-space direction orthogonal to the direct input vector $\mathbf{B}$ ($\mathbf{t}_2^T \mathbf{B} = 0.25 - 0.25 = 0$) and unit-normalized along $\mathbf{A}\mathbf{B}$ ($\mathbf{t}_2^T \mathbf{A}\mathbf{B} = 0.75 + 0.25 = 1$).
+2. **Spectral branch:** Replace the scalar complex variable $s$ in $p^*(s) = s^2 + 5s + 6$ with the matrix $\mathbf{A}$ (multiplying the constant term $6$ by the identity matrix $\mathbf{I}_2$) to form the matrix polynomial $p^*(\mathbf{A}) = \mathbf{A}^2 + 5\mathbf{A} + 6\mathbf{I}_2$. Computing $\mathbf{A}^2 = \begin{bmatrix} 1 & 2 \\ 0 & -1 \end{bmatrix}\begin{bmatrix} 1 & 2 \\ 0 & -1 \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \mathbf{I}_2$ gives:
+   $$
+   p^*(\mathbf{A}) = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} + 5\begin{bmatrix} 1 & 2 \\ 0 & -1 \end{bmatrix} + 6\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 12 & 10 \\ 0 & 2 \end{bmatrix}
+   $$
+   Because the [Cayley-Hamilton theorem](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/) guarantees $p(\mathbf{A}) = \mathbf{A}^2 - \mathbf{I}_2 = \mathbf{0}$, evaluating $p^*(\mathbf{A}) = p^*(\mathbf{A}) - p(\mathbf{A})$ automatically encodes the exact spectral shift between the target polynomial and the open-loop dynamics.
 
 <figure id="fig-ackermann-synthesis-flow" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-ackermann-synthesis-flow.svg" alt="Algorithmic data flow of Ackermann's formula. Synthesis factors cleanly into a spectral branch ($p^*(\mathbf{A})$) and a geometric controllability branch ($\mathbf{e}_n^T \mathcal{R}^{-1}$)." />
   <figcaption>Algorithmic data flow of Ackermann's formula. Synthesis factors cleanly into a spectral branch ($p^*(\mathbf{A})$) and a geometric controllability branch ($\mathbf{e}_n^T \mathcal{R}^{-1}$).</figcaption>
 </figure>
 
-<Divider />
+Multiplying the controllability row vector $\mathbf{t}_2^T$ on the left of the spectral matrix $p^*(\mathbf{A})$ yields the physical feedback gain vector in one step:
 
-<Callout type="note" title="Note">
+$$
+\mathbf{K} = \mathbf{t}_2^T p^*(\mathbf{A}) = \begin{bmatrix} 0.25 & -0.25 \end{bmatrix} \begin{bmatrix} 12 & 10 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} 3 & 2 \end{bmatrix}
+$$
 
-**Exam Synthesis Protocol:** In both written and oral examinations, you are **only** evaluated on applying Ackermann's formula $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ to place closed-loop poles, and stating the prerequisite condition $\operatorname{rank}(\mathcal{R}) = n$. The formal Cayley-Hamilton algebraic proof is a distinction topic that oral examiners do not request on the blackboard.
+To verify this design, form the closed-loop dynamics matrix $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$:
+
+$$
+\mathbf{A}_{\text{cl}} = \begin{bmatrix} 1 & 2 \\ 0 & -1 \end{bmatrix} - \begin{bmatrix} 1 \\ 1 \end{bmatrix}\begin{bmatrix} 3 & 2 \end{bmatrix} = \begin{bmatrix} 1 & 2 \\ 0 & -1 \end{bmatrix} - \begin{bmatrix} 3 & 2 \\ 3 & 2 \end{bmatrix} = \begin{bmatrix} -2 & 0 \\ -3 & -3 \end{bmatrix}
+$$
+
+Because $\mathbf{A}_{\text{cl}}$ is lower triangular, its eigenvalues sit on the diagonal at $-2$ and $-3$, and its characteristic polynomial is $(s + 2)(s + 3) = s^2 + 5s + 6 = p^*(s)$.
+
+<StepCheck client:load
+  prompt="For the plant above with $\mathbf{t}_2^T = [0.25, -0.25]$ and $p^*(\mathbf{A}) = \begin{bmatrix} 12 & 10 \\ 0 & 2 \end{bmatrix}$, what is the first gain entry $k_1$?"
+  expected={3}
+  tolerance={0.01}
+  unit=""
+  explanation="$k_1 = 0.25(12) + (-0.25)(0) = 3$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Ackermann Gain Formula
+
+In [Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/), we placed poles by computing the open-loop coefficients $a_i$, building the full transformation matrix $\mathbf{T}^{-1}$, finding canonical gains $k_{ci} = \alpha_i - a_i$, and transforming back via $\mathbf{K} = \mathbf{K}_c\mathbf{T}^{-1}$. **Ackermann's formula** eliminates the intermediate coordinate transformation and open-loop polynomial calculation entirely, returning $\mathbf{K}$ in a single closed-form expression from $(\mathbf{A}, \mathbf{B})$ and $p^*(s)$.
+
+Let $(\mathbf{A}, \mathbf{B})$ be a completely controllable single-input pair ($\operatorname{rank}(\mathcal{R}) = n$, with $\mathbf{A} \in \mathbb{R}^{n \times n}$ and $\mathbf{B} \in \mathbb{R}^{n \times 1}$), and let $\{\mu_1, \dots, \mu_n\}$ be the target closed-loop eigenvalues forming the desired monic polynomial:
+
+$$
+p^*(s) = \prod_{i=1}^n (s - \mu_i) = s^n + \alpha_{n-1}s^{n-1} + \dots + \alpha_1 s + \alpha_0
+$$
+
+The unique state-feedback gain row vector $\mathbf{K} \in \mathbb{R}^{1 \times n}$ under $u(t) = -\mathbf{K}\mathbf{x}(t) + v(t)$ satisfying $\det(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$ is given by **Ackermann's Formula**:
+
+$$
+\boxed{\mathbf{K} = \begin{bmatrix} 0 & 0 & \dots & 0 & 1 \end{bmatrix} \mathcal{R}^{-1} p^*(\mathbf{A}) = \mathbf{t}_n^T p^*(\mathbf{A})}
+$$
+
+Here $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$ is the $n \times n$ Kalman controllability matrix, $\mathbf{t}_n^T = \mathbf{e}_n^T \mathcal{R}^{-1}$ is the last row of $\mathcal{R}^{-1}$, and $p^*(\mathbf{A}) \in \mathbb{R}^{n \times n}$ is the matrix polynomial obtained by substituting $\mathbf{A}$ for $s$:
+
+$$
+p^*(\mathbf{A}) = \mathbf{A}^n + \alpha_{n-1}\mathbf{A}^{n-1} + \dots + \alpha_1 \mathbf{A} + \alpha_0 \mathbf{I}_n
+$$
+
+Notice the role of each factor: $\mathbf{t}_n^T = \mathbf{e}_n^T \mathcal{R}^{-1}$ extracts the $1 \times n$ canonical generator row vector that isolates the top of the integrator chain, while $p^*(\mathbf{A})$ evaluates how far the open-loop matrix $\mathbf{A}$ sits from satisfying the desired characteristic equation.
+
+### Cayley-Hamilton Derivation
+
+There are two complementary ways to prove Ackermann's formula, both resting on the [Cayley-Hamilton theorem](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/) (which states that every square matrix satisfies its own characteristic equation).
+
+First, we can derive Ackermann's formula directly from the canonical synthesis formula $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$ proved in [Chapter 24](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/). Recall that $\mathbf{K}_c = \begin{bmatrix} \alpha_0 - a_0 & \alpha_1 - a_1 & \dots & \alpha_{n-1} - a_{n-1} \end{bmatrix}$ and the rows of $\mathbf{T}^{-1}$ are $\mathbf{t}_n^T, \mathbf{t}_n^T \mathbf{A}, \dots, \mathbf{t}_n^T \mathbf{A}^{n-1}$. Writing out the matrix product $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$ as a sum over rows gives:
+
+$$
+\mathbf{K} = \begin{bmatrix} \alpha_0 - a_0 & \alpha_1 - a_1 & \dots & \alpha_{n-1} - a_{n-1} \end{bmatrix} \begin{bmatrix} \mathbf{t}_n^T \\ \mathbf{t}_n^T \mathbf{A} \\ \vdots \\ \mathbf{t}_n^T \mathbf{A}^{n-1} \end{bmatrix} = \sum_{i=0}^{n-1} (\alpha_i - a_i)\mathbf{t}_n^T \mathbf{A}^i
+$$
+
+Factoring $\mathbf{t}_n^T$ out on the left and splitting the target coefficients $\alpha_i$ from the open-loop coefficients $a_i$ yields:
+
+$$
+\mathbf{K} = \mathbf{t}_n^T \left( \sum_{i=0}^{n-1} \alpha_i \mathbf{A}^i - \sum_{i=0}^{n-1} a_i \mathbf{A}^i \right)
+$$
+
+Now invoke the Cayley-Hamilton theorem on the open-loop matrix $\mathbf{A}$: since $p(s) = s^n + \sum_{i=0}^{n-1} a_i s^i$ is the characteristic polynomial of $\mathbf{A}$, evaluating it at $\mathbf{A}$ gives $p(\mathbf{A}) = \mathbf{A}^n + \sum_{i=0}^{n-1} a_i \mathbf{A}^i = \mathbf{0}$, which rearranges immediately to:
+
+$$
+-\sum_{i=0}^{n-1} a_i \mathbf{A}^i = \mathbf{A}^n
+$$
+
+Substituting $\mathbf{A}^n$ in place of $-\sum_{i=0}^{n-1} a_i \mathbf{A}^i$ eliminates every open-loop coefficient $a_i$ and completes the target polynomial $p^*(\mathbf{A})$:
+
+$$
+\mathbf{K} = \mathbf{t}_n^T \left( \mathbf{A}^n + \alpha_{n-1}\mathbf{A}^{n-1} + \dots + \alpha_1\mathbf{A} + \alpha_0\mathbf{I}_n \right) = \mathbf{t}_n^T p^*(\mathbf{A})
+$$
+
+Second, we can verify the formula directly on the closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$ without mentioning canonical coordinates. By definition of $\mathbf{t}_n^T \mathcal{R} = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}$, the row vector $\mathbf{t}_n^T$ satisfies the $n$ orthogonality relations:
+
+$$
+\mathbf{t}_n^T \mathbf{B} = 0, \quad \mathbf{t}_n^T \mathbf{A}\mathbf{B} = 0, \quad \dots, \quad \mathbf{t}_n^T \mathbf{A}^{n-2}\mathbf{B} = 0, \quad \mathbf{t}_n^T \mathbf{A}^{n-1}\mathbf{B} = 1
+$$
+
+Multiply $\mathbf{t}_n^T$ on the right by successive powers of $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$. For power $k = 1$ (with $n \ge 2$), the feedback term drops out because $\mathbf{t}_n^T \mathbf{B} = 0$:
+
+$$
+\mathbf{t}_n^T \mathbf{A}_{\text{cl}} = \mathbf{t}_n^T (\mathbf{A} - \mathbf{B}\mathbf{K}) = \mathbf{t}_n^T \mathbf{A} - (\mathbf{t}_n^T \mathbf{B})\mathbf{K} = \mathbf{t}_n^T \mathbf{A}
+$$
+
+Multiplying again by $\mathbf{A} - \mathbf{B}\mathbf{K}$ for $k = 2, \dots, n - 1$, each term $(\mathbf{t}_n^T \mathbf{A}^{k-1}\mathbf{B})\mathbf{K}$ vanishes because $\mathbf{t}_n^T \mathbf{A}^{k-1}\mathbf{B} = 0$ for all $k - 1 \le n - 2$:
+
+$$
+\mathbf{t}_n^T \mathbf{A}_{\text{cl}}^k = \mathbf{t}_n^T \mathbf{A}^k \qquad (k = 0, 1, \dots, n - 1)
+$$
+
+At the $n$-th power $k = n$, however, the product encounters $\mathbf{t}_n^T \mathbf{A}^{n-1}\mathbf{B} = 1$, which leaves $-\mathbf{K}$ intact:
+
+$$
+\mathbf{t}_n^T \mathbf{A}_{\text{cl}}^n = \mathbf{t}_n^T \mathbf{A}_{\text{cl}}^{n-1}(\mathbf{A} - \mathbf{B}\mathbf{K}) = \mathbf{t}_n^T \mathbf{A}^{n-1}(\mathbf{A} - \mathbf{B}\mathbf{K}) = \mathbf{t}_n^T \mathbf{A}^n - (\mathbf{t}_n^T \mathbf{A}^{n-1}\mathbf{B})\mathbf{K} = \mathbf{t}_n^T \mathbf{A}^n - \mathbf{K}
+$$
+
+Taking the linear combination $\mathbf{t}_n^T p^*(\mathbf{A}_{\text{cl}}) = \mathbf{t}_n^T (\mathbf{A}_{\text{cl}}^n + \alpha_{n-1}\mathbf{A}_{\text{cl}}^{n-1} + \dots + \alpha_0 \mathbf{I}_n)$ and substituting the expressions above yields:
+
+$$
+\mathbf{t}_n^T p^*(\mathbf{A}_{\text{cl}}) = (\mathbf{t}_n^T \mathbf{A}^n - \mathbf{K}) + \alpha_{n-1}\mathbf{t}_n^T \mathbf{A}^{n-1} + \dots + \alpha_0 \mathbf{t}_n^T = \mathbf{t}_n^T p^*(\mathbf{A}) - \mathbf{K}
+$$
+
+Because $p^*(s)$ is the characteristic polynomial of $\mathbf{A}_{\text{cl}}$, the Cayley-Hamilton theorem forces $p^*(\mathbf{A}_{\text{cl}}) = \mathbf{0}$, so the left-hand side is zero and $\mathbf{K} = \mathbf{t}_n^T p^*(\mathbf{A}) = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$.
+
+### Efficient Numerical Execution
+
+When evaluating Ackermann's formula by hand on an exam or in embedded flight code, four practical rules prevent algebra errors and cut computational effort:
+
+1. **Verify Complete Controllability First:** Always check $\det(\mathcal{R}) \neq 0$ before proceeding. If $\operatorname{rank}(\mathcal{R}) < n$, $\mathcal{R}^{-1}$ does not exist and no static feedback gain can move the uncontrollable modes.
+2. **Isolate $\mathbf{t}_n^T$ Without Full Matrix Inversion:** You never need the first $n - 1$ rows of $\mathcal{R}^{-1}$. Solve the single linear system:
+   $$
+   \mathbf{t}_n^T \mathcal{R} = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix} \iff \mathcal{R}^T \mathbf{t}_n = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1 \end{bmatrix}
+   $$
+   This requires solving for only $n$ scalar entries instead of all $n^2$ entries of $\mathcal{R}^{-1}$.
+3. **Multiply Row Vectors Sequentially from the Left:** Rather than computing full $n \times n$ matrix powers $\mathbf{A}^2, \mathbf{A}^3, \dots, \mathbf{A}^n$ (which costs $n^3$ multiplications per power), propagate the $1 \times n$ row vector $\mathbf{t}_n^T$ from the left:
+   $$
+   \mathbf{w}_0^T = \mathbf{t}_n^T, \quad \mathbf{w}_1^T = \mathbf{w}_0^T \mathbf{A}, \quad \mathbf{w}_2^T = \mathbf{w}_1^T \mathbf{A}, \quad \dots, \quad \mathbf{w}_n^T = \mathbf{w}_{n-1}^T \mathbf{A}
+   $$
+   Each vector-matrix product costs only $n^2$ scalar multiplications, and $\mathbf{K}$ is simply the weighted row sum $\mathbf{K} = \mathbf{w}_n^T + \alpha_{n-1}\mathbf{w}_{n-1}^T + \dots + \alpha_0 \mathbf{w}_0^T$.
+4. **Never Drop the Identity Matrix $\mathbf{I}_n$:** Whenever forming $p^*(\mathbf{A})$ explicitly as a matrix, the constant term $\alpha_0$ must multiply the $n \times n$ identity matrix ($\alpha_0 \mathbf{I}_n$), adding $\alpha_0$ only to the main diagonal entries.
+
+<StepCheck client:load
+  mode="choice"
+  prompt="Which prerequisite must hold before Ackermann's formula $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ can be applied?"
+  options={[
+    "The open-loop matrix $\\mathbf{A}$ must already be asymptotically stable",
+    "The pair $(\\mathbf{A}, \\mathbf{B})$ must be SISO and completely controllable ($\\det(\\mathcal{R}) \\neq 0$)",
+    "The matrix $\\mathbf{A}$ must be in Controllable Canonical Form"
+  ]}
+  correctIndex={1}
+  explanation="Ackermann's formula works for any open-loop matrix (stable or unstable, canonical or unstructured) provided $m = 1$ and $\\mathcal{R}$ is invertible."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Fast Embedded Gain Scheduling">
+
+In dynamic UAV flight (such as PX4 transitions from vertical hover to forward cruise), aerodynamic derivatives vary continuously with dynamic pressure $\bar{q} = \frac{1}{2}\rho V_\infty^2$, parameterizing $\mathbf{A}(V_\infty)$ and $\mathbf{B}(V_\infty)$ by airspeed $V_\infty$. Because Ackermann's formula requires only closed-form matrix operations with no iterative root-finding, an ARM Cortex-M7 flight controller can recompute $\mathbf{K}(V_\infty)$ deterministically at $100\text{ Hz}$ across the entire flight envelope.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
-## Practical Execution Protocol
+| Step | Formula / Operation | Purpose |
+| :--- | :--- | :--- |
+| **1. Controllability Check** | $\mathcal{R} = [\mathbf{B} \;\; \mathbf{A}\mathbf{B} \dots \mathbf{A}^{n-1}\mathbf{B}]$, verify $\det(\mathcal{R}) \neq 0$ | Confirms unique gain $\mathbf{K}$ exists |
+| **2. Dual Vector** | Solve $\mathbf{t}_n^T \mathcal{R} = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}$ | Extracts last row of $\mathcal{R}^{-1}$ |
+| **3. Target Polynomial** | $p^*(s) = \prod_{i=1}^n (s - \mu_i) = s^n + \sum_{i=0}^{n-1} \alpha_i s^i$ | Encodes desired eigenvalues |
+| **4. Matrix Evaluation** | $p^*(\mathbf{A}) = \mathbf{A}^n + \alpha_{n-1}\mathbf{A}^{n-1} + \dots + \alpha_0\mathbf{I}_n$ | Evaluates polynomial on $\mathbf{A}$ |
+| **5. Gain Output** | $\mathbf{K} = \mathbf{t}_n^T p^*(\mathbf{A})$ | Yields state feedback row vector |
 
-When applying Ackermann's formula by hand or in code:
+### Key Proofs
 
-1. **Verify Complete Controllability:** Always compute $\det(\mathcal{R}) \neq 0$ first. If $\operatorname{rank}(\mathcal{R}) < n$, $\mathcal{R}^{-1}$ does not exist and Ackermann's formula cannot be applied.
-2. **Compute Matrix Powers Systematically:** Compute $\mathbf{A}^2, \mathbf{A}^3, \dots, \mathbf{A}^n$ once and store them.
-3. **Remember the Identity Matrix:** A universal student error is writing $\alpha_0$ instead of $\alpha_0 \mathbf{I}_n$. In a matrix polynomial, scalar terms must multiply the identity matrix.
-4. **Isolate $\mathbf{t}_n^T$ Before Multiplying:** Rather than computing the full matrix inverse $\mathcal{R}^{-1}$, solve the linear system:
-   $$\mathbf{t}_n^T \mathcal{R} = \begin{bmatrix} 0 & \dots & 1 \end{bmatrix} \iff \mathcal{R}^T \mathbf{t}_n = \begin{bmatrix} 0 \\ \vdots \\ 1 \end{bmatrix}$$
-   This reduces the computational complexity from matrix inversion ($\mathcal{O}(n^3)$) to a single backward/forward substitution.
+- **Elimination of $\mathbf{T}$ and $a_i$:** Expanding $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1} = \mathbf{t}_n^T \sum_{i=0}^{n-1}(\alpha_i - a_i)\mathbf{A}^i$ and substituting Cayley-Hamilton $-\sum_{i=0}^{n-1} a_i \mathbf{A}^i = \mathbf{A}^n$ yields $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$.
+- **Row-Vector Shortcut:** Multiplying $\mathbf{t}_n^T$ sequentially from the left ($\mathbf{t}_n^T \mathbf{A}$, $\mathbf{t}_n^T \mathbf{A}^2$, ...) avoids forming full $n \times n$ matrix powers by hand.
 
-<Divider />
-
-<Callout type="bridge" title="SDU Robotics Bridge: Fast Embedded Gain Scheduling">
-
-In dynamic UAV flight (e.g. PX4 transitions from vertical hover to fast forward cruise), aerodynamic control derivatives change continuously as a function of dynamic pressure $\bar{q} = \frac{1}{2}\rho V_\infty^2$. The plant model $\mathbf{A}(V_\infty), \mathbf{B}(V_\infty)$ is parametrized by airspeed $V_\infty$.
-
-Because Ackermann's formula involves only closed-form matrix products without iterative root-finding, an autopilot flight computer running on an ARM Cortex-M7 can recompute the optimal state feedback gain vector $\mathbf{K}(V_\infty)$ at $100\text{ Hz}$ in real time as the aircraft accelerates, guaranteeing invariant handling qualities across the entire flight envelope.
-
+<Callout type="warning" title="Common Mistakes">
+1. **Omitting $\mathbf{I}_n$ on the Constant Term:** Always write $\alpha_0 \mathbf{I}_n$ inside $p^*(\mathbf{A})$, never add a scalar $\alpha_0$ to off-diagonal matrix entries.
+2. **Wrong Multiplication Order:** Controller Ackermann places the row vector $\mathbf{e}_n^T \mathcal{R}^{-1}$ on the **left** of $p^*(\mathbf{A})$; putting it on the right fails dimensionally and algebraically.
+3. **Forgetting the Sign of $\mathbf{u} = -\mathbf{K}\mathbf{x}$:** Ackermann yields $\mathbf{K}$ for $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$; if a control law is written as $\mathbf{u} = +\mathbf{K}\mathbf{x}$, signs flip.
 </Callout>
 
-<Divider />
+<Divider label="4 · Exercises" />
 
-### Exercise 25.1: Second-Order Ackermann Synthesis for an Unstable Plant [LEVEL 1: WARM-UP DRILL]
+<Exercise client:load id="ex-25-1" title="Exercise 25.1 — Unstable Plant Ackermann Synthesis" level="Warm-Up" hint="Compute $\mathcal{R}$ and $\mathbf{t}_2^T = [0, 1]\mathcal{R}^{-1}$, notice $\mathbf{A}^2 = 9\mathbf{I}$, then evaluate $\mathbf{K} = \mathbf{t}_2^T(\mathbf{A}^2 + 6\mathbf{A} + 9\mathbf{I})$." >
+
 Given the linearized inverted pendulum model:
-$$\mathbf{A} = \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}
+$$
 
 1. Compute the open-loop eigenvalues of $\mathbf{A}$ and confirm that the unforced plant is exponentially unstable.
-2. Construct the controllability matrix $\mathcal{M}_c$ and find the last row of its inverse $\mathbf{t}_2^T = \begin{bmatrix} 0 & 1 \end{bmatrix} \mathcal{M}_c^{-1}$.
+2. Construct the controllability matrix $\mathcal{R}$ and find the last row of its inverse $\mathbf{t}_2^T = \begin{bmatrix} 0 & 1 \end{bmatrix} \mathcal{R}^{-1}$.
 3. Form the desired characteristic polynomial $p^*(s)$ to place both closed-loop poles at $\mu_1 = \mu_2 = -3$.
 4. Evaluate the matrix polynomial $p^*(\mathbf{A})$ and compute the feedback gain vector $\mathbf{K} = \mathbf{t}_2^T p^*(\mathbf{A})$.
 5. Verify that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = (s + 3)^2$.
 
-### Exercise 25.2: Third-Order Ackermann Synthesis for an Unstructured Plant [LEVEL 2: EXAM BENCHMARK]
+<StepCheck client:load
+  prompt="Using Ackermann's formula for $\mu_1 = \mu_2 = -3$, compute the first feedback gain entry $k_1$:"
+  expected={18}
+  tolerance={0.01}
+  unit=""
+  explanation="$\mathbf{t}_2^T = [1, 0]$ selects row 1 of $p^*(\mathbf{A}) = \mathbf{A}^2 + 6\mathbf{A} + 9\mathbf{I} = \begin{bmatrix} 18 & 6 \\ 54 & 18 \end{bmatrix}$, giving $\mathbf{K} = [18, 6]$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Open-loop characteristic equation and stability:**
+   Expanding the determinant of $s\mathbf{I}_2 - \mathbf{A}$ gives:
+   $$
+   \det(s\mathbf{I}_2 - \mathbf{A}) = \det\begin{bmatrix} s & -1 \\ -9 & s \end{bmatrix} = s^2 - 9 = (s - 3)(s + 3) = 0 \implies \lambda_{1,2} = \pm 3
+   $$
+   Because $\lambda_1 = +3 > 0$ lies strictly in the open right-half plane, the unforced inverted pendulum possesses an exponentially divergent natural mode $e^{+3t}$ and is strictly unstable.
+
+2. **Controllability matrix and generator row vector $\mathbf{t}_2^T$:**
+   Computing $\mathbf{A}\mathbf{B}$ gives:
+   $$
+   \mathbf{A}\mathbf{B} = \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}
+   $$
+   Assembling the Kalman controllability matrix $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} \end{bmatrix}$ yields a permutation matrix that is its own inverse:
+   $$
+   \mathcal{R} = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}, \qquad \det(\mathcal{R}) = -1 \neq 0 \implies \mathcal{R}^{-1} = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+   $$
+   Extracting the bottom row of $\mathcal{R}^{-1}$ gives:
+   $$
+   \mathbf{t}_2^T = \begin{bmatrix} 0 & 1 \end{bmatrix} \mathcal{R}^{-1} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+   $$
+
+3. **Desired closed-loop polynomial:**
+   For a repeated real pole pair at $\mu_1 = \mu_2 = -3$, the desired monic polynomial is:
+   $$
+   p^*(s) = (s - (-3))^2 = (s + 3)^2 = s^2 + 6s + 9
+   $$
+
+4. **Matrix polynomial $p^*(\mathbf{A})$ and feedback gain vector:**
+   First compute $\mathbf{A}^2$:
+   $$
+   \mathbf{A}^2 = \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix} = \begin{bmatrix} 9 & 0 \\ 0 & 9 \end{bmatrix} = 9\mathbf{I}_2
+   $$
+   Substituting $\mathbf{A}^2 = 9\mathbf{I}_2$ into $p^*(\mathbf{A}) = \mathbf{A}^2 + 6\mathbf{A} + 9\mathbf{I}_2$ gives:
+   $$
+   p^*(\mathbf{A}) = \begin{bmatrix} 9 & 0 \\ 0 & 9 \end{bmatrix} + 6\begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix} + \begin{bmatrix} 9 & 0 \\ 0 & 9 \end{bmatrix} = \begin{bmatrix} 18 & 6 \\ 54 & 18 \end{bmatrix}
+   $$
+   Applying Ackermann's formula selects the first row of $p^*(\mathbf{A})$:
+   $$
+   \mathbf{K} = \mathbf{t}_2^T p^*(\mathbf{A}) = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} 18 & 6 \\ 54 & 18 \end{bmatrix} = \begin{bmatrix} 18 & 6 \end{bmatrix}
+   $$
+
+5. **Closed-loop verification:**
+   Forming $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$ gives:
+   $$
+   \mathbf{A} - \mathbf{B}\mathbf{K} = \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix} - \begin{bmatrix} 0 \\ 1 \end{bmatrix} \begin{bmatrix} 18 & 6 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -9 & -6 \end{bmatrix}
+   $$
+   Evaluating its characteristic polynomial confirms the design:
+   $$
+   \det(s\mathbf{I}_2 - (\mathbf{A} - \mathbf{B}\mathbf{K})) = \det\begin{bmatrix} s & -1 \\ 9 & s + 6 \end{bmatrix} = s(s + 6) + 9 = s^2 + 6s + 9 = (s + 3)^2 \quad \checkmark
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-25-2" title="Exercise 25.2 — Third-Order Ackermann Synthesis" level="Exam Standard" hint="Solve $\mathbf{t}_3^T \mathcal{R} = [0, 0, 1]$ first; since $\mathbf{t}_3^T = [1, 0, 0]$, you only need Row 1 of $\mathbf{A}$, $\mathbf{A}^2$, and $\mathbf{A}^3$.">
+
 A third-order continuous-time system is described by:
-$$\mathbf{A} = \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
+$$
 
 1. Compute the open-loop characteristic polynomial $p(s) = \det(s\mathbf{I} - \mathbf{A})$ and show that the system possesses an unstable open-loop pole at $s = 1$.
-2. Construct the controllability matrix $\mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} \end{bmatrix}$ and compute its inverse to extract the last row $\mathbf{t}_3^T = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} \mathcal{M}_c^{-1}$.
+2. Construct the controllability matrix $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} \end{bmatrix}$ and compute its inverse to extract the last row $\mathbf{t}_3^T = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} \mathcal{R}^{-1}$.
 3. Form the desired polynomial $p^*(s)$ to place the closed-loop poles at $\mu_1 = -2$ and $\mu_{2,3} = -1 \pm j1$.
 4. Evaluate the matrix polynomial $p^*(\mathbf{A})$ and calculate the state feedback gain vector $\mathbf{K} = \mathbf{t}_3^T p^*(\mathbf{A})$. Verify that $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$.
+
+<StepCheck client:load
+  prompt="Compute the first entry $k_1$ of $\mathbf{K} = \begin{bmatrix} k_1 & k_2 & k_3 \end{bmatrix}$:"
+  expected={15}
+  tolerance={0.01}
+  unit=""
+  explanation="$p^*(s) = s^3 + 4s^2 + 6s + 4$, and since $\mathbf{t}_3^T = [1, 0, 0]$, $k_1 = 1 + 4(1) + 6(1) + 4(1) = 15$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Open-loop characteristic polynomial:**
+   Because the first column of $s\mathbf{I}_3 - \mathbf{A}$ has only one nonzero entry $(s - 1)$ at the top, cofactor expansion along column 1 factors the determinant immediately:
+   $$
+   p(s) = \det(s\mathbf{I}_3 - \mathbf{A}) = \det\begin{bmatrix} s - 1 & -1 & 0 \\ 0 & s & -1 \\ 0 & 2 & s + 3 \end{bmatrix} = (s - 1)\det\begin{bmatrix} s & -1 \\ 2 & s + 3 \end{bmatrix}
+   $$
+   $$
+   p(s) = (s - 1)(s(s + 3) + 2) = (s - 1)(s^2 + 3s + 2) = (s - 1)(s + 1)(s + 2)
+   $$
+   The open-loop eigenvalues are $\lambda_1 = +1$, $\lambda_2 = -1$, and $\lambda_3 = -2$, so the mode at $\lambda_1 = +1 > 0$ is exponentially unstable.
+
+2. **Controllability matrix and generator row vector $\mathbf{t}_3^T$:**
+   Compute the reachability vectors $\mathbf{A}\mathbf{B}$ and $\mathbf{A}^2\mathbf{B}$ sequentially:
+   $$
+   \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}, \qquad
+   \mathbf{A}\mathbf{B} = \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix} \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ -3 \end{bmatrix}
+   $$
+   $$
+   \mathbf{A}^2\mathbf{B} = \mathbf{A}(\mathbf{A}\mathbf{B}) = \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \\ -3 \end{bmatrix} = \begin{bmatrix} 1 \\ -3 \\ 7 \end{bmatrix}
+   $$
+   Stacking these three columns forms the anti-lower-triangular controllability matrix:
+   $$
+   \mathcal{R} = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -3 \\ 1 & -3 & 7 \end{bmatrix}
+   $$
+   Expanding along column 1 gives $\det(\mathcal{R}) = 1(0 - 1) = -1 \neq 0$. To extract the last row $\mathbf{t}_3^T = \begin{bmatrix} t_{31} & t_{32} & t_{33} \end{bmatrix}$ of $\mathcal{R}^{-1}$ without full matrix inversion, solve $\mathbf{t}_3^T \mathcal{R} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}$:
+   $$
+   \begin{bmatrix} t_{31} & t_{32} & t_{33} \end{bmatrix} \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -3 \\ 1 & -3 & 7 \end{bmatrix} = \begin{bmatrix} t_{33} & t_{32} - 3t_{33} & t_{31} - 3t_{32} + 7t_{33} \end{bmatrix} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}
+   $$
+   Reading from left to right gives $t_{33} = 0$, then $t_{32} = 3t_{33} = 0$, and finally $t_{31} = 1 + 3t_{32} - 7t_{33} = 1$. Therefore:
+   $$
+   \mathbf{t}_3^T = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}
+   $$
+
+3. **Target closed-loop polynomial:**
+   Multiplying the linear factor $(s + 2)$ by the quadratic factor $((s + 1)^2 + 1^2) = (s^2 + 2s + 2)$ for $\mu_{2,3} = -1 \pm j1$ yields:
+   $$
+   p^*(s) = (s + 2)(s^2 + 2s + 2) = s^3 + 4s^2 + 6s + 4
+   $$
+
+4. **Left-to-right row evaluation of $\mathbf{K} = \mathbf{t}_3^T p^*(\mathbf{A})$:**
+   Instead of cubing the $3 \times 3$ matrix $\mathbf{A}$, propagate the row vector $\mathbf{t}_3^T = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}$ sequentially from the left:
+   $$
+   \mathbf{t}_3^T \mathbf{I}_3 = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}, \qquad
+   \mathbf{t}_3^T \mathbf{A} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}\begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 0 \end{bmatrix}
+   $$
+   $$
+   \mathbf{t}_3^T \mathbf{A}^2 = (\mathbf{t}_3^T \mathbf{A})\mathbf{A} = \begin{bmatrix} 1 & 1 & 0 \end{bmatrix} \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}
+   $$
+   $$
+   \mathbf{t}_3^T \mathbf{A}^3 = (\mathbf{t}_3^T \mathbf{A}^2)\mathbf{A} = \begin{bmatrix} 1 & 1 & 1 \end{bmatrix} \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & -2 & -3 \end{bmatrix} = \begin{bmatrix} 1 & -1 & -2 \end{bmatrix}
+   $$
+   Summing these four row vectors weighted by the coefficients of $p^*(s) = s^3 + 4s^2 + 6s + 4$ gives the state-feedback gain vector:
+   $$
+   \begin{aligned}
+   \mathbf{K} &= \mathbf{t}_3^T \mathbf{A}^3 + 4(\mathbf{t}_3^T \mathbf{A}^2) + 6(\mathbf{t}_3^T \mathbf{A}) + 4(\mathbf{t}_3^T \mathbf{I}_3) \\
+   &= \begin{bmatrix} 1 & -1 & -2 \end{bmatrix} + \begin{bmatrix} 4 & 4 & 4 \end{bmatrix} + \begin{bmatrix} 6 & 6 & 0 \end{bmatrix} + \begin{bmatrix} 4 & 0 & 0 \end{bmatrix} = \begin{bmatrix} 15 & 9 & 2 \end{bmatrix}
+   \end{aligned}
+   $$
+   To verify, subtract $\mathbf{B}\mathbf{K}$ from $\mathbf{A}$ (which updates row 3):
+   $$
+   \mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K} = \begin{bmatrix} 1 & 1 & 0 \\ 0 & 0 & 1 \\ -15 & -11 & -5 \end{bmatrix}
+   $$
+   Expanding $\det(s\mathbf{I}_3 - \mathbf{A}_{\text{cl}})$ along row 1 gives:
+   $$
+   \begin{aligned}
+   \det\begin{bmatrix} s - 1 & -1 & 0 \\ 0 & s & -1 \\ 15 & 11 & s + 5 \end{bmatrix} &= (s - 1)\left(s(s + 5) + 11\right) - (-1)\left(0 - (-15)\right) \\
+   &= (s - 1)(s^2 + 5s + 11) + 15 = (s^3 + 4s^2 + 6s - 11) + 15 = s^3 + 4s^2 + 6s + 4 = p^*(s) \quad \checkmark
+   \end{aligned}
+   $$
+
+</details>
+
+</Exercise>

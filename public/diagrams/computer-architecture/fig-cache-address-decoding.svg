@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="310" viewBox="0 0 600 310" font-family="'Latin Modern Roman','CMU Serif','Times New Roman',serif" font-size="14">
+  <rect width="600" height="310" fill="#fff"/>
+
+  <!-- 32-bit Address Bar -->
+  <text x="126" y="18" text-anchor="start" font-size="11" fill="#555">31</text>
+  <text x="285" y="18" text-anchor="middle" font-size="11" fill="#555">n + m</text>
+  <text x="395" y="18" text-anchor="middle" font-size="11" fill="#555">m</text>
+  <text x="490" y="18" text-anchor="end" font-size="11" fill="#555">0</text>
+
+  <rect x="120" y="24" width="165" height="32" fill="#f9d8dc" stroke="#000" stroke-width="1.5"/>
+  <text x="202" y="45" text-anchor="middle" font-weight="bold">Tag (<tspan font-style="italic">t</tspan> bits)</text>
+
+  <rect x="285" y="24" width="110" height="32" fill="#d8dcff" stroke="#000" stroke-width="1.5"/>
+  <text x="340" y="45" text-anchor="middle" font-weight="bold">Index (<tspan font-style="italic">n</tspan> bits)</text>
+
+  <rect x="395" y="24" width="100" height="32" fill="#d8f5d8" stroke="#000" stroke-width="1.5"/>
+  <text x="445" y="45" text-anchor="middle" font-weight="bold">Offset (<tspan font-style="italic">m</tspan> bits)</text>
+
+  <!-- Cache Set Row (dashed box) -->
+  <rect x="85" y="102" width="430" height="68" fill="#f7f7f9" stroke="#333" stroke-width="1.4" stroke-dasharray="5,4"/>
+  <text x="300" y="116" text-anchor="middle" font-size="11" fill="#555">Selected Cache Line (Set = Index)</text>
+
+  <rect x="115" y="124" width="44" height="34" fill="#f9d8dc" stroke="#000" stroke-width="1.4"/>
+  <text x="137" y="146" text-anchor="middle" font-weight="bold">Valid</text>
+
+  <rect x="172" y="124" width="110" height="34" fill="#f9d8dc" stroke="#000" stroke-width="1.4"/>
+  <text x="227" y="146" text-anchor="middle" font-weight="bold">Stored Tag</text>
+
+  <rect x="296" y="124" width="204" height="34" fill="#ffe6cc" stroke="#000" stroke-width="1.4"/>
+  <text x="398" y="146" text-anchor="middle" font-weight="bold">Data Block (<tspan font-style="italic">B</tspan> bytes)</text>
+
+  <!-- Wires -->
+  <g stroke-width="1.8" fill="none">
+    <!-- Index -> Cache Row -->
+    <polyline points="340,56 340,80 100,80 100,98" stroke="#1f3fbf"/>
+    <polygon points="96,95 100,103 104,95" fill="#1f3fbf"/>
+
+    <!-- Address Tag -> Comparator -->
+    <polyline points="202,56 202,88 212,88 212,188" stroke="#a61c3c"/>
+    <polygon points="208,185 212,193 216,185" fill="#a61c3c"/>
+
+    <!-- Stored Tag -> Comparator -->
+    <line x1="234" y1="158" x2="234" y2="188" stroke="#a61c3c"/>
+    <polygon points="230,185 234,193 238,185" fill="#a61c3c"/>
+
+    <!-- Valid -> AND gate -->
+    <line x1="137" y1="158" x2="137" y2="235" stroke="#d9534f"/>
+    <polygon points="133,232 137,240 141,232" fill="#d9534f"/>
+
+    <!-- Comparator -> AND gate -->
+    <polyline points="223,222 223,254 166,254" stroke="#000"/>
+    <polygon points="169,250 161,254 169,258" fill="#000"/>
+
+    <!-- AND -> Hit -->
+    <line x1="142" y1="268" x2="142" y2="288" stroke="#1e7e34"/>
+    <polygon points="138,285 142,293 146,285" fill="#1e7e34"/>
+
+    <!-- Data -> MUX -->
+    <line x1="398" y1="158" x2="398" y2="200" stroke="#e67e22"/>
+    <polygon points="394,197 398,205 402,197" fill="#e67e22"/>
+
+    <!-- Offset -> MUX select -->
+    <polyline points="445,56 445,180 378,180 378,224" stroke="#1e7e34"/>
+    <polygon points="374,221 378,229 382,221" fill="#1e7e34"/>
+
+    <!-- MUX -> Output -->
+    <line x1="398" y1="252" x2="398" y2="280" stroke="#000"/>
+    <polygon points="394,277 398,285 402,277" fill="#000"/>
+  </g>
+
+  <!-- Comparator (==) -->
+  <circle cx="223" cy="208" r="14" fill="#fff7cc" stroke="#000" stroke-width="1.5"/>
+  <text x="223" y="213" text-anchor="middle" font-weight="bold">==</text>
+
+  <!-- AND Gate -->
+  <rect x="122" y="240" width="40" height="28" rx="6" fill="#d8f5d8" stroke="#000" stroke-width="1.5"/>
+  <text x="142" y="259" text-anchor="middle" font-weight="bold" font-size="12">AND</text>
+  <text x="142" y="305" text-anchor="middle" font-weight="bold" fill="#1e7e34">Hit</text>
+
+  <!-- MUX -->
+  <polygon points="378,204 418,216 418,242 378,254" fill="#d8f5d8" stroke="#000" stroke-width="1.5"/>
+  <text x="398" y="233" text-anchor="middle" font-weight="bold" font-size="11">MUX</text>
+  <text x="398" y="300" text-anchor="middle" font-weight="bold">Selected Word / Byte</text>
+</svg>

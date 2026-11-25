@@ -1,0 +1,497 @@
+---
+title: "10. Arrays and Strings"
+description: "Word pointer scaling (x4) vs byte string traversal, null-terminated strlen, ASCII arithmetic, and zero-stack leaf functions."
+sidebar:
+  order: 3
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 10 Outline" markdown={`# Ch. 10: Arrays and Strings
+  - Full Telemetry Parser Example
+    - 1-byte char* scan vs 4-byte int* lookup
+    - Null-terminated loop and scaled return
+  - Pointer Stride and ASCII Mechanics
+    - Word scaling (slli by 2) vs byte stride
+    - Null-terminated strings and leaf strlen
+    - ASCII digit, letter, and case offsets
+    - Zero-stack leaf subroutine design
+  - Summary and Exercises`} />
+
+## Memory Address Stride
+
+In C, subscript notation `arr[i]` hides element width: the compiler automatically multiplies index `i` by `sizeof(*arr)` before adding the base pointer. In RV32IM assembly, main memory is byte-addressed, so combining the instruction primitives of [RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/) with the loops of [Control Flow Translation](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/) requires scaling 32-bit `int` indices by $4$ (`slli` by $2$) while advancing through `char` strings by $1$ byte per character.
+
+<Divider label="1 · Example" />
+
+### Completing the Telemetry Parser
+
+We now translate the complete `parse_scaled` subroutine from [Part III Introduction](/dynamic-courses/computer-architecture/03-riscv-instructions/00-introduction/), which scans a null-terminated ASCII string `char *pkt` (`a0`) until hitting `'\0'` and multiplies the parsed integer by element `gain[idx]` of a 32-bit `int *gain` table (`a1`, with `idx` in `a2`):
+
+```c
+int parse_scaled(char *pkt, int *gain, int idx) {
+    int sum = 0;
+    for (int i = 0; pkt[i] != '\0'; i++) {
+        if (pkt[i] >= '0' && pkt[i] <= '9') {
+            sum = sum * 10 + (pkt[i] - '0');
+        }
+    }
+    return (sum * gain[idx]) % 1000;
+}
+```
+
+Notice how the two pointer dereferences inside this single leaf function use contrasting memory strides, illustrated side-by-side in [the figure](#fig-array-string-stride):
+
+```asm
+# Arguments: a0 = char *pkt, a1 = int *gain, a2 = int idx
+# Returns:   a0 = (sum * gain[idx]) % 1000
+parse_scaled:
+    li   t0, 0                # sum = 0
+    li   t1, 0                # i = 0
+    li   t5, 48               # ASCII '0'
+    li   t6, 57               # ASCII '9'
+
+pkt_loop:
+    add  t2, a0, t1           # Byte stride (x1): &pkt[i] = pkt + i
+    lbu  t3, 0(t2)            # Unsigned 8-bit load: t3 = pkt[i]
+    beqz t3, pkt_done         # Exit loop on null byte '\0' (0x00)
+
+    blt  t3, t5, pkt_next     # Skip if pkt[i] < '0'
+    bgt  t3, t6, pkt_next     # Skip if pkt[i] > '9'
+
+    li   t4, 10
+    mul  t0, t0, t4           # sum = sum * 10
+    addi t3, t3, -48          # pkt[i] - '0'
+    add  t0, t0, t3           # sum += digit
+
+pkt_next:
+    addi t1, t1, 1            # i++
+    j    pkt_loop
+
+pkt_done:
+    slli t4, a2, 2            # Word stride (x4): t4 = idx * 4
+    add  t4, a1, t4           # &gain[idx] = gain + (idx * 4)
+    lw   t4, 0(t4)            # 32-bit word load: t4 = gain[idx]
+
+    mul  t0, t0, t4           # sum * gain[idx]
+    li   t4, 1000
+    rem  a0, t0, t4           # Return (sum * gain[idx]) % 1000 in a0
+    ret
+```
+
+<figure id="fig-array-string-stride" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-array-string-stride.svg" alt="Memory address stride comparison between 4-byte 32-bit integer arrays and 1-byte null-terminated ASCII strings." />
+  <figcaption>Memory address stride comparison. 32-bit integer elements advance in 4-byte steps (<code>slli</code> by 2 plus <code>lw</code>/<code>sw</code>), whereas ASCII strings step 1 byte at a time (<code>lbu</code>/<code>sb</code>) until reaching the sentinel byte <code>'\0'</code> (<code>0x00</code>).</figcaption>
+</figure>
+
+Suppose `pkt` at `0x10010000` stores `"407"` (`0x34, 0x30, 0x37, 0x00`), `gain` at `0x10010100` stores `{10, 3, 15}`, and `idx = 1`:
+- **`pkt_loop`:** Reads bytes `0x34`, `0x30`, `0x37` at offsets `+0`, `+1`, `+2`, building `sum` $= 4 \to 40 \to 407$, then hits `0x00` at offset `+3` and branches via `beqz` to `pkt_done`.
+- **`pkt_done`:** Computes `idx << 2` $= 1 \times 4 = 4$, loads the 32-bit word `gain[1] = 3` from `0x10010104`, and returns $(407 \times 3) \bmod 1000 = 1221 \bmod 1000 = 221$ in `a0`.
+
+<StepCheck
+  client:load
+  prompt="Using the same calibration table `gain = {10, 3, 15}`, if `pkt` holds `'4'`, `'2'`, `'\0'` and `idx = 2`, what value does `parse_scaled` return in `a0`?"
+  expected={630}
+  tolerance={0.01}
+  unit=""
+  explanation="The loop parses `'4'` and `'2'` into `sum = 42` before exiting on `'\0'`. Then `slli` computes byte offset $2 \times 4 = 8$, `lw` loads `gain[2] = 15`, and `(42 * 15) % 1000 = 630`."
+/>
+
+<Divider label="2 · Theory" />
+
+### Word Scaling vs Byte Stride
+
+For any C array `T arr[]` starting at base address $\text{Base}$, element `arr[i]` begins at byte address:
+
+$$\text{Addr}(\text{Base}, i) = \text{Base} + i \times \text{sizeof}(T)$$
+
+- **32-Bit Integer and Pointer Arrays (`int arr[i]`, $\text{sizeof} = 4$):** Multiply index `i` by $4$ using a 2-bit logical left shift before adding the base pointer:
+  ```asm
+      slli t0, s0, 2          # t0 = i * 4 (byte offset)
+      add  t0, a0, t0         # t0 = &arr[i] = base + (i * 4)
+      lw   t1, 0(t0)          # Load 32-bit int arr[i]
+  ```
+- **8-Bit Character Strings (`char str[i]`, $\text{sizeof} = 1$):** Add index `i` directly to the base pointer with **zero shift** and dereference via `lbu` (or write via `sb`):
+  ```asm
+      add  t0, a0, s0         # t0 = &str[i] = base + i
+      lbu  t1, 0(t0)          # Load unsigned 8-bit char str[i]
+  ```
+
+Instead of recomputing `base + i * stride` on every iteration, a **pointer-walk loop** advances a moving pointer `p` directly by `addi p, p, 4` (for `int *`) or `addi p, p, 1` (for `char *`), saving the `slli` and `add` inside the loop body.
+
+### Null-Terminated Strings and `strlen`
+
+Standard C strings store contiguous ASCII bytes terminated by a sentinel **null byte (`'\0'`, numerical value `0x00`)**. Because the null terminator occupies $1$ byte in memory, a buffer declared as `char buf[16]` holds at most **$15$ visible characters** plus `'\0'` (in `.data` segments, `.asciz` and `.string` append `0x00` automatically).
+
+Measuring string length without modifying `a0` until return uses a moving pointer `t0` and pointer subtraction at the end:
+
+```asm
+# Arguments: a0 = char *str
+# Returns:   a0 = character count excluding '\0'
+strlen:
+    mv   t0, a0               # t0 = moving byte pointer
+strlen_loop:
+    lbu  t1, 0(t0)            # t1 = *t0
+    beqz t1, strlen_done      # Stop when *t0 == 0x00 ('\0')
+    addi t0, t0, 1            # Advance 1 byte
+    j    strlen_loop
+strlen_done:
+    sub  a0, t0, a0           # Length = final_ptr - start_ptr
+    ret
+```
+
+Because each character occupies $1$ byte, `t0 - a0` equals the exact number of non-null characters traversed before `t0` landed on `'\0'`.
+
+### ASCII Arithmetic Patterns
+
+Characters in memory are ordinary unsigned integers governed by the ASCII code table (`'\0' = 0`, `' ' = 32`, `'0'`–`'9'` $= 48$–$57$, `'A'`–`'Z'` $= 65$–$90$, `'a'`–`'z'` $= 97$–$122$). Four constant-offset idioms recur across assembly string problems:
+
+1. **Digit Conversion (`'0'` $= 48$):** Subtract $48$ (`addi t0, t0, -48`) to turn `'0'`–`'9'` into integers $0$–$9$; add $48$ (`addi t0, t0, 48`) to format an integer digit $0$–$9$ back into ASCII.
+2. **Alphabetical Zero-Based Index:**
+   - Uppercase `'A'`–`'Z'` $\mapsto 0$–$25$: subtract $65$ (`addi t0, t0, -65`, i.e., `c - 'A'`).
+   - Lowercase `'a'`–`'z'` $\mapsto 0$–$25$: subtract $97$ (`addi t0, t0, -97`, i.e., `c - 'a'`).
+3. **Range Validation:** Check `c >= lo && c <= hi` with `blt` and `bgt` (e.g., `48` and `57` for digits, `65` and `90` for uppercase letters). Alternatively, subtracting the lower bound (`addi t1, t0, -65`) maps valid uppercase letters to $[0, 25]$ and wraps values $< 65$ into large unsigned 32-bit numbers, allowing a single unsigned branch `bgeu t1, t2, not_upper` (with `t2 = 26`).
+4. **Case Conversion ($\Delta = 32$):** Add $32$ (`addi t0, t0, 32`) to convert uppercase `'A'`–`'Z'` to lowercase `'a'`–`'z'`; subtract $32$ (`addi t0, t0, -32`) for lowercase to uppercase.
+
+Notice also that when subtracting **two ASCII digits or letters of the same class** (`v = p[i] - s[i]`), their base offsets ($48$, $65$, or $97$) cancel algebraically: `(d1 + 48) - (d2 + 48) = d1 - d2`, so no `-48` adjustment is needed!
+
+### Zero-Stack Leaf Subroutines
+
+A subroutine that never executes `call` or `jal` to invoke another function is a **leaf subroutine**. Designing computational array/string helpers as pure leaf routines gives three decisive advantages:
+1. **`ra` Stays Intact:** Because no nested `call` occurs, return address `ra` keeps the caller's return target from entry to `ret`.
+2. **Scratch Register Sufficiency:** RV32I provides **15 caller-saved working registers** (`a0`–`a7` and `t0`–`t6`), more than enough for typical loop indices, accumulators, and temporary addresses.
+3. **Zero Stack Frame Overhead:** Avoiding `s0`–`s11` eliminates stack pointer adjustments (`addi sp, sp, -16`) and `sw`/`lw` spills altogether. (Non-leaf callers such as `main` that invoke `strlen` and leaf helpers preserve registers on the stack as detailed in [Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/).)
+
+Consider a complete two-string leaf helper `elabora` that processes `n` character pairs from right to left (`i = n - 1` down to `0`) and accumulates weighted positive differences:
+
+```c
+int elabora(char *p, char *s, int n) {
+    int v, i, ris = 0, t = 1;
+    for (i = n - 1; i >= 0; i--) {
+        v = p[i] - s[i];
+        if (v >= 1)
+            ris = ris + v * t;
+        t = t * 10;
+    }
+    return ris;
+}
+```
+
+Mapping `t0 = i`, `t1 = ris`, `t2 = t`, and `t3 = v` produces a compact zero-stack leaf translation:
+
+```asm
+# Arguments: a0 = char *p, a1 = char *s, a2 = int n
+# Returns:   a0 = int ris
+elabora:
+    li   t1, 0                # ris = 0
+    li   t2, 1                # t = 1
+    addi t0, a2, -1           # i = n - 1
+
+elabora_loop:
+    blt  t0, zero, elabora_done   # Exit when i < 0
+
+    add  t4, a0, t0           # &p[i] = p + i
+    lbu  t5, 0(t4)            # t5 = p[i]
+    add  t4, a1, t0           # &s[i] = s + i
+    lbu  t6, 0(t4)            # t6 = s[i]
+    sub  t3, t5, t6           # v = p[i] - s[i]
+
+    li   t4, 1
+    blt  t3, t4, elabora_skip # Inverted v >= 1: skip if v < 1
+    mul  t5, t3, t2           # v * t
+    add  t1, t1, t5           # ris += v * t
+
+elabora_skip:
+    li   t4, 10
+    mul  t2, t2, t4           # t = t * 10
+    addi t0, t0, -1           # i--
+    j    elabora_loop
+
+elabora_done:
+    mv   a0, t1               # Return ris in a0
+    ret
+```
+
+<Callout type="bridge" title="NMEA GNSS Sentence Parsing on Drones">
+
+On autonomous aerial vehicles, UART GPS receivers stream comma-delimited ASCII NMEA frames such as `"$GPGGA,123519,4807.038,N,..."` at $10\text{ Hz}$. Bare-metal flight drivers scan until `'\0'` or `'*'`, subtract `48` (`'0'`) from each digit byte with `lbu` + `addi`, and pack fixed-point latitude/longitude integers into 32-bit navigation state arrays (`slli` by $2$ + `sw`) without heap allocation.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Inside a loop with index `i` in `t0`, base pointer `int *arr` in `a0`, and base pointer `char *str` in `a1`, which instruction pair correctly loads `arr[i]` into `t2` and `str[i]` into `t3`?"
+  options={[
+    "`add t1, a0, t0; lw t2, 0(t1)` and `add t1, a1, t0; lbu t3, 0(t1)`",
+    "`slli t1, t0, 2; add t1, a0, t1; lw t2, 0(t1)` and `add t1, a1, t0; lbu t3, 0(t1)`",
+    "`slli t1, t0, 4; add t1, a0, t1; lw t2, 0(t1)` and `add t1, a1, t0; lb t3, 0(t1)`",
+    "`slli t1, t0, 2; lw t2, 0(t1)` and `lbu t3, 0(t0)`"
+  ]}
+  correctIndex={1}
+  explanation="For `int *arr`, each element is $4 = 2^2$ bytes wide (`slli t1, t0, 2` then `add t1, a0, t1` then `lw`). For `char *str`, each element is $1$ byte wide (`add t1, a1, t0` then `lbu`)."
+/>
+
+<Divider label="3 · Summary" />
+
+### Memory Stride and ASCII Reference
+
+| C Data Type / Pattern | Byte Stride / Constant | Idiomatic RV32I Sequence |
+| :--- | :---: | :--- |
+| **`int arr[i]` (32-bit word)** | $i \times 4$ bytes | `slli t0, i, 2` $\to$ `add t0, base, t0` $\to$ `lw` / `sw` `0(t0)` |
+| **`short arr[i]` (16-bit half)** | $i \times 2$ bytes | `slli t0, i, 1` $\to$ `add t0, base, t0` $\to$ `lh` / `lhu` / `sh` `0(t0)` |
+| **`char str[i]` (8-bit byte)** | $i \times 1$ byte | `add t0, base, i` $\to$ `lbu` / `sb` `0(t0)` |
+| **String Terminator `'\0'`** | `0` (`0x00`) | `lbu t1, 0(ptr)` $\to$ `beqz t1, str_done` |
+| **ASCII Digit `'0'`–`'9'`** | `48`–`57` (`0x30`–`0x39`) | Digit value: `addi reg, reg, -48` |
+| **ASCII Uppercase `'A'`–`'Z'`** | `65`–`90` (`0x41`–`0x5A`) | Index $0$–$25$: `addi reg, reg, -65` (to lower: `+32`) |
+| **ASCII Lowercase `'a'`–`'z'`** | `97`–`122` (`0x61`–`0x7A`) | Index $0$–$25$: `addi reg, reg, -97` (to upper: `-32`) |
+
+### Leaf Array & String Checklist
+
+1. **Confirm Leaf Status:** Verify the C function contains zero function calls; assign every local variable (`i`, accumulators, temporaries) to `t0`–`t6` without touching `sp` or `s0`–`s11`.
+2. **Match Scaling to Pointer Type:** Emit `slli ..., 2` + `add` + `lw`/`sw` for every `int *` access, and plain `add` + `lbu`/`sb` for every `char *` access.
+3. **Apply Exact ASCII Constants:** Check whether the C code subtracts `'0'` (`48`), `'A'` (`65`), `'a'` (`97`), or another character `s[i]` directly.
+4. **Move Result to `a0`:** Keep `a0` intact while input pointer `a0` is still needed inside the loop; copy the accumulator into `a0` (`mv a0, t1`) only after the loop exits, right before `ret`.
+
+### Key Invariants
+
+- **Base-Plus-Offset Completeness:** An index or scaled offset is **not** a memory address until added to the array's base pointer (`add t0, base, offset`).
+- **Clobbering `a0` Early:** If `a0` holds `char *str`, overwriting `a0` with the running accumulator inside the loop destroys the base pointer on iteration $2$; accumulate in `t1` and `mv a0, t1` at the end.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Scaling `char *` by 4 (or Forgetting `slli` by 2 on `int *`):** Using `slli` on a string skips three out of every four characters; omitting `slli ..., 2` on an `int` array triggers misaligned/corrupted reads across adjacent words.
+2. **Writing `slli t1, t0, 4` Instead of `2`:** Shifting left by `4` multiplies index `i` by $2^4 = 16$, not $4$! Multiplying by $4$ is always shift amount `2`.
+3. **Dereferencing the Offset Alone:** Executing `lbu t2, 0(t0)` when `t0` holds `i` reads near address `0x00000000` (causing an immediate memory access fault) instead of `base + i`.
+4. **Subtracting `48` Twice:** In `v = p[i] - s[i]`, both characters already carry the same ASCII base offset, which cancels during subtraction.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-10-1"
+  title="Exercise 10.1 — In-Place Lowercase to Uppercase Filter"
+  level="Warm-Up"
+  hint="Walk `str` until `lbu` reads `0x00` (`beqz`), convert `'a'..'z'` (`97..122`) by adding `-32` and writing back via `sb`, and return the count of converted characters in `a0`."
+>
+
+Translate the following C leaf function into zero-stack RV32I assembly:
+
+```c
+int to_upper_count(char *str) {
+    int changed = 0;
+    for (int i = 0; str[i] != '\0'; i++) {
+        if (str[i] >= 97 && str[i] <= 122) {
+            str[i] = str[i] - 32;
+            changed++;
+        }
+    }
+    return changed;
+}
+```
+
+<StepCheck
+  client:load
+  prompt="If `str` points to the 7-byte buffer `Rv32i!` followed by `'\0'`, what integer value does `to_upper_count` return in `a0`?"
+  expected={2}
+  tolerance={0.01}
+  unit=""
+  explanation="Only `'v'` (`118`) and `'i'` (`105`) fall inside `[97, 122]`, converting the buffer in place to `RV32I!` with `changed = 2`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+Notice we reuse `t2 = &str[i]` for both `lbu` and `sb` so the address is computed only once per iteration, and we keep `a0` intact until `upper_done`:
+
+```asm
+# Arguments: a0 = char *str
+# Returns:   a0 = int changed
+to_upper_count:
+    li   t0, 0                # changed = 0
+    li   t1, 0                # i = 0
+    li   t4, 97               # ASCII 'a'
+    li   t5, 122              # ASCII 'z'
+
+upper_loop:
+    add  t2, a0, t1           # t2 = &str[i]
+    lbu  t3, 0(t2)            # t3 = str[i]
+    beqz t3, upper_done       # Exit on '\0'
+
+    blt  t3, t4, upper_next   # Skip if str[i] < 'a'
+    bgt  t3, t5, upper_next   # Skip if str[i] > 'z'
+
+    addi t3, t3, -32          # Convert 'a'..'z' -> 'A'..'Z'
+    sb   t3, 0(t2)            # str[i] = uppercase byte
+    addi t0, t0, 1            # changed++
+
+upper_next:
+    addi t1, t1, 1            # i++
+    j    upper_loop
+
+upper_done:
+    mv   a0, t0               # Return changed in a0
+    ret
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-10-2"
+  title="Exercise 10.2 — Thresholded Integer Dot Product"
+  level="Intermediate"
+  hint="Because `vec` and `weights` are both `int *`, compute `t2 = i << 2` once per iteration and add `t2` separately to `a0` and `a1` before executing `lw`."
+>
+
+Complete a zero-stack RV32IM leaf implementation of `positive_dot`, which sums `vec[i] * weights[i]` across two 32-bit integer arrays of length `n`, accumulating only positive products:
+
+```c
+int positive_dot(int *vec, int *weights, int n) {
+    int acc = 0;
+    for (int i = 0; i < n; i++) {
+        int prod = vec[i] * weights[i];
+        if (prod > 0) {
+            acc += prod;
+        }
+    }
+    return acc;
+}
+```
+
+1. Write the exact three-instruction sequence that loads `vec[i]` into `t4` given `a0 = vec` and `t1 = i`.
+2. Write the complete `positive_dot:` leaf subroutine using only `t0`–`t5`.
+
+<StepCheck
+  client:load
+  prompt="For `vec = {4, -3, 5}`, `weights = {2, 6, 3}`, and `n = 3`, what value does `positive_dot` return in `a0`?"
+  expected={23}
+  tolerance={0.01}
+  unit=""
+  explanation="The elementwise products are $4 \times 2 = +8$ (kept), $(-3) \times 6 = -18$ (skipped via `ble t4, zero, dot_next`), and $5 \times 3 = +15$ (kept), summing to $8 + 15 = 23$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Loading `vec[i]`:** Scale `i` by $4$ (`slli t2, t1, 2`), add base `a0` (`add t3, a0, t2`), and load the 32-bit word (`lw t4, 0(t3)`). Reusing byte offset `t2` for `weights[i]` (`add t3, a1, t2; lw t5, 0(t3)`) avoids a second shift.
+2. **Complete RV32IM Leaf Subroutine:**
+
+```asm
+# Arguments: a0 = int *vec, a1 = int *weights, a2 = int n
+# Returns:   a0 = int acc
+positive_dot:
+    li   t0, 0                # acc = 0
+    li   t1, 0                # i = 0
+
+dot_loop:
+    bge  t1, a2, dot_done     # Inverted i < n: exit when i >= n
+
+    slli t2, t1, 2            # t2 = i * 4 (shared word offset)
+    add  t3, a0, t2           # &vec[i]
+    lw   t4, 0(t3)            # t4 = vec[i]
+
+    add  t3, a1, t2           # &weights[i]
+    lw   t5, 0(t3)            # t5 = weights[i]
+
+    mul  t4, t4, t5           # prod = vec[i] * weights[i]
+    ble  t4, zero, dot_next   # Inverted prod > 0: skip when prod <= 0
+    add  t0, t0, t4           # acc += prod
+
+dot_next:
+    addi t1, t1, 1            # i++
+    j    dot_loop
+
+dot_done:
+    mv   a0, t0               # Return acc in a0
+    ret
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-10-3"
+  title="Exercise 10.3 — Alphabetical Histogram and Lookup"
+  level="Exam"
+  hint="Compute `idx = let[i] - 65` (`addi t3, t3, -65`), guard `0 <= idx && idx < len` with `blt` and `bge`, then scale `idx` by 4 (`slli t4, t3, 2`) to increment `bins[idx]` in memory (`lw` -> `addi` -> `sw`)."
+>
+
+Translate the following exam-style C helper function into a zero-stack RV32IM leaf subroutine (combining null-terminated `char *` scanning, uppercase ASCII indexing, compound bounds checking, and 32-bit `int *` read-modify-write updates):
+
+```c
+int histogram_sum(char *let, int *bins, int len) {
+    int total = 0;
+    for (int i = 0; let[i] != '\0'; i++) {
+        int idx = let[i] - 'A';
+        if (idx >= 0 && idx < len) {
+            bins[idx] = bins[idx] + 1;
+            total = total + bins[idx] * (idx + 1);
+        }
+    }
+    return total;
+}
+```
+
+<StepCheck
+  client:load
+  prompt="Suppose `bins = {0, 0, 0}` (`len = 3`) initially and `let` points to the null-terminated string `'B'`, `'9'`, `'B'`, `'\0'` (`'B' = 66`, `'9' = 57`). What integer value does `histogram_sum` return in `a0`?"
+  expected={6}
+  tolerance={0.01}
+  unit=""
+  explanation="First `'B'`: `idx = 66 - 65 = 1` (in `[0, 3)`), `bins[1]` becomes `1`, `total += 1 * (1 + 1) = 2`. Next `'9'`: `idx = 57 - 65 = -8` (skipped by `blt`). Second `'B'`: `idx = 1`, `bins[1]` becomes `2`, `total += 2 * 2 = 4`, giving `total = 2 + 4 = 6`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+Notice how the function mixes two different index domains cleanly: `i` (`t1`) steps by $1$ byte along `char *let`, whereas `idx` (`t3`) is scaled by $4$ bytes (`slli t4, t3, 2`) to address `int *bins`:
+
+```asm
+# Arguments: a0 = char *let, a1 = int *bins, a2 = int len
+# Returns:   a0 = int total
+histogram_sum:
+    li   t0, 0                # total = 0
+    li   t1, 0                # i = 0
+
+hist_loop:
+    add  t2, a0, t1           # &let[i] = let + i (1-byte stride)
+    lbu  t3, 0(t2)            # t3 = let[i]
+    beqz t3, hist_done        # Exit on '\0'
+
+    addi t3, t3, -65          # idx = let[i] - 'A'
+    blt  t3, zero, hist_next  # Inverted idx >= 0: skip if idx < 0
+    bge  t3, a2, hist_next    # Inverted idx < len: skip if idx >= len
+
+    slli t4, t3, 2            # Word offset: idx * 4
+    add  t4, a1, t4           # t4 = &bins[idx]
+    lw   t5, 0(t4)            # t5 = bins[idx]
+    addi t5, t5, 1            # bins[idx] + 1
+    sw   t5, 0(t4)            # bins[idx] = bins[idx] + 1
+
+    addi t6, t3, 1            # idx + 1
+    mul  t6, t5, t6           # bins[idx] * (idx + 1)
+    add  t0, t0, t6           # total += bins[idx] * (idx + 1)
+
+hist_next:
+    addi t1, t1, 1            # i++
+    j    hist_loop
+
+hist_done:
+    mv   a0, t0               # Return total in a0
+    ret
+```
+
+</details>
+
+</Exercise>

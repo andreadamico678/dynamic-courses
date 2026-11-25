@@ -11,132 +11,220 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 10 Mental Model" markdown={`# Ch. 10: Forced Response and Convolution
-  - The Non-Homogeneous State Evolution Equation
-  - Lagrange's State Response Formula
-  - The Impulse Response Matrix (Weighting Function)
-  - Transient vs. Steady-State Partitioning`} />
+<MindMap client:load defaultCollapsed title="Chapter 10 Outline" markdown={`# Ch. 10: Forced Response and Convolution
+  - Non-Homogeneous State Evolution
+    - Initial energy plus external forcing
+  - Lagrange Formula and Superposition
+    - Free response $\\mathbf{x}_l(t)$ and forced integral $\\mathbf{x}_f(t)$
+    - Laplace domain evaluation $Y_f(s) = W(s)U(s)$
+  - Impulse Response Matrix
+    - Weighting kernel $\\mathbf{W}(t) = \\mathbf{C}e^{\\mathbf{A}t}\\mathbf{B}\\cdot 1(t) + \\mathbf{D}\\delta(t)$
+  - Transient vs. Steady-State
+    - Exponential decay and DC gain $\\mathbf{W}(0)$`} />
 
-<Callout type="note" title="Note">
+## Introduction
 
-**Written Exam Strategy:** In UniCT written exams, forced output trajectories are evaluated **100% in the complex frequency domain via Laplace inversion** ($Y_f(s) = W(s)U(s)$ or $\mathbf{X}_f(s) = (s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}U(s)$), as practiced in Exercise 10.2. 
+Physical systems rarely evolve in isolation—motors receive PWM voltage commands, aircraft wings feel continuous wind loads, and thermal chambers track setpoint profiles. When a system already holds initial stored energy ($\mathbf{x}_0$) at the moment an external input $\mathbf{u}(t)$ turns on, how do the two effects combine into a single trajectory?
 
-Manual evaluation of time-domain matrix convolution integrals $\int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)d\tau$ is extremely tedious, highly prone to algebraic sign errors under timed conditions, and is never demanded in written papers. For oral exams, you only need to recall Lagrange's formula conceptually: $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}_0 + \int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)d\tau$.
+Because the state-space equations are linear, the two contributions simply add together (**superposition**). **Lagrange's formula** expresses the forced component as a convolution integral that weights every past slice of input effort $\mathbf{B}\mathbf{u}(\tau)$ by the state transition $e^{\mathbf{A}(t-\tau)}$ remaining since instant $\tau$—and lets us separate fast decaying **transients** from long-term **steady-state** behavior.
 
-</Callout>
+<Divider label="1 · Example" />
 
-## The Non-Homogeneous State Evolution Equation
+Consider a first-order thermal chamber starting at initial temperature $x(0) = 5$ above ambient, driven at $t = 0$ by a constant unit-step heater command $u(t) = 1(t)$:
 
-While the free response analyzed in [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/) accounts for the dissipation of initial stored energy, practical control systems are driven by active inputs: external control commands $\mathbf{u}(t)$, sensor references, and environmental disturbances. The complete evolution of the state vector is governed by the continuous-time non-homogeneous linear differential equation:
+$$\dot{x}(t) = -2 x(t) + 4 u(t), \qquad y(t) = x(t)$$
 
-$$\dot{\mathbf{x}}(t) = \mathbf{A} \mathbf{x}(t) + \mathbf{B} \mathbf{u}(t), \quad \mathbf{x}(0) = \mathbf{x}_0$$
+Because the differential equation is linear, we can solve for the effect of $x(0)$ and the effect of $u(t)$ separately and add them together:
 
-$$\mathbf{y}(t) = \mathbf{C} \mathbf{x}(t) + \mathbf{D} \mathbf{u}(t)$$
+1. **Free Response ($u(t) \equiv 0$, $x(0) = 5$):** Without the heater, initial thermal energy decays exponentially at rate $A = -2$:
+   $$x_l(t) = e^{-2t} \cdot 5 = 5e^{-2t}, \qquad y_l(t) = 5e^{-2t}$$
+2. **Forced Response ($x(0) = 0$, $u(t) = 1(t)$):** Starting from zero initial temperature, Lagrange's convolution integral sums the heater effort $B u(\tau) = 4$ over all past instants $\tau \in [0, t]$:
 
-## Lagrange's State Response Formula
+   $$
+   \begin{aligned}
+   y_f(t) &= \int_0^t e^{-2(t-\tau)} \cdot 4 \, d\tau = 4e^{-2t} \int_0^t e^{2\tau} \, d\tau \\
+   &= 4e^{-2t} \left[ \frac{e^{2\tau}}{2} \right]_0^t = 2e^{-2t}\left(e^{2t} - 1\right) = 2\left(1 - e^{-2t}\right)
+   \end{aligned}
+   $$
 
-The analytical solution to the non-homogeneous state equation the equation above is given by **Lagrange's Formula**:
+   In the Laplace domain, the exact same result follows from $W(s) = \frac{4}{s+2}$ and $U(s) = \frac{1}{s}$: $Y_f(s) = \frac{4}{s(s+2)} = \frac{2}{s} - \frac{2}{s+2}$, whose inverse transform is $2(1 - e^{-2t})$.
+
+Adding both parts yields the complete trajectory, which regroups cleanly into **transient** and **steady-state** components:
+
+$$y(t) = \underbrace{5e^{-2t}}_{y_l(t)} + \underbrace{2\left(1 - e^{-2t}\right)}_{y_f(t)} = \underbrace{3e^{-2t}}_{y_{\text{trans}}(t)} + \underbrace{2}_{y_{\text{ss}}}$$
+
+Physically, the heater's upward buildup $2(1 - e^{-2t})$ partially offsets the initial $5e^{-2t}$ cooling, leaving a net $3e^{-2t}$ transient envelope. As $t \to \infty$, that transient vanishes and the chamber settles onto $y_{\text{ss}} = 2 = W(0)$, matching the DC gain $-C A^{-1} B = -(1)(-2)^{-1}(4) = 2$.
+
+<figure id="fig-transient-steady-state" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-transient-steady-state.svg" alt="Time-domain step response illustrating the superposition of the free response, the transient decaying envelope, and the asymptotic steady-state value y_ss." />
+  <figcaption>Time-domain step response illustrating how initial free decay and forced step buildup merge into a decaying transient envelope converging to $y_{\text{ss}}$.</figcaption>
+</figure>
+
+<StepCheck
+  client:load
+  prompt="For $\dot{x} = -2x + 4u$, $y = x$, $x(0) = 5$, and $u(t) = 1(t)$, what is the steady-state output $y_{\mathrm{ss}}$ as $t \to \infty$?"
+  expected={2}
+  tolerance={0.01}
+  unit=""
+  explanation="Since $e^{-2t} \to 0$, $y_{\mathrm{ss}} = \lim_{t\to\infty}(2 + 3e^{-2t}) = 2 = W(0)$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Non-Homogeneous State Evolution
+
+While the free response analyzed in [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/) tracks the release of initial stored energy under $\mathbf{u}(t) \equiv \mathbf{0}$, practical control systems are driven by active inputs: actuator commands $\mathbf{u}(t)$, reference trajectories, and external disturbances. As established in [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/), complete state evolution is governed by the non-homogeneous LTI system:
+
+$$\dot{\mathbf{x}}(t) = \mathbf{A} \mathbf{x}(t) + \mathbf{B} \mathbf{u}(t), \quad \mathbf{x}(0) = \mathbf{x}_0, \qquad \mathbf{y}(t) = \mathbf{C} \mathbf{x}(t) + \mathbf{D} \mathbf{u}(t)$$
+
+Because $\mathbf{B}\mathbf{u}(t)$ continuously injects new state velocity at every instant, $e^{\mathbf{A}t}\mathbf{x}_0$ alone no longer satisfies the differential equation. We must find a closed-form solution that accounts for both $\mathbf{x}_0$ and the entire history of $\mathbf{u}(\tau)$ for $0 \le \tau \le t$.
+
+### Lagrange Formula and Superposition
+
+To solve $\dot{\mathbf{x}}(\tau) - \mathbf{A}\mathbf{x}(\tau) = \mathbf{B}\mathbf{u}(\tau)$, we use the matrix integrating factor $e^{-\mathbf{A}\tau}$. Multiplying both sides on the left by $e^{-\mathbf{A}\tau}$ gives:
+
+$$e^{-\mathbf{A}\tau}\dot{\mathbf{x}}(\tau) - e^{-\mathbf{A}\tau}\mathbf{A}\mathbf{x}(\tau) = e^{-\mathbf{A}\tau}\mathbf{B}\mathbf{u}(\tau)$$
+
+From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), $\frac{d}{d\tau}\left(e^{-\mathbf{A}\tau}\right) = -e^{-\mathbf{A}\tau}\mathbf{A}$, so by the product rule the left-hand side collapses into a single exact derivative:
+
+$$\frac{d}{d\tau}\left(e^{-\mathbf{A}\tau}\mathbf{x}(\tau)\right) = e^{-\mathbf{A}\tau}\mathbf{B}\mathbf{u}(\tau)$$
+
+Integrating both sides from $\tau = 0$ to $\tau = t$ and using $e^{\mathbf{A}\cdot 0} = \mathbf{I}$ yields:
+
+$$e^{-\mathbf{A}t}\mathbf{x}(t) - \mathbf{x}(0) = \int_0^t e^{-\mathbf{A}\tau}\mathbf{B}\mathbf{u}(\tau) \, d\tau$$
+
+Finally, multiply both sides on the left by $e^{\mathbf{A}t}$ (the inverse of $e^{-\mathbf{A}t}$) and apply the semigroup composition law $e^{\mathbf{A}t}e^{-\mathbf{A}\tau} = e^{\mathbf{A}(t-\tau)}$ to obtain **Lagrange's formula**:
 
 $$\mathbf{x}(t) = \underbrace{e^{\mathbf{A}t} \mathbf{x}_0}_{\mathbf{x}_l(t) \text{ (Free State)}} + \underbrace{\int_0^t e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau}_{\mathbf{x}_f(t) \text{ (Forced State)}}$$
 
-Substituting the equation above into output equation $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$ gives the complete output trajectory:
+Physically, the integral breaks the continuous input into infinitesimal impulses $\mathbf{B}\mathbf{u}(\tau)\,d\tau$ delivered at each past instant $\tau$, propagates each impulse forward over the remaining elapsed duration $t - \tau$ via $e^{\mathbf{A}(t-\tau)}$, and sums all contributions at time $t$.
+
+Substituting $\mathbf{x}(t)$ into $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$ gives the complete output trajectory:
 
 $$\mathbf{y}(t) = \underbrace{\mathbf{C} e^{\mathbf{A}t} \mathbf{x}_0}_{\mathbf{y}_l(t) \text{ (Free Output)}} + \underbrace{\int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau + \mathbf{D} \mathbf{u}(t)}_{\mathbf{y}_f(t) \text{ (Forced Output)}}$$
 
-<Callout type="note" title="The Principle of Superposition">
+This decomposition expresses the **Superposition Principle**: every LTI trajectory is the exact sum of the **free response** (due solely to $\mathbf{x}_0$ with $\mathbf{u}(t) \equiv \mathbf{0}$) and the **forced response** (due solely to $\mathbf{u}(t)$ starting from rest $\mathbf{x}_0 = \mathbf{0}$).
 
-In any linear time-invariant system, the total dynamic response is the exact additive superposition of:
-1. **The Free Response ($\mathbf{x}_l, \mathbf{y}_l$):** Generated exclusively by the initial state $\mathbf{x}_0$, setting $\mathbf{u}(t) \equiv \mathbf{0}$.
-2. **The Forced Response ($\mathbf{x}_f, \mathbf{y}_f$):** Generated exclusively by the input signal $\mathbf{u}(t)$, setting initial conditions $\mathbf{x}_0 = \mathbf{0}$.
+In the Laplace domain—linking back to [Transfer Function Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/04-transfer-function-matrix-invariants/)—the exact same split appears algebraically as:
 
-</Callout>
+$$\mathbf{X}(s) = (s\mathbf{I} - \mathbf{A})^{-1}\mathbf{x}_0 + (s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}\mathbf{U}(s), \qquad \mathbf{Y}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{x}_0 + \mathbf{W}(s)\mathbf{U}(s)$$
 
-<Divider />
+where $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$ is the transfer function matrix. For hand calculations, inverting $\mathbf{W}(s)\mathbf{U}(s)$ via partial fractions is usually far faster than evaluating the matrix-exponential integral directly.
 
-## The Impulse Response Matrix (Weighting Function)
+### Impulse Response Matrix
 
-Consider the forced output response from zero initial state ($\mathbf{x}_0 = \mathbf{0}$):
-
-$$\mathbf{y}_f(t) = \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau + \mathbf{D}\mathbf{u}(t)$$
-
-We define the **Impulse Response Matrix** (or kernel weighting function) $\mathbf{W}(t) \in \mathbb{R}^{p \times m}$:
+Setting $\mathbf{x}_0 = \mathbf{0}$ isolates the forced output $\mathbf{y}_f(t) = \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau + \mathbf{D}\mathbf{u}(t)$. To express this mapping as a single operator independent of any particular input $\mathbf{u}(t)$, we test the system with a unit Dirac impulse on each input channel and define the **impulse response matrix** $\mathbf{W}(t) \in \mathbb{R}^{p \times m}$:
 
 $$\mathbf{W}(t) \triangleq \mathbf{C} e^{\mathbf{A}t} \mathbf{B} \cdot 1(t) + \mathbf{D} \delta(t)$$
 
-where $1(t)$ is the Heaviside unit step and $\delta(t)$ is the Dirac delta distribution.
-The forced response the equation above is recognized as the continuous **convolution integral**:
+where $1(t)$ is the Heaviside unit step and $\delta(t)$ is the Dirac delta. Using the sifting property $\int_0^t \mathbf{D}\delta(t - \tau)\mathbf{u}(\tau)\,d\tau = \mathbf{D}\mathbf{u}(t)$, the forced output simplifies to the continuous **convolution integral**:
 
 $$\mathbf{y}_f(t) = \int_0^t \mathbf{W}(t-\tau) \mathbf{u}(\tau) \, d\tau = (\mathbf{W} * \mathbf{u})(t)$$
 
-For a single-input single-output system ($m = 1, p = 1$) with scalar impulse input $u(t) = \delta(t)$:
+Because convolution in time corresponds to multiplication in the $s$-domain, $\mathcal{L}\{\mathbf{W}(t)\} = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D} = \mathbf{W}(s)$. Thus, for a SISO system ($m = 1, p = 1$), the impulse response $w(t) = \mathcal{L}^{-1}\{W(s)\}$ is the exact time-domain signature of the plant.
 
-$$y_f(t) = \int_0^t w(t-\tau) \delta(\tau) \, d\tau = w(t) = C e^{At} B \cdot 1(t) + D \delta(t)$$
+### Transient and Steady-State Partitioning
 
-The impulse response $w(t)$ is the fundamental time-domain signature of an LTI system.
-
-<Divider />
-
-## Transient vs. Steady-State Partitioning
-
-When the dynamic matrix $\mathbf{A}$ is asymptotically stable ($\operatorname{Re}(\lambda_i) < 0$ for all $i$), the matrix exponential decays to zero as $t \to \infty$:
-
-$$\lim_{t \to \infty} e^{\mathbf{A}t} = \mathbf{0}$$
-
-Consequently, for any bounded input $\mathbf{u}(t)$, the response decomposes asymptotically into:
+While splitting $\mathbf{y}(t) = \mathbf{y}_l(t) + \mathbf{y}_f(t)$ separates initial conditions from external inputs, control engineers often care more about *how fast the startup behavior fades* versus *where the system settles*. When $\mathbf{A}$ is asymptotically stable ($\operatorname{Re}(\lambda_i) < 0$ for all eigenvalues), $\lim_{t \to \infty} e^{\mathbf{A}t} = \mathbf{0}$, so all natural modes decay to zero. Under any bounded input $\mathbf{u}(t)$, the total response regroups into:
 
 $$\mathbf{y}(t) = \mathbf{y}_{\text{trans}}(t) + \mathbf{y}_{\text{ss}}(t)$$
 
-* **Transient Response $\mathbf{y}_{\text{trans}}(t)$:** Decays exponentially to zero. It contains the free response $\mathbf{y}_l(t)$ plus the decaying natural modes excited by the input.
-* **Steady-State Response $\mathbf{y}_{\text{ss}}(t)$:** The permanent dynamic regime surviving as $t \to \infty$. For a constant unit step input $\mathbf{u}(t) = \mathbf{u}_0 \cdot 1(t)$:
-  $$\mathbf{x}_{\text{ss}} = \lim_{t \to \infty} \mathbf{x}(t) = -\mathbf{A}^{-1} \mathbf{B} \mathbf{u}_0$$
-  $$\mathbf{y}_{\text{ss}} = \lim_{t \to \infty} \mathbf{y}(t) = \left( -\mathbf{C} \mathbf{A}^{-1} \mathbf{B} + \mathbf{D} \right) \mathbf{u}_0 = \mathbf{W}(0) \mathbf{u}_0$$
+- **Transient Response $\mathbf{y}_{\text{trans}}(t)$:** Collects every decaying exponential term that vanishes as $t \to \infty$; it combines the free response $\mathbf{y}_l(t)$ with the decaying natural modes excited inside $\mathbf{y}_f(t)$ by $\mathbf{u}(t)$.
+- **Steady-State Response $\mathbf{y}_{\text{ss}}(t)$:** The permanent regime surviving as $t \to \infty$.
 
-<figure id="fig-transient-steady-state" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-transient-steady-state.svg" alt="Time-domain step response illustrating the superposition of the free response, the transient decaying envelope, and the asymptotic steady-state value $y_{\text{ss}}$." />
-  <figcaption>Time-domain step response illustrating the superposition of the free response, the transient decaying envelope, and the asymptotic steady-state value $y_{\text{ss}}$.</figcaption>
-</figure>
+For a constant step input $\mathbf{u}(t) = \mathbf{u}_0 \cdot 1(t)$, an asymptotically stable system has $\mathbf{A}$ invertible (no eigenvalue at $0$) and reaches equilibrium $\dot{\mathbf{x}} = \mathbf{0}$ as $t \to \infty$. Setting $\mathbf{0} = \mathbf{A}\mathbf{x}_{\text{ss}} + \mathbf{B}\mathbf{u}_0$ gives $\mathbf{x}_{\text{ss}} = -\mathbf{A}^{-1}\mathbf{B}\mathbf{u}_0$, and substituting into the output equation gives:
+
+$$\mathbf{x}_{\text{ss}} = \lim_{t \to \infty} \mathbf{x}(t) = -\mathbf{A}^{-1} \mathbf{B} \mathbf{u}_0, \qquad \mathbf{y}_{\text{ss}} = \lim_{t \to \infty} \mathbf{y}(t) = \left( -\mathbf{C} \mathbf{A}^{-1} \mathbf{B} + \mathbf{D} \right) \mathbf{u}_0 = \mathbf{W}(0) \mathbf{u}_0$$
+
+Notice that the exact same result follows from the Final Value Theorem in [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/): $\lim_{t \to \infty}\mathbf{y}(t) = \lim_{s \to 0} s\mathbf{W}(s)\frac{\mathbf{u}_0}{s} = \mathbf{W}(0)\mathbf{u}_0$, provided all eigenvalues of $\mathbf{A}$ lie strictly in the open left-half plane.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Which statement accurately describes the transient component $\mathbf{y}_{\mathrm{trans}}(t)$ of an asymptotically stable LTI step response?"
+  options={[
+    "It equals the free response $\\mathbf{y}_l(t)$ alone and never depends on the input",
+    "It combines the free response $\\mathbf{y}_l(t)$ and the decaying natural modes excited by $\\mathbf{u}(t)$",
+    "It survives permanently as $t \\to \\infty$ and equals $\\mathbf{W}(0)\\mathbf{u}_0$"
+  ]}
+  correctIndex={1}
+  explanation="Even when $\mathbf{x}(0) = \mathbf{0}$ (zero free response), a step input excites decaying natural modes inside $\mathbf{y}_f(t)$, which belong to $\mathbf{y}_{\mathrm{trans}}(t)$."
+/>
 
 <Callout type="bridge" title="SDU Robotics Bridge: Robot Manipulator Joint Trajectory Tracking">
 
-In robotic manipulators (e.g. Universal Robots or Franka Emika arms used in SDU robotics labs), joint positions $\mathbf{q}(t)$ are driven by actuator torque commands $\boldsymbol{\tau}(t)$.
-The forced response integral determines the tracking delay and overshoot when following a step reference position:
-$$\mathbf{e}(t) = \mathbf{q}_{\text{ref}}(t) - \mathbf{q}(t)$$
-Because gravity acts as a constant external disturbance $\mathbf{u}_{\text{dist}} = -\mathbf{g}(\mathbf{q})$, Lagrange's formula proves that proportional-derivative (PD) control without an integrator produces a persistent steady-state error:
+In robotic manipulators (such as Universal Robots or Franka Emika arms), joint positions $\mathbf{q}(t)$ are driven by actuator torque commands $\boldsymbol{\tau}(t)$. Because gravity acts as a constant external disturbance $\mathbf{u}_{\text{dist}} = -\mathbf{g}(\mathbf{q})$, Lagrange's formula proves that proportional-derivative (PD) control without an integrator leaves a persistent steady-state error:
+
 $$\mathbf{e}_{\text{ss}} = -(\mathbf{A} - \mathbf{B}\mathbf{K})^{-1} \mathbf{B} \mathbf{g} \neq \mathbf{0}$$
-Understanding Lagrange's convolution forced response explains why integral action (PID) or feedforward gravity compensation $\boldsymbol{\tau}_{\text{ff}} = \hat{\mathbf{g}}(\mathbf{q})$ is mathematically required to eliminate steady-state droop in physical robotic manipulators.
+
+This explains why integral action (PID) or feedforward gravity compensation $\boldsymbol{\tau}_{\text{ff}} = \hat{\mathbf{g}}(\mathbf{q})$ is required to eliminate steady-state droop.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Component | Time-Domain Expression | Initial State | Input | Laplace Shortcut |
+| :--- | :--- | :--- | :--- | :--- |
+| **Free State** $\mathbf{x}_l(t)$ | $e^{\mathbf{A}t}\mathbf{x}_0$ | $\mathbf{x}_0$ | $\mathbf{0}$ | $\mathcal{L}^{-1}\{(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{x}_0\}$ |
+| **Forced State** $\mathbf{x}_f(t)$ | $\int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)\,d\tau$ | $\mathbf{0}$ | $\mathbf{u}(t)$ | $\mathcal{L}^{-1}\{(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}\mathbf{U}(s)\}$ |
+| **Forced Output** $\mathbf{y}_f(t)$ | $(\mathbf{W} * \mathbf{u})(t)$ | $\mathbf{0}$ | $\mathbf{u}(t)$ | $\mathcal{L}^{-1}\{\mathbf{W}(s)\mathbf{U}(s)\}$ |
+| **Step Steady State** $\mathbf{y}_{\text{ss}}$ | $(-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0$ | Any (if stable) | $\mathbf{u}_0 \cdot 1(t)$ | $\mathbf{W}(0)\mathbf{u}_0$ |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Evaluation Procedure
 
-## Chapter Exercises
+1. Compute the free response $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}(0)$ and $\mathbf{y}_l(t) = \mathbf{C}\mathbf{x}_l(t)$ with $\mathbf{u}(t) \equiv \mathbf{0}$.
+2. Compute the forced response in the $s$-domain via $\mathbf{Y}_f(s) = \mathbf{W}(s)\mathbf{U}(s)$ (or $\mathbf{X}_f(s) = (s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}\mathbf{U}(s)$) and invert via partial fractions.
+3. Add both terms by superposition: $\mathbf{y}(t) = \mathbf{y}_l(t) + \mathbf{y}_f(t)$, and regroup decaying vs. persistent terms into $\mathbf{y}_{\text{trans}}(t) + \mathbf{y}_{\text{ss}}(t)$.
+4. When $\mathbf{A}$ is Hurwitz, cross-check step steady state with $\mathbf{y}_{\text{ss}} = \mathbf{W}(0)\mathbf{u}_0$.
 
-<Exercise client:load id="ex-10-1" title="Exercise 10.1: Superposition, Step Response & Static Gain" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Lagrange Integral:** Integrating $\frac{d}{d\tau}\left(e^{-\mathbf{A}\tau}\mathbf{x}(\tau)\right) = e^{-\mathbf{A}\tau}\mathbf{B}\mathbf{u}(\tau)$ from $0$ to $t$ and multiplying by $e^{\mathbf{A}t}$ yields $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}_0 + \int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)\,d\tau$.
+- **Impulse Kernel:** Setting $\mathbf{u}(t) = \delta(t)$ and $\mathbf{x}_0 = \mathbf{0}$ in $\mathbf{y}_f(t)$ collapses the integral to $\mathbf{W}(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}\cdot 1(t) + \mathbf{D}\delta(t)$.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Free vs. Transient Confusion:** $\mathbf{y}_l(t)$ comes only from $\mathbf{x}_0$, whereas $\mathbf{y}_{\text{trans}}(t)$ collects all decaying terms from *both* $\mathbf{y}_l(t)$ and $\mathbf{y}_f(t)$.
+2. **Invalid DC Gain Formula:** $\mathbf{y}_{\text{ss}} = (-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0$ holds **only** when $\mathbf{A}$ is asymptotically stable ($\operatorname{Re}(\lambda_i) < 0$); if $\mathbf{A}$ has RHP or $j\omega$ eigenvalues, the limit does not converge to $\mathbf{W}(0)\mathbf{u}_0$.
+3. **Manual Matrix Convolution:** For timed hand calculations, convert $\mathbf{x}_f(t)$ or $y_f(t)$ to the Laplace domain instead of evaluating $\int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)\,d\tau$ directly.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-10-1" title="Exercise 10.1 — Superposition, Step Response & Static Gain" level="Warm-Up">
 
 Consider the first-order dynamic system:
+
 $$\dot{x}(t) = -3 x(t) + 6 u(t), \quad y(t) = 2 x(t), \quad x(0) = 4$$
 
-1. Determine the free state response $x_l(t) = e^{At}x(0)$.
+1. Determine the free state response $x_l(t) = e^{At}x(0)$ and free output $y_l(t)$.
 2. Determine the transfer function $W(s) = \frac{Y(s)}{U(s)}$ and evaluate the forced step response $Y_f(s) = W(s) \cdot \frac{1}{s}$ via partial fraction expansion.
 3. Apply the Superposition Principle to obtain the complete output trajectory $y(t) = y_l(t) + y_f(t)$.
 4. Compute the steady-state value $y_{\text{ss}} = \lim_{t \to \infty} y(t)$ and verify using the static gain formula $y_{\text{ss}} = -C A^{-1} B = W(0)$.
+
+<StepCheck
+  client:load
+  prompt="For $u(t) = 1(t)$ and $x(0) = 4$, compute the steady-state output $y_{\mathrm{ss}} = W(0)$:"
+  expected={4}
+  tolerance={0.01}
+  unit=""
+  explanation="$W(s) = \frac{12}{s+3}$ gives $W(0) = 4$, and $y(t) = 8e^{-3t} + 4(1 - e^{-3t}) = 4 + 4e^{-3t} \to 4$."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 1. For scalar system $\dot{x}(t) = -3 x(t) + 6 u(t)$ with $x(0) = 4$:
-   * Free state response:
-     $$x_l(t) = e^{At} x(0) = 4 e^{-3t} \implies y_l(t) = C x_l(t) = 8 e^{-3t}$$
+   $$x_l(t) = e^{At} x(0) = 4 e^{-3t} \implies y_l(t) = C x_l(t) = 2(4e^{-3t}) = 8 e^{-3t}$$
 2. Transfer function and forced step response via Laplace inversion:
    $$W(s) = C(sI - A)^{-1}B = 2 \cdot \frac{1}{s + 3} \cdot 6 = \frac{12}{s + 3}$$
    $$Y_f(s) = W(s) \cdot U(s) = \frac{12}{s(s + 3)} = \frac{R_1}{s} + \frac{R_2}{s + 3}$$
-   $$R_1 = \lim_{s \to 0} s Y_f(s) = \frac{12}{3} = 4, \quad R_2 = \lim_{s \to -3} (s + 3) Y_f(s) = \frac{12}{-3} = -4$$
+   $$R_1 = \lim_{s \to 0} s Y_f(s) = \frac{12}{3} = 4, \qquad R_2 = \lim_{s \to -3} (s + 3) Y_f(s) = \frac{12}{-3} = -4$$
    $$y_f(t) = \mathcal{L}^{-1}\left\{ \frac{4}{s} - \frac{4}{s + 3} \right\} = 4(1 - e^{-3t})$$
 3. Complete output response via Superposition:
    $$y(t) = y_l(t) + y_f(t) = 8 e^{-3t} + 4(1 - e^{-3t}) = 4 + 4 e^{-3t}$$
+   Boundary check: $y(0) = 4 + 4 = 8 = C x(0)$. $\checkmark$
 4. Steady-state output:
    $$y_{\text{ss}} = \lim_{t \to \infty} (4 + 4 e^{-3t}) = 4$$
    Verification using $y_{\text{ss}} = -C A^{-1} B u_0 = W(0) u_0$:
@@ -146,14 +234,24 @@ $$\dot{x}(t) = -3 x(t) + 6 u(t), \quad y(t) = 2 x(t), \quad x(0) = 4$$
 
 </Exercise>
 
-<Exercise client:load id="ex-10-2" title="Exercise 10.2: Impulse Response Evaluation ($w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$)" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-10-2" title="Exercise 10.2 — Impulse Response Equivalence" level="Intermediate">
 
-Consider the continuous-time system from the UniCT examination paper ($a=1$):
+Consider the continuous-time system:
+
 $$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -5/2 & -2 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1/2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 0 \end{bmatrix}$$
 
 1. Compute the transfer function $G(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$.
 2. Evaluate the unit impulse response $w(t) = \mathcal{L}^{-1}\{G(s)\}$ by completing the square on the quadratic denominator.
 3. Compute the product $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$ directly using the matrix exponential $e^{\mathbf{A}t}$ found in [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/), verifying that both methods yield identical analytical expressions.
+
+<StepCheck
+  client:load
+  prompt="Compute the DC gain $G(0) = \mathbf{C}(-\mathbf{A})^{-1}\mathbf{B}$ of this system:"
+  expected={0.4}
+  tolerance={0.01}
+  unit=""
+  explanation="Since $G(s) = \frac{2}{s^2 + 2s + 5}$, evaluating at $s = 0$ gives $G(0) = \frac{2}{5} = 0.4$."
+/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
@@ -161,13 +259,63 @@ $$\mathbf{A} = \begin{bmatrix} 0 & 2 \\ -5/2 & -2 \end{bmatrix}, \quad \mathbf{B
 1. Computing transfer function $G(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$:
    $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{s^2 + 2s + 5}\begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix}$$
    $$(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} = \frac{1}{s^2 + 2s + 5}\begin{bmatrix} s + 2 & 2 \\ -5/2 & s \end{bmatrix}\begin{bmatrix} 0 \\ 1/2 \end{bmatrix} = \frac{1}{s^2 + 2s + 5}\begin{bmatrix} 1 \\ s/2 \end{bmatrix}$$
-   $$G(s) = \mathbf{C} \begin{bmatrix} \frac{1}{s^2+2s+5} \\ \frac{s/2}{s^2+2s+5} \end{bmatrix} = \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} \frac{1}{s^2+2s+5} \\ \frac{s/2}{s^2+2s+5} \end{bmatrix} = \frac{2}{s^2 + 2s + 5}$$
+   $$G(s) = \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} \frac{1}{s^2+2s+5} \\ \frac{s/2}{s^2+2s+5} \end{bmatrix} = \frac{2}{s^2 + 2s + 5}$$
 2. Unit impulse response via inverse Laplace transform:
    $$w(t) = \mathcal{L}^{-1}\{G(s)\} = \mathcal{L}^{-1}\left\{ \frac{2}{(s+1)^2 + 2^2} \right\} = e^{-t}\sin(2t) \cdot 1(t)$$
 3. Verification via $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$:
-   From [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/), entry $(1,2)$ of $e^{\mathbf{A}t}$ is $e^{-t}\sin(2t)$.
-   $$e^{\mathbf{A}t}\mathbf{B} = e^{\mathbf{A}t}\begin{bmatrix} 0 \\ 1/2 \end{bmatrix} = \begin{bmatrix} \frac{1}{2}e^{-t}\sin(2t) \\ \dots \end{bmatrix}$$
-   $$w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B} = \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} \frac{1}{2}e^{-t}\sin(2t) \\ \dots \end{bmatrix} = e^{-t}\sin(2t) \cdot 1(t) \quad \checkmark$$
+   From [Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/) (Exercise 9.2), the state transition matrix is:
+   $$e^{\mathbf{A}t} = e^{-t}\begin{bmatrix} \cos(2t) + \frac{1}{2}\sin(2t) & \sin(2t) \\ -\frac{5}{4}\sin(2t) & \cos(2t) - \frac{1}{2}\sin(2t) \end{bmatrix}$$
+   Multiplying on the right by $\mathbf{B} = [0, \; 1/2]^T$ selects half of the second column:
+   $$e^{\mathbf{A}t}\mathbf{B} = \frac{1}{2}e^{-t}\begin{bmatrix} \sin(2t) \\ \cos(2t) - \frac{1}{2}\sin(2t) \end{bmatrix}$$
+   Multiplying on the left by $\mathbf{C} = [2, \; 0]$:
+   $$w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B} = \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} \frac{1}{2}e^{-t}\sin(2t) \\ \frac{1}{2}e^{-t}\left(\cos(2t) - \frac{1}{2}\sin(2t)\right) \end{bmatrix} = e^{-t}\sin(2t) \cdot 1(t) \quad \checkmark$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-10-3" title="Exercise 10.3 — Complete Trajectory and Steady-State Partition" level="Exam Standard">
+
+Consider the second-order system from Chapter 8 with input and output matrices:
+
+$$\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -2 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 0 \end{bmatrix}, \quad D = 0$$
+
+starting from $\mathbf{x}(0) = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ and driven by the step input $u(t) = 3 \cdot 1(t)$.
+
+1. Compute the free output response $y_l(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{x}(0)$ using $e^{\mathbf{A}t}$ from Chapter 8.
+2. Compute the transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$ and invert $Y_f(s) = W(s)U(s)$ to find the forced output $y_f(t)$.
+3. Sum $y(t) = y_l(t) + y_f(t)$ and partition the result into $y_{\text{trans}}(t) + y_{\text{ss}}$.
+4. Verify $y_{\text{ss}}$ using the static gain formula $y_{\text{ss}} = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B}u_0$.
+
+<StepCheck
+  client:load
+  prompt="Compute the steady-state output $y_{\mathrm{ss}}$ for $u(t) = 3 \cdot 1(t)$:"
+  expected={3}
+  tolerance={0.01}
+  unit=""
+  explanation="$W(s) = \frac{2}{(s+1)(s+2)}$ has DC gain $W(0) = 1$, so for step amplitude $u_0 = 3$, $y_{\mathrm{ss}} = W(0)u_0 = 3$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), multiplying $e^{\mathbf{A}t}$ by $\mathbf{x}(0) = [1, \; 0]^T$ gives:
+   $$\mathbf{x}_l(t) = \begin{bmatrix} 2e^{-t} - e^{-2t} \\ -2e^{-t} + 2e^{-2t} \end{bmatrix} \implies y_l(t) = \begin{bmatrix} 2 & 0 \end{bmatrix}\mathbf{x}_l(t) = 4e^{-t} - 2e^{-2t}$$
+2. Using the resolvent from Chapter 8:
+   $$(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} = \frac{1}{(s+1)(s+2)}\begin{bmatrix} s+3 & 1 \\ -2 & s \end{bmatrix}\begin{bmatrix} 0 \\ 1 \end{bmatrix} = \frac{1}{(s+1)(s+2)}\begin{bmatrix} 1 \\ s \end{bmatrix}$$
+   $$W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} = \frac{2}{(s+1)(s+2)}$$
+   With $U(s) = \frac{3}{s}$, the forced output transform is:
+   $$Y_f(s) = \frac{6}{s(s+1)(s+2)} = \frac{R_0}{s} + \frac{R_1}{s+1} + \frac{R_2}{s+2}$$
+   Evaluating residues via Heaviside cover-up:
+   $$R_0 = \left.\frac{6}{(s+1)(s+2)}\right|_{s=0} = \frac{6}{2} = 3, \quad R_1 = \left.\frac{6}{s(s+2)}\right|_{s=-1} = \frac{6}{-1} = -6, \quad R_2 = \left.\frac{6}{s(s+1)}\right|_{s=-2} = \frac{6}{2} = 3$$
+   Inverting term by term gives:
+   $$y_f(t) = 3 - 6e^{-t} + 3e^{-2t}$$
+3. Total output trajectory via Superposition:
+   $$y(t) = y_l(t) + y_f(t) = (4e^{-t} - 2e^{-2t}) + (3 - 6e^{-t} + 3e^{-2t}) = \underbrace{-2e^{-t} + e^{-2t}}_{y_{\text{trans}}(t)} + \underbrace{3}_{y_{\text{ss}}}$$
+   Boundary check: $y(0) = -2 + 1 + 3 = 2 = \mathbf{C}\mathbf{x}(0)$. $\checkmark$
+4. Static gain verification:
+   $$\mathbf{A}^{-1} = \frac{1}{0 - (-2)}\begin{bmatrix} -3 & -1 \\ 2 & 0 \end{bmatrix} = \frac{1}{2}\begin{bmatrix} -3 & -1 \\ 2 & 0 \end{bmatrix}$$
+   $$y_{\text{ss}} = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B}u_0 = -\begin{bmatrix} 2 & 0 \end{bmatrix}\frac{1}{2}\begin{bmatrix} -3 & -1 \\ 2 & 0 \end{bmatrix}\begin{bmatrix} 0 \\ 1 \end{bmatrix}(3) = -\begin{bmatrix} -3 & -1 \end{bmatrix}\begin{bmatrix} 0 \\ 1 \end{bmatrix}(3) = 3 \quad \checkmark$$
 
 </details>
 

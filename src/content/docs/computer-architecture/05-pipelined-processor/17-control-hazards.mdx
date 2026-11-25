@@ -1,0 +1,299 @@
+---
+title: "17. Control Hazards and Branching"
+description: "Computer Architecture — Chapter 17: Control Hazards and Branching"
+sidebar:
+  order: 4
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 17 Outline" markdown={`# Ch. 17: Control Hazards and Branching
+  - Loop Branch Penalty Example
+    - ID (1), EX (2), MEM (3) stage penalties
+    - Predict-Untaken vs. stall-always
+  - Branch Resolution and Flushing
+    - Stage resolution hardware
+    - Five mitigation strategies
+    - Synchronous control flush to NOP
+    - ALU-to-Branch in ID vs. EX/MEM decoy`} />
+
+## Branch Target Uncertainty
+
+Stage `IF` must supply a new instruction address to `PC` on **every single clock cycle**, yet conditional branches—such as `bne s0, s1, loop` at the bottom of our calibration loop ([Control Flow Translation](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/))—do not immediately know two pieces of information during `IF`: **whether the condition holds** (taken vs. untaken) and **where to jump** ($\text{Target} = \text{PC} + \text{Imm}$). This gap between fetching a branch and resolving its outcome creates a **control hazard**, penalizing $\text{CPI}_{\text{pipe}}$ whenever wrong-path instructions must be stalled or flushed.
+
+<Divider label="1 · Example" />
+
+### Loop Branch Penalty Comparison
+
+Suppose a benchmark contains $f_{\text{branch}} = 20\%$ conditional branches (such as `bne s0, s1, loop`), of which $p_{\text{taken}} = 65\%$ are **taken** (jumping back to `loop`) and $35\%$ are **untaken** (falling through to $\text{PC} + 4$). Under the standard **Predict-Untaken** policy, stage `IF` continues fetching sequentially along $\text{PC} + 4$ without pausing:
+
+- Whenever a branch is **untaken** ($35\%$ of branches), the sequential instructions already fetched behind it are valid $\implies \mathbf{0\text{ stall cycles}}$.
+- Whenever a branch is **taken** ($65\%$ of branches), the sequential instructions fetched before the branch resolves are wrong-path instructions that must be **flushed** (turned into `NOP` bubbles), costing $P_{\text{stage}}$ cycles depending on where the microarchitecture resolves branches ([the figure](#fig-branch-resolution-stages)):
+
+<figure id="fig-branch-resolution-stages" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-branch-resolution-stages.svg" alt="Branch penalty across pipeline resolution stages: resolving in ID incurs a 1-cycle penalty (flushing IF); resolving in EX incurs a 2-cycle penalty (flushing IF and ID); resolving in MEM incurs a 3-cycle penalty (flushing IF, ID, and EX)." />
+  <figcaption>Taken-branch flush penalty across resolution stages: resolving in `ID` flushes 1 instruction (`IF`), resolving in `EX` flushes 2 instructions (`IF`, `ID`), and resolving in `MEM` flushes 3 instructions (`IF`, `ID`, `EX`).</figcaption>
+</figure>
+
+Evaluating $\text{Stalls}_{\text{ctrl}} = f_{\text{branch}} \times p_{\text{taken}} \times P_{\text{stage}}$ across the three hardware designs gives:
+
+1. **Early Resolution in `ID` ($P_{\text{ID}} = 1$):** $\text{Stalls}_{\text{ctrl}} = 0.20 \times 0.65 \times 1 = 0.13\text{ cycles/instr}$.
+2. **Baseline Resolution in `EX` ($P_{\text{EX}} = 2$):** $\text{Stalls}_{\text{ctrl}} = 0.20 \times 0.65 \times 2 = 0.26\text{ cycles/instr}$.
+3. **Late Resolution in `MEM` ($P_{\text{MEM}} = 3$):** $\text{Stalls}_{\text{ctrl}} = 0.20 \times 0.65 \times 3 = 0.39\text{ cycles/instr}$.
+
+By contrast, if the processor disables prediction completely and uses a **Stall-Always** policy (*solo stalli* — freezing `IF` as soon as a branch is detected until `EX` finishes), **100% of branches** pay the $2$-cycle delay regardless of outcome: $\text{Stalls}_{\text{ctrl}} = 0.20 \times 1.00 \times 2 = 0.40\text{ cycles/instr}$.
+
+<StepCheck
+  client:load
+  prompt="A program executes $15\%$ conditional branches, of which $60\%$ are taken. Under **Predict-Untaken** with branch resolution in stage **`MEM`**, how many control stall cycles per instruction are added to $\text{CPI}_{\text{pipe}}$?"
+  expected={0.27}
+  tolerance={0.005}
+  unit="cycles/instr"
+  explanation="Resolving a branch in stage MEM (stage 4) flushes $P_{\text{MEM}} = 3$ wrong-path instructions when taken. Under Predict-Untaken, $\text{Stalls}_{\text{ctrl}} = 0.15 \times 0.60 \times 3 = 0.27$ cycles/instr."
+/>
+
+<Divider label="2 · Theory" />
+
+### Resolution Stage Penalties
+
+Why does resolving a branch at pipeline stage index $s \in \{2, 3, 4\}$ (`ID = 2`, `EX = 3`, `MEM = 4`) always carry a misprediction flush penalty of $P_{\text{stage}} = s - 1$ cycles? If a branch enters `IF` in Cycle $1$, it reaches stage $s$ in Cycle $s$, so the correct target address $\text{PC} + \text{Imm}$ can only be fetched in Cycle $s + 1$—leaving exactly $s - 1$ intervening fetch cycles (`Cycle 2` through `Cycle s`) filled with wrong-path instructions:
+
+- **Stage `EX` Resolution ($s = 3 \implies P_{\text{EX}} = 2$ cycles):** Standard RISC-V datapath where the `EX` branch adder computes $\text{PC} + \text{Imm}$ and the main ALU tests `rs1` vs. `rs2` in Cycle 3. Taken branches flush `IF` and `ID` ($2$ bubbles).
+- **Stage `MEM` Resolution ($s = 4 \implies P_{\text{MEM}} = 3$ cycles):** Microarchitectures that latch the ALU comparison flag into `EX/MEM` before routing `PCSrc` during Cycle 4 (`MEM`). Taken branches flush `IF`, `ID`, and `EX` ($3$ bubbles).
+- **Early Stage `ID` Resolution ($s = 2 \implies P_{\text{ID}} = 1$ cycle):** Hardware moves both the 32-bit target adder ($\text{PC} + \text{Imm}$) and a dedicated fast comparator (`rs1 == rs2` XOR-tree for `beq`/`bne`) directly into stage `ID`. Taken branches flush only the single instruction in `IF` ($1$ bubble), cutting branch penalty in half compared to `EX`—at the cost of a dedicated comparator and an extra RAW hazard check in `ID`.
+
+### Five Mitigation Strategies
+
+Architectural and compiler defenses against control hazards fall into five standard techniques:
+
+1. **Stall / Freeze Pipeline (*Solo Stalli*):** Freeze `IF` immediately upon detecting a branch until its outcome and target resolve. Simple hardware, but penalizes **every** branch taken or untaken:
+   $$\text{Stalls}_{\text{ctrl,stall}} = f_{\text{branch}} \times 1.0 \times P_{\text{stage}}$$
+2. **Early Branch Resolution:** Add a dedicated branch target adder and comparator in stage `ID` to reduce $P_{\text{stage}}$ down to $1\text{ cycle}$.
+3. **Static Branch Prediction:** Hardware applies a fixed compile-time rule with zero runtime history tables:
+   - **Predict-Untaken:** Fetch $\text{PC} + 4$ speculatively; pay $0$ stalls when untaken and $P_{\text{stage}}$ flushes when taken:
+     $$\text{Stalls}_{\text{ctrl,untaken}} = f_{\text{branch}} \times p_{\text{taken}} \times P_{\text{stage}}$$
+   - **Predict-Taken:** Useful only when the target address $\text{PC} + \text{Imm}$ is computed *earlier* than the branch condition; in a basic 5-stage pipeline without a target cache, `IF` still does not know $\text{PC} + \text{Imm}$ during Cycle 1, leaving at least a 1-cycle stall.
+4. **Dynamic Branch Prediction:** Hardware tracks per-branch runtime behavior in small SRAM tables indexed by lower `PC` bits during stage `IF`:
+   - **2-Bit Saturating Counter:** A 4-state finite state machine (*Strongly Taken*, *Weakly Taken*, *Weakly Untaken*, *Strongly Untaken*) that requires **two consecutive mispredictions** to flip its prediction—preventing a loop branch from mispredicting twice per loop execution (once on exit and again on re-entry).
+   - **Branch Target Buffer (BTB):** A small cache in `IF` storing `(Tag = Branch PC, Predicted Target PC, Prediction State)`. On a predicted-taken BTB hit in Cycle 1, `IF` fetches the target address immediately in Cycle 2 with **0 stall cycles**.
+5. **Delayed Branching (Software Scheduling):** The ISA defines $1$ **branch delay slot** immediately after every branch whose instruction executes *unconditionally* whether the branch is taken or not. The compiler fills this slot with an independent instruction from before the branch (similar to Load-Use scheduling, though abandoned in modern RISC-V because delay slots complicate wide superscalar pipelines).
+
+### Synchronous Pipeline Flush
+
+When Predict-Untaken speculates along $\text{PC} + 4$ and a branch later evaluates as **taken**, the speculative instructions already inside `IF/ID` (and `ID/EX`, `EX/MEM` for later resolution) must be neutralized before they reach `MEM` or `WB`. As shown in [the figure](#fig-pipeline-flush), the Branch Unit asserts synchronous clear lines (`IF.Flush`, `ID.Flush`) that zero the instruction / control fields (`RegWrite = 0`, `MemWrite = 0`), converting wrong-path instructions into `NOP` bubbles while multiplexing `Target` into `PC`.
+
+<figure id="fig-pipeline-flush" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-pipeline-flush.svg" alt="Pipeline flush mechanics: on a taken branch misprediction, the Branch Unit asserts synchronous clear signals to force control bits in IF/ID and ID/EX to zero, turning speculative instructions into harmless NOPs." />
+  <figcaption>Synchronous pipeline flush: asserting flush lines forces `RegWrite = 0` and `MemWrite = 0` inside wrong-path interstage registers while loading the resolved branch target into `PC`.</figcaption>
+</figure>
+
+### ALU-to-Branch Interaction Rules
+
+Look at the final two instructions of our shared calibration loop:
+
+```asm
+addi s0, s0, 4       # I4: computes new s0 at end of EX
+bne  s0, s1, loop    # I5: compares s0 against s1!
+```
+
+Whether this distance-1 `ALU(i) -> Branch(i+1)` dependency adds an extra RAW stall depends **exclusively on which stage resolves the branch**:
+
+1. **Branch Resolved Early in `ID` ($\implies +1\text{ Extra RAW Stall}$):**
+   - $I_4$ (`addi`) enters `IF` in Cycle 1, `ID` in Cycle 2, and **`EX` in Cycle 3**.
+   - $I_5$ (`bne`) enters `IF` in Cycle 2 and **`ID` in Cycle 3**.
+   - During Cycle 3, `bne` needs `s0` inside the `ID` comparator at the *exact same clock cycle* `addi` is still computing `s0 + 4` inside `EX`! Even with an `EX/MEM -> ID` forwarding bus, the ALU output is not latched until the end of Cycle 3. The Hazard Detection Unit must insert **1 RAW stall cycle** so `addi` reaches `EX/MEM` in Cycle 4, forwarding `s0` into `ID` in Cycle 4. (By the same logic, `lw(i) -> Branch(i+1)` at distance $k = 1$ with `ID` branch resolution costs **2 RAW stall cycles**!)
+2. **Branch Resolved in `EX` or `MEM` ($\implies 0\text{ Extra Stalls — Decoy Trap}$):**
+   - When `bne` evaluates its comparison inside **`EX` (Cycle 4)**, `addi` has already advanced to **`MEM` (Cycle 4)**, so standard `EX/MEM -> EX` forwarding (`ForwardA = 10`) delivers `s0` at the start of Cycle 4 with **0 extra stalls**!
+   - When `bne` resolves in **`MEM` (Cycle 5)**, `addi` is in **`WB` (Cycle 5)**, again delivering `s0` via forwarding with **0 extra stalls**!
+   - Any problem statement mentioning *"X% of Branch instructions depend on a preceding ALU instruction"* when branches resolve in **`EX` or `MEM`** with forwarding enabled is a **pure decoy**—never add a stall for it!
+
+<Callout type="bridge" title="Branchless Saturation in Real-Time Control Firmware">
+
+In $1\text{ kHz}$ motor and flight control loops, data-dependent `if/else` clamps (such as actuator saturation `if (u > u_max) u = u_max;`) suffer unpredictable flush penalties whenever noisy sensor spikes flip branch outcomes. Firmware engineers replace short unpredictable branches with branchless arithmetic or conditional-select sequences so every control tick executes a fixed, flush-free cycle count.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="On a 5-stage pipeline with **full data forwarding** and branch resolution in stage **`EX`** (Predict-Untaken), how many **extra data-hazard stall cycles** are caused when `add x1, x2, x3` is immediately followed by `beq x1, x4, target`?"
+  options={[
+    "0 extra data stalls, because `EX/MEM` forwards `x1` directly into `EX` on time",
+    "1 extra data stall, because `beq` needs `x1` before `add` finishes",
+    "2 extra data stalls, matching the `EX` branch flush penalty",
+    "1 extra data stall only when `beq` is taken"
+  ]}
+  correctIndex={0}
+  explanation="Because `beq` evaluates its condition in stage EX (Cycle 4), `add` has already completed EX in Cycle 3 and sits in `EX/MEM` during Cycle 4. Standard `EX/MEM -> EX` forwarding supplies `x1` with 0 extra RAW stalls (`ALU -> Branch` only stalls when branches resolve early in stage ID!)."
+/>
+
+<Divider label="3 · Summary" />
+
+| Branch Resolution Stage | Flush Penalty $P_{\text{stage}}$ | Predict-Untaken $\text{Stalls}_{\text{ctrl}}$ | Stall-Always (*Solo Stalli*) $\text{Stalls}_{\text{ctrl}}$ | `ALU(i) -> Branch(i+1)` Extra Stall (Fwd ON) |
+| :--- | :---: | :--- | :--- | :---: |
+| **Decode (`ID`, Stage 2)** | **$1\text{ cycle}$** | $f_{\text{branch}} \times p_{\text{taken}} \times 1$ | $f_{\text{branch}} \times 1.0 \times 1$ | **$+1\text{ cycle}$** |
+| **Execute (`EX`, Stage 3)** | **$2\text{ cycles}$** | $f_{\text{branch}} \times p_{\text{taken}} \times 2$ | $f_{\text{branch}} \times 1.0 \times 2$ | **$0\text{ cycles}$** (Decoy!) |
+| **Memory (`MEM`, Stage 4)** | **$3\text{ cycles}$** | $f_{\text{branch}} \times p_{\text{taken}} \times 3$ | $f_{\text{branch}} \times 1.0 \times 3$ | **$0\text{ cycles}$** (Decoy!) |
+
+### Control Penalty Procedure
+
+1. **Identify Resolution Stage:** Map the stated resolution stage to its wrong-path penalty: `ID` $\to 1$, `EX` $\to 2$, `MEM` $\to 3$.
+2. **Check Branch Policy:**
+   - **Predict-Untaken:** Multiply $f_{\text{branch}} \times p_{\text{taken}} \times P_{\text{stage}}$ (untaken branches cost $0$ stalls).
+   - **Stall-Always (*Solo Stalli*):** Multiply $f_{\text{branch}} \times 1.0 \times P_{\text{stage}}$ (ignore $p_{\text{taken}}$ completely!).
+3. **Check `ALU -> Branch` Interaction (Forwarding ON):** Add $f_{\text{ALU}\to\text{Branch}} \times 1$ **if and only if** branches resolve in stage **`ID`** (and notice that this RAW comparison stall occurs before the condition is known, affecting all such dependent branches whether taken or untaken). Ignore `ALU -> Branch` completely if branches resolve in `EX` or `MEM`.
+
+### Key Mechanisms
+
+- **Stage-Index Flush Rule:** Resolving a branch at stage $s \in \{2, 3, 4\}$ flushes $s - 1$ younger instructions already fetched along the mispredicted path.
+- **Synchronous Flush:** Zeroing `RegWrite` and `MemWrite` in wrong-path latches neutralizes speculative instructions before architectural state (`Reg` or `Mem`) is modified.
+- **2-Bit Counter + BTB:** Two-bit hysteresis prevents double mispredictions at loop boundaries, while a BTB caches target addresses in `IF` for zero-cycle taken jumps.
+- **Early-`ID` RAW Penalty:** Moving branch comparison into `ID` halves misprediction flushes ($2 \to 1$) but introduces a 1-cycle RAW stall whenever the immediately preceding `ALU` instruction produces a compared register.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Using $p_{\text{taken}}$ Under *Solo Stalli*:** When a problem specifies *"usare solo stalli nella gestione dei branch"* (no prediction), **every** branch stalls—even if the prompt also mentions *"60% taken"* as a distractor! Use $1.0$, not $0.60$.
+2. **Falling for the `EX` / `MEM` `ALU -> Branch` Decoy:** Never add $+1$ stall for `ALU(i) -> Branch(i+1)` when branches resolve in `EX` or `MEM` with forwarding active.
+3. **Confusing 1-Bit and 2-Bit Loop Mispredictions:** An inner loop iterated $N$ times inside an outer loop mispredicts **twice** per inner-loop run with a 1-bit predictor (exit + next entry), versus **once** per run (exit only) with a 2-bit saturating counter.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-17-1"
+  title="Exercise 17.1 — Branch Policy and Resolution Stage Comparison"
+  level="Exam"
+  hint="Keep Predict-Untaken ($p_{\text{taken}} = 0.65$) strictly separate from Solo Stalli ($1.00$). In part 4, add the `ALU -> Branch` stall ($0.20 \times 0.30 \times 1$) to the `ID` Predict-Untaken control penalty."
+>
+
+A benchmark contains **$20\%$ conditional branches**, of which **$65\%$ are taken**, on a 5-stage pipeline with full forwarding.
+
+1. Compute the average branch stall penalty per instruction under **Predict-Untaken** when branches resolve in stage **`ID`**.
+2. Compute the average branch stall penalty per instruction under **Predict-Untaken** when branches resolve in stage **`EX`**.
+3. Compute the average branch stall penalty per instruction under **Stall-Always (*Solo Stalli*)** when branches resolve in stage **`ID`**.
+4. Suppose **$30\%$ of conditional branches** compare a register produced by the immediately preceding `ALU` instruction ($k = 1$). Compute the combined branch + `ALU -> Branch` stall penalty per instruction under **Predict-Untaken** for **`ID`** resolution versus **`EX`** resolution.
+
+<StepCheck
+  client:load
+  prompt="In part 4, what is the combined branch + `ALU -> Branch` stall penalty per instruction when branches resolve in stage **`ID`** under Predict-Untaken?"
+  expected={0.19}
+  tolerance={0.005}
+  unit="cycles/instr"
+  explanation="Taken-branch flushes in ID contribute $0.20 \times 0.65 \times 1 = 0.13$, while the $30\%$ of branches preceded by a dependent ALU instruction stall 1 cycle in ID ($0.20 \times 0.30 \times 1 = 0.06$), giving $0.13 + 0.06 = 0.19$ cycles/instr."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Predict-Untaken, `ID` Resolution ($P_{\text{ID}} = 1$):**
+   $$\text{Stalls}_{\text{ctrl}} = 0.20 \times 0.65 \times 1 = 0.13\text{ cycles/instr}$$
+2. **Predict-Untaken, `EX` Resolution ($P_{\text{EX}} = 2$):**
+   $$\text{Stalls}_{\text{ctrl}} = 0.20 \times 0.65 \times 2 = 0.26\text{ cycles/instr}$$
+3. **Stall-Always (*Solo Stalli*), `ID` Resolution ($P_{\text{ID}} = 1$):** Every branch stalls regardless of $p_{\text{taken}}$:
+   $$\text{Stalls}_{\text{ctrl}} = 0.20 \times 1.00 \times 1 = 0.20\text{ cycles/instr}$$
+4. **With $30\%$ `ALU(i) -> Branch(i+1)` Dependencies (Forwarding ON):**
+   - **`ID` Resolution:** Each dependent branch stalls $1$ cycle waiting for the `ALU` stage `EX` to finish before `ID` can compare:
+     $$\text{Stalls}_{\text{total,ID}} = 0.13 + (0.20 \times 0.30 \times 1) = 0.13 + 0.06 = 0.19\text{ cycles/instr}$$
+   - **`EX` Resolution:** `EX/MEM -> EX` forwarding delivers the `ALU` operand in **$0$ extra stalls** (decoy!), so only taken-branch flushes apply:
+     $$\text{Stalls}_{\text{total,EX}} = 0.26 + 0 = 0.26\text{ cycles/instr}$$
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-17-2"
+  title="Exercise 17.2 — Early ID Comparator Clock Period Trade-Off"
+  level="Exam"
+  hint="Compare the product $\text{CPI}_{\text{pipe}} \times T_{\text{clk}}$ for Design A (`EX` branch resolution, baseline $T_{\text{clk}}$) against Design B (`ID` branch resolution with `ALU -> Branch` stalls and $1.08 \, T_{\text{clk}}$)."
+>
+
+Architects are deciding whether to move conditional branch resolution from stage **`EX`** (**Design A**) into stage **`ID`** (**Design B**) under **Predict-Untaken** and full forwarding (split caches, zero Load-Use hazards). The workload has **$15\%$ branches** (**$60\%$ taken**), and **$20\%$ of branches** depend on the immediately preceding `ALU` instruction. Adding the fast comparator and forwarding muxes into stage `ID` stretches the processor clock period by **$+8\%$** ($T_{\text{clk},B} = 1.08 \, T_{\text{clk},A}$).
+
+1. Compute $\text{CPI}_A$ (`EX` resolution) and $\text{CPI}_B$ (`ID` resolution).
+2. Compute the execution-time ratio $T_{\text{exec},A} / T_{\text{exec},B}$ and state which design executes the program faster.
+
+<StepCheck
+  client:load
+  prompt="What is the ratio $T_{\text{exec},A} / T_{\text{exec},B}$ (rounded to two decimal places)?"
+  expected={0.98}
+  tolerance={0.015}
+  unit=""
+  explanation="$\text{CPI}_A = 1 + 0.15 \times 0.60 \times 2 = 1.18$. $\text{CPI}_B = 1 + (0.15 \times 0.60 \times 1) + (0.15 \times 0.20 \times 1) = 1.12$. Because $T_{\text{clk},B} = 1.08 \, T_{\text{clk},A}$, $T_{\text{exec},A} / T_{\text{exec},B} = 1.18 / (1.12 \times 1.08) = 1.18 / 1.2096 = 0.9755 \approx 0.98$ (Design A is faster!)."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Effective CPI of Each Design:**
+   - **Design A (`EX` Resolution, $P_{\text{EX}} = 2$):** `ALU -> Branch` forwarding costs $0$ stalls:
+     $$\text{CPI}_A = 1.00 + (0.15 \times 0.60 \times 2) + 0 = 1.00 + 0.18 = 1.18$$
+   - **Design B (`ID` Resolution, $P_{\text{ID}} = 1$):** Taken branches cost $1$ flush, plus `ALU -> Branch` costs $1$ RAW stall:
+     $$\text{CPI}_B = 1.00 + (0.15 \times 0.60 \times 1) + (0.15 \times 0.20 \times 1) = 1.00 + 0.09 + 0.03 = 1.12$$
+2. **Execution-Time Comparison:**
+   $$\frac{T_{\text{exec},A}}{T_{\text{exec},B}} = \frac{\text{IC} \times 1.18 \times T_{\text{clk},A}}{\text{IC} \times 1.12 \times (1.08 \, T_{\text{clk},A})} = \frac{1.18}{1.2096} = 0.976$$
+   Because $T_{\text{exec},A} < T_{\text{exec},B}$, **Design A (`EX` resolution) is $2.5\%$ faster**: the $8\%$ clock slowdown on *every* instruction in Design B outweighs the $0.06\text{ CPI}$ reduction!
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-17-3"
+  title="Exercise 17.3 — Three-Iteration Calibration Loop Cycle Count"
+  level="Exam"
+  hint="Count total retired instructions across 3 iterations ($3 \times 5 = 15$), add $k - 1 = 4$ pipeline drain cycles, add Load-Use stalls per iteration, and add branch flush penalties ONLY on the taken iterations (Iterations 1 and 2 are taken; Iteration 3 exits untaken!)."
+>
+
+Execute **3 iterations** ($N = 3$ array elements, followed by fall-through exit) of our unscheduled 5-instruction Part V calibration loop on a 5-stage RISC-V pipeline with **split caches**, **full hardware forwarding**, and **Predict-Untaken** branch resolution in stage **`EX`**:
+
+```asm
+loop:
+  lw   t0, 0(s0)       # 1
+  addi t1, t0, -128    # 2 (Load-Use on t0)
+  add  s2, s2, t1      # 3 (ALU-to-ALU on t1)
+  addi s0, s0, 4       # 4
+  bne  s0, s1, loop    # 5 (Taken on iter 1 & 2; Untaken on iter 3)
+```
+
+Assume `s0` starts at `&array[0]` and `s1 = &array[3]`, and valid fall-through instructions follow the loop without stalling.
+
+1. How many dynamic loop instructions ($\text{IC}_{\text{loop}}$) retire across the 3 iterations?
+2. Count the exact data-hazard stall bubbles and control-hazard flush bubbles incurred across all 3 iterations.
+3. Determine the exact clock cycle on which the final `bne` (Iteration 3) completes stage `WB` (starting `lw` of Iteration 1 in `IF` at Cycle 1).
+
+<StepCheck
+  client:load
+  prompt="On which clock cycle does the final `bne` of Iteration 3 complete stage `WB`?"
+  expected={26}
+  tolerance={0.05}
+  unit="cycle"
+  explanation="$15$ dynamic instructions require $15 + 4 = 19$ base cycles, plus $3 \times 1 = 3$ Load-Use stalls (`lw -> addi` in all 3 iterations), plus $2 \times 2 = 4$ branch flush bubbles (Iterations 1 and 2 are taken in EX; Iteration 3 is untaken = 0 flushes): $19 + 3 + 4 = 26$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Dynamic Instructions Retired:** $3\text{ iterations} \times 5\text{ instructions/iteration} = 15\text{ instructions}$.
+2. **Stall and Flush Accounting:**
+   - **Data Hazards:** In each of the 3 iterations, `lw t0 -> addi t1, t0, -128` triggers **$1$ Load-Use bubble** ($3 \times 1 = 3\text{ bubbles}$). Both `addi -> add` (`t1`) and `addi -> bne` (`s0`, since `bne` resolves in `EX`!) resolve in **$0$ stalls** via `EX/MEM` forwarding.
+   - **Control Hazards (Predict-Untaken in `EX`, $P_{\text{EX}} = 2$):**
+     - Iteration 1 `bne`: **Taken** $\implies 2\text{ flush bubbles}$.
+     - Iteration 2 `bne`: **Taken** $\implies 2\text{ flush bubbles}$.
+     - Iteration 3 `bne`: **Untaken** ($s0 == s1$) $\implies 0\text{ flush bubbles}$.
+     - Total control bubbles $= 2 + 2 + 0 = 4\text{ bubbles}$.
+3. **Completion Cycle of Final `bne` (`WB`):**
+   $$N_{\text{cycles}} = \text{IC}_{\text{loop}} + (5 - 1) + \text{Stalls}_{\text{data}} + \text{Stalls}_{\text{ctrl}} = 15 + 4 + 3 + 4 = 26\text{ cycles}$$
+   (Specifically, Iteration 1's `lw` enters `IF` in C1 and Iteration 1's `bne` resolves at end of `EX` in C8, launching Iteration 2's `lw` in `IF` at C9; Iteration 2's `bne` resolves at end of `EX` in C16, launching Iteration 3's `lw` in `IF` at C17; Iteration 3 incurs 1 Load-Use bubble so its `bne` enters `IF` in C21, `ID` in C23, `EX` in C24, `MEM` in C25, and finishes `WB` in **Cycle 26**.)
+
+</details>
+
+</Exercise>

@@ -1,0 +1,44 @@
+---
+title: "Parte II — Introduzione: Transistori MOS"
+description: "Quadro concettuale ed esempi reali per la Parte II di Elettronica."
+sidebar:
+  label: "Introduzione"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load lang="it" title="Mappa della Parte II" markdown={`# Parte II: Transistori MOS
+  - 5. Struttura Fisica del MOSFET
+    - Condensatore MOS, soglia V_th e effetto Body
+  - 6. Caratteristiche Statiche di Corrente
+    - Interdizione, triodo, saturazione e lambda
+  - 7. Modello di Piccolo Segnale
+    - Linearizzazione intorno a Q: g_m, r_o, g_mb
+  - 8. Capacità Parassite del MOSFET
+    - Capacità di ossido, giunzione e frequenza f_T
+  - 9. Polarizzazione DC del MOSFET
+    - Reti a 3 e 4 resistori e stabilità del punto Q`} />
+
+## Introduzione
+
+Il **MOSFET** è il componente più fabbricato nella storia umana: miliardi di copie identiche vivono dentro ogni processore, memoria o circuito integrato analogico. A differenza del diodo (che ha due terminali e non amplifica), il MOSFET introduce un elettrodo isolato di controllo—il **Gate**—capace di modulare con un campo elettrico la corrente che scorre tra Source e Drain senza assorbire corrente statica di comando.
+
+In questa Parte affronterai un cambio di prospettiva fondamentale in due fasi: prima capirai il dispositivo nel regime completo a **grandi segnali** (interruttore ON/OFF per il digitale, curva quadratica per l'analogico), poi imparerai a **linearizzarlo attorno a un punto di lavoro statico $Q$** per trasformare un oggetto non lineare in un amplificatore lineare maneggevole a piccoli segnali.
+
+### Esempi Pratici nel Mondo Reale
+
+- **Controllo di Potenza in Motori e Droni (MOSFET come Switch):** Nei driver PWM di motori brushless e convertitori DC-DC, il MOSFET lavora tra interdizione e triodo profondo con resistenza di canale $R_{on}$ di pochi milliohm per minimizzare la dissipazione di calore.
+- **Front-End Analogici e Sensori Audio (MOSFET in Saturazione):** Un microfono MEMS o un sensore biomedico genera microvolt o millivolt: polarizzando il MOSFET al punto $Q$ in saturazione, la sua transconduttanza $g_m$ converte piccole fluttuazioni di tensione sul Gate in segnali amplificati fedelmente.
+- **Legge di Scalamento dei Chip ($f_T \propto 1/L^2$):** Ridurre la lunghezza di canale $L$ da micron a pochi nanometri abbatte le capacità parassite di Gate e moltiplica la frequenza limite intrinseca $f_T$ di CPU e stadi RF.
+
+<Divider />
+
+## Mappa dei Capitoli
+
+1. **[5. Struttura Fisica del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/05-struttura-fisica-mos/)** — Quattro terminali, condensatore MOS, tensione di soglia $V_{th0}$ e modulazione da substrato (effetto Body).
+2. **[6. Caratteristiche Statiche di Corrente](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)** — Derivazione di $I_D$ in triodo e saturazione (*pinch-off*), resistenza d'uscita $r_o$ e dualità PMOS.
+3. **[7. Modello di Piccolo Segnale](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/)** — Separazione DC/AC, formule equivalenti di $g_m$, modello a $\pi$ ibrido, modello a T e guadagno intrinseco $\mu_f$.
+4. **[8. Capacità Parassite del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/08-capacita-parassite/)** — Capacità di sovrapposizione, ripartizione nel canale, giunzioni di substrato e frequenza di transizione $f_T$.
+5. **[9. Polarizzazione DC del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/09-polarizzazione-dc/)** — Confronto tra rete a 3 resistori e rete a 4 resistori stabilizzata da retroazione su $R_S$.

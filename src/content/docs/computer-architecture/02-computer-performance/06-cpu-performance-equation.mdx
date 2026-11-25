@@ -1,0 +1,328 @@
+---
+title: "6. CPU Performance Equation"
+description: "Computer Architecture — Chapter 6: CPU Performance Equation"
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 6 Map" markdown={`# Ch. 6: CPU Performance Equation
+  - Comparing Two Cores
+    - Instruction-mix weighted $\\text{CPI}$
+    - Clock period vs cycle count trade-off
+  - Processor Performance Equation
+    - $T_{\\text{exec}} = \\text{IC} \\times \\text{CPI} \\times T_{\\text{clk}}$
+    - Compiler, microarchitecture, and silicon layers
+  - Weighted Instruction Mix
+    - $\\text{CPI} = \\sum f_i \\cdot \\text{CPI}_i$
+    - Instruction share vs time share
+  - Speedup and Throughput
+    - Ratio $S = T_{\\text{old}} / T_{\\text{new}}$
+    - Why $\\text{MIPS}$ misleads across ISAs`} />
+
+## Measuring Execution Time
+
+When choosing between two processors for an embedded controller or server workload, neither clock frequency ($f_{\text{clk}}$) nor cycle efficiency ($\text{CPI}$) tells the whole story on its own: a high-frequency core can stall repeatedly on memory accesses, while a low-$\text{CPI}$ core can lose out if each clock tick is too long. The **CPU Performance Equation** combines software instruction count, microarchitectural cycles per instruction, and hardware clock period into a single wall-clock execution time $T_{\text{exec}}$ that settles every architectural comparison unambiguously.
+
+<Divider label="1 · Example" />
+
+### Comparing Two Cores
+
+Consider our shared real-time RV32IM state-estimation benchmark, where one control iteration executes $\text{IC} = 10^6$ dynamic instructions and must finish within a $1.0\text{ ms}$ ($1\text{ kHz}$) deadline. Two candidate scalar cores execute the exact same compiled binary, with the dynamic instruction mix and per-class cycle latencies below:
+
+| Instruction Class | Dynamic Share ($f_i$) | Core A ($\text{CPI}_i$) | Core B ($\text{CPI}_i$) |
+| :--- | :---: | :---: | :---: |
+| **ALU Arithmetic** | $50\%$ ($0.50$) | $1$ | $1$ |
+| **Memory Loads (`lw`)** | $25\%$ ($0.25$) | $2$ | $1$ |
+| **Memory Stores (`sw`)** | $10\%$ ($0.10$) | $2$ | $2$ |
+| **Conditional Branches** | $15\%$ ($0.15$) | $3$ | $2$ |
+
+**Core A** uses a deeper pipeline clocked at $f_{\text{clk},A} = 3.0\text{ GHz}$ ($T_{\text{clk},A} = \frac{1}{3.0 \times 10^9\text{ Hz}} \approx 0.333\text{ ns}$), which incurs extra load and branch stall cycles. **Core B** uses a shorter pipeline clocked at $f_{\text{clk},B} = 2.0\text{ GHz}$ ($T_{\text{clk},B} = \frac{1}{2.0 \times 10^9\text{ Hz}} = 0.500\text{ ns}$) with single-cycle loads and fewer branch stalls.
+
+First, we weight each class latency $\text{CPI}_i$ by its instruction share $f_i$ (noting $0.50 + 0.25 + 0.10 + 0.15 = 1.00$) to obtain the average cycles per instruction on each core:
+
+$$
+\begin{aligned}
+\text{CPI}_A &= (0.50 \times 1) + (0.25 \times 2) + (0.10 \times 2) + (0.15 \times 3) = 0.50 + 0.50 + 0.20 + 0.45 = 1.65\text{ cycles/instr} \\
+\text{CPI}_B &= (0.50 \times 1) + (0.25 \times 1) + (0.10 \times 2) + (0.15 \times 2) = 0.50 + 0.25 + 0.20 + 0.30 = 1.25\text{ cycles/instr}
+\end{aligned}
+$$
+
+Next, multiplying $\text{IC} = 10^6$ instructions by $\text{CPI}$ gives total clock cycles ($1.65 \times 10^6$ cycles on Core A vs. $1.25 \times 10^6$ cycles on Core B), and dividing by $f_{\text{clk}}$ converts cycles into elapsed CPU time:
+
+$$
+\begin{aligned}
+T_{\text{exec},A} &= \frac{\text{IC} \times \text{CPI}_A}{f_{\text{clk},A}} = \frac{10^6 \times 1.65}{3.0 \times 10^9\text{ Hz}} = 0.550 \times 10^{-3}\text{ s} = 0.550\text{ ms} \\
+T_{\text{exec},B} &= \frac{\text{IC} \times \text{CPI}_B}{f_{\text{clk},B}} = \frac{10^6 \times 1.25}{2.0 \times 10^9\text{ Hz}} = 0.625 \times 10^{-3}\text{ s} = 0.625\text{ ms}
+\end{aligned}
+$$
+
+<figure id="fig-iron-law-triad" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-iron-law-triad.svg" alt="CPU execution time decomposes into dynamic instruction count IC, average cycles per instruction CPI, and clock period T_clk across compiler, microarchitecture, and silicon domains." />
+  <figcaption>Decomposition of $T_{\text{exec}}$ across compiler/ISA ($\text{IC}$), microarchitecture ($\text{CPI}$), and circuit timing ($T_{\text{clk}}$). Shortening $T_{\text{clk}}$ via deeper pipelining typically raises hazard stalls in $\text{CPI}$.</figcaption>
+</figure>
+
+Even though Core B executes $24\%$ fewer clock cycles per instruction ($\text{CPI}_B = 1.25$ vs. $1.65$), Core A's $1.5\times$ higher clock rate more than compensates, completing each control frame $75\;\mu\text{s}$ earlier for a relative speedup of:
+
+$$S = \frac{T_{\text{exec},B}}{T_{\text{exec},A}} = \frac{0.625\text{ ms}}{0.550\text{ ms}} \approx 1.136\times \quad (13.6\% \text{ faster})$$
+
+<StepCheck
+  client:load
+  prompt="Suppose a write-buffer upgrade on Core B ($f_{\mathrm{clk},B} = 2.0\;\mathrm{GHz}$, $\mathrm{IC} = 10^6$) reduces Store latency from $2$ cycles to $1$ cycle while all other classes stay unchanged. What is the new execution time $T_{\mathrm{exec},B}$?"
+  expected={0.575}
+  tolerance={0.005}
+  unit="ms"
+  explanation="Reducing the $10\%$ Store class by $1$ cycle lowers $\mathrm{CPI}_B$ from $1.25$ to $1.15$, giving $T_{\mathrm{exec},B} = (10^6 \times 1.15) / (2.0 \times 10^9) = 0.575\;\mathrm{ms}$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Processor Performance Equation
+
+For a processor dedicated to a single program (excluding external I/O wait time), wall-clock **CPU execution time** $T_{\text{exec}}$ is the product of three factors—known across computer architecture as the **Iron Law of Processor Performance**:
+
+$$T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}} = \frac{\text{IC} \times \text{CPI}}{f_{\text{clk}}}$$
+
+Dimensional cancellation confirms the structure directly:
+
+$$\text{Seconds} = \frac{\text{Instructions}}{\text{Program}} \times \frac{\text{Clock Cycles}}{\text{Instruction}} \times \frac{\text{Seconds}}{\text{Clock Cycle}}$$
+
+Each factor maps to a distinct layer of the hardware-software stack, and real design changes almost always pull two factors in opposite directions:
+
+1. **Dynamic Instruction Count ($\text{IC}$):** The total number of machine instructions *actually executed* at runtime—not the static line count in an assembly file. A 10-instruction loop body iterating $1{,}000$ times contributes $10{,}000$ to $\text{IC}$. Algorithm choice, compiler flags (`-O2`, loop unrolling, dead-code elimination), and ISA style control $\text{IC}$: dense CISC encodings execute fewer instructions than RISC encodings, but require more work per instruction.
+2. **Average Cycles Per Instruction ($\text{CPI}$):** The mean number of clock cycles consumed per executed instruction, governed by pipeline organization, hazard forwarding, branch prediction, and cache miss penalties. Scalar in-order embedded cores (RISC-V RV32IM, ARM Cortex-M) operate with $\text{CPI} \ge 1.0$. Wide superscalar out-of-order cores (Apple M-series, AMD Zen) issue multiple instructions per cycle, achieving $\text{CPI} < 1.0$—often reported via its reciprocal, **Instructions Per Cycle** ($\text{IPC} = 1 / \text{CPI} > 1.0$).
+3. **Clock Period ($T_{\text{clk}} = 1 / f_{\text{clk}}$):** The duration of one clock cycle, set by the longest combinational critical-path delay between pipeline registers and the silicon transistor technology. Standard unit conversions must be automatic on paper:
+   $$1\text{ GHz} = 10^9\text{ Hz} \iff T_{\text{clk}} = 1.0\text{ ns} = 1000\text{ ps}, \qquad 2.5\text{ GHz} \iff T_{\text{clk}} = \frac{1}{2.5}\text{ ns} = 0.40\text{ ns} = 400\text{ ps}$$
+
+### Weighted Instruction Mix
+
+Programs execute a heterogeneous mix of $m$ instruction classes (such as ALU arithmetic, loads, stores, branches, and floating-point operations). If class $i$ executes $\text{IC}_i$ dynamic instructions (so $\sum_{i=1}^m \text{IC}_i = \text{IC}$) and requires $\text{CPI}_i$ cycles per instruction, the total clock cycles consumed by the program are $C_{\text{tot}} = \sum_{i=1}^m \text{IC}_i \cdot \text{CPI}_i$. Dividing $C_{\text{tot}}$ by $\text{IC}$ defines the **weighted arithmetic mean $\text{CPI}$**:
+
+$$\text{CPI} = \frac{C_{\text{tot}}}{\text{IC}} = \sum_{i=1}^m \left(\frac{\text{IC}_i}{\text{IC}}\right) \text{CPI}_i = \sum_{i=1}^m f_i \cdot \text{CPI}_i, \qquad \text{where } f_i = \frac{\text{IC}_i}{\text{IC}} \text{ and } \sum_{i=1}^m f_i = 1$$
+
+Two properties of this sum are tested repeatedly in written exams:
+
+- **Instruction Share vs. Time Share:** The weight $f_i = \text{IC}_i / \text{IC}$ is the fraction of *instructions*, not the fraction of *execution time*. Because slow instructions occupy more cycles, the fraction of total CPU time (and total clock cycles) spent in class $i$ is:
+  $$F_i = \frac{\text{IC}_i \cdot \text{CPI}_i \cdot T_{\text{clk}}}{\text{IC} \cdot \text{CPI} \cdot T_{\text{clk}}} = \frac{f_i \cdot \text{CPI}_i}{\text{CPI}}$$
+- **Compiler Deletion Shifts Weights $f_i$:** Whenever an optimizing compiler deletes instructions from one class (for example, removing $30\%$ of $1$-cycle ALU instructions), the total count $\text{IC}_{\text{new}}$ shrinks and *every* relative share $f_i^{\text{new}} = \text{IC}_i^{\text{new}} / \text{IC}_{\text{new}}$ changes. Deleting fast $1$-cycle instructions raises the average $\text{CPI}_{\text{new}}$, even though total cycles $C_{\text{tot}}$ and execution time $T_{\text{exec}}$ strictly decrease.
+
+### Speedup and Throughput
+
+Architectural **performance** is defined as the reciprocal of execution time, $\text{Perf}_X = 1 / T_{\text{exec},X}$. Saying that design $B$ is **$S$ times as fast** as baseline design $A$ on the same workload means placing the baseline (slower) runtime in the numerator:
+
+$$S = \frac{\text{Perf}_B}{\text{Perf}_A} = \frac{T_{\text{exec},A}}{T_{\text{exec},B}} = \frac{\text{IC}_A \cdot \text{CPI}_A \cdot T_{\text{clk},A}}{\text{IC}_B \cdot \text{CPI}_B \cdot T_{\text{clk},B}}$$
+
+When $S = 1.25$, design $B$ is **$25\%$ faster** than design $A$ ($(S - 1) \times 100\% = 25\%$), which corresponds to a **$20\%$ reduction in execution time** ($T_{\text{exec},B} = \frac{1}{1.25} T_{\text{exec},A} = 0.80\,T_{\text{exec},A}$). When two cores run the identical binary without recompilation ($\text{IC}_A = \text{IC}_B$), $\text{IC}$ cancels out of the speedup ratio cleanly.
+
+By contrast, **MIPS** (*Millions of Instructions Per Second*) measures raw instruction rate rather than program completion speed:
+
+$$\text{MIPS} = \frac{\text{IC}}{T_{\text{exec}} \times 10^6} = \frac{f_{\text{clk}}}{\text{CPI} \times 10^6}$$
+
+Because $\text{MIPS}$ divides out $\text{IC}$ from the performance equation, it ignores how much useful program work each instruction accomplishes:
+
+1. **Cross-ISA Failure:** A RISC binary executing $3\times$ as many simple instructions as a CISC binary in the *exact same* wall-clock time $T_{\text{exec}}$ reports $3\times$ higher $\text{MIPS}$ for zero real speedup.
+2. **Same-ISA Compiler Paradox:** When a compiler eliminates redundant $1$-cycle ALU instructions, $T_{\text{exec}}$ improves while average $\text{CPI}$ rises—causing $\text{MIPS} = \frac{f_{\text{clk}}}{\text{CPI} \times 10^6}$ to *drop* on the faster program.
+
+<Callout type="bridge" title="Embedded Real-Time Instruction Budgets">
+
+On bare-metal flight controllers and automotive ECUs running periodic control tasks with hard deadline $T_{\text{deadline}}$, rearranging the Iron Law yields the deterministic dynamic instruction budget per control tick:
+
+$$\text{IC}_{\max} = \left\lfloor \frac{T_{\text{deadline}} \cdot f_{\text{clk}}}{\text{CPI}} \right\rfloor$$
+
+At $f_{\text{clk}} = 168\text{ MHz}$ and $T_{\text{deadline}} = 1.0\text{ ms}$, inflating $\text{CPI}$ from $1.2$ to $2.4$ due to uncached flash wait states cuts the available budget in half—from $140{,}000$ down to $70{,}000$ instructions per millisecond.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="An optimizing compiler removes $40\%$ of a program's $1$-cycle ALU instructions on the same CPU ($f_{\mathrm{clk}}$ unchanged) without altering any multi-cycle Load, Store, or Branch instructions. How do $T_{\mathrm{exec}}$, average $\mathrm{CPI}$, and $\mathrm{MIPS}$ change?"
+  options={[
+    "$T_{\\mathrm{exec}}$ decreases, average $\\mathrm{CPI}$ decreases, and $\\mathrm{MIPS}$ increases",
+    "$T_{\\mathrm{exec}}$ decreases, average $\\mathrm{CPI}$ increases, and $\\mathrm{MIPS}$ decreases",
+    "$T_{\\mathrm{exec}}$ increases because average $\\mathrm{CPI}$ increases"
+  ]}
+  correctIndex={1}
+  explanation="Removing $1$-cycle instructions strictly reduces total clock cycles (so $T_{\mathrm{exec}}$ decreases), but leaves a higher proportion of slower multi-cycle instructions in the remaining mix—raising $\mathrm{CPI}$ and lowering $\mathrm{MIPS} = f_{\mathrm{clk}} / (\mathrm{CPI} \times 10^6)$."
+/>
+
+<Divider label="3 · Summary" />
+
+| Quantity | Formula | Units & Meaning |
+| :--- | :--- | :--- |
+| **CPU Execution Time** | $T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}} = \dfrac{\text{IC} \times \text{CPI}}{f_{\text{clk}}}$ | Seconds ($\text{s}$, $\text{ms}$, $\mu\text{s}$, $\text{ns}$); ground-truth inverse performance |
+| **Clock Period** | $T_{\text{clk}} = \dfrac{1}{f_{\text{clk}}}$ | $1\text{ GHz} \leftrightarrow 1\text{ ns}$, $1\text{ MHz} \leftrightarrow 1\;\mu\text{s}$ |
+| **Weighted Average $\text{CPI}$** | $\text{CPI} = \sum_{i=1}^m f_i \cdot \text{CPI}_i, \quad f_i = \dfrac{\text{IC}_i}{\text{IC}}$ | Cycles per dynamic instruction ($\sum f_i = 1$; $\text{IPC} = 1/\text{CPI}$) |
+| **Class Time Fraction** | $F_i = \dfrac{f_i \cdot \text{CPI}_i}{\text{CPI}}$ | Share of total CPU cycles/time consumed by instruction class $i$ |
+| **Relative Speedup** | $S = \dfrac{T_{\text{exec,old}}}{T_{\text{exec,new}}} = \dfrac{\text{Perf}_{\text{new}}}{\text{Perf}_{\text{old}}}$ | Dimensionless factor; $(S - 1) \times 100\%$ faster |
+| **MIPS Throughput** | $\text{MIPS} = \dfrac{\text{IC}}{T_{\text{exec}} \times 10^6} = \dfrac{f_{\text{clk}}}{\text{CPI} \times 10^6}$ | Millions of instructions/s; invalid across differing $\text{IC}$ |
+
+### Calculation Procedure
+
+1. **Normalize Clock Units:** Convert $f_{\text{clk}}$ to Hz ($1\text{ GHz} = 10^9\text{ Hz}$, $1\text{ MHz} = 10^6\text{ Hz}$) or $T_{\text{clk}}$ to nanoseconds before multiplying.
+2. **Evaluate Total Cycles or Weighted $\text{CPI}$:**
+   - If the dynamic mix percentages $f_i$ are fixed, verify $\sum f_i = 1$ and compute $\text{CPI} = \sum f_i \cdot \text{CPI}_i$.
+   - If a compiler optimization modifies individual class counts $\text{IC}_i$, compute new class counts $\text{IC}_i^{\text{new}}$ and total cycles $C_{\text{tot}}^{\text{new}} = \sum \text{IC}_i^{\text{new}} \cdot \text{CPI}_i$ explicitly before dividing by $\text{IC}_{\text{new}} = \sum \text{IC}_i^{\text{new}}$.
+3. **Compute $T_{\text{exec}}$:** Multiply $T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}}$ (or $C_{\text{tot}} / f_{\text{clk}}$) and convert to the requested output unit ($1\text{ ms} = 10^{-3}\text{ s} = 10^6\text{ ns}$).
+4. **Form Speedup Ratio:** Divide the slower/baseline execution time by the faster/improved execution time ($S = T_{\text{old}} / T_{\text{new}}$).
+
+### Key Relations
+
+- **Cycle Decomposition:** Total clock cycles equal $C_{\text{tot}} = \text{IC} \times \text{CPI} = \sum_{i=1}^m \text{IC}_i \cdot \text{CPI}_i$, linking per-class latencies to global runtime.
+- **Same-Binary Ratio:** When $\text{IC}_A = \text{IC}_B$, speedup reduces to $S = \frac{\text{CPI}_A \cdot f_{\text{clk},B}}{\text{CPI}_B \cdot f_{\text{clk},A}}$, isolating the clock-rate vs. stall-cycle trade-off.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Reusing Old Shares $f_i$ After Compiler Changes:** If $30\%$ of ALU instructions are removed from a $50\%$ ALU workload, the new ALU share is *not* $0.50 \times 0.70 = 0.35$; it is $\frac{0.35}{1 - 0.15} = \frac{0.35}{0.85} \approx 41.2\%$ because the denominator $\text{IC}_{\text{new}}$ also decreased.
+2. **Percent Faster vs. Percent Time Reduction:** "$25\%$ faster" means $S = \frac{T_{\text{old}}}{T_{\text{new}}} = 1.25$ ($T_{\text{new}} = 0.80\,T_{\text{old}}$), whereas "reduces execution time by $25\%$" means $T_{\text{new}} = 0.75\,T_{\text{old}}$ ($S = 1.33\times$).
+3. **Decimal vs. Percentage Scaling:** Always convert $20\%$ to $0.20$ inside $\sum f_i \cdot \text{CPI}_i$, and verify $\text{CPI}$ lies between $\min_i(\text{CPI}_i)$ and $\max_i(\text{CPI}_i)$.
+4. **Ranking Architectures by $\text{MIPS}$ or $f_{\text{clk}}$:** Never declare a processor faster without evaluating $T_{\text{exec}}$ (or $T_{\text{old}}/T_{\text{new}}$).
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-6-1"
+  title="Exercise 6.1 — Microarchitecture Comparison"
+  level="Warm-Up"
+  hint="Convert each clock frequency to $T_{\text{clk}}$ in nanoseconds ($2.0\text{ GHz} \to 0.50\text{ ns}$, $2.5\text{ GHz} \to 0.40\text{ ns}$), compute $\text{CPI} = \sum f_i \cdot \text{CPI}_i$, and form $S = T_{\text{slower}} / T_{\text{faster}}$."
+>
+
+Two processor microarchitectures execute the identical compiled RV32I binary of $\text{IC} = 10^6$ dynamic instructions:
+
+- **Processor Alpha ($f_{\text{clk},\alpha} = 2.0\text{ GHz}$):** ALU $50\%$ ($\text{CPI}=1$), Load $20\%$ ($\text{CPI}=3$), Store $15\%$ ($\text{CPI}=2$), Branch $15\%$ ($\text{CPI}=2$).
+- **Processor Beta ($f_{\text{clk},\beta} = 2.5\text{ GHz}$):** Due to a higher-latency memory bus, ALU $50\%$ ($\text{CPI}=1$), Load $20\%$ ($\text{CPI}=4$), Store $15\%$ ($\text{CPI}=3$), Branch $15\%$ ($\text{CPI}=2$).
+
+1. Compute the weighted average $\text{CPI}_\alpha$ and $\text{CPI}_\beta$.
+2. Determine total CPU execution time $T_{\text{exec},\alpha}$ and $T_{\text{exec},\beta}$ in milliseconds.
+3. Identify which processor is faster and calculate its percentage speedup.
+
+<StepCheck
+  client:load
+  prompt="What is the CPU execution time $T_{\mathrm{exec},\beta}$ of Processor Beta in milliseconds?"
+  expected={0.82}
+  tolerance={0.01}
+  unit="ms"
+  explanation="$\mathrm{CPI}_\beta = 0.50(1) + 0.20(4) + 0.15(3) + 0.15(2) = 2.05$, and $T_{\mathrm{clk},\beta} = 0.40\;\mathrm{ns}$, so $T_{\mathrm{exec},\beta} = 10^6 \times 2.05 \times 0.40\;\mathrm{ns} = 0.82\;\mathrm{ms}$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Weighted Average $\text{CPI}$:**
+   - Processor Alpha ($f_{\text{clk},\alpha} = 2.0\text{ GHz} \implies T_{\text{clk},\alpha} = 0.50\text{ ns}$):
+     $$\text{CPI}_\alpha = (0.50 \times 1) + (0.20 \times 3) + (0.15 \times 2) + (0.15 \times 2) = 0.50 + 0.60 + 0.30 + 0.30 = 1.70$$
+   - Processor Beta ($f_{\text{clk},\beta} = 2.5\text{ GHz} \implies T_{\text{clk},\beta} = 0.40\text{ ns}$):
+     $$\text{CPI}_\beta = (0.50 \times 1) + (0.20 \times 4) + (0.15 \times 3) + (0.15 \times 2) = 0.50 + 0.80 + 0.45 + 0.30 = 2.05$$
+2. **CPU Execution Time:**
+   $$T_{\text{exec},\alpha} = 10^6 \times 1.70 \times 0.50 \times 10^{-9}\text{ s} = 0.85 \times 10^{-3}\text{ s} = 0.85\text{ ms}$$
+   $$T_{\text{exec},\beta} = 10^6 \times 2.05 \times 0.40 \times 10^{-9}\text{ s} = 0.82 \times 10^{-3}\text{ s} = 0.82\text{ ms}$$
+3. **Speedup Comparison:**
+   Processor Beta finishes $0.03\text{ ms}$ ($30\;\mu\text{s}$) earlier than Processor Alpha, giving a relative speedup of:
+   $$S = \frac{T_{\text{exec},\alpha}}{T_{\text{exec},\beta}} = \frac{0.85\text{ ms}}{0.82\text{ ms}} \approx 1.0366 \implies 3.66\% \text{ faster}$$
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-6-2"
+  title="Exercise 6.2 — Compiler Optimization and MIPS Paradox"
+  level="Intermediate"
+  hint="Compute the absolute dynamic instruction count $\text{IC}_i$ and cycle count $\text{IC}_i \cdot \text{CPI}_i$ for each class before and after removing $40\%$ of ALU instructions, then divide new total cycles by $\text{IC}_{\text{new}}$."
+>
+
+A $2.0\text{ GHz}$ processor executes an unoptimized program (`-O0`) of $\text{IC}_{\text{old}} = 2.0 \times 10^8$ dynamic instructions with the following mix:
+
+- **ALU:** $50\%$ ($\text{CPI}_{\text{ALU}} = 1$)
+- **Load:** $25\%$ ($\text{CPI}_{\text{Load}} = 3$)
+- **Store:** $10\%$ ($\text{CPI}_{\text{Store}} = 2$)
+- **Branch:** $15\%$ ($\text{CPI}_{\text{Branch}} = 2$)
+
+Recompiling with `-O2` eliminates $40\%$ of the ALU instructions while leaving the dynamic counts and $\text{CPI}_i$ values of Loads, Stores, and Branches completely unchanged.
+
+1. Compute the baseline $\text{CPI}_{\text{old}}$, execution time $T_{\text{exec,old}}$ (in $\text{ms}$), and $\text{MIPS}_{\text{old}}$.
+2. Compute the new instruction count $\text{IC}_{\text{new}}$, new average $\text{CPI}_{\text{new}}$, and new execution time $T_{\text{exec,new}}$ (in $\text{ms}$).
+3. Calculate the true speedup $S = T_{\text{exec,old}} / T_{\text{exec,new}}$ alongside $\text{MIPS}_{\text{new}}$, and explain why $\text{MIPS}$ moves in the opposite direction of true performance.
+
+<StepCheck
+  client:load
+  prompt="What is the new weighted average $\mathrm{CPI}_{\mathrm{new}}$ after eliminating $40\%$ of the ALU instructions?"
+  expected={1.9375}
+  tolerance={0.01}
+  unit="cycles/instr"
+  explanation="Total cycles drop from $3.50 \times 10^8$ to $3.10 \times 10^8$, while $\mathrm{IC}_{\mathrm{new}}$ drops from $2.00 \times 10^8$ to $1.60 \times 10^8$, giving $\mathrm{CPI}_{\mathrm{new}} = 3.10 / 1.60 = 1.9375$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Baseline (`-O0`) Metrics:**
+   $$\text{CPI}_{\text{old}} = 0.50(1) + 0.25(3) + 0.10(2) + 0.15(2) = 0.50 + 0.75 + 0.20 + 0.30 = 1.75$$
+   Total baseline clock cycles are $C_{\text{old}} = 2.0 \times 10^8 \times 1.75 = 3.50 \times 10^8\text{ cycles}$. At $f_{\text{clk}} = 2.0 \times 10^9\text{ Hz}$ ($T_{\text{clk}} = 0.50\text{ ns}$):
+   $$T_{\text{exec,old}} = \frac{3.50 \times 10^8}{2.0 \times 10^9\text{ Hz}} = 0.175\text{ s} = 175\text{ ms}, \qquad \text{MIPS}_{\text{old}} = \frac{2000\text{ MHz}}{1.75} \approx 1142.9\text{ MIPS}$$
+2. **Optimized (`-O2`) Metrics:**
+   Baseline ALU count was $0.50 \times 2.0 \times 10^8 = 1.00 \times 10^8$ instructions. Removing $40\%$ removes $0.40 \times 10^8$ single-cycle ALU instructions (saving $0.40 \times 10^8$ cycles) and leaves $0.60 \times 10^8$ ALU instructions:
+   $$\text{IC}_{\text{new}} = (2.00 - 0.40) \times 10^8 = 1.60 \times 10^8\text{ instructions}$$
+   $$C_{\text{new}} = (3.50 - 0.40) \times 10^8 = 3.10 \times 10^8\text{ cycles}$$
+   $$\text{CPI}_{\text{new}} = \frac{C_{\text{new}}}{\text{IC}_{\text{new}}} = \frac{3.10 \times 10^8}{1.60 \times 10^8} = \frac{31}{16} = 1.9375\text{ cycles/instr}$$
+   $$T_{\text{exec,new}} = \frac{3.10 \times 10^8}{2.0 \times 10^9\text{ Hz}} = 0.155\text{ s} = 155\text{ ms}$$
+3. **Speedup vs. $\text{MIPS}$:**
+   $$S = \frac{175\text{ ms}}{155\text{ ms}} = \frac{35}{31} \approx 1.129\times \quad (12.9\% \text{ faster}), \qquad \text{MIPS}_{\text{new}} = \frac{2000\text{ MHz}}{1.9375} \approx 1032.3\text{ MIPS}$$
+   Although the `-O2` binary finishes $20\text{ ms}$ faster ($S = 1.129\times$), $\text{MIPS}$ drops by nearly $10\%$ because the compiler stripped away cheap $1$-cycle instructions, leaving a denser mix of useful $2$- and $3$-cycle memory and branch operations.
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-6-3"
+  title="Exercise 6.3 — Target Clock Rate for Deeper Pipelining"
+  level="Exam"
+  hint="Compute $\text{CPI}_{\text{old}}$ and $\text{CPI}_{\text{new}}$ first, then set $S_{\text{target}} = \frac{\text{CPI}_{\text{old}} \cdot f_{\text{clk,new}}}{\text{CPI}_{\text{new}} \cdot f_{\text{clk,old}}} = 1.50$ and solve for $f_{\text{clk,new}}$."
+>
+
+A baseline processor running at $f_{\text{clk,old}} = 2.0\text{ GHz}$ executes a benchmark with dynamic instruction shares ALU $50\%$ ($\text{CPI}=1$), Load $20\%$ ($\text{CPI}=2$), Store $15\%$ ($\text{CPI}=2$), and Branch $15\%$ ($\text{CPI}=2$).
+
+To raise the clock rate without changing the ISA ($\text{IC}_{\text{new}} = \text{IC}_{\text{old}}$), the silicon team splits stages into a deeper pipeline. Because branch resolution moves later in the pipeline, Branch latency rises from $\text{CPI}_{\text{Branch}} = 2$ to $4$ cycles, while ALU, Load, and Store cycle counts remain unchanged.
+
+1. Compute $\text{CPI}_{\text{old}}$ and $\text{CPI}_{\text{new}}$.
+2. Determine the minimum clock frequency $f_{\text{clk,new}}$ (in $\text{GHz}$) and maximum clock period $T_{\text{clk,new}}$ (in $\text{ps}$) required for the redesigned processor to achieve a $1.50\times$ overall speedup over the baseline core.
+
+<StepCheck
+  client:load
+  prompt="What minimum clock frequency $f_{\mathrm{clk,new}}$ (in GHz) is required to achieve the $1.50\times$ overall speedup?"
+  expected={3.6}
+  tolerance={0.02}
+  unit="GHz"
+  explanation="$\mathrm{CPI}_{\mathrm{old}} = 1.50$ and $\mathrm{CPI}_{\mathrm{new}} = 1.80$, so $f_{\mathrm{clk,new}} = 1.50 \times (1.80 / 1.50) \times 2.0\;\mathrm{GHz} = 3.60\;\mathrm{GHz}$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Weighted $\text{CPI}$ Before and After Repipelining:**
+   $$\text{CPI}_{\text{old}} = 0.50(1) + 0.20(2) + 0.15(2) + 0.15(2) = 0.50 + 0.40 + 0.30 + 0.30 = 1.50$$
+   Increasing the $15\%$ Branch class by $+2$ cycles adds $0.15 \times 2 = 0.30$ cycles per instruction:
+   $$\text{CPI}_{\text{new}} = 0.50(1) + 0.20(2) + 0.15(2) + 0.15(4) = 1.50 + 0.30 = 1.80$$
+2. **Required Clock Frequency and Period:**
+   With $\text{IC}_{\text{new}} = \text{IC}_{\text{old}}$, enforcing $S = \frac{T_{\text{exec,old}}}{T_{\text{exec,new}}} = 1.50$ gives:
+   $$1.50 = \frac{\text{IC} \cdot \text{CPI}_{\text{old}} / f_{\text{clk,old}}}{\text{IC} \cdot \text{CPI}_{\text{new}} / f_{\text{clk,new}}} = \frac{\text{CPI}_{\text{old}}}{\text{CPI}_{\text{new}}} \cdot \frac{f_{\text{clk,new}}}{f_{\text{clk,old}}}$$
+   Solving for $f_{\text{clk,new}}$:
+   $$f_{\text{clk,new}} = 1.50 \times \frac{1.80}{1.50} \times 2.0\text{ GHz} = 1.80 \times 2.0\text{ GHz} = 3.60\text{ GHz}$$
+   The corresponding maximum allowable clock cycle period is:
+   $$T_{\text{clk,new}} = \frac{1}{3.60 \times 10^9\text{ Hz}} \approx 0.2778\text{ ns} = 277.8\text{ ps}$$
+   Because deeper branch penalties inflated $\text{CPI}$ by $20\%$ ($1.50 \to 1.80$), achieving a $50\%$ net speedup requires an $80\%$ increase in clock frequency ($2.0\text{ GHz} \to 3.6\text{ GHz}$).
+
+</details>
+
+</Exercise>

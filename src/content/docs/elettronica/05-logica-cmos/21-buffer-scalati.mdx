@@ -11,174 +11,270 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 21" markdown={`# Cap. 21: Buffer Scalati in Cascata
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Il Limite del Singolo Stadio di Pilotaggio
-    - Derivazione Analitica del Fattore di Scalamento Ottimo
-    - Influenza delle Capacità Parassite Intrinseche e Pratica Industriale
-    - Vincolo di Polarità Logica
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 21" markdown={`# Cap. 21: Buffer Scalati in Cascata
+  - 1. Fattore di Carico e Catena Rastremata Ideale
+    - Esempio: Pilotaggio di un Pad da 10 pF e Minimo f = e
+    - Teoria: Scalamento Geometrico e Derivazione di f_opt = e
+  - 2. Capacità Parassite di Drain, Area FO4 e Polarità
+    - Esempio: Progetto Non Invertente con gamma = 1 e Area FO4
+    - Teoria: Equazione Trascendente, Progressione d'Area e Parità`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
-Nei circuiti integrati digitali ad alta densità (VLSI), i nodi interni di calcolo operano con porte logiche a dimensione geometrica minima ($W_{min}, L_{min}$) al fine di minimizzare l'occupazione d'area di silicio e la potenza dinamica locale dissipata. La capacità di ingresso di tali stadi interni è tipicamente dell'ordine di pochi femtofarad ($C_{in} \approx 1\div 5\text{ fF}$).
+All'interno di un microprocessore una porta logica minima ha una capacità d'ingresso piccolissima ($C_{in} \approx 2\div 10\,\text{fF}$) e commuta in poche decine di picosecondi. Quando però quel segnale deve pilotare una lunga linea di clock o un piedino esterno del chip (*bonding pad*, con $C_L \approx 10\div 50\,\text{pF}$), collegare direttamente la porta minima al carico rallenterebbe tutto di mille volte.
 
-Tuttavia, quando un segnale logico generato nel cuore computazionale del chip (*core*) deve essere trasmesso a destinazioni macroscopiche — quali i bus di interconnessione globali, le reti di distribuzione del clock, o i *bonding pad* di ingresso/uscita (I/O) collegati ai pin esterni del package — il carico capacitivo effettivo $C_L$ raggiunge valori compresi tra centinaia di femtofarad e decine di picofarad ($C_L \approx 1\div 50\text{ pF}$).
+Mettere subito un invertitore gigantesco non risolverebbe il problema, perché la porta precedente farebbe fatica a pilotarlo. La soluzione usata in tutti i chip moderni è inserire una **catena di buffer scalati** (*tapered buffer*): una serie di invertitori via via più grandi secondo un fattore costante $f$, scegliendo il passo ottimo ($f_{\text{opt}} = e$ nel caso ideale, oppure la regola pratica **FO4** con le capacità parassite) e rispettando la polarità del segnale.
 
-Il rapporto tra la capacità di carico finale e la capacità d'ingresso del primo stadio definisce il **fattore di carico globale** (*overall capacitive fan-out*):
+<Divider label="1 · Fattore di Carico e Catena Rastremata Ideale" />
+
+### Esempio — Pilotaggio di un Pad da $10\,\text{pF}$: Stadio Singolo vs Catena Rastremata
+
+Un invertitore minimo ha capacità d'ingresso $C_{in} = 10\,\text{fF}$ e ritardo intrinseco $t_{p0} = 20\,\text{ps}$ quando pilota un altro invertitore identico ([Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/)). Dobbiamo pilotare un pad esterno da $C_L = 10\,\text{pF} = 10\,000\,\text{fF}$ ([la figura](#fig-tapered-buffer)). Il **fattore di carico globale** vale:
+
 $$
-F \triangleq \frac{C_L}{C_{in}} \approx 10^3 \div 10^5
+F = \frac{C_L}{C_{in}} = \frac{10\,000\,\text{fF}}{10\,\text{fF}} = 1000
 $$
-
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
-
-## Il Limite del Singolo Stadio di Pilotaggio
-
-Se si utilizzasse un singolo invertitore di dimensioni minime per pilotare direttamente il carico $C_L$, il ritardo di propagazione $t_p$ risulterebbe:
-$$
-t_p = t_{p0} \frac{C_L}{C_{in}} = t_{p0} \cdot F
-$$
-dove $t_{p0}$ è il ritardo intrinseco della cella elementare caricata da una porta identica a sé stessa ($C_L = C_{in}$).
-Con $t_{p0} \approx 20\text{ ps}$ e $F = 2000$:
-$$
-t_p = 20\text{ ps} \times 2000 = 40\text{ ns}
-$$
-Un ritardo di $40\text{ ns}$ limiterebbe la frequenza massima di clock a meno di $25\text{ MHz}$, vanificando le prestazioni gigahertz del silicio. Inoltre, una transizione estremamente lenta genera enormi correnti di cortocircuito ($P_{sc}$) e rende il nodo d'uscita vulnerabile al rumore da *cross-talk*.
-
-La soluzione strutturale consiste nell'interporre tra il nodo sorgente e il carico finale una **catena rastremata di $N$ invertitori in cascata** (*tapered buffer chain*), dimensionati con capacità progressivamente crescenti.
 
 <figure id="fig-tapered-buffer" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-tapered-buffer.svg" alt="Catena di N invertitori rastremati con fattore di moltiplicazione geometrico f." />
-  <figcaption>Catena di $N$ invertitori rastremati con fattore di moltiplicazione geometrico $f$.</figcaption>
+  <figcaption>Catena di $N$ invertitori rastremati con fattore di moltiplicazione geometrico $f = f_{\text{taper}}$.</figcaption>
 </figure>
 
-## Derivazione Analitica del Fattore di Scalamento Ottimo
+1. **Connessione diretta ($N = 1$):**
+   Se colleghiamo subito l'invertitore minimo a $C_L$, il ritardo cresce linearmente di $1000$ volte:
 
-Sia una catena di $N$ invertitori in cui ogni stadio $j$ presenta dimensioni geometriche moltiplicate per un fattore costante $f$ rispetto allo stadio precedente:
 $$
-W_j = f \cdot W_{j-1} \implies C_{in,j} = f \cdot C_{in, j-1} = f^{j-1} C_{in}
-$$
-La resistenza di canale equivalente $R_j$ decresce proporzionalmente alla larghezza:
-$$
-R_j = \frac{R_1}{f^{j-1}}
-$$
-Il carico capacitivo visto dallo stadio $j$ è la capacità d'ingresso dello stadio successivo $j+1$:
-$$
-C_{load,j} = C_{in,j+1} = f^j C_{in}
-$$
-Il ritardo di propagazione del singolo stadio $j$ è indipendente dall'indice $j$:
-$$
-t_{p,j} \approx 0.69 \, R_j C_{load,j} = 0.69 \left(\frac{R_1}{f^{j-1}}\right) \left(f^j C_{in}\right) = 0.69 \, R_1 C_{in} \cdot f = t_{p0} \cdot f
-$$
-dove $t_{p0} = 0.69 R_1 C_{in}$ rappresenta il ritardo intrinseco dell'invertitore elementare unitario caricato da una replica identica.
-
-### Vincolo Globale del Carico
-
-L'ultimo stadio $N$ pilota il carico effettivo $C_L$. Imponendo che il rapporto di carico tra l'ultimo stadio e il carico finale coincida con il medesimo fattore $f$:
-$$
-C_L = f \cdot C_{in,N} = f \cdot (f^{N-1} C_{in}) = f^N C_{in}
-$$
-Si ottiene la relazione fondamentale che correla il fattore di scalamento $f$, il numero di stadi $N$ e il guadagno di carico $F$:
-$$
-f^N = \frac{C_L}{C_{in}} = F \implies f = F^{1/N}
-$$
-Prendendo il logaritmo naturale di entrambi i membri:
-$$
-N \ln(f) = \ln(F) \implies N = \frac{\ln(F)}{\ln(f)}
+t_{p,\text{singolo}} = t_{p0} \cdot F = 20\,\text{ps} \times 1000 = 20\,\text{ns}
 $$
 
-### Minimizzazione del Ritardo Complessivo
+2. **Catena rastremata a $N = 5$ stadi ($f = 1000^{1/5} \approx 3.98$):**
+   Inseriamo $5$ invertitori in cascata in cui ogni stadio è largo circa $3.98$ volte il precedente. Le capacità d'ingresso crescono così:
 
-Il ritardo di propagazione totale della catena di $N$ stadi è dato dalla somma dei singoli ritardi $t_{p,tot} = N \cdot t_{p0} \cdot f$. Il fattore di rastremazione teorico ottimale che minimizza il ritardo globale è pari alla **base dei logaritmi naturali (numero di Eulero $e \approx 2.718$)**, a cui corrisponde un numero ottimo di stadi $N_{opt} = \ln(F) = \ln(C_L/C_{in})$ e un ritardo minimo teorico:
 $$
-t_{p,min} = N_{opt} \cdot t_{p0} \cdot e = e \, t_{p0} \ln\left(\frac{C_L}{C_{in}}\right)
+10\,\text{fF} \xrightarrow{\times 3.98} 39.8\,\text{fF} \xrightarrow{\times 3.98} 158\,\text{fF} \xrightarrow{\times 3.98} 631\,\text{fF} \xrightarrow{\times 3.98} 2.51\,\text{pF} \xrightarrow{\times 3.98} C_L = 10\,\text{pF}
 $$
 
-### Dimostrazione Matematica: Minimizzazione Analitica del Ritardo Totale rispetto a $f$
+   Ogni stadio vede davanti a sé una capacità $3.98$ volte più grande della propria, quindi impiega esattamente lo stesso ritardo $t_{p,j} = t_{p0} f \approx 20\,\text{ps} \times 3.98 \approx 80\,\text{ps}$. Il ritardo totale crolla a:
 
-Sostituendo l'espressione $N = \ln(F)/\ln(f)$ nel ritardo complessivo $t_{p,tot} = N \cdot t_{p0} \cdot f$:
 $$
-t_{p,tot}(f) = t_{p0} \frac{\ln(F)}{\ln(f)} f = t_{p0} \ln(F) \left[ \frac{f}{\ln(f)} \right]
+t_{p,\text{tot}}(5) = 5 \times 80\,\text{ps} \approx 398\,\text{ps} \quad (\text{circa } 50\text{ volte più veloce!})
 $$
-Per individuare il valore di $f$ che minimizza $t_{p,tot}$, calcoliamo la derivata prima della funzione $g(f) = \frac{f}{\ln(f)}$ rispetto a $f$ e imponiamola uguale a zero:
-$$
-\frac{dg(f)}{df} = \frac{1 \cdot \ln(f) - f \cdot \left(\frac{1}{f}\right)}{[\ln(f)]^2} = \frac{\ln(f) - 1}{[\ln(f)]^2} = 0
-$$
-Affinché la derivata si annulli (essendo il denominatore non nullo per $f \neq 1$):
-$$
-\ln(f) - 1 = 0 \implies \ln(f) = 1 \iff f_{opt} = e \approx 2.71828\dots
-$$
-Sostituendo $f_{opt} = e$ nell'equazione di $N$:
-$$
-N_{opt} = \frac{\ln(F)}{\ln(e)} = \ln(F) = \ln\left(\frac{C_L}{C_{in}}\right)
-$$
-Se invece si include anche la **capacità parassita intrinseca di drain** di ciascuno stadio $C_{int} = \gamma C_{in}$ (con $\gamma \approx 1$), il ritardo di stadio diventa $t_{p,j} = t_{p0}(\gamma + f)$ e il ritardo totale vale:
-$$
-t_{p,tot} = N t_{p0} (\gamma + f) = t_{p0} \ln(F) \left[ \frac{\gamma + f}{\ln(f)} \right]
-$$
-Annullando nuovamente la derivata prima rispetto a $f$:
-$$
-\frac{d}{df} \left[ \frac{\gamma + f}{\ln(f)} \right] = \frac{1 \cdot \ln(f) - (\gamma + f)\frac{1}{f}}{[\ln(f)]^2} = 0 \implies f \left( \ln(f) - 1 \right) = \gamma
-$$
-Per $\gamma = 1$, la risoluzione numerica fornisce $f_{opt} \approx 3.6$.
 
-## Influenza delle Capacità Parassite Intrinseche e Pratica Industriale
+3. **Minimo assoluto teorico ($f_{\text{opt}} = e \approx 2.72$):**
+   Con il fattore ottimo teorico $f_{\text{opt}} = e$, il numero ideale di stadi è $N_{\text{opt}} = \ln(1000) \approx 6.9 \approx 7$ stadi, e il ritardo scende ancora leggermente a $t_{p,\min} = e\,t_{p0}\ln(1000) \approx 376\,\text{ps}$.
 
-La trattazione ideale assume che la capacità vista da ciascuno stadio sia puramente quella di gate del transistore a valle ($C_{load} = C_{in}$). Nei dispositivi reali, ogni invertitore contribuisce al nodo di uscita con una propria **capacità parassita di diffusione di drain** $C_{int} = \gamma C_{in}$ (dove $\gamma \approx 1$ nei processi CMOS sub-micronici), spostando l'ottimo reale verso $f_{opt} \approx 3.6$ ([la figura](#fig-buffer-scaling-tradeoff)).
+<StepCheck client:load lang="it" prompt="Nella catena a $5$ stadi dell'esempio ($C_{in} = 10\,\text{fF}$, $f \approx 3.981$), quanto vale la capacità d'ingresso del secondo stadio ($j = 2$, in $\text{fF}$)?" expected={39.81} tolerance={0.5} unit="$\text{fF}$" explanation="La capacità cresce geometricamente come $C_{in,j} = f^{j-1} C_{in}$: per $j=2$ si ha $C_{in,2} = 3.981 \times 10\,\text{fF} \approx 39.81\,\text{fF}$." />
+
+### Teoria — Scalamento Geometrico e Derivazione del Fattore Ottimo $f_{\text{opt}} = e$
+
+Quando una porta minima (capacità $C_{in}$, resistenza $R_1$, ritardo unitario $t_{p0} = 0.69\,R_1 C_{in}$) deve pilotare un carico molto grande $C_L$, il rapporto $F = C_L / C_{in}$ può raggiungere $10^3 \div 10^5$. Nel pilotaggio diretto, il ritardo cresce in modo **lineare** con $F$ ($t_{p,\text{singolo}} = t_{p0} \cdot F$).
+
+Per abbatterlo, si interpone una catena di $N$ invertitori ([la figura](#fig-tapered-buffer)) in cui ciascuno stadio ha larghezza $f$ volte maggiore del precedente ($f > 1$). Poiché raddoppiare la larghezza $W$ raddoppia la capacità d'ingresso ma dimezza la resistenza, ogni stadio $j$ ha:
+
+$$
+C_{in,j} = f^{j-1} C_{in}, \qquad R_j = \frac{R_1}{f^{j-1}}
+$$
+
+Trascurando per ora le capacità parassite di drain ($\gamma = 0$), ogni stadio $j$ carica la capacità $C_{in,j+1} = f^j C_{in}$ dello stadio successivo. I fattori $f^{j-1}$ si semplificano e **tutti gli stadi hanno lo stesso ritardo**:
+
+$$
+t_{p,j} = 0.69\,R_j\,C_{in,j+1} = \left(0.69\,R_1 C_{in}\right) f = t_{p0} \cdot f
+$$
+
+Affinché anche l'ultimo stadio raccordi esattamente $C_L$ con lo stesso rapporto $f$, deve valere $f^N C_{in} = C_L$, cioè:
+
+$$
+f^N = F \iff f = F^{1/N} \iff N = \frac{\ln(F)}{\ln(f)}
+$$
+
+Il ritardo totale della catena diventa quindi:
+
+$$
+t_{p,\text{tot}}(f) = N\,t_{p0}\,f = t_{p0}\,\ln(F) \left[\frac{f}{\ln(f)}\right]
+$$
+
+Per trovare il fattore $f$ che minimizza il ritardo, deriviamo $f / \ln(f)$ rispetto a $f$ e poniamo a zero:
+
+$$
+\frac{d}{df}\left[\frac{f}{\ln(f)}\right] = \frac{\ln(f) - 1}{[\ln(f)]^2} = 0 \implies \ln(f) = 1 \implies f_{\text{opt}} = e \approx 2.72
+$$
+
+Sostituendo $f_{\text{opt}} = e$ si trovano numero ottimo di stadi e ritardo minimo:
+
+$$
+N_{\text{opt}} = \ln(F), \qquad t_{p,\min} = e\,t_{p0}\,\ln(F)
+$$
+
+La catena di buffer trasforma così la crescita del ritardo da **lineare** ($t_{p0} F$) a **logaritmica** ($e\,t_{p0}\ln F$).
+
+<Divider label="2 · Capacità Parassite di Drain, Area FO4 e Polarità" />
+
+### Esempio — Progetto Reale Non Invertente con Parassiti di Drain ($\gamma = 1$) e Compromesso Area-Ritardo
+
+Progettiamo ora un buffer **non invertente** (cioè con numero di stadi $N$ **pari**) per lo stesso carico $F = 1000$ ($C_{in} = 10\,\text{fF}$, $C_L = 10\,\text{pF}$, $t_{p0} = 20\,\text{ps}$), includendo però la capacità parassita interna di drain con $\gamma = 1$ ([la figura](#fig-buffer-scaling-tradeoff)):
 
 <figure id="fig-buffer-scaling-tradeoff" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-buffer-scaling-tradeoff.svg" alt="Andamento del ritardo globale normalizzato al variare del fattore di rastremazione f." />
   <figcaption>Andamento del ritardo globale normalizzato al variare del fattore di rastremazione $f$.</figcaption>
 </figure>
 
-<Callout type="tip" title="Scelta Industriale: Perché si Progetta con f = 3 div 4 (Regola FO4) invece di f = e = 2.72">
+1. **Effetto di $\gamma = 1$ sul numero ideale di stadi:**
+   Con $\gamma = 1$, ogni stadio paga un ritardo fisso aggiuntivo $\gamma t_{p0} = 20\,\text{ps}$ per caricare il proprio drain ($t_{p,j} = t_{p0}(1 + f)$). Il passo ottimo sale da $e \approx 2.72$ a $f_{\text{opt}} \approx 3.59$, dando un numero continuo di stadi:
 
-Anche se la derivata matematica pura fornisce $f = e \approx 2.72$, nessun progettista di circuiti integrati utilizza davvero $f = 2.72$: in ambito industriale si sceglie sistematicamente un fattore di scalamento **$f = 3 \div 4$** (la celebre regola del *Fan-Out-of-4*, FO4).
+$$
+N_{\text{cont}} = \frac{\ln(1000)}{\ln(3.59)} \approx 5.4\text{ stadi}
+$$
 
-Questa scelta ha un vantaggio pratico enorme: come mostra la [la figura](#fig-buffer-scaling-tradeoff), la curva del ritardo ha un fondo estremamente piatto tra $f = 2.7$ e $f = 4$ (scegliere $f = 4$ comporta una penalità di velocità inferiore al $3\%$, o addirittura nulla considerando le capacità di drain $\gamma \approx 1$), ma permette di **tagliare drasticamente il numero di stadi $N$, l'area di silicio occupata e la potenza dinamica dissipata** ($\text{Area}_{tot} \propto \sum f^{j-1} = \frac{f^N - 1}{f - 1}$). Ad esempio, per pilotare un carico $F = 1000$, passare da $f = e$ ($N = 7$ stadi) a $f = 4$ ($N = 5$ stadi) elimina due interi stadi di buffering, risparmiando oltre il $35\%$ di area di silicio sul pad-ring di uscita del chip.
+2. **Vincolo di parità e confronto tra $N = 6$ ed $N = 4$:**
+   Dovendo mantenere la polarità ($N$ pari), non possiamo usare $N = 5$. Confrontiamo i due interi pari vicini, ricordando che l'area normalizzata vale $\text{Area}_{\text{norm}} = \frac{F - 1}{f - 1}$:
+   - **Con $N = 6$ stadi:** $f_6 = 1000^{1/6} \approx 3.16$, ritardo per stadio $20\,\text{ps} \times (1 + 3.16) \approx 83\,\text{ps}$, quindi:
+
+$$
+t_{p,\text{tot}}(6) \approx 6 \times 83\,\text{ps} \approx 500\,\text{ps}, \qquad \text{Area}_{\text{norm}}(6) = \frac{999}{3.16 - 1} \approx 462\text{ unità}
+$$
+
+   - **Con $N = 4$ stadi:** $f_4 = 1000^{1/4} \approx 5.62$, ritardo per stadio $20\,\text{ps} \times (1 + 5.62) \approx 132\,\text{ps}$, quindi:
+
+$$
+t_{p,\text{tot}}(4) \approx 4 \times 132\,\text{ps} \approx 530\,\text{ps}, \qquad \text{Area}_{\text{norm}}(4) = \frac{999}{5.62 - 1} \approx 216\text{ unità}
+$$
+
+   Come mostra [la figura](#fig-buffer-scaling-tradeoff), il minimo è molto piatto: scegliendo $N = 4$ perdiamo appena $\approx 30\,\text{ps}$ ($+6\%$) di velocità rispetto a $N = 6$, ma **risparmiamo oltre metà dell'area di silicio** e dei consumi interni.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Includendo la capacità parassita intrinseca di drain $C_{int} = \gamma C_{in}$ con $\gamma = 1$, come cambia il fattore di scalamento ottimo $f_{\text{opt}}$ rispetto al caso ideale?" options={["Scende da $e \\approx 2.72$ verso $2.0$", "Resta esattamente $e \\approx 2.72$", "Sale da $e \\approx 2.72$ verso $3.6$"]} correctIndex={2} explanation="Risolvendo $f(\ln(f)-1) = \gamma$ per $\gamma = 1$ si ottiene $f_{\text{opt}} \approx 3.6$, maggiore di $e$ perché usare meno stadi riduce la somma dei ritardi parassiti di drain $\gamma t_{p0}$." />
+
+### Teoria — Equazione Trascendente con $\gamma$, Regola FO4 e Parità del Numero di Stadi
+
+1. **Modello con capacità parassite di drain ($\gamma > 0$):**
+   Nei MOSFET reali ([Capitolo 8](/dynamic-courses/elettronica/02-transistori-mos/08-capacita-parassite/)), l'uscita di ogni invertitore ha anche una capacità parassita di drain $C_{int,j} = \gamma\,C_{in,j}$ (con $\gamma \approx 1$ nei processi moderni). Ogni stadio $j$ deve quindi caricare sia il proprio drain sia il gate successivo, aggiungendo un ritardo fisso $\gamma t_{p0}$:
+
+$$
+t_{p,j} = t_{p0}(\gamma + f) \implies t_{p,\text{tot}}(f) = t_{p0}\,\ln(F)\left[\frac{\gamma + f}{\ln(f)}\right]
+$$
+
+   Annullando la derivata rispetto a $f$ si ottiene l'equazione di ottimalità:
+
+$$
+f\big(\ln(f) - 1\big) = \gamma
+$$
+
+   Per $\gamma = 1$, la soluzione numerica è $f_{\text{opt}} \approx 3.6$ (più grande di $e$: siccome ogni stadio paga un pedaggio fisso $\gamma t_{p0}$, conviene usare meno stadi con un passo $f$ più ampio).
+
+2. **Area totale e regola pratica FO4:**
+   Normalizzando a $1$ l'area del primo invertitore, l'area totale degli $N$ stadi è la somma della progressione geometrica:
+
+$$
+\text{Area}_{\text{norm}} = 1 + f + f^2 + \dots + f^{N-1} = \frac{F - 1}{f - 1}
+$$
+
+<Callout type="tip" title="Regola Industriale FO4">
+
+La curva del ritardo ([la figura](#fig-buffer-scaling-tradeoff)) è molto piatta tra $f = 2.5$ e $f = 4.5$. Per questo nella pratica industriale si usa quasi sempre un fattore di scala intorno a $f = 3.5 \div 4$ (regola **FO4**, *Fan-Out-of-4*): è vicinissimo al minimo di ritardo ($\approx 3.6$ con $\gamma = 1$) e quasi dimezza area e potenza rispetto a $f = e$.
 
 </Callout>
 
-## Vincolo di Polarità Logica
+3. **Vincoli di interezza e parità logica:**
+   Ogni stadio è un invertitore: per un **buffer non invertente** ($V_{out} = V_{in}$) $N$ deve essere **pari**, mentre per un **driver invertente** ($V_{out} = \overline{V_{in}}$) $N$ deve essere **dispari**. Una volta scelto $N$ intero con la parità corretta, si ricalcola sempre il fattore effettivo $f = F^{1/N}$.
 
-Un ulteriore vincolo di progetto riguarda la **polarità logica** del segnale:
-- Se il segnale finale sul carico $C_L$ deve avere la **stessa polarità** del segnale generato dalla porta interna, il numero di stadi deve essere rigorosamente **pari** ($N \in \{2, 4, 6, \dots\}$).
-- Se il segnale deve essere **invertito**, $N$ deve essere **dispari** ($N \in \{1, 3, 5, \dots\}$).
-- Qualora $N_{opt}$ non soddisfi la parità richiesta, si arrotonda $N$ al numero pari o dispari più vicino e si ricalcola il fattore di scalamento:
-  $$ f = F^{1/N} $$
+<Divider label="3 · Sintesi" />
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+### Tabella del Buffer Rastremato
 
-### Procedura di Dimensionamento Ottimo dei Buffer Rastremati
+| Configurazione | Numero di Stadi $N$ | Fattore di Scala $f$ | Ritardo Complessivo $t_{p,\text{tot}}$ |
+| :--- | :--- | :--- | :--- |
+| **Stadio Singolo** | $N = 1$ | $F = C_L / C_{in}$ | $t_{p0} \cdot F$ (lineare in $F$) |
+| **Catena Ideale ($\gamma = 0$)** | $N_{\text{opt}} = \ln(F)$ | $f_{\text{opt}} = e \approx 2.72$ | $e\,t_{p0}\,\ln(F)$ (logaritmico) |
+| **Catena Reale ($\gamma = 1$)** | $N \approx \ln(F)/\ln(f)$ | $f_{\text{opt}} \approx 3.6$ (pratica FO4: $3.5\div 4$) | $N\,t_{p0}\,(\gamma + f)$ |
 
-1. **Rapporto capacitivo totale:** $F = \frac{C_L}{C_{in}}$ (dove $C_{in}$ è la capacità d'ingresso dello stadio minimo).
-2. **Numero ottimo teorico di stadi:** $N_{\text{opt}} = \ln\left(\frac{C_L}{C_{in}}\right)$ (corrispondente al fattore di scala teorico $f_{\text{opt}} = e \approx 2.718$).
-3. **Scelta intera e vincolo di parità:** arrotondare $N$ all'intero più vicino rispettando il segno logico richiesto (**$N$ pari** per un buffer non invertente) e ricalcolare il fattore effettivo $f = F^{1/N}$ (in pratica industriale si usa $f = 3 \div 4$ per ridurre area e consumi).
+### Procedura di Dimensionamento
 
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
+1. **Calcolare il rapporto capacitivo:** ricavare $F = C_L / C_{in}$ usando la stessa unità di misura.
+2. **Stimare gli stadi ottimi:** calcolare $N_{\text{opt}} = \ln(F)$ se $\gamma = 0$, oppure $N_{\text{opt}} = \ln(F)/\ln(3.6)$ se $\gamma = 1$.
+3. **Imporre la parità e ricalcolare $f$:** scegliere gli interi pari (non invertente) o dispari (invertente) vicini a $N_{\text{opt}}$, calcolare $f = F^{1/N}$ e confrontare $t_{p,\text{tot}} = N\,t_{p0}(\gamma + f)$.
 
-<Callout type="warning" title="Trappola d'Esame: Dimenticare il Vincolo di Parità di N">
+### Dimostrazioni Chiave
 
-Ogni stadio della catena è un invertitore! Se il calcolo continuo fornisce $N_{\text{opt}} \approx 5.1$ ma serve un buffer **non invertente** ($V_{out} = V_{in}$), non è lecito scegliere $N = 5$: occorre arrotondare a **$N = 4$** o **$N = 6$**.
+- **Costanza del ritardo di stadio:** poiché $R_j = R_1 / f^{j-1}$ e $C_{in,j+1} = f^j C_{in}$, il prodotto $0.69\,R_j C_{in,j+1} = t_{p0} f$ è uguale per tutti gli stadi.
+- **Derivazione di $f_{\text{opt}} = e$:** sostituendo $N = \ln(F)/\ln(f)$ in $t_{p,\text{tot}} = N t_{p0} f$ e annullando la derivata di $f/\ln(f)$ si ottiene $\ln(f) = 1 \implies f_{\text{opt}} = e$.
+- **Effetto delle capacità di drain ($\gamma$):** annullando la derivata di $(\gamma + f)/\ln(f)$ si ricava $f(\ln(f) - 1) = \gamma$.
+
+<Callout type="warning" title="Errori Comuni">
+
+Ogni stadio è un invertitore! Se il calcolo continuo dà $N_{\text{opt}} \approx 5.1$ ma serve un buffer **non invertente**, usare $N = 5$ invertirebbe il segnale: bisogna confrontare $N = 4$ ed $N = 6$. Inoltre, dopo aver scelto $N$ intero, il fattore di scala non resta $e$, ma va ricalcolato come $f = F^{1/N}$.
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-21-1" title="Esercizio 21.1: Progetto di un Buffer Non Invertente Ottimizzato" level="Livello 2 · Esame" hint="Calcola N_opt = ln(C_L / C_in), arrotonda all'intero pari e trova f = (C_L / C_in)^(1/N).">
+<Divider label="4 · Esercizi" />
 
-Un invertitore minimo con capacità d'ingresso $C_{in} = 50\,\text{fF}$ deve pilotare un bus di uscita $C_L = 20\,\text{pF}$ mantenendo la stessa polarità logica (buffer non invertente).
+<Exercise client:load lang="it" id="ex-21-1" title="Esercizio 21.1 — Progetto di un Buffer Non Invertente" level="Base" hint="Calcola $N_{\text{opt}} = \ln(C_L / C_{in})$, arrotonda all'intero pari e trova $f = (C_L / C_{in})^{1/N}$.">
 
-<StepCheck client:load lang="it" prompt="Calcola il numero ottimo continuo di stadi N_opt = ln(C_L / C_in):" expected={5.991} tolerance={0.05} explanation="C_L / C_in = 20e-12 / 50e-15 = 400; ln(400) ≈ 5.991 ⇒ N = 6 stadi (pari!)." />
+Un invertitore minimo con capacità d'ingresso $C_{in} = 50\,\text{fF}$ deve pilotare un bus di uscita $C_L = 20\,\text{pF}$ mantenendo la stessa polarità logica (buffer non invertente, modello ideale $\gamma = 0$).
 
-<StepCheck client:load lang="it" prompt="Con N = 6 stadi, calcola il fattore di rastremazione effettivo f = 400^(1/6):" expected={2.714} tolerance={0.03} explanation="f = 400^(1/6) ≈ 2.714 ≈ e." />
+<StepCheck client:load lang="it" prompt="Calcola il numero ottimo continuo di stadi $N_{\text{opt}} = \ln(C_L / C_{in})$:" expected={5.991} tolerance={0.05} explanation="$C_L / C_{in} = 20\times 10^{-12} / (50\times 10^{-15}) = 400$; $\ln(400) \approx 5.991 \implies N = 6$ stadi (pari!)." />
+
+<StepCheck client:load lang="it" prompt="Con $N = 6$ stadi, calcola il fattore di rastremazione effettivo $f = 400^{1/6}$:" expected={2.714} tolerance={0.03} explanation="$f = 400^{1/6} \approx 2.714 \approx e$." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. $F = \frac{C_L}{C_{in}} = \frac{20\,\text{pF}}{50\,\text{fF}} = 400$.
-2. $N_{\text{opt}} = \ln(400) \approx 5.991$: scegliendo **$N = 6$** si rispetta sia l'ottimalità di ritardo sia la parità non invertente.
-3. $f = 400^{1/6} \approx 2.714$.
+1. **Fattore di carico globale:** $F = \frac{20\,000\,\text{fF}}{50\,\text{fF}} = 400$.
+2. **Stadi ottimi ($\gamma = 0$):** $N_{\text{opt}} = \ln(400) \approx 5.99$. L'intero pari più vicino (buffer non invertente) è **$N = 6$**.
+3. **Fattore effettivo e capacità di stadio:**
+
+   $$
+   f = 400^{1/6} \approx 2.714
+   $$
+
+   Le capacità crescono come $50\,\text{fF} \to 136\,\text{fF} \to 368\,\text{fF} \to 1.00\,\text{pF} \to 2.71\,\text{pF} \to 7.37\,\text{pF} \to 20\,\text{pF}$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-21-2" title="Esercizio 21.2 — Confronto Velocità e Area Totale" level="Intermedio" hint="Calcola $F = C_L/C_{in}$, imponi $N=4$ (pari) per ottenere $f=4$ e somma la progressione geometrica $\sum_{j=0}^{N-1} f^j = (F-1)/(f-1)$.">
+
+Un buffer non invertente a $N = 4$ stadi con capacità iniziale $C_{in} = 25\,\text{fF}$ e ritardo intrinseco $t_{p0} = 18\,\text{ps}$ pilota un carico $C_L = 6.4\,\text{pF}$ (modello ideale $\gamma = 0$).
+
+<StepCheck client:load lang="it" prompt="Calcola il ritardo complessivo $t_{p,\text{tot}}$ della catena a $4$ stadi (in $\text{ps}$):" expected={288} tolerance={2} unit="$\text{ps}$" explanation="$F = 6400 / 25 = 256$; con $N = 4$, $f = 256^{1/4} = 4$; $t_{p,\text{tot}} = 4 \cdot 18 \cdot 4 = 288\,\text{ps}$ (contro $4.608\,\text{ns}$ dello stadio singolo)." />
+
+<StepCheck client:load lang="it" prompt="Esprimendo l'area di uno stadio unitario come $1$, quanto vale l'area totale normalizzata $\sum_{j=0}^{3} f^j$ della catena?" expected={85} tolerance={0.5} explanation="$\text{Area}_{\text{norm}} = 1 + 4 + 16 + 64 = (4^4 - 1)/(4 - 1) = 255 / 3 = 85$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Fattore di carico e di rastremazione:** $F = \frac{6400\,\text{fF}}{25\,\text{fF}} = 256 \implies f = 256^{1/4} = 4$.
+2. **Ritardo complessivo:** ogni stadio impiega $18\,\text{ps} \times 4 = 72\,\text{ps}$, quindi $t_{p,\text{tot}} = 4 \times 72\,\text{ps} = 288\,\text{ps}$ ($16$ volte più veloce dei $4.61\,\text{ns}$ dello stadio singolo).
+3. **Area normalizzata:** $\text{Area}_{\text{norm}} = 1 + 4 + 16 + 64 = 85$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-21-3" title="Esercizio 21.3 — Catena Reale con Capacità Parassita di Drain" level="Livello Esame" hint="Usa $t_{p,\text{tot}} = N\,t_{p0}\,(\gamma + F^{1/N})$ e confronta le scelte $N=4$ ed $N=6$ rispettando la parità.">
+
+Si progetti un buffer **non invertente** per pilotare $C_L = 10.24\,\text{pF}$ partendo da $C_{in} = 10\,\text{fF}$ ($F = 1024$) in un processo reale con $t_{p0} = 15\,\text{ps}$ e capacità parassita di drain $\gamma = 1$ (per cui $t_{p,j} = t_{p0}(\gamma + f)$).
+
+<StepCheck client:load lang="it" prompt="Scegliendo $N = 6$ stadi (pari), calcola il ritardo totale $t_{p,\text{tot}}$ includendo $\gamma = 1$ (in $\text{ps}$):" expected={375.7} tolerance={2.5} unit="$\text{ps}$" explanation="$f = 1024^{1/6} \approx 3.1748$; $t_{p,\text{tot}} = 6 \cdot 15 \cdot (1 + 3.1748) \approx 375.7\,\text{ps}$." />
+
+<StepCheck client:load lang="it" prompt="Se invece si scegliesse $N = 4$ stadi (pari, $f = 1024^{1/4} \approx 5.657$), quanto varrebbe il ritardo totale $t_{p,\text{tot}}$ (in $\text{ps}$)?" expected={399.4} tolerance={2.5} unit="$\text{ps}$" explanation="$t_{p,\text{tot}} = 4 \cdot 15 \cdot (1 + 5.6569) \approx 399.4\,\text{ps}$: la soluzione $N = 6$ resta più veloce, ma $N = 4$ dista appena il $6\%$ risparmiando due stadi e metà dell'area." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Stima continua ($\gamma = 1$):** con $f_{\text{opt}} \approx 3.59$, si ha $N_{\text{cont}} = \frac{\ln(1024)}{\ln(3.59)} \approx 5.42$. Essendo $N$ pari, confrontiamo $N = 6$ ed $N = 4$.
+2. **Opzione $N = 6$:** $f_6 = 1024^{1/6} \approx 3.175$:
+
+   $$
+   t_{p,\text{tot}}(6) = 6 \times 15\,\text{ps} \times (1 + 3.175) \approx 375.7\,\text{ps}, \qquad \text{Area}_{\text{norm}}(6) = \frac{1023}{3.175 - 1} \approx 470
+   $$
+
+3. **Opzione $N = 4$:** $f_4 = 1024^{1/4} \approx 5.657$:
+
+   $$
+   t_{p,\text{tot}}(4) = 4 \times 15\,\text{ps} \times (1 + 5.657) \approx 399.4\,\text{ps}, \qquad \text{Area}_{\text{norm}}(4) = \frac{1023}{5.657 - 1} \approx 220
+   $$
+
+   La scelta $N = 6$ è la più veloce ($375.7\,\text{ps}$), mentre $N = 4$ perde appena il $6\%$ in velocità ma più che dimezza l'area.
 
 </details>
 

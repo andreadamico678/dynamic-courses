@@ -1,0 +1,44 @@
+---
+title: "Parte IV — Introduzione: Amplificatori e Frequenza"
+description: "Quadro concettuale ed esempi reali per la Parte IV di Elettronica."
+sidebar:
+  label: "Introduzione"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load lang="it" title="Mappa della Parte IV" markdown={`# Parte IV: Amplificatori e Frequenza
+  - 13. Amplificatore Common Source
+    - Guadagno di tensione & degenerazione R_S
+  - 14. Amplificatore Common Drain
+    - Buffer di tensione a bassa R_out
+  - 15. Common Gate e Multistadio
+    - Larga banda, isolamento Miller & Cascode
+  - 16. Specchi di Corrente MOS
+    - Riferimenti di corrente & carichi attivi integrati
+  - 17. Risposta in Frequenza
+    - SCTC (f_L), Teorema di Miller & OCTC (f_H)`} />
+
+## Introduzione
+
+Dopo aver studiato l'Op-Amp come scatola nera ad alte prestazioni, la Parte IV scende a livello di **silicio analogico** per scoprire come sono fatti gli stadi amplificatori fondamentali a singolo transistore MOSFET e come si concatenano per ottenere esattamente l'impedenza d'ingresso, il guadagno e la banda passante desiderati.
+
+Le tre topologie canoniche—**Common Source (CS)**, **Common Drain (CD)** e **Common Gate (CG)**—sono l'equivalente di tre ingranaggi complementari: nessuna topologia vince su tutto da sola, ma combinandole con **specchi di corrente** (che sostituiscono i resistori ingombranti sui chip) e valutando i poli tramite i metodi **SCTC** e **OCTC** si progetta qualsiasi catena analogica integrata.
+
+### Esempi Pratici nel Mondo Reale
+
+- **Architettura Interna di un Op-Amp o Amplificatore Audio:** Uno stadio Common Source fornisce alto guadagno di tensione, uno specchio di corrente funge da carico attivo ad altissima resistenza ($g_m r_o$), e uno stadio Common Drain (Source Follower) finale abbassa $R_{out}$ per pilotare altoparlanti o carichi pesanti.
+- **Ricevitori RF e Antenne (Common Gate & Cascode):** Nei front-end a radiofrequenza, la bassa impedenza d'ingresso del Common Gate ($\approx 1/g_m \approx 50\,\Omega$) adatta direttamente il cavo coassiale d'antenna eliminando l'effetto Miller su $C_{gd}$.
+- **Dimensionamento della Banda Passante:** I condensatori esterni di accoppiamento fissano il taglio inferiore $f_L$ (metodo SCTC), mentre le capacità interne fF/pF del MOSFET determinano il limite superiore $f_H$ (metodo OCTC).
+
+<Divider />
+
+## Mappa dei Capitoli
+
+1. **[13. Amplificatore Common Source](/dynamic-courses/elettronica/04-amplificatori-frequenza/13-common-source/)** — Centro banda base e degenerazione di Source $R_S$ per linearità e aumento di $R_{out}$.
+2. **[14. Amplificatore Common Drain](/dynamic-courses/elettronica/04-amplificatori-frequenza/14-common-drain/)** — Analisi del *Source Follower*: guadagno unitario, effetto Body e bassa impedenza d'uscita.
+3. **[15. Common Gate e Multistadio](/dynamic-courses/elettronica/04-amplificatori-frequenza/15-common-gate-multistadio/)** — Stadio CG a bassa $R_{in}$, assenza di effetto Miller, stadi in cascata e configurazione Cascode.
+4. **[16. Specchi di Corrente MOS](/dynamic-courses/elettronica/04-amplificatori-frequenza/16-specchi-corrente/)** — Copia di corrente $I_{out}/I_{ref}$, errore da $\lambda$, specchio Cascode e CS con carico attivo.
+5. **[17. Risposta in Frequenza](/dynamic-courses/elettronica/04-amplificatori-frequenza/17-risposta-frequenza/)** — Costanti di tempo SCTC ($f_L$), teorema di Miller e costanti di tempo OCTC ($f_H$) per le tre topologie.

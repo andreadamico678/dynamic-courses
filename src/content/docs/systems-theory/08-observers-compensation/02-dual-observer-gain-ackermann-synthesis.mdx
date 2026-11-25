@@ -11,185 +11,349 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 28 Mental Model" markdown={`# Ch. 28: Dual Ackermann Observer Gain
-  - The Principle of Kalman Duality
-  - Derivation of the Dual Ackermann Observer Formula
-  - Step-by-Step Dual Ackermann Algorithm`} />
+<MindMap client:load defaultCollapsed title="Chapter 28 Outline" markdown={`# Ch. 28: Dual Ackermann Observer Gain
+  - Principle of Kalman Duality
+    - Mapping $(\\mathbf{A}, \\mathbf{B}, \\mathbf{K})$ to $(\\mathbf{A}^T, \\mathbf{C}^T, \\mathbf{L}^T)$
+    - Observable canonical companion structure
+  - Dual Ackermann Formula
+    - Transpose derivation $\\mathbf{L} = p_o^*(\\mathbf{A})\\mathcal{O}^{-1}\\mathbf{e}_n$
+    - Direct Cayley-Hamilton column proof
+  - Dual Ackermann Algorithm
+    - Solving $\\mathcal{O}\\mathbf{q}_n = \\mathbf{e}_n$
+    - Right-to-left column vector iteration`} />
 
-In Chapter 25, we used Ackermann's formula to synthesize the state feedback gain vector $\mathbf{K}$ in closed form for any controllable single-input pair $(\mathbf{A}, \mathbf{B})$. By exploiting the profound mathematical symmetry known as **Kalman Duality**, we can transform the asymptotic state observer design problem into an equivalent state feedback problem, deriving a direct, closed-form **Dual Ackermann Formula** for the observer gain vector $\mathbf{L}$.
+## Introduction
 
-<Divider />
+Just as Ackermann's formula computes controller gains $\mathbf{K}$ in closed form without tedious coordinate transformations, you want an equally direct recipe for the observer gain column vector $\mathbf{L}$ when designing high-order state estimators (such as a mobile robot localizer fusing sensor measurements at runtime).
 
-## The Principle of Kalman Duality
+By exploiting **Kalman Duality**—the exact algebraic transpose symmetry between the controller triplet $(\mathbf{A}, \mathbf{B}, \mathbf{K})$ and the observer triplet $(\mathbf{A}^T, \mathbf{C}^T, \mathbf{L}^T)$—this chapter transforms the controller Ackermann equation into the **Dual Ackermann Observer Formula**, letting you place all $n$ observer error eigenvalues directly while highlighting why the matrix-vector product order reverses.
 
-Consider the linear autonomous plant and its measurement equation:
-$$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t), \quad \mathbf{y}(t) = \mathbf{C}\mathbf{x}(t), \quad \mathbf{x} \in \mathbb{R}^n, \; \mathbf{y} \in \mathbb{R}^1$$
+<Divider label="1 · Example" />
 
-The estimation error matrix of a Luenberger observer is:
-$$\mathbf{A}_o = \mathbf{A} - \mathbf{L}\mathbf{C}$$
+### Synthesizing Observer Gain by Duality
 
-Because any square matrix shares identical eigenvalues with its transpose:
-$$\det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C})) = \det((s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C}))^T) = \det(s\mathbf{I} - (\mathbf{A}^T - \mathbf{C}^T \mathbf{L}^T))$$
+Consider a second-order single-output plant with non-companion dynamics:
 
-Comparing this expression with the state feedback closed-loop matrix $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$:
+$$
+\mathbf{A} = \begin{bmatrix} -1 & 2 \\ 0 & -2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+$$
 
-| Primal Problem (Controller Synthesis) | Dual Problem (Observer Synthesis) |
-| :--- | :--- |
-| System Matrix $\mathbf{A}$ | Dual Matrix $\mathbf{A}_{\text{dual}} = \mathbf{A}^T$ |
-| Input Matrix $\mathbf{B}$ | Dual Input Matrix $\mathbf{B}_{\text{dual}} = \mathbf{C}^T$ |
-| Feedback Gain $\mathbf{K}$ | Dual Gain $\mathbf{K}_{\text{dual}} = \mathbf{L}^T$ |
-| Controllability Matrix $\mathcal{R}$ | Observability Transpose $\mathcal{O}^T$ |
-| Controllability Rank Criterion | Observability Rank Criterion |
+Its open-loop eigenvalues sit on the main diagonal at $\lambda_1 = -1$ and $\lambda_2 = -2$, and only the first state $y(t) = x_1(t)$ is directly measured, while $x_2(t)$ couples into $\dot{x}_1$ through the off-diagonal entry $2$. Suppose we want to accelerate state convergence by placing both observer error eigenvalues at $\beta_1 = \beta_2 = -5$, which defines the desired monic observer characteristic polynomial:
 
-*Table: Kalman duality mapping between controller and observer synthesis.*
+$$
+p_o^*(s) = (s - (-5))^2 = (s + 5)^2 = s^2 + 10s + 25
+$$
+
+Instead of forming $\mathbf{A} - \mathbf{L}\mathbf{C}$ symbolically and expanding $\det(s\mathbf{I}_2 - (\mathbf{A} - \mathbf{L}\mathbf{C}))$, **Dual Ackermann** computes the column vector $\mathbf{L}$ directly in two decoupled steps:
+
+1. **Observability branch:** First compute the row product $\mathbf{C}\mathbf{A} = \begin{bmatrix} 1 & 0 \end{bmatrix}\begin{bmatrix} -1 & 2 \\ 0 & -2 \end{bmatrix} = \begin{bmatrix} -1 & 2 \end{bmatrix}$ and stack $\mathbf{C}$ and $\mathbf{C}\mathbf{A}$ vertically to assemble the Kalman observability matrix $\mathcal{O}$:
+   $$
+   \mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ -1 & 2 \end{bmatrix}, \qquad \det(\mathcal{O}) = (1)(2) - (0)(-1) = 2 \neq 0
+   $$
+   Rather than inverting all of $\mathcal{O}$, solve the linear system $\mathcal{O}\mathbf{q}_2 = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ directly for the last column $\mathbf{q}_2 = \begin{bmatrix} q_{21} \\ q_{22} \end{bmatrix}$ of $\mathcal{O}^{-1}$:
+   $$
+   \begin{bmatrix} 1 & 0 \\ -1 & 2 \end{bmatrix} \begin{bmatrix} q_{21} \\ q_{22} \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \implies \begin{cases} q_{21} = 0 \\ -q_{21} + 2q_{22} = 1 \end{cases} \implies \mathbf{q}_2 = \begin{bmatrix} 0 \\ 0.5 \end{bmatrix}
+   $$
+   Geometrically, this column vector $\mathbf{q}_2$ spans the unmeasured state direction ($\mathbf{C}\mathbf{q}_2 = 0$) normalized so that one step through $\mathbf{A}$ projects to unity at the sensor ($\mathbf{C}\mathbf{A}\mathbf{q}_2 = 1$).
+2. **Spectral branch:** Evaluate the desired observer polynomial on the matrix $\mathbf{A}$ as $p_o^*(\mathbf{A}) = \mathbf{A}^2 + 10\mathbf{A} + 25\mathbf{I}_2$. Computing $\mathbf{A}^2 = \begin{bmatrix} -1 & 2 \\ 0 & -2 \end{bmatrix}\begin{bmatrix} -1 & 2 \\ 0 & -2 \end{bmatrix} = \begin{bmatrix} 1 & -6 \\ 0 & 4 \end{bmatrix}$ gives:
+   $$
+   p_o^*(\mathbf{A}) = \begin{bmatrix} 1 & -6 \\ 0 & 4 \end{bmatrix} + 10\begin{bmatrix} -1 & 2 \\ 0 & -2 \end{bmatrix} + 25\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 16 & 14 \\ 0 & 9 \end{bmatrix}
+   $$
 
 <figure id="fig-duality-mapping" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-duality-mapping.svg" alt="Geometric duality between state feedback controller synthesis and Luenberger observer synthesis." />
   <figcaption>Geometric duality between state feedback controller synthesis and Luenberger observer synthesis.</figcaption>
 </figure>
 
-<Divider />
+Multiplying the column vector $\mathbf{q}_2$ on the **left** by the matrix polynomial $p_o^*(\mathbf{A})$ yields the observer gain column vector directly:
 
-## Derivation of the Dual Ackermann Observer Formula
+$$
+\mathbf{L} = p_o^*(\mathbf{A})\mathbf{q}_2 = \begin{bmatrix} 16 & 14 \\ 0 & 9 \end{bmatrix} \begin{bmatrix} 0 \\ 0.5 \end{bmatrix} = \begin{bmatrix} 7 \\ 4.5 \end{bmatrix}
+$$
 
-Recall the primal Ackermann formula for single-input state feedback:
-$$\mathbf{K} = \begin{bmatrix} 0 & 0 & \dots & 1 \end{bmatrix} \mathcal{R}^{-1} p^*(\mathbf{A})$$
+To verify, form the observer error matrix $\mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} -1 & 2 \\ 0 & -2 \end{bmatrix} - \begin{bmatrix} 7 & 0 \\ 4.5 & 0 \end{bmatrix} = \begin{bmatrix} -8 & 2 \\ -4.5 & -2 \end{bmatrix}$. Expanding its characteristic polynomial gives $\det(s\mathbf{I}_2 - (\mathbf{A} - \mathbf{L}\mathbf{C})) = (s + 8)(s + 2) - (-2)(4.5) = s^2 + 10s + 16 + 9 = s^2 + 10s + 25 = (s + 5)^2$, confirming that both observer error poles sit at $-5$.
 
-Applying Kalman duality substitutions:
-1. Replace $\mathbf{A}$ with $\mathbf{A}^T$.
-2. Replace $\mathbf{B}$ with $\mathbf{C}^T$.
-3. Replace $\mathcal{R}$ with $\mathcal{O}^T$.
-4. Replace $\mathbf{K}$ with $\mathbf{L}^T$.
-5. Replace $p^*(s)$ with the desired observer characteristic polynomial $p_o^*(s) = \prod_{i=1}^n (s - \beta_i)$.
+<StepCheck client:load
+  prompt="For the example above with $p_o^*(\mathbf{A}) = \begin{bmatrix} 16 & 14 \\ 0 & 9 \end{bmatrix}$ and $\mathbf{q}_2 = \begin{bmatrix} 0 \\ 0.5 \end{bmatrix}$, what is the first observer gain entry $l_1$?"
+  expected={7}
+  tolerance={0.01}
+  unit=""
+  explanation="$l_1 = 16(0) + 14(0.5) = 7$."
+/>
 
-$$\mathbf{L}^T = \mathbf{e}_n^T (\mathcal{O}^T)^{-1} p_o^*(\mathbf{A}^T) = \mathbf{e}_n^T (\mathcal{O}^{-1})^T p_o^*(\mathbf{A})^T$$
+<Divider label="2 · Theory" />
 
-Taking the transpose of both sides:
-$$\mathbf{L} = \left[ \mathbf{e}_n^T (\mathcal{O}^{-1})^T p_o^*(\mathbf{A})^T \right]^T = (p_o^*(\mathbf{A})^T)^T ((\mathcal{O}^{-1})^T)^T \mathbf{e}_n$$
+### Principle of Kalman Duality
 
-$$\boxed{\mathbf{L} = p_o^*(\mathbf{A}) \mathcal{O}^{-1} \mathbf{e}_n = p_o^*(\mathbf{A}) \mathbf{q}_n}$$
+In [Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/) and [Ackermann Feedback Formula](/dynamic-courses/systems-theory/07-state-feedback/02-ackermann-state-feedback-gain-formula/), we solved the state-feedback pole-placement problem: given $(\mathbf{A}, \mathbf{B})$ and a target polynomial $p^*(s)$, find a row vector $\mathbf{K} \in \mathbb{R}^{1 \times n}$ such that $\det(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K})) = p^*(s)$.
 
-where $\mathbf{e}_n = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}^T \in \mathbb{R}^n$, and $\mathbf{q}_n$ denotes the **last column of the inverse observability matrix** $\mathcal{O}^{-1}$.
+In observer synthesis ([Luenberger Observer Architecture](/dynamic-courses/systems-theory/08-observers-compensation/01-luenberger-state-observer-architecture/)), we face the mirror problem: given a single-output pair $(\mathbf{A}, \mathbf{C})$ with $\mathbf{C} \in \mathbb{R}^{1 \times n}$ and a target observer polynomial $p_o^*(s) = \prod_{i=1}^n (s - \beta_i)$, find a column vector $\mathbf{L} \in \mathbb{R}^{n \times 1}$ such that the observer error matrix $\mathbf{A}_o = \mathbf{A} - \mathbf{L}\mathbf{C}$ satisfies $\det(s\mathbf{I}_n - (\mathbf{A} - \mathbf{L}\mathbf{C})) = p_o^*(s)$.
 
-<Callout type="warning" title="Exam Trap: Matrix-Vector Product Order Inversion">
+**Kalman Duality** converts observer synthesis into an algebraically identical state-feedback synthesis problem via matrix transposition. Because the determinant of any square matrix equals the determinant of its transpose ($\det(\mathbf{M}) = \det(\mathbf{M}^T)$) and $(s\mathbf{I}_n)^T = s\mathbf{I}_n$, we can transpose the entire matrix inside the observer characteristic polynomial without altering a single root:
 
-In the controller Ackermann formula:
-$$\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$$
-the row vector $\mathbf{e}_n^T \mathcal{R}^{-1}$ multiplies the matrix polynomial $p^*(\mathbf{A})$ from the **left**.
+$$
+\det\left(s\mathbf{I}_n - (\mathbf{A} - \mathbf{L}\mathbf{C})\right) = \det\left(\left[s\mathbf{I}_n - (\mathbf{A} - \mathbf{L}\mathbf{C})\right]^T\right) = \det\left(s\mathbf{I}_n - (\mathbf{A}^T - \mathbf{C}^T \mathbf{L}^T)\right)
+$$
 
-In the dual observer Ackermann formula:
-$$\mathbf{L} = p_o^*(\mathbf{A}) \mathcal{O}^{-1} \mathbf{e}_n$$
-the matrix polynomial $p_o^*(\mathbf{A})$ multiplies the column vector $\mathbf{q}_n = \mathcal{O}^{-1}\mathbf{e}_n$ from the **left**.
+Compare the transposed matrix $\mathbf{A}^T - \mathbf{C}^T \mathbf{L}^T$ against the standard state-feedback matrix $\mathbf{A}_{\text{dual}} - \mathbf{B}_{\text{dual}}\mathbf{K}_{\text{dual}}$. Since $\mathbf{C}^T \in \mathbb{R}^{n \times 1}$ is a column vector and $\mathbf{L}^T \in \mathbb{R}^{1 \times n}$ is a row vector, the two problems match entry-for-entry under the **duality dictionary**:
 
-Because matrix multiplication does not commute, writing $\mathbf{L} = \mathcal{O}^{-1}\mathbf{e}_n p_o^*(\mathbf{A})$ is an immediate algebraic error.
+$$
+\boxed{\mathbf{A}_{\text{dual}} = \mathbf{A}^T, \qquad \mathbf{B}_{\text{dual}} = \mathbf{C}^T, \qquad \mathbf{K}_{\text{dual}} = \mathbf{L}^T}
+$$
+
+Furthermore, constructing the Kalman controllability matrix $\mathcal{R}_{\text{dual}}$ of the fictional dual plant $(\mathbf{A}_{\text{dual}}, \mathbf{B}_{\text{dual}}) = (\mathbf{A}^T, \mathbf{C}^T)$ yields the exact transpose of the primal observability matrix $\mathcal{O}$:
+
+$$
+\mathcal{R}_{\text{dual}} = \begin{bmatrix} \mathbf{C}^T & \mathbf{A}^T\mathbf{C}^T & \dots & (\mathbf{A}^T)^{n-1}\mathbf{C}^T \end{bmatrix} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}^T = \mathcal{O}^T
+$$
+
+Because transposing a matrix preserves its rank ($\operatorname{rank}(\mathcal{O}^T) = \operatorname{rank}(\mathcal{O})$), the primal pair $(\mathbf{A}, \mathbf{C})$ is completely observable ([Kalman Observability](/dynamic-courses/systems-theory/06-kalman-structure/02-kalman-observability-matrix-rank-criterion/)) if and only if the dual pair $(\mathbf{A}^T, \mathbf{C}^T)$ is completely controllable. Likewise, transposing the Controllable Canonical Form $(\mathbf{A}_c, \mathbf{B}_c)$ of Chapter 24 produces **Observable Canonical Form** $(\mathbf{A}_o, \mathbf{C}_o) = (\mathbf{A}_c^T, \mathbf{B}_c^T)$, where the negated characteristic polynomial coefficients $[-a_0, -a_1, \dots, -a_{n-1}]^T$ sit down the last column of $\mathbf{A}_o$ and $\mathbf{C}_o = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}$ selects the last state, so subtracting $\mathbf{L}_o\mathbf{C}_o$ shifts each coefficient decoupledly via $l_{oi} = \gamma_i - a_i$.
+
+### Dual Ackermann Observer Formula
+
+To obtain a direct closed-form expression for $\mathbf{L}$ in arbitrary coordinates without transforming into Observable Canonical Form, we apply the primal Ackermann formula from [Chapter 25](/dynamic-courses/systems-theory/07-state-feedback/02-ackermann-state-feedback-gain-formula/) to the dual controllable pair $(\mathbf{A}_{\text{dual}}, \mathbf{B}_{\text{dual}}) = (\mathbf{A}^T, \mathbf{C}^T)$ for the desired observer characteristic polynomial:
+
+$$
+p_o^*(s) = \prod_{i=1}^n (s - \beta_i) = s^n + \gamma_{n-1}s^{n-1} + \dots + \gamma_1 s + \gamma_0
+$$
+
+Substituting $\mathbf{K}_{\text{dual}} = \mathbf{L}^T$, $\mathcal{R}_{\text{dual}} = \mathcal{O}^T$, and $\mathbf{A}_{\text{dual}} = \mathbf{A}^T$ into $\mathbf{K}_{\text{dual}} = \mathbf{e}_n^T \mathcal{R}_{\text{dual}}^{-1} p_o^*(\mathbf{A}_{\text{dual}})$ gives:
+
+$$
+\mathbf{L}^T = \mathbf{e}_n^T (\mathcal{O}^T)^{-1} p_o^*(\mathbf{A}^T)
+$$
+
+where $\mathbf{e}_n^T = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}$. Now recall two basic linear algebra rules for matrix powers and inverses under transposition:
+1. The inverse of a transpose equals the transpose of the inverse: $(\mathcal{O}^T)^{-1} = (\mathcal{O}^{-1})^T$.
+2. Because $((\mathbf{A}^T)^k) = (\mathbf{A}^k)^T$, any matrix polynomial satisfies $p_o^*(\mathbf{A}^T) = (\mathbf{A}^T)^n + \gamma_{n-1}(\mathbf{A}^T)^{n-1} + \dots + \gamma_0\mathbf{I}_n = \left(p_o^*(\mathbf{A})\right)^T$.
+
+Substituting these two identities into the expression for $\mathbf{L}^T$ and taking the transpose of the entire equation reverses the order of the three factors ($(\mathbf{X}\mathbf{Y}\mathbf{Z})^T = \mathbf{Z}^T\mathbf{Y}^T\mathbf{X}^T$):
+
+$$
+\mathbf{L} = \left[ \mathbf{e}_n^T (\mathcal{O}^{-1})^T \left(p_o^*(\mathbf{A})\right)^T \right]^T = \left(\left(p_o^*(\mathbf{A})\right)^T\right)^T \left((\mathcal{O}^{-1})^T\right)^T (\mathbf{e}_n^T)^T
+$$
+
+Simplifying the double transposes yields the **Dual Ackermann Observer Formula**:
+
+$$
+\boxed{\mathbf{L} = p_o^*(\mathbf{A}) \mathcal{O}^{-1} \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 1 \end{bmatrix} = p_o^*(\mathbf{A}) \mathbf{q}_n}
+$$
+
+Here $\mathbf{e}_n = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}^T \in \mathbb{R}^{n \times 1}$, and $\mathbf{q}_n = \mathcal{O}^{-1}\mathbf{e}_n \in \mathbb{R}^{n \times 1}$ is the **last column** of the inverse observability matrix $\mathcal{O}^{-1}$.
+
+We can also verify this formula directly by column iteration on $\mathbf{A}_o = \mathbf{A} - \mathbf{L}\mathbf{C}$: because $\mathcal{O}\mathbf{q}_n = \mathbf{e}_n$, the column vector $\mathbf{q}_n$ satisfies $\mathbf{C}\mathbf{q}_n = 0$, $\mathbf{C}\mathbf{A}\mathbf{q}_n = 0, \dots, \mathbf{C}\mathbf{A}^{n-2}\mathbf{q}_n = 0$, and $\mathbf{C}\mathbf{A}^{n-1}\mathbf{q}_n = 1$. Multiplying $\mathbf{q}_n$ on the left by successive powers of $\mathbf{A}_o = \mathbf{A} - \mathbf{L}\mathbf{C}$ shows that $\mathbf{A}_o^k \mathbf{q}_n = \mathbf{A}^k \mathbf{q}_n$ for $k = 1, \dots, n-1$, while at power $k = n$ we get $\mathbf{A}_o^n \mathbf{q}_n = \mathbf{A}_o(\mathbf{A}^{n-1}\mathbf{q}_n) = \mathbf{A}^n\mathbf{q}_n - \mathbf{L}(\mathbf{C}\mathbf{A}^{n-1}\mathbf{q}_n) = \mathbf{A}^n\mathbf{q}_n - \mathbf{L}$. Summing weighted by the coefficients of $p_o^*(s)$ gives $p_o^*(\mathbf{A}_o)\mathbf{q}_n = p_o^*(\mathbf{A})\mathbf{q}_n - \mathbf{L}$. Since $p_o^*(\mathbf{A}_o) = \mathbf{0}$ by the Cayley-Hamilton theorem, $\mathbf{L} = p_o^*(\mathbf{A})\mathbf{q}_n$ follows immediately.
+
+### Dual Ackermann Algorithm
+
+To evaluate the Dual Ackermann formula rapidly by hand or in embedded C++ without inverting the full $n \times n$ matrix $\mathcal{O}$ or computing full $n \times n$ matrix powers:
+
+1. **Verify Complete Observability:** Assemble $\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}$ and check $\det(\mathcal{O}) \neq 0$.
+2. **Solve for the Last Column $\mathbf{q}_n$:** Instead of computing all $n$ columns of $\mathcal{O}^{-1}$, solve the single linear system $\mathcal{O}\mathbf{q}_n = \mathbf{e}_n$:
+   $$
+   \mathcal{O} \mathbf{q}_n = \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 1 \end{bmatrix}
+   $$
+3. **Expand the Desired Observer Polynomial:** Multiply out $p_o^*(s) = \prod_{i=1}^n (s - \beta_i) = s^n + \gamma_{n-1}s^{n-1} + \dots + \gamma_1 s + \gamma_0$.
+4. **Propagate Column Vectors from the Right:** Instead of forming $\mathbf{A}^2, \dots, \mathbf{A}^n$ as full matrices, multiply the $n \times 1$ column vector $\mathbf{q}_n$ sequentially on the left by $\mathbf{A}$:
+   $$
+   \mathbf{v}_0 = \mathbf{q}_n, \quad \mathbf{v}_1 = \mathbf{A}\mathbf{v}_0, \quad \mathbf{v}_2 = \mathbf{A}\mathbf{v}_1, \quad \dots, \quad \mathbf{v}_n = \mathbf{A}\mathbf{v}_{n-1}
+   $$
+   Summing these $n + 1$ column vectors yields the observer gain directly:
+   $$
+   \mathbf{L} = \mathbf{v}_n + \gamma_{n-1}\mathbf{v}_{n-1} + \dots + \gamma_1\mathbf{v}_1 + \gamma_0\mathbf{v}_0
+   $$
+
+<StepCheck client:load
+  mode="choice"
+  prompt="Which expression correctly gives the Dual Ackermann observer gain vector $\mathbf{L} \in \mathbb{R}^{n \times 1}$?"
+  options={[
+    "$\\mathbf{L} = \\mathbf{e}_n^T \\mathcal{O}^{-1} p_o^*(\\mathbf{A})$",
+    "$\\mathbf{L} = p_o^*(\\mathbf{A}) \\mathcal{O}^{-1} \\mathbf{e}_n$",
+    "$\\mathbf{L} = \\mathcal{O}^{-1} \\mathbf{e}_n p_o^*(\\mathbf{A})$"
+  ]}
+  correctIndex={1}
+  explanation="Transposing $\\mathbf{L}^T = \\mathbf{e}_n^T (\\mathcal{O}^T)^{-1} p_o^*(\\mathbf{A}^T)$ reverses the matrix product order to $\\mathbf{L} = p_o^*(\\mathbf{A})\\mathcal{O}^{-1}\\mathbf{e}_n$."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Robot Localization via Observability Duality">
+
+In autonomous mobile robotics (e.g., TurtleBot or industrial AGVs running Nav2 on ROS 2), vehicle states comprise planar pose $(x, y, \psi)$. When tracking a laser landmark beacon with range-bearing output $\mathbf{y}(t)$, the onboard autonomy first verifies full rank of $\mathcal{O}$. Whenever observability holds, the dual Ackermann formula generates steady-state observer gains $\mathbf{L}$ in closed form without iterative Riccati solvers.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
-## Step-by-Step Dual Ackermann Algorithm
+| Element | Primal Controller Synthesis | Dual Observer Synthesis |
+| :--- | :--- | :--- |
+| **System / Sensor Matrix** | $(\mathbf{A}, \mathbf{B})$ | $(\mathbf{A}^T, \mathbf{C}^T)$ (primal $(\mathbf{A}, \mathbf{C})$) |
+| **Closed-Loop Matrix** | $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$ | $\mathbf{A}_o = \mathbf{A} - \mathbf{L}\mathbf{C}$ |
+| **Kalman Matrix** | $\mathcal{R} = [\mathbf{B} \;\; \mathbf{A}\mathbf{B} \dots \mathbf{A}^{n-1}\mathbf{B}]$ | $\mathcal{O} = [\mathbf{C}; \;\; \mathbf{C}\mathbf{A}; \dots; \;\; \mathbf{C}\mathbf{A}^{n-1}]$ |
+| **Basis Solve** | $\mathbf{t}_n^T \mathcal{R} = \mathbf{e}_n^T$ (last row of $\mathcal{R}^{-1}$) | $\mathcal{O}\mathbf{q}_n = \mathbf{e}_n$ (last column of $\mathcal{O}^{-1}$) |
+| **Ackermann Formula** | $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ | $\mathbf{L} = p_o^*(\mathbf{A}) \mathcal{O}^{-1} \mathbf{e}_n$ |
 
-For exam problems requiring observer gain computation via dual Ackermann:
+### Key Proofs
 
-1. **Verify Observability:**
-   Construct $\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \vdots \\ \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}$ and verify $\operatorname{rank}(\mathcal{O}) = n$.
-2. **Solve for the Last Column $\mathbf{q}_n$:**
-   Instead of inverting the full $n \times n$ matrix $\mathcal{O}$, solve the linear algebraic system:
-   $$\mathcal{O} \mathbf{q}_n = \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 1 \end{bmatrix}$$
-3. **Form the Desired Polynomial:**
-   Expand $p_o^*(s) = \prod_{i=1}^n (s - \beta_i) = s^n + \gamma_{n-1}s^{n-1} + \dots + \gamma_0$.
-4. **Evaluate Matrix Polynomial and Multiply:**
-   $$\mathbf{L} = p_o^*(\mathbf{A}) \mathbf{q}_n$$
+- **Eigenvalue Transpose Invariance:** $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C})) = \det(s\mathbf{I} - (\mathbf{A}^T - \mathbf{C}^T\mathbf{L}^T))$ maps observer pole placement identically to dual controller pole placement.
+- **Product Reversal:** Because $(\mathbf{X}\mathbf{Y}\mathbf{Z})^T = \mathbf{Z}^T\mathbf{Y}^T\mathbf{X}^T$, transposing the dual controller Ackermann equation places $p_o^*(\mathbf{A})$ on the **left** of $\mathcal{O}^{-1}\mathbf{e}_n$.
 
-<Divider />
-
-<Callout type="bridge" title="SDU Robotics Bridge: Robot Localization via Observability Duality">
-
-In autonomous mobile robotics (e.g. TurtleBot or industrial AGVs running Nav2 on ROS 2), vehicle states are planar position $(x, y)$ and heading $\psi$. When tracking a laser landmark beacon at a known location, the range-bearing sensor provides the output $\mathbf{y}(t)$.
-
-Before executing state estimation, the robot's onboard autonomy verifies the full rank of $\mathcal{O}$. When operating in symmetric corridors where observability is preserved, the dual Ackermann formula generates the steady-state observer gain $\mathbf{L}$ instantly, providing deterministic state estimation without the computational overhead of iterative matrix Riccati equation solvers.
-
+<Callout type="warning" title="Common Mistakes">
+1. **Matrix-Vector Product Order Inversion:** Controller Ackermann places $\mathbf{e}_n^T\mathcal{R}^{-1}$ on the left of $p^*(\mathbf{A})$, whereas observer Ackermann places $p_o^*(\mathbf{A})$ on the **left** of $\mathbf{q}_n = \mathcal{O}^{-1}\mathbf{e}_n$. Writing $\mathcal{O}^{-1}\mathbf{e}_n p_o^*(\mathbf{A})$ fails dimensionally and algebraically.
+2. **Omitting $\mathbf{I}_n$ on the Constant Term:** Write $\gamma_0 \mathbf{I}_n$ inside $p_o^*(\mathbf{A})$, never a scalar $\gamma_0$.
+3. **Picking the Last Row Instead of Last Column:** $\mathbf{q}_n = \mathcal{O}^{-1}\mathbf{e}_n$ is the **last column** of $\mathcal{O}^{-1}$, not the last row.
 </Callout>
 
-<Divider />
+<Divider label="4 · Exercises" />
 
-
-<Divider label="Interactive Practice & Exam Drills" />
-
-## Chapter Exercises
-
-<Exercise client:load id="ex-28-1" title="Exercise 28.1" level="LEVEL 1: WARM-UP DRILL">
+<Exercise client:load id="ex-28-1" title="Exercise 28.1 — Second-Order Dual Ackermann" level="Warm-Up" hint="Solve $\mathcal{O}\mathbf{q}_2 = [0, 1]^T$ directly, evaluate $p_o^*(\mathbf{A}) = \mathbf{A}^2 + 12\mathbf{A} + 36\mathbf{I}$, then multiply $p_o^*(\mathbf{A})\mathbf{q}_2$.">
 
 A second-order plant is given by:
-$$\mathbf{A} = \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+$$
+
 1. Compute the Kalman observability matrix $\mathcal{O}$ and verify that the system is completely observable.
 2. Find the last column $\mathbf{q}_2$ of $\mathcal{O}^{-1}$ by solving $\mathcal{O} \mathbf{q}_2 = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$.
 3. Form the desired observer characteristic polynomial $p_o^*(s)$ for target poles placed at $\beta_1 = \beta_2 = -6$.
 4. Compute the matrix polynomial $p_o^*(\mathbf{A})$ and evaluate the observer gain vector $\mathbf{L} = p_o^*(\mathbf{A})\mathbf{q}_2$.
 5. Verify that the eigenvalues of $\mathbf{A} - \mathbf{L}\mathbf{C}$ are identically $\{-6, -6\}$.
 
+<StepCheck client:load
+  prompt="Using Dual Ackermann for $\beta_1 = \beta_2 = -6$, compute the first entry $l_1$ of $\mathbf{L} = [l_1, l_2]^T$:"
+  expected={9}
+  tolerance={0.01}
+  unit=""
+  explanation="$\mathbf{q}_2 = [0, 0.5]^T$ selects $0.5 \times$ column 2 of $p_o^*(\mathbf{A}) = \begin{bmatrix} 43 & 18 \\ -27 & -2 \end{bmatrix}$, giving $\mathbf{L} = [9, -1]^T$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Observability matrix:
-   $$\mathbf{C}\mathbf{A} = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix} = \begin{bmatrix} 1 & 2 \end{bmatrix} \implies \mathcal{M}_o = \begin{bmatrix} 1 & 0 \\ 1 & 2 \end{bmatrix}$$
-   $$\det(\mathcal{M}_o) = 2 - 0 = 2 \neq 0 \implies \operatorname{rank}(\mathcal{M}_o) = 2$$
-   The system is completely observable.
-2. Last column $\mathbf{q}_2$ of $\mathcal{M}_o^{-1}$:
-   $$\mathcal{M}_o \mathbf{q}_2 = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \implies \begin{bmatrix} 1 & 0 \\ 1 & 2 \end{bmatrix}\begin{bmatrix} q_{21} \\ q_{22} \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \implies q_{21} = 0, \; 2q_{22} = 1 \implies \mathbf{q}_2 = \begin{bmatrix} 0 \\ 0.5 \end{bmatrix}$$
-3. Target observer polynomial for $\beta_{1,2} = -6$:
-   $$p_o^*(s) = (s + 6)^2 = s^2 + 12s + 36$$
-4. Matrix polynomial and gain evaluation:
-   $$\mathbf{A}^2 = \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix}\begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix} = \begin{bmatrix} -5 & -6 \\ 9 & 10 \end{bmatrix}$$
-   $$p_o^*(\mathbf{A}) = \mathbf{A}^2 + 12\mathbf{A} + 36\mathbf{I} = \begin{bmatrix} -5 & -6 \\ 9 & 10 \end{bmatrix} + \begin{bmatrix} 12 & 24 \\ -36 & -48 \end{bmatrix} + \begin{bmatrix} 36 & 0 \\ 0 & 36 \end{bmatrix} = \begin{bmatrix} 43 & 18 \\ -27 & -2 \end{bmatrix}$$
-   Dual Ackermann gain:
-   $$\mathbf{L} = p_o^*(\mathbf{A}) \mathbf{q}_2 = \begin{bmatrix} 43 & 18 \\ -27 & -2 \end{bmatrix} \begin{bmatrix} 0 \\ 0.5 \end{bmatrix} = \begin{bmatrix} 9 \\ -1 \end{bmatrix}$$
-5. Verification:
-   $$\mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix} - \begin{bmatrix} 9 & 0 \\ -1 & 0 \end{bmatrix} = \begin{bmatrix} -8 & 2 \\ -2 & -4 \end{bmatrix}$$
-   $$\det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C})) = (s + 8)(s + 4) + 4 = s^2 + 12s + 36 = (s + 6)^2 \quad \checkmark$$
+1. **Kalman observability matrix and rank check:**
+   Multiply $\mathbf{C}$ by $\mathbf{A}$ to form the second row of $\mathcal{O}$:
+   $$
+   \mathbf{C}\mathbf{A} = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix} = \begin{bmatrix} 1 & 2 \end{bmatrix}
+   $$
+   Stacking $\mathbf{C}$ and $\mathbf{C}\mathbf{A}$ vertically gives the lower-triangular observability matrix:
+   $$
+   \mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 1 & 2 \end{bmatrix}, \qquad \det(\mathcal{O}) = (1)(2) - (0)(1) = 2 \neq 0
+   $$
+   Since $\operatorname{rank}(\mathcal{O}) = 2 = n$, the pair $(\mathbf{A}, \mathbf{C})$ is completely observable.
+
+2. **Last column $\mathbf{q}_2$ of $\mathcal{O}^{-1}$:**
+   Solve $\mathcal{O}\mathbf{q}_2 = \begin{bmatrix} 0 & 1 \end{bmatrix}^T$ directly by forward substitution:
+   $$
+   \begin{bmatrix} 1 & 0 \\ 1 & 2 \end{bmatrix}\begin{bmatrix} q_{21} \\ q_{22} \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \implies \begin{cases} q_{21} = 0 \\ q_{21} + 2q_{22} = 1 \end{cases} \implies \mathbf{q}_2 = \begin{bmatrix} 0 \\ 0.5 \end{bmatrix}
+   $$
+
+3. **Target observer polynomial for $\beta_1 = \beta_2 = -6$:**
+   Expanding the repeated linear factor gives:
+   $$
+   p_o^*(s) = (s - (-6))^2 = (s + 6)^2 = s^2 + 12s + 36
+   $$
+
+4. **Matrix polynomial $p_o^*(\mathbf{A})$ and Dual Ackermann evaluation:**
+   First compute $\mathbf{A}^2$:
+   $$
+   \mathbf{A}^2 = \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix}\begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix} = \begin{bmatrix} 1 - 6 & 2 - 8 \\ -3 + 12 & -6 + 16 \end{bmatrix} = \begin{bmatrix} -5 & -6 \\ 9 & 10 \end{bmatrix}
+   $$
+   Summing $\mathbf{A}^2 + 12\mathbf{A} + 36\mathbf{I}_2$ yields:
+   $$
+   p_o^*(\mathbf{A}) = \begin{bmatrix} -5 & -6 \\ 9 & 10 \end{bmatrix} + \begin{bmatrix} 12 & 24 \\ -36 & -48 \end{bmatrix} + \begin{bmatrix} 36 & 0 \\ 0 & 36 \end{bmatrix} = \begin{bmatrix} 43 & 18 \\ -27 & -2 \end{bmatrix}
+   $$
+   Multiplying $\mathbf{q}_2$ on the left by $p_o^*(\mathbf{A})$ selects half of the second column of $p_o^*(\mathbf{A})$:
+   $$
+   \mathbf{L} = p_o^*(\mathbf{A}) \mathbf{q}_2 = \begin{bmatrix} 43 & 18 \\ -27 & -2 \end{bmatrix} \begin{bmatrix} 0 \\ 0.5 \end{bmatrix} = \begin{bmatrix} 9 \\ -1 \end{bmatrix}
+   $$
+
+5. **Closed-loop observer error verification:**
+   Forming $\mathbf{A} - \mathbf{L}\mathbf{C}$ gives:
+   $$
+   \mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} 1 & 2 \\ -3 & -4 \end{bmatrix} - \begin{bmatrix} 9 \\ -1 \end{bmatrix}\begin{bmatrix} 1 & 0 \end{bmatrix} = \begin{bmatrix} -8 & 2 \\ -2 & -4 \end{bmatrix}
+   $$
+   Computing its characteristic polynomial confirms the target eigenvalues:
+   $$
+   \det\left(s\mathbf{I}_2 - (\mathbf{A} - \mathbf{L}\mathbf{C})\right) = \det\begin{bmatrix} s + 8 & -2 \\ 2 & s + 4 \end{bmatrix} = (s + 8)(s + 4) + 4 = s^2 + 12s + 36 = (s + 6)^2 \quad \checkmark
+   $$
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-28-2" title="Exercise 28.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-28-2" title="Exercise 28.2 — Third-Order Dual Ackermann" level="Exam Standard" hint="Notice $\mathcal{O} = \mathbf{I}_3$, so $\mathbf{q}_3 = [0, 0, 1]^T$ selects column 3 of $p_o^*(\mathbf{A}) = \mathbf{A}^3 + 30\mathbf{A}^2 + 300\mathbf{A} + 1000\mathbf{I}$ directly.">
 
 A third-order single-output system is described by:
-$$\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}
+$$
+
 1. Construct the observability matrix $\mathcal{O}$ and extract the last column $\mathbf{q}_3$ of $\mathcal{O}^{-1}$.
 2. The desired observer poles are assigned at $\beta_1 = \beta_2 = \beta_3 = -10$. Determine the target polynomial $p_o^*(s) = (s + 10)^3$.
 3. Compute the matrix powers $\mathbf{A}^2, \mathbf{A}^3$ and evaluate the dual Ackermann gain vector $\mathbf{L} = p_o^*(\mathbf{A})\mathbf{q}_3$.
 4. Form the observer error matrix $\mathbf{A} - \mathbf{L}\mathbf{C}$ and verify directly that its characteristic polynomial matches $p_o^*(s)$.
 
+<StepCheck client:load
+  prompt="For $p_o^*(s) = (s + 10)^3$, compute the first entry $l_1$ of $\mathbf{L} = [l_1, l_2, l_3]^T$:"
+  expected={24}
+  tolerance={0.01}
+  unit=""
+  explanation="Since $\mathbf{q}_3 = [0, 0, 1]^T$, $l_1$ equals row 1, col 3 of $\mathbf{A}^3 + 30\mathbf{A}^2 + 300\mathbf{A} + 1000\mathbf{I}$, which is $-6 + 30(1) + 0 + 0 = 24$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Observability matrix:
-   $$\mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}, \quad \mathbf{C}\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \end{bmatrix}, \quad \mathbf{C}\mathbf{A}^2 = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}$$
-   $$\mathcal{M}_o = \mathbf{I}_3 \implies \mathcal{M}_o^{-1} = \mathbf{I}_3 \implies \mathbf{q}_3 = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$$
-2. Target observer polynomial for $\beta_{1,2,3} = -10$:
-   $$p_o^*(s) = (s + 10)^3 = s^3 + 30s^2 + 300s + 1000$$
-3. Matrix powers and dual Ackermann evaluation:
-   Since $\mathbf{q}_3 = [0, 0, 1]^T$, the gain vector $\mathbf{L} = p_o^*(\mathbf{A})\mathbf{q}_3$ is identically the third column of $p_o^*(\mathbf{A})$.
-   Evaluating column 3 of matrix powers:
-   * $\text{col}_3(\mathbf{I}) = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$
-   * $\text{col}_3(\mathbf{A}) = \begin{bmatrix} 0 \\ 1 \\ -6 \end{bmatrix}$
-   * $\text{col}_3(\mathbf{A}^2) = \begin{bmatrix} 1 \\ -6 \\ 25 \end{bmatrix}$
-   * $\text{col}_3(\mathbf{A}^3) = \begin{bmatrix} -6 \\ 25 \\ -90 \end{bmatrix}$
-   $$\begin{aligned}
-   \mathbf{L} &= \text{col}_3(\mathbf{A}^3) + 30\,\text{col}_3(\mathbf{A}^2) + 300\,\text{col}_3(\mathbf{A}) + 1000\,\text{col}_3(\mathbf{I}) \\
+1. **Observability matrix and last column $\mathbf{q}_3$:**
+   Because the first two rows of $\mathbf{A}$ shift the unit entry of $\mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}$ one column to the right on each multiplication:
+   $$
+   \mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}, \qquad \mathbf{C}\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \end{bmatrix}, \qquad \mathbf{C}\mathbf{A}^2 = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}
+   $$
+   Stacking these three rows shows that the observability matrix is the $3 \times 3$ identity matrix:
+   $$
+   \mathcal{O} = \mathbf{I}_3 \implies \mathcal{O}^{-1} = \mathbf{I}_3 \implies \mathbf{q}_3 = \mathcal{O}^{-1}\begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
+   $$
+
+2. **Target observer polynomial for $\beta_1 = \beta_2 = \beta_3 = -10$:**
+   Expanding the cube $(s + 10)^3$ gives:
+   $$
+   p_o^*(s) = (s + 10)^3 = s^3 + 3(10)s^2 + 3(10^2)s + 10^3 = s^3 + 30s^2 + 300s + 1000
+   $$
+
+3. **Right-to-left column vector propagation for $\mathbf{L} = p_o^*(\mathbf{A})\mathbf{q}_3$:**
+   Rather than forming full $3 \times 3$ matrices $\mathbf{A}^2$ and $\mathbf{A}^3$, we propagate the column vector $\mathbf{q}_3 = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}^T$ sequentially on the left by $\mathbf{A}$:
+   $$
+   \mathbf{q}_3 = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}, \qquad
+   \mathbf{A}\mathbf{q}_3 = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}\begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ -6 \end{bmatrix}
+   $$
+   $$
+   \mathbf{A}^2\mathbf{q}_3 = \mathbf{A}(\mathbf{A}\mathbf{q}_3) = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}\begin{bmatrix} 0 \\ 1 \\ -6 \end{bmatrix} = \begin{bmatrix} 1 \\ -6 \\ -11(1) - 6(-6) \end{bmatrix} = \begin{bmatrix} 1 \\ -6 \\ 25 \end{bmatrix}
+   $$
+   $$
+   \mathbf{A}^3\mathbf{q}_3 = \mathbf{A}(\mathbf{A}^2\mathbf{q}_3) = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}\begin{bmatrix} 1 \\ -6 \\ 25 \end{bmatrix} = \begin{bmatrix} -6 \\ 25 \\ -6(1) - 11(-6) - 6(25) \end{bmatrix} = \begin{bmatrix} -6 \\ 25 \\ -90 \end{bmatrix}
+   $$
+   Combining these four column vectors with the coefficients of $p_o^*(s) = s^3 + 30s^2 + 300s + 1000$ yields $\mathbf{L}$:
+   $$
+   \begin{aligned}
+   \mathbf{L} &= \mathbf{A}^3\mathbf{q}_3 + 30(\mathbf{A}^2\mathbf{q}_3) + 300(\mathbf{A}\mathbf{q}_3) + 1000\mathbf{q}_3 \\
    &= \begin{bmatrix} -6 \\ 25 \\ -90 \end{bmatrix} + 30\begin{bmatrix} 1 \\ -6 \\ 25 \end{bmatrix} + 300\begin{bmatrix} 0 \\ 1 \\ -6 \end{bmatrix} + 1000\begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix} \\
-   &= \begin{bmatrix} -6 + 30 \\ 25 - 180 + 300 \\ -90 + 750 - 1800 + 1000 \end{bmatrix} = \begin{bmatrix} 24 \\ 145 \\ -140 \end{bmatrix}
-   \end{aligned}$$
-4. Direct verification:
-   $$\mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix} - \begin{bmatrix} 24 & 0 & 0 \\ 145 & 0 & 0 \\ -140 & 0 & 0 \end{bmatrix} = \begin{bmatrix} -24 & 1 & 0 \\ -145 & 0 & 1 \\ 134 & -11 & -6 \end{bmatrix}$$
-   Evaluating $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C}))$:
-   $$\begin{aligned}
-   \det\begin{bmatrix} s + 24 & -1 & 0 \\ 145 & s & -1 \\ -134 & 11 & s + 6 \end{bmatrix} &= (s + 24)[s(s + 6) + 11] + 1[145(s + 6) - 134] \\
-   &= (s + 24)(s^2 + 6s + 11) + (145s + 736) \\
+   &= \begin{bmatrix} -6 + 30 + 0 + 0 \\ 25 - 180 + 300 + 0 \\ -90 + 750 - 1800 + 1000 \end{bmatrix} = \begin{bmatrix} 24 \\ 145 \\ -140 \end{bmatrix}
+   \end{aligned}
+   $$
+
+4. **Direct closed-loop verification:**
+   Subtracting $\mathbf{L}\mathbf{C}$ from $\mathbf{A}$ modifies the first column of $\mathbf{A}$:
+   $$
+   \mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix} - \begin{bmatrix} 24 & 0 & 0 \\ 145 & 0 & 0 \\ -140 & 0 & 0 \end{bmatrix} = \begin{bmatrix} -24 & 1 & 0 \\ -145 & 0 & 1 \\ 134 & -11 & -6 \end{bmatrix}
+   $$
+   Expanding $\det(s\mathbf{I}_3 - (\mathbf{A} - \mathbf{L}\mathbf{C}))$ along the first row gives:
+   $$
+   \begin{aligned}
+   \det\begin{bmatrix} s + 24 & -1 & 0 \\ 145 & s & -1 \\ -134 & 11 & s + 6 \end{bmatrix} &= (s + 24)\left[s(s + 6) - (-1)(11)\right] - (-1)\left[145(s + 6) - (-1)(-134)\right] \\
+   &= (s + 24)(s^2 + 6s + 11) + (145s + 870 - 134) \\
    &= (s^3 + 30s^2 + 155s + 264) + (145s + 736) \\
    &= s^3 + 30s^2 + 300s + 1000 = (s + 10)^3 \quad \checkmark
-   \end{aligned}$$
+   \end{aligned}
+   $$
 
 </details>
 

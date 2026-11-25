@@ -1,0 +1,41 @@
+---
+title: "Parte I — Introduzione: Fondamenti dei Dispositivi"
+description: "Quadro concettuale ed esempi reali per la Parte I di Elettronica."
+sidebar:
+  label: "Introduzione"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load lang="it" title="Mappa della Parte I" markdown={`# Parte I: Fondamenti dei Dispositivi
+  - 1. Teoria Circuitale Elementare
+    - Richiami KCL/KVL, Thévenin e partitori
+  - 2. Fisica dello Stato Solido
+    - Cristallo di silicio, drogaggio, deriva e diffusione
+  - 3. Giunzione p-n e Diodo
+    - SCR, potenziale di contatto V_0, Shockley e breakdown
+  - 4. Modelli Circuitali del Diodo
+    - CVD, piccolo segnale r_d, raddrizzatori e Zener`} />
+
+## Introduzione
+
+Come passa l'elettronica dalle leggi astratte delle reti elettriche a un componente reale capace di condurre corrente in un solo verso, stabilizzare una tensione o trasformare la corrente alternata di rete in alimentazione continua? La Parte I costruisce questo ponte dal basso verso l'alto: si ripassano gli strumenti circuitali essenziali (Thévenin, Norton, effetti di carico), si entra dentro il reticolo cristallino del silicio per capire come il drogaggio moduli la conducibilità e si arriva al primo mattone attivo a stato solido, la **giunzione p-n**.
+
+L'obiettivo mentale di questa parte è collegare sempre **microfisica** e **comportamento circuitale**: quando vedrai l'equazione esponenziale del diodo o la pendenza di una curva di carico, saprai riconoscere il moto di diffusione ed effetto barriera che avviene su scala micrometrica dentro il silicio.
+
+### Esempi Pratici nel Mondo Reale
+
+- **Alimentatori USB-C e Caricabatterie:** Ogni alimentatore da parete converte i $230\,\text{V}$ alternati in continua tramite raddrizzatori a ponte di diodi e condensatori di filtro (Cap. 4), spesso affiancati da **diodi Schottky** nei convertitori *switching* ad alta frequenza per azzerare il ritardo di spegnimento.
+- **Sensori Termici Integrati nei Processori (PTAT):** La sensibilità termica della tensione diretta del diodo ($\approx -2\,\text{mV/}^\circ\text{C}$, Cap. 3) permette di integrare termometri precisissimi dentro le CPU per il *thermal throttling*.
+- **Protezione ESD e Riferimenti di Tensione:** Diodi **Zener** attorno a $5.6\,\text{V}$ proteggono gli ingressi dei microcontrollori e creano tensioni di riferimento stabili in temperatura.
+
+<Divider />
+
+## Mappa dei Capitoli
+
+1. **[1. Teoria Circuitale Elementare](/dynamic-courses/elettronica/01-fondamenti-dispositivi/01-teoria-circuitale/)** — Richiami operativi su partitori, generatori equivalenti di Thévenin/Norton, effetto di carico e reti RC.
+2. **[2. Fisica dello Stato Solido](/dynamic-courses/elettronica/01-fondamenti-dispositivi/02-fisica-stato-solido/)** — Silicio cristallino, drogaggio N/P, legge dell'azione di massa, deriva, diffusione e bande di energia.
+3. **[3. Giunzione p-n e Diodo](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn/)** — Formazione della SCR, potenziale di contatto $V_0$, equazione di Shockley, breakdown Zener/Valanga, capacità e Schottky.
+4. **[4. Modelli Circuitali del Diodo](/dynamic-courses/elettronica/01-fondamenti-dispositivi/04-modelli-diodo/)** — Retta di carico, modello ideale e CVD, piccolo segnale $r_d$, raddrizzatori a ponte e regolatore Zener.

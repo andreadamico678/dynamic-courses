@@ -1,0 +1,37 @@
+---
+title: "Part VIII — Introduction: Observers & Dynamic Compensation"
+description: "Conceptual overview and real-world framing for Part VIII of Linear Systems Theory."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part VIII Roadmap" markdown={`# Part VIII: Observers & Compensation
+  - 27. Luenberger Observer Architecture
+    - Real-time state estimation from outputs
+  - 28. Dual Ackermann Observer Gain
+    - Kalman duality synthesis for $\\mathbf{L}$
+  - 29. Separation Principle Compensators
+    - Independent controller & observer poles`} />
+
+## Introduction
+
+Part VII assumed you can measure every state variable $x_i(t)$ with physical sensors—an assumption that almost never holds in real engineering hardware. Motors rarely carry shaft torque sensors, battery cells cannot measure internal core lithium concentration, and robotic arms often lack clean velocity tachometers.
+
+Part VIII completes the modern state-space control loop by building a software twin—the **Luenberger State Observer**—that continuously runs alongside the physical plant, compares predicted output $\mathbf{C}\hat{\mathbf{x}}$ against real sensor readings $\mathbf{y}(t)$, and drives the estimation error $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$ rapidly to zero. Finally, the **Separation Principle** proves that plugging the estimated state $\hat{\mathbf{x}}(t)$ into your feedback controller $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}}$ preserves the exact closed-loop eigenvalues of both the controller and the observer independently.
+
+### Practical Real-World Perspective
+
+- **Encoder Velocity Estimation:** Industrial robot arms measure joint angle $q$ with optical encoders; finite-differencing $(q_k - q_{k-1})/\Delta t$ explodes quantization noise. A 2nd-order Luenberger observer produces smooth, low-latency joint velocity estimates $\hat{\dot{q}}$ tuned faster than the servo loop.
+- **Modular Autonomy Stacks (ROS 2 / PX4):** The Separation Principle is the mathematical license behind separating state estimation nodes (EKF / `robot_localization`) from trajectory controller nodes (`controller_server`) in modern robotics software.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[27. Luenberger Observer Architecture](/dynamic-courses/systems-theory/08-observers-compensation/01-luenberger-state-observer-architecture/)** — Derive closed-loop innovation feedback $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$ and choose observer bandwidth safely.
+2. **[28. Dual Ackermann Observer Gain](/dynamic-courses/systems-theory/08-observers-compensation/02-dual-observer-gain-ackermann-synthesis/)** — Synthesize observer gain $\mathbf{L} = p_o^*(\mathbf{A})\mathcal{O}^{-1}\mathbf{e}_n$ via Kalman duality.
+3. **[29. Separation Principle Compensators](/dynamic-courses/systems-theory/08-observers-compensation/03-separation-principle-dynamic-compensator/)** — Prove block-triangular spectrum factorization $\det(s\mathbf{I}_{2n} - \mathbf{A}_{\text{total}}) = p_c^*(s) p_o^*(s)$ and derive the dynamic compensator $C(s)$.

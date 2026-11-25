@@ -11,200 +11,294 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 10" markdown={`# Cap. 10: Amplificatore Operazionale Ideale
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Architettura e Proprietà Limite dell'Op-Amp Ideale
-    - Il Principio del Corto Circuito Virtuale
-    - La Configurazione Invertente e la Massa Virtuale
-    - La Configurazione Non Invertente
-    - Il Buffer di Tensione (Inseguitore a Guadagno Unitario)
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 10" markdown={`# Cap. 10: Amplificatore Operazionale Ideale
+  - 1. Corto Virtuale e Configurazione Invertente
+    - Esempio: Stadio Invertente e Sensore a Fotodiodo
+    - Teoria: Modello Ideale, Corto Virtuale e Transresistenza
+  - 2. Configurazione Non Invertente
+    - Esempio: Amplificazione ad Alta Impedenza
+    - Teoria: Partitore di Retroazione e Impedenze
+  - 3. Buffer di Tensione
+    - Esempio: Disaccoppiamento di un Sensore Resistivo
+    - Teoria: Inseguitore Unitario e Trasformazione d'Impedenza`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
+Progettare un amplificatore preciso con singoli MOSFET è macchinoso, perché i parametri dei transistori cambiano con la temperatura e da un esemplare all'altro. L'**amplificatore operazionale** (Op-Amp) aggira il problema con un'idea geniale: racchiude in un singolo chip un guadagno interno enorme ($A_0 \to \infty$) e poi lo "addomestica" tramite una **retroazione negativa** esterna fatta di semplici resistori.
 
+Grazie al principio del **corto circuito virtuale** ($v^+ \approx v^-$ e correnti d'ingresso nulle), il comportamento del circuito smette di dipendere dal silicio interno e resta fissato solo dai resistori esterni. In questo capitolo vedremo le quattro configurazioni di base — **stadio invertente**, **convertitore corrente-tensione**, **stadio non invertente** e **buffer** — usando le stesse leggi nodali viste nel [Capitolo 1](/dynamic-courses/elettronica/01-fondamenti-dispositivi/01-teoria-circuitale/).
 
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+<Divider label="1 · Corto Virtuale e Configurazione Invertente" />
 
-## Architettura e Proprietà Limite dell'Op-Amp Ideale
+### Esempio — Stadio Invertente e Sensore a Fotodiodo
 
-L'**amplificatore operazionale (Operational Amplifier)** è un circuito integrato a guadagno elevatissimo, ad accoppiamento diretto (in continua), dotato di due ingressi differenziali e di un'uscita singola sbilanciata (*single-ended*) riferita al potenziale di massa comune.
-
-I morsetti del dispositivo sono:
-* **Ingresso Non Invertente ($v^+$):** Una tensione applicata a questo terminale produce una tensione d'uscita con la medesima polarità (fase $0^\circ$).
-* **Ingresso Invertente ($v^-$):** Una tensione applicata a questo terminale produce una tensione d'uscita a polarità invertita (sfasamento di $180^\circ$).
-* **Uscita ($v_o$):** La tensione di uscita complessiva vale:
-  $$ v_o = A_{vd} (v^+ - v^-) = A_{vd} v_{id} $$
-  dove $A_{vd}$ è il guadagno differenziale ad anello aperto (*open-loop gain*).
-* **Terminali di Alimentazione:** Connessi tipicamente a due tensioni continue simmetriche $+V_{CC}$ e $-V_{EE}$ (oppure $+V_{DD}$ e massa). La tensione di uscita fisica è vincolata all'intervallo di saturazione:
-  $$ -V_{EE} \le v_o \le +V_{CC} $$
-
-L'astrazione didattica fondamentale dell'**amplificatore operazionale ideale** postula le seguenti proprietà limite (la tabella di riferimento):
-
-| Parametro Fisico | Simbolo | Valore Ideale | Significato Circuitale |
-| :--- | :--- | :--- | :--- |
-| **Guadagno Differenziale Open-Loop** | $A_{vd}$ | $\infty$ | Qualsiasi errore differenziale infinitesimo produce un'uscita finita. |
-| **Resistenza d'Ingresso Differenziale** | $R_{id}$ | $\infty$ | Correnti assorbite dagli ingressi nulle: $i^+ = 0, i^- = 0$. |
-| **Resistenza d'Uscita Open-Loop** | $R_{out}$ | $0$ | L'uscita è un generatore ideale di tensione indipendente dal carico. |
-| **Banda Passante (Bandwidth)** | $BW$ | $\infty$ | Amplificazione istantanea priva di sfasamento a tutte le frequenze. |
-| **Guadagno di Modo Comune** | $A_c$ | $0$ | Reiezione assoluta dei disturbi: $\text{CMRR} = \|A_{vd}/A_c\| \to \infty$. |
-| **Offset di Tensione e Correnti** | $V_{OS}, I_B$ | $0$ | Se $v^+ = v^- = 0$, l'uscita è rigorosamente nulla ($v_o = 0$). |
-
-*Tabella: Proprietà limite dell'amplificatore operazionale ideale.*
-## Il Principio del Corto Circuito Virtuale
-
-Il concetto cardine per l'analisi di tutti i circuiti ad operazionali lineari è il **Corto Circuito Virtuale**: quando l'Op-Amp ideale ($A_{vd} \to \infty, R_{id} \to \infty$) opera stabilmente in regione lineare grazie a una rete di **retroazione negativa**, valgono simultaneamente due condizioni ai morsetti d'ingresso:
-1. **Uguaglianza dei Potenziali:** I due morsetti d'ingresso si trovano rigorosamente allo stesso potenziale elettrostatico:
-   $$ v^+ = v^- $$
-2. **Assenza di Conduzione Fisica:** Nonostante i due terminali siano allo stesso potenziale, tra di essi **non scorre alcuna corrente elettrica**:
-   $$ i^+ = 0, \qquad i^- = 0 $$
-   poiché la resistenza interna d'ingresso è infinita ($R_{id} \to \infty$).
-
-### Dimostrazione Matematica: Limite Analitico del Corto Circuito Virtuale
-
-Se il circuito a retroazione negativa è stabile, la tensione di uscita deve necessariamente assestarsi all'interno della regione lineare tra le alimentazioni ($-V_{EE} < v_o < +V_{CC} \implies |v_o| < \infty$). Dalla caratteristica di trasferimento $v_o = A_{vd} (v^+ - v^-) = A_{vd} v_{id}$, ricaviamo la tensione differenziale d'ingresso $v_{id}$ e passiamo al limite per $A_{vd} \to \infty$:
-$$ v_{id} = v^+ - v^- = \frac{v_o}{A_{vd}} \implies \lim_{A_{vd} \to \infty} (v^+ - v^-) = \lim_{A_{vd} \to \infty} \frac{v_o}{A_{vd}} = 0 \implies v^+ = v^- $$
-
-Questo fenomeno si definisce "virtuale" perché non esiste un conduttore metallico o un componente reale che colleghi i due nodi: è l'azione attiva della retroazione negativa che spinge continuamente l'uscita a modificare il potenziale di $v^-$ fino ad annullare l'errore differenziale rispetto a $v^+$.
-
-Occorre sottolineare che il corto circuito virtuale $v^+ = v^-$ sussiste **se e solo se il circuito è immerso in un anello di retroazione stabilizzante a prevalenza negativa**. Se l'Op-Amp è configurato ad anello aperto o con retroazione positiva (come nei comparatori o nei trigger di Schmitt), qualsiasi minima perturbazione viene amplificata a valanga spingendo l'uscita in piena saturazione contro le tensioni di alimentazione ($v_o = +V_{CC}$ oppure $-V_{EE}$); in tal caso $v_o$ non è più legato linearmente ad $A_{vd}$ e la tensione differenziale $v^+ - v^-$ assume valori macroscopici non nulli.
-
-## La Configurazione Invertente e la Massa Virtuale
-
-La configurazione invertente ([la figura](#fig-inverting-opamp)) è la topologia base per l'elaborazione dei segnali.
+Immaginiamo di avere un sensore che fornisce una piccola tensione continua $v_{in} = +0.20\,\text{V}$ e di volerla portare a $-2.0\,\text{V}$ con un Op-Amp ideale alimentato a $\pm 12\,\text{V}$. Montiamo la configurazione invertente di [la figura](#fig-inverting-opamp) scegliendo $R_1 = 10\,\text{k}\Omega$ e $R_2 = 100\,\text{k}\Omega$.
 
 <figure id="fig-inverting-opamp" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-inverting-opamp.svg" alt="Configurazione amplificatrice invertente con nodo di massa virtuale." />
   <figcaption>Configurazione amplificatrice invertente con nodo di massa virtuale.</figcaption>
 </figure>
 
-Nel circuito:
-* Il morsetto non invertente è collegato direttamente a massa: $v^+ = 0$.
-* Per il principio del corto circuito virtuale sotto retroazione negativa:
-  $$ v^- = v^+ = 0 $$
-  Il nodo $v^-$ prende il nome fondamentale di **massa virtuale (virtual ground)**: il potenziale è vincolato a zero volt, ma non è collegato fisicamente al conduttore di massa.
+Per capire cosa succede, seguiamo il percorso della corrente:
+1. **Massa virtuale sul morsetto invertente:** l'ingresso $+$ è collegato a massa ($v^+ = 0\,\text{V}$). Siccome $R_2$ riporta l'uscita sul morsetto $-$ (retroazione negativa), l'Op-Amp regola la propria uscita finché i due ingressi non si trovano allo stesso potenziale: quindi anche $v^- = 0\,\text{V}$. Questo nodo si chiama **massa virtuale**.
+2. **Corrente in ingresso:** ai capi di $R_1$ abbiamo $v_{in} = 0.20\,\text{V}$ a sinistra e $0\,\text{V}$ a destra, quindi scorre una corrente:
 
-### Guadagno di Tensione $A_v$
-Il guadagno di tensione ad anello chiuso della configurazione invertente vale:
-$$ A_v = \frac{v_o}{v_{in}} = -\frac{R_2}{R_1} $$
+$$
+i_1 = \frac{0.20\,\text{V} - 0\,\text{V}}{10\,\text{k}\Omega} = 20\,\mu\text{A}
+$$
 
-### Dimostrazione Matematica: KCL al Nodo di Massa Virtuale
+   Il sensore vede quindi una resistenza d'ingresso pari al solo $R_1 = 10\,\text{k}\Omega$.
+3. **Tensione d'uscita:** un Op-Amp ideale non assorbe corrente dai morsetti ($i^- = 0$), perciò tutta la corrente $i_1 = 20\,\mu\text{A}$ è costretta a proseguire dentro $R_2$ verso l'uscita. Partendo da $v^- = 0\,\text{V}$, la caduta su $R_2$ porta l'uscita sotto massa:
 
-Applichiamo la Legge di Kirchhoff delle Correnti (KCL) al nodo di massa virtuale $v^- = 0$. Poiché l'Op-Amp ideale non assorbe corrente ($i^- = 0$), tutta la corrente entrante da $R_1$ prosegue in $R_2$:
-$$ i_1 = i_2 \implies \frac{v_{in} - v^-}{R_1} = \frac{v^- - v_o}{R_2} \implies \frac{v_{in} - 0}{R_1} = \frac{0 - v_o}{R_2} \implies v_o = -\frac{R_2}{R_1} v_{in} $$
+$$
+v_o = 0\,\text{V} - (100\,\text{k}\Omega)(20\,\mu\text{A}) = -2.0\,\text{V}
+$$
 
-Il segno negativo attesta che la configurazione introduce uno sfasamento di $180^\circ$. Il guadagno dipende unicamente dal rapporto dei due resistori passivi esterni, con insensibilità assoluta rispetto ai parametri interni del silicio.
-
-### Impedenze d'Ingresso e d'Uscita
-* **Resistenza d'Ingresso ($R_{in}$):** Guardando dal morsetto della sorgente $v_{in}$, la corrente assorbita vale $i_{in} = i_1 = \frac{v_{in} - 0}{R_1}$. Pertanto:
-  $$ R_{in} = \frac{v_{in}}{i_{in}} = R_1 $$
-  Questo è il principale limite della configurazione invertente: per ottenere guadagni elevati (es. $A_v = -100$) mantenendo $R_2$ su valori realizzabili ($100\text{ k}\Omega$), si deve ridurre $R_1$ a $1\text{ k}\Omega$, degradando la resistenza di ingresso e provocando un sensibile effetto di carico sullo stadio precedente.
-* **Resistenza d'Uscita ($R_{out}$):** Per la presenza dell'Op-Amp ideale che agisce da generatore controllato:
-  $$ R_{out} = 0 $$
-
-### Convertitore Corrente-Tensione (Amplificatore di Transresistenza)
-Un caso notevole derivato direttamente dalla topologia invertente si ottiene quando la sorgente d'ingresso è un generatore di corrente $i_s$ (ad esempio un fotodiodo) collegato direttamente al nodo di massa virtuale $v^-$, omettendo il resistore serie $R_1$ ([la figura](#fig-transresistance-opamp)).
+   Il valore $-2.0\,\text{V}$ è ben dentro i limiti di alimentazione ($\pm 12\,\text{V}$), quindi l'amplificatore lavora in modo lineare con guadagno $A_v = -R_2/R_1 = -10$.
+4. **Variante per sensori in corrente:** se al posto di $v_{in}$ e $R_1$ colleghiamo un fotodiodo che inietta direttamente $i_s = 20\,\mu\text{A}$ nel nodo $v^-$ ([la figura](#fig-transresistance-opamp)), il nodo resta comunque a $0\,\text{V}$ (resistenza d'ingresso nulla) e l'intera corrente attraversa $R_2 = 100\,\text{k}\Omega$, dando ancora $v_o = -R_2 i_s = -2.0\,\text{V}$.
 
 <figure id="fig-transresistance-opamp" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-transresistance-opamp.svg" alt="Convertitore corrente-tensione (amplificatore di transresistenza) con ingresso in massa virtuale (R_in = 0)." />
   <figcaption>Convertitore corrente-tensione (amplificatore di transresistenza) con ingresso in massa virtuale ($R_{in} = 0$).</figcaption>
 </figure>
 
-Poiché il morsetto invertente non assorbe corrente ($i^- = 0$) ed è fissato a potenziale nullo ($v^- = 0$), l'intera corrente $i_s$ è costretta a fluire nel resistore di retroazione $R_2$ ($i_2 = i_s$), producendo la tensione di uscita:
-$$ v_o = -R_2 i_s \implies R_m = \frac{v_o}{i_s} = -R_2 $$
-La resistenza di ingresso vista dal generatore di corrente $i_s$ è rigorosamente nulla ($R_{in} = v^- / i_s = 0$), condizione ideale per prelevare tutta la corrente di un trasduttore indipendentemente dalla sua resistenza interna parallelo.
+<StepCheck client:load lang="it" prompt="Se nello stesso circuito invertente sostituiamo $R_2$ con un resistore da $47\,\text{k}\Omega$ lasciando $R_1 = 10\,\text{k}\Omega$ e $v_{in} = +0.20\,\text{V}$, quanto vale la tensione d'uscita $v_o$?" expected={-0.94} tolerance={0.02} unit="$\text{V}$" explanation="La corrente in $R_1$ resta $i_1 = 0.20\,\text{V} / 10\,\text{k}\Omega = 20\,\mu\text{A}$, quindi $v_o = -R_2 i_1 = -47\,\text{k}\Omega \cdot 20\,\mu\text{A} = -0.94\,\text{V}$." />
 
-## La Configurazione Non Invertente
+### Teoria — Modello Ideale, Corto Virtuale e Stadio Invertente
 
-Nella configurazione non invertente ([la figura](#fig-noninverting-opamp)), il segnale d'ingresso viene applicato direttamente al morsetto non invertente, eliminando il problema della bassa resistenza d'ingresso.
+L'**amplificatore operazionale** è un circuito integrato ad altissimo guadagno che amplifica anche segnali continui ($f = 0\,\text{Hz}$). Ha due ingressi differenziali ($v^+$ non invertente, in fase con l'uscita; $v^-$ invertente, sfasato di $180^\circ$) e un'uscita $v_o$ riferita a massa.
+
+In zona lineare vale la relazione fondamentale:
+
+$$
+v_o = A_0 (v^+ - v^-)
+$$
+
+dove $A_0$ è il **guadagno ad anello aperto**, tipicamente enorme ($10^5\text{--}10^6$). Naturalmente l'uscita non può mai superare le tensioni di alimentazione ($-V_{EE} \le v_o \le +V_{CC}$): se la formula richiedesse un valore esterno a questo intervallo, l'Op-Amp si blocca sul limite più vicino (**saturazione**).
+
+Nel modello dell'**Op-Amp ideale** assumiamo che il componente sia perfetto:
+* **Guadagno infinito** ($A_0 \to \infty$) e **banda infinita** (risponde a qualunque frequenza).
+* **Resistenza d'ingresso infinita** ($R_{id} \to \infty$): i morsetti non assorbono corrente ($i^+ = i^- = 0$).
+* **Resistenza d'uscita nulla** ($R_{out} = 0$): l'uscita mantiene la sua tensione qualunque sia il carico collegato.
+* **Nessun errore di simmetria**: ignora i disturbi uguali sui due ingressi ($\text{CMRR} \to \infty$) e con ingressi a zero dà uscita esattamente nulla ($V_{OS} = 0, I_B = 0$).
+
+#### Il Corto Circuito Virtuale
+
+Senza retroazione, un Op-Amp ideale è inutilizzabile come amplificatore: bastano pochi microvolt tra $v^+$ e $v^-$ per mandare l'uscita in saturazione. Quando invece colleghiamo l'uscita all'ingresso invertente ($-$) tramite una rete esterna, creiamo una **retroazione negativa**: se $v^-$ tende a salire sopra $v^+$, l'uscita scende subito e riporta $v^-$ al valore di $v^+$.
+
+In regime lineare (uscita non satura) e con retroazione negativa attiva, valgono le due regole d'oro del **corto circuito virtuale**:
+
+$$
+v^+ = v^-, \qquad i^+ = i^- = 0
+$$
+
+Il motivo della prima regola è immediato: se $v_o$ ha un valore finito e $A_0$ è enorme, allora $v^+ - v^- = v_o / A_0 \approx 0$. Si dice corto circuito **virtuale** perché i due morsetti hanno lo stesso potenziale pur **non** essendo collegati da un filo: tra loro non passa alcuna corrente. Attenzione però: se manca la retroazione negativa o se l'uscita è satura, $v^+ = v^-$ **non vale**.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Quando è lecito applicare la condizione di corto circuito virtuale $v^+ = v^-$?" options={["Sempre, anche ad anello aperto", "Solo con retroazione negativa e uscita non satura", "Solo se il morsetto non invertente è a massa", "Solo con retroazione positiva"]} correctIndex={1} explanation="Il corto circuito virtuale $v^+ = v^-$ richiede che la retroazione negativa sia attiva e che l'uscita resti nella regione lineare ($-V_{EE} \lt v_o \lt +V_{CC}$)." />
+
+#### Configurazione Invertente e Transresistenza
+
+Nella configurazione invertente ([la figura](#fig-inverting-opamp)), $v^+ = 0\,\text{V}$ forza il nodo invertente a **massa virtuale** ($v^- = 0\,\text{V}$). Scrivendo il bilancio delle correnti al nodo $v^-$ con $i^- = 0$, la corrente che arriva da $R_1$ deve uscire tutta attraverso $R_2$:
+
+$$
+\frac{v_{in} - 0}{R_1} = \frac{0 - v_o}{R_2} \implies A_v = \frac{v_o}{v_{in}} = -\frac{R_2}{R_1}
+$$
+
+Il guadagno dipende solo dal rapporto tra due resistori esterni (e il segno meno indica l'inversione di fase). Quanto alle porte del circuito:
+* **Resistenza d'ingresso:** poiché il nodo $v^-$ è fermo a $0\,\text{V}$, la sorgente vede esattamente $R_{in} = R_1$. Se il sensore ha un'alta resistenza interna, occorre scegliere $R_1$ grande (e di conseguenza $R_2$ ancora più grande).
+* **Resistenza d'uscita:** grazie all'Op-Amp ideale e alla retroazione, vale $R_{out} = 0$, quindi il carico a valle non altera il guadagno.
+
+Se invece il sensore genera direttamente una corrente $i_s$ (come un fotodiodo), basta eliminare $R_1$ e inviare $i_s$ nel nodo di massa virtuale ([la figura](#fig-transresistance-opamp)). Tutta la corrente attraversa $R_2$, dando il **convertitore di transresistenza**:
+
+$$
+v_o = -R_2 i_s \implies R_m = \frac{v_o}{i_s} = -R_2
+$$
+
+Qui la resistenza d'ingresso vista dal sensore è $R_{in} = 0$, ideale per raccogliere tutta la corrente del fotodiodo senza perdite.
+
+<Divider label="2 · Configurazione Non Invertente" />
+
+### Esempio — Amplificazione di un Sensore ad Alta Impedenza
+
+Supponiamo di dover amplificare di $+5$ volte il segnale di un sensore ad alta impedenza (ad esempio un elettrodo pH) con tensione a vuoto $v_s = +0.40\,\text{V}$ e resistenza interna $R_s = 50\,\text{k}\Omega$. Lo stadio invertente precedente ($R_{in} = 10\,\text{k}\Omega$) attenuerebbe quasi tutto il segnale prima ancora di amplificarlo.
+
+Usiamo invece la **configurazione non invertente** ([la figura](#fig-noninverting-opamp)) con $R_1 = 10\,\text{k}\Omega$, $R_2 = 40\,\text{k}\Omega$ e alimentazione $\pm 12\,\text{V}$.
 
 <figure id="fig-noninverting-opamp" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-noninverting-opamp.svg" alt="Configurazione amplificatrice non invertente ad altissima impedenza d'ingresso." />
   <figcaption>Configurazione amplificatrice non invertente ad altissima impedenza d'ingresso.</figcaption>
 </figure>
 
-Il morsetto non invertente è posto al potenziale del generatore: $v^+ = v_{in}$.
-Per il corto circuito virtuale:
-$$ v^- = v^+ = v_{in} $$
+1. **Nessun effetto di carico:** l'ingresso $+$ non assorbe corrente ($i^+ = 0$), quindi su $R_s$ non cade tensione e sul morsetto arriva l'intero segnale: $v^+ = +0.40\,\text{V}$.
+2. **Inseguimento su $v^-$:** per il corto circuito virtuale, anche il morsetto invertente si porta a $v^- = +0.40\,\text{V}$.
+3. **Corrente nella rete di retroazione:** tra $v^- = 0.40\,\text{V}$ e massa, su $R_1 = 10\,\text{k}\Omega$ scorre una corrente $i_1 = 0.40\,\text{V} / 10\,\text{k}\Omega = 40\,\mu\text{A}$. Poiché $i^- = 0$, questa corrente deve arrivare tutta dall'uscita attraversando $R_2 = 40\,\text{k}\Omega$.
+4. **Tensione d'uscita:** risalendo lungo $R_2$ da $v^-$ fino all'uscita otteniamo:
 
-La rete di retroazione $R_1 - R_2$ agisce come un partitore di tensione che riporta una quota della tensione d'uscita $v_o$ sul nodo $v^-$. Poiché $i^- = 0$:
-$$ v^- = v_o \frac{R_1}{R_1 + R_2} $$
+$$
+v_o = 0.40\,\text{V} + (40\,\text{k}\Omega)(40\,\mu\text{A}) = +2.00\,\text{V}
+$$
 
-Eguagliando i potenziali per il corto circuito virtuale:
-$$ v_{in} = v_o \frac{R_1}{R_1 + R_2} \implies v_o = v_{in} \left( \frac{R_1 + R_2}{R_1} \right) = v_{in} \left( 1 + \frac{R_2}{R_1} \right) $$
+Il guadagno è $A_v = 1 + R_2/R_1 = 5$, in fase con l'ingresso e senza prelevare corrente dal sensore.
 
-Il guadagno di tensione vale:
-$$ A_v = \frac{v_o}{v_{in}} = 1 + \frac{R_2}{R_1} \ge 1 $$
+<StepCheck client:load lang="it" prompt="Se in una configurazione non invertente con $v_{in} = +0.30\,\text{V}$ e $R_1 = 10\,\text{k}\Omega$ vogliamo ottenere in uscita $v_o = +2.70\,\text{V}$, quale valore dobbiamo scegliere per il resistore di retroazione $R_2$ (in $\text{k}\Omega$)?" expected={80.0} tolerance={0.5} unit="$\text{k}\Omega$" explanation="Il guadagno richiesto è $A_v = 2.70 / 0.30 = 9 = 1 + R_2/R_1$, da cui $R_2/R_1 = 8 \implies R_2 = 8 \cdot 10\,\text{k}\Omega = 80\,\text{k}\Omega$." />
 
-Il guadagno è intrinsecamente positivo (fase $0^\circ$) e rigorosamente maggiore o uguale a 1.
+### Teoria — Guadagno e Impedenze dello Stadio Non Invertente
 
-### Impedenze d'Ingresso e d'Uscita
-* **Resistenza d'Ingresso ($R_{in}$):** Il generatore $v_{in}$ vede direttamente il morsetto non invertente dell'Op-Amp, il quale non assorbe corrente ($i^+ = 0$). Di conseguenza:
-  $$ R_{in} \to \infty $$
-  Questa caratteristica rende la configurazione non invertente ideale per interfacciare sensori ad alta impedenza sorgente senza introdurre attenuazione per effetto di carico.
-* **Resistenza d'Uscita ($R_{out}$):**
-  $$ R_{out} = 0 $$
+Nella **configurazione non invertente** ([la figura](#fig-noninverting-opamp)), il segnale entra direttamente sul morsetto $+$, mentre $R_1$ e $R_2$ riportano una frazione dell'uscita sul morsetto $-$.
 
-## Il Buffer di Tensione (Inseguitore a Guadagno Unitario)
+Poiché $i^- = 0$, i resistori $R_1$ e $R_2$ formano un semplice partitore di tensione alimentato da $v_o$, perciò $v^- = v_o \frac{R_1}{R_1 + R_2}$. Applicando il corto circuito virtuale ($v^- = v^+ = v_{in}$) e ricavando $v_o$, otteniamo subito il guadagno ad anello chiuso:
 
-Ponendo $R_2 = 0$ (un semplice conduttore a cortocircuito tra uscita e morsetto invertente) e $R_1 \to \infty$ (resistore rimosso, circuito aperto) nella configurazione non invertente, otteniamo il **Buffer di Tensione (Voltage Follower)** ([la figura](#fig-buffer-opamp)).
+$$
+v_{in} = v_o \frac{R_1}{R_1 + R_2} \implies A_v = \frac{v_o}{v_{in}} = 1 + \frac{R_2}{R_1}
+$$
+
+Il guadagno è sempre positivo (nessuna inversione di fase) e sempre $\ge 1$. Le impedenze alle due porte sono quelle di un amplificatore di tensione ideale:
+
+$$
+R_{in} \to \infty, \qquad R_{out} = 0
+$$
+
+Il circuito non carica la sorgente a monte ($i^+ = 0$) e non subisce cali di tensione sul carico a valle.
+
+<Divider label="3 · Buffer di Tensione" />
+
+### Esempio — Disaccoppiamento tra Partitore ad Alta Impedenza e Carico
+
+Perché mai dovremmo usare un amplificatore che ha guadagno $A_v = 1$? Vediamolo con i numeri. Supponiamo di avere un sensore con tensione a vuoto $v_s = +3.0\,\text{V}$ e resistenza interna $R_s = 99\,\text{k}\Omega$, che deve alimentare un carico pesante $R_L = 1.0\,\text{k}\Omega$ ([la figura](#fig-buffer-opamp)).
 
 <figure id="fig-buffer-opamp" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-buffer-opamp.svg" alt="Buffer di tensione (inseguitore di tensione) a guadagno unitario." />
   <figcaption>Buffer di tensione (inseguitore di tensione) a guadagno unitario.</figcaption>
 </figure>
 
-Le prestazioni limite del buffer sono:
-$$ v_o = v_{in} \implies A_v = 1 \quad (0\text{ dB}) $$
-$$ R_{in} \to \infty, \qquad R_{out} = 0 $$
+* **Senza buffer:** collegando direttamente $R_L$ al sensore, si forma un partitore sfavorevole in cui il $99\%$ della tensione si perde dentro $R_s$:
 
-### Il Ruolo di Disaccoppiatore di Impedenza
-Sebbene il circuito non amplifichi la tensione ($A_v = 1$), esso fornisce un **guadagno di potenza enorme**: preleva potenza praticamente nulla dalla sorgente ($i_{in} = 0$) e può pilotare carichi esigenti a bassa resistenza erogando correnti elevate dall'alimentazione. Risolve completamente il problema dell'effetto di carico nell'interconnessione tra stadi.
+$$
+v_{L,\text{diretto}} = 3.0\,\text{V} \cdot \frac{1.0\,\text{k}\Omega}{99\,\text{k}\Omega + 1.0\,\text{k}\Omega} = 0.030\,\text{V} = 30\,\text{mV}
+$$
 
-<Callout type="tip" title="Scelta Pratica a Confronto: Invertente, Non Invertente e Buffer">
+* **Con il buffer di tensione:** interponendo l'Op-Amp collegato direttamente dall'uscita all'ingresso $-$ ($v^- = v_o$), l'ingresso $+$ non assorbe corrente ($i^+ = 0$) e riceve tutti i $3.0\,\text{V}$ del sensore. Per il corto virtuale, l'uscita copia esattamente questa tensione sul carico: $v_L = v_o = 3.0\,\text{V}$.
 
-Nella progettazione pratica di scheda o integrata, la scelta tra le tre configurazioni fondamentali dipende dalla natura della sorgente e del carico:
-* **La configurazione Non Invertente** ha il vantaggio imbattibile di offrire $R_{in} \to \infty$ senza caricare il sensore a monte, ma non permette mai di attenuare il segnale ($A_v = 1 + R_2/R_1 \ge 1$) e sottopone i transistori d'ingresso dell'Op-Amp all'intera escursione di modo comune $v^+ = v^- = v_{in}$.
-* **La configurazione Invertente** ha lo svantaggio di presentare una resistenza d'ingresso finita $R_{in} = R_1$, ma in cambio blocca entrambi gli ingressi dell'Op-Amp a potenziale fisso di massa ($v^+ = v^- = 0$, **zero escursione di modo comune**!), consente anche di attenuare ($|A_v| < 1$) e permette di sommare più segnali sul nodo di massa virtuale.
-* **Il Buffer a guadagno unitario** è la soluzione più compatta possibile (zero resistori esterni!) quando occorre disaccoppiare un sensore ad alta impedenza o un partitore resistivo da un carico a bassa resistenza.
+La corrente richiesta dal carico ($i_L = 3.0\,\text{V} / 1.0\,\text{k}\Omega = 3.0\,\text{mA}$) viene fornita interamente dall'alimentazione dell'Op-Amp, lasciando il sensore completamente a riposo.
+
+<StepCheck client:load lang="it" prompt="Se un sensore con tensione a vuoto $v_s = 4.0\,\text{V}$ e resistenza interna $R_s = 150\,\text{k}\Omega$ pilota un carico $R_L = 2.0\,\text{k}\Omega$ attraverso un buffer di tensione ideale, quanta corrente $i_L$ (in $\text{mA}$) viene erogata dall'uscita dell'Op-Amp verso il carico?" expected={2.0} tolerance={0.05} unit="$\text{mA}$" explanation="Il buffer mantiene il sensore a vuoto ($v^+ = 4.0\,\text{V}$) e impone sul carico $v_o = 4.0\,\text{V}$, erogando $i_L = v_o / R_L = 4.0\,\text{V} / 2.0\,\text{k}\Omega = 2.0\,\text{mA}$." />
+
+### Teoria — Inseguitore Unitario e Trasformazione d'Impedenza
+
+Il **buffer di tensione** (o inseguitore di tensione, [la figura](#fig-buffer-opamp)) è il caso limite dello stadio non invertente quando si elimina $R_1$ ($R_1 \to \infty$) e si sostituisce $R_2$ con un filo ($R_2 = 0$).
+
+Il collegamento diretto impone $v^- = v_o$, che unito al corto virtuale $v^- = v^+ = v_{in}$ fornisce:
+
+$$
+v_o = v_{in} \implies A_v = 1, \qquad R_{in} \to \infty, \qquad R_{out} = 0
+$$
+
+Anche se non amplifica la tensione, il buffer agisce come **trasformatore d'impedenza**: isola una sorgente fragile ad alta resistenza da un carico a bassa resistenza, fornendo tutta la corrente necessaria a valle senza prelevarne a monte.
+
+<Callout type="tip" title="Scelta tra Configurazioni Base">
+
+* **Non invertente:** ideale per sensori ad alta impedenza ($R_{in} \to \infty$), ma ha sempre $A_v \ge 1$.
+* **Invertente:** ha $R_{in} = R_1$ finita, ma mantiene entrambi gli ingressi a $0\,\text{V}$, permette anche di attenuare ($|A_v| \lt 1$) e di sommare più segnali.
+* **Buffer:** il modo più semplice (zero resistori esterni) per disaccoppiare uno stadio dal carico successivo.
 
 </Callout>
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+<Divider label="4 · Sintesi" />
 
-### Tabella Canonica delle Configurazioni Base ad Op-Amp Ideale
-
-| Configurazione | Guadagno $v_{out}/v_{in}$ | Resistenza d'ingresso $R_{in}$ | Nota sul nodo invertente |
+| Configurazione | Guadagno $v_o/v_{in}$ | Resistenza d'ingresso $R_{in}$ | Stato del nodo invertente |
 | :--- | :--- | :--- | :--- |
-| **Invertente** | $-\frac{R_2}{R_1}$ | $R_1$ | **Massa virtuale** ($v_- = 0\,\text{V}$) |
-| **Non Invertente** | $1 + \frac{R_2}{R_1}$ | $\infty$ | Corto virtuale ($v_- = v_{in}$) |
-| **Inseguitore (Buffer)** | $+1$ | $\infty$ | $R_2 = 0, R_1 = \infty$ |
-| **Transresistenza** | $v_{out}/i_{in} = -R_f$ | $0$ | Converte corrente in tensione |
+| **Invertente** | $-\frac{R_2}{R_1}$ | $R_1$ | **Massa virtuale** ($v^- = 0\,\text{V}$) |
+| **Non invertente** | $1 + \frac{R_2}{R_1}$ | $\infty$ | Corto virtuale ($v^- = v_{in}$) |
+| **Buffer (inseguitore)** | $+1$ | $\infty$ | $R_2 = 0,\; R_1 = \infty$ |
+| **Transresistenza** | $v_o/i_s = -R_2$ | $0$ | Converte corrente in tensione |
 
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
+### Procedura di Analisi
 
-<Callout type="warning" title="Trappola d'Esame: Il Corto Virtuale Richiede Retroazione Negativa">
+1. **Verifica della retroazione:** controllare che l'uscita sia chiusa sul morsetto invertente ($-$).
+2. **Condizioni ideali:** imporre $i^+ = i^- = 0$ e $v^- = v^+$.
+3. **KCL ai nodi d'ingresso:** scrivere l'equazione delle correnti sul nodo $v^-$ (mai sul nodo d'uscita dell'Op-Amp, dove la corrente interna è incognita).
+4. **Controllo della saturazione:** verificare che $v_o$ resti tra $-V_{EE}$ e $+V_{CC}$.
 
-Non applicare mai $v_+ = v_-$ in un circuito ad anello aperto o con retroazione positiva! Il corto circuito virtuale sussiste **esclusivamente** quando la rete chiude il segnale dall'uscita verso il morsetto **invertente ($-$)** e l'Op-Amp non è in saturazione ($|v_{out}| &lt; V_{sat}$).
+### Dimostrazioni Chiave
+
+* **Corto circuito virtuale:** da $v_o = A_0(v^+ - v^-)$ con $v_o$ finito segue $v^+ - v^- = v_o / A_0 \to 0$ per $A_0 \to \infty$.
+* **Guadagno invertente:** con $v^- = 0$ e $i^- = 0$, la KCL al nodo $v^-$ dà $v_{in}/R_1 = -v_o/R_2 \implies A_v = -R_2/R_1$.
+* **Guadagno non invertente:** con $v^+ = v_{in}$ e partitore scarico su $R_1, R_2$, $v_{in} = v^- = v_o R_1 / (R_1 + R_2) \implies A_v = 1 + R_2/R_1$.
+
+<Callout type="warning" title="Errori Comuni">
+
+* **Corto virtuale senza retroazione:** non usare mai $v^+ = v^-$ ad anello aperto o con retroazione positiva; in quei casi l'uscita satura a $\pm V_{sat}$ e $v^+ \neq v^-$.
+* **KCL sul nodo d'uscita:** la corrente d'uscita dell'Op-Amp proviene dalle alimentazioni ed è incognita; l'equazione nodale si scrive sempre sui morsetti $v^-$ e $v^+$.
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-10-1" title="Esercizio 10.1: Configurazioni Invertente e Non Invertente" level="Livello 1 · Base" hint="Invertente: A_v = -R_2/R_1; Non Invertente: A_v = 1 + R_2/R_1.">
+<Divider label="5 · Esercizi" />
+
+<Exercise client:load lang="it" id="ex-10-1" title="Esercizio 10.1 — Configurazioni Invertente e Non Invertente" level="Base" hint="Invertente: $A_v = -R_2/R_1$; non invertente: $A_v = 1 + R_2/R_1$.">
 
 1. Un amplificatore invertente utilizza $R_1 = 2\,\text{k}\Omega$, $R_2 = 15\,\text{k}\Omega$ e $v_{in} = +0.4\,\text{V}$.
 2. Un amplificatore non invertente utilizza $R_1 = 4\,\text{k}\Omega$, $R_2 = 16\,\text{k}\Omega$ e $v_{in} = +0.5\,\text{V}$.
 
-<StepCheck client:load lang="it" prompt="Calcola la tensione d'uscita v_out dello stadio invertente (in V):" expected={-3.0} tolerance={0.05} unit="V" explanation="A_v = -15/2 = -7.5 ⇒ v_out = -7.5 * 0.4 = -3.0 V." />
+<StepCheck client:load lang="it" prompt="Calcola la tensione d'uscita $v_o$ dello stadio invertente (in $\text{V}$):" expected={-3.0} tolerance={0.05} unit="$\text{V}$" explanation="$A_v = -15/2 = -7.5 \implies v_o = -7.5 \cdot 0.4 = -3.0\,\text{V}$." />
 
-<StepCheck client:load lang="it" prompt="Calcola la tensione d'uscita v_out dello stadio non invertente (in V):" expected={2.5} tolerance={0.05} unit="V" explanation="A_v = 1 + 16/4 = 5.0 ⇒ v_out = 5.0 * 0.5 = 2.5 V." />
+<StepCheck client:load lang="it" prompt="Calcola la tensione d'uscita $v_o$ dello stadio non invertente (in $\text{V}$):" expected={2.5} tolerance={0.05} unit="$\text{V}$" explanation="$A_v = 1 + 16/4 = 5.0 \implies v_o = 5.0 \cdot 0.5 = 2.5\,\text{V}$." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. **Stadio invertente:** $A_v = -\frac{R_2}{R_1} = -\frac{15}{2} = -7.5$, quindi $v_{out} = -7.5(0.4) = -3.0\,\text{V}$ (con $R_{in} = R_1 = 2\,\text{k}\Omega$).
-2. **Stadio non invertente:** $A_v = 1 + \frac{R_2}{R_1} = 1 + \frac{16}{4} = 5$, quindi $v_{out} = 5(0.5) = 2.5\,\text{V}$ (con $R_{in} \to \infty$).
+1. **Stadio invertente:** poiché $v^+ = 0\,\text{V}$, per il corto circuito virtuale si ha $v^- = 0\,\text{V}$ (massa virtuale). La corrente in ingresso vale:
+
+$$
+i_1 = \frac{v_{in} - v^-}{R_1} = \frac{0.4\,\text{V}}{2\,\text{k}\Omega} = 0.2\,\text{mA}
+$$
+
+   Con $i^- = 0$, l'intera corrente fluisce in $R_2$, generando:
+
+$$
+v_o = v^- - R_2 i_1 = 0 - (15\,\text{k}\Omega)(0.2\,\text{mA}) = -3.0\,\text{V}
+$$
+
+   (Equivalentemente $A_v = -R_2/R_1 = -15/2 = -7.5$, con $R_{in} = R_1 = 2\,\text{k}\Omega$).
+
+2. **Stadio non invertente:** applicando $v^- = v^+ = v_{in} = 0.5\,\text{V}$ e il partitore scarico su $R_1, R_2$:
+
+$$
+v^- = v_o \frac{R_1}{R_1 + R_2} \implies v_o = v_{in} \left(1 + \frac{R_2}{R_1}\right) = 0.5\,\text{V} \cdot \left(1 + \frac{16}{4}\right) = 0.5 \cdot 5 = 2.5\,\text{V}
+$$
+
+   con resistenza d'ingresso $R_{in} \to \infty$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-10-2" title="Esercizio 10.2 — Transresistenza e Disaccoppiamento con Buffer" level="Intermedio" hint="Nella transresistenza $v_o = -R_2 i_s$; il buffer isola il partitore resistivo dal carico $R_L$.">
+
+1. Un fotodiodo eroga una corrente $i_s = 50\,\mu\text{A}$ dentro il nodo di massa virtuale di un amplificatore di transresistenza con $R_2 = 40\,\text{k}\Omega$.
+2. Un partitore formato da due resistori identici $R_a = R_b = 100\,\text{k}\Omega$ alimentato da $V_{DD} = 10\,\text{V}$ pilota un carico $R_L = 1\,\text{k}\Omega$ tramite un buffer di tensione ideale.
+
+<StepCheck client:load lang="it" prompt="Calcola la tensione d'uscita $v_o$ del convertitore di transresistenza (in $\text{V}$):" expected={-2.0} tolerance={0.05} unit="$\text{V}$" explanation="$v_o = -R_2 i_s = -(40\,\text{k}\Omega)(50\,\mu\text{A}) = -2.0\,\text{V}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola la tensione erogata sul carico $R_L$ dal buffer (in $\text{V}$):" expected={5.0} tolerance={0.05} unit="$\text{V}$" explanation="Il buffer non assorbe corrente ($i^+ = 0$), quindi il partitore resta a vuoto a $v^+ = 10 \cdot 100 / (100 + 100) = 5.0\,\text{V}$ e $v_o = v^+ = 5.0\,\text{V}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Transresistenza:** il nodo invertente è tenuto a $v^- = v^+ = 0\,\text{V}$ e non assorbe corrente ($i^- = 0$). Applicando la KCL al nodo $v^-$, tutta la corrente del fotodiodo $i_s = 50\,\mu\text{A}$ attraversa $R_2 = 40\,\text{k}\Omega$ verso l'uscita:
+
+$$
+v_o = v^- - R_2 i_s = 0 - (40 \times 10^3\,\Omega)(50 \times 10^{-6}\,\text{A}) = -2.0\,\text{V}
+$$
+
+2. **Partitore + buffer:**
+   * Senza buffer, il carico $R_L = 1\,\text{k}\Omega$ si troverebbe in parallelo a $R_b = 100\,\text{k}\Omega$ ($R_b \parallel R_L \approx 0.99\,\text{k}\Omega$), facendo crollare la tensione sul carico a $10 \cdot \frac{0.99}{100 + 0.99} \approx 0.098\,\text{V}$.
+   * Inserendo il buffer, l'ingresso non invertente non assorbe corrente ($i^+ = 0$). Il partitore lavora a vuoto fornendo:
+
+$$
+v^+ = V_{DD} \frac{R_b}{R_a + R_b} = 10\,\text{V} \cdot \frac{100\,\text{k}\Omega}{100\,\text{k}\Omega + 100\,\text{k}\Omega} = 5.0\,\text{V}
+$$
+
+   * Per il corto circuito virtuale del buffer ($v_o = v^-$ e $v^- = v^+$) e la sua resistenza d'uscita nulla ($R_{out} = 0$), sul carico $R_L$ viene trasferita esattamente la tensione $v_o = 5.0\,\text{V}$ (con corrente erogata $I_L = 5.0\,\text{V}/1\,\text{k}\Omega = 5\,\text{mA}$ fornita dall'Op-Amp).
 
 </details>
 

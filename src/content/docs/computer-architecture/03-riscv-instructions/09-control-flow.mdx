@@ -1,0 +1,482 @@
+---
+title: "9. Control Flow Translation"
+description: "Condition inversion, if-else ladders, short-circuit && and || guards, and for, while, and do-while loop templates in RV32I."
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 9 Outline" markdown={`# Ch. 9: Control Flow Translation
+  - Guarded Digit Loop Example
+    - Inverted loop and range-check branches
+    - Early exit via break
+  - Branch and Loop Templates
+    - Condition inversion and signed vs unsigned tests
+    - Selection blocks (if, if-else, else-if ladders)
+    - Short-circuit && and Logical OR guards
+    - Iteration templates (for, while, do-while, break)
+  - Summary and Exercises`} />
+
+## Sequential Fall-Through
+
+Unless a branch or jump alters the Program Counter, a RISC-V processor advances sequentially from one 32-bit instruction to the next ($\text{PC} \leftarrow \text{PC} + 4$) as established in [RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/). Structured C statements (`if`, `for`, `while`) enter a guarded block when a condition is **true**, whereas assembly keeps the guarded body inline and branches **around** it whenever the **inverted** condition holds.
+
+<Divider label="1 · Example" />
+
+### Guarded Digit Accumulation
+
+Consider a 4-character prefix loop adapted from our shared telemetry routine in [Part III Introduction](/dynamic-courses/computer-architecture/03-riscv-instructions/00-introduction/). Given `char *pkt` in `a0`, the loop accumulates leading ASCII digits (`'0'` $= 48$ through `'9'` $= 57$) into `sum` and stops immediately via `break` on the first non-digit character:
+
+```c
+int sum = 0;
+for (int i = 0; i < 4; i++) {
+    if (pkt[i] >= 48 && pkt[i] <= 57) {
+        sum = sum * 10 + (pkt[i] - 48);
+    } else {
+        break;
+    }
+}
+```
+
+Translating this snippet into RV32IM (`t0 = sum`, `t1 = i`) flips every entry test into a forward branch toward the next execution target, matching the control topology in [the figure](#fig-branch-inversion):
+
+```asm
+    li   t0, 0                # sum = 0
+    li   t1, 0                # i = 0
+    li   t2, 4                # Loop bound 4
+    li   t5, 48               # ASCII '0'
+    li   t6, 57               # ASCII '9'
+
+parse_loop:
+    bge  t1, t2, parse_done   # Inverted i < 4: if i >= 4, exit loop
+    add  t3, a0, t1           # t3 = &pkt[i]
+    lbu  t4, 0(t3)            # t4 = pkt[i]
+
+    blt  t4, t5, non_digit    # Inverted pkt[i] >= 48: if < 48, go to else
+    bgt  t4, t6, non_digit    # Inverted pkt[i] <= 57: if > 57, go to else
+
+    li   t3, 10
+    mul  t0, t0, t3           # sum = sum * 10
+    addi t4, t4, -48          # pkt[i] - 48
+    add  t0, t0, t4           # sum += (pkt[i] - 48)
+    j    parse_step           # Jump over else block
+
+non_digit:
+    j    parse_done           # break -> jump directly to loop exit
+
+parse_step:
+    addi t1, t1, 1            # i++
+    j    parse_loop           # Repeat loop
+
+parse_done:
+```
+
+<figure id="fig-branch-inversion" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-branch-inversion.svg" alt="Comparison between High-Level C conditional execution and RISC-V Assembly Branch Inversion." />
+  <figcaption>High-level C conditional semantics versus RISC-V branch inversion. The processor tests the negated relation (<code>bge</code>), jumping forward to <code>else_lbl</code> when the C condition fails and falling straight into <code>then</code> when it holds.</figcaption>
+</figure>
+
+Tracing `pkt = "47X9"` (`52, 55, 88, 57`) confirms how the four branch instructions steer execution:
+- **`i = 0` (`'4' = 52`) and `i = 1` (`'7' = 55`):** `bge`, `blt`, and `bgt` all fall through, updating `sum` to $4$ and then $47$ before `j parse_step` skips `non_digit`.
+- **`i = 2` (`'X' = 88`):** `blt` ($88 < 48$) falls through, `bgt` ($88 > 57$) **takes** the jump to `non_digit`, and `j parse_done` exits the loop immediately with `sum = 47` (`'9'` at `i = 3` is never inspected).
+
+<StepCheck
+  client:load
+  prompt="If the 4-byte buffer at `a0` instead holds ASCII bytes `'3'`, `'5'`, `'A'`, `'9'` (`51, 53, 65, 57`), what integer value is held in `t0` (`sum`) when execution reaches `parse_done`?"
+  expected={35}
+  tolerance={0.01}
+  unit=""
+  explanation="Iterations `i = 0` (`'3'`) and `i = 1` (`'5'`) accumulate `sum = 35`. At `i = 2`, `'A'` (`65 > 57`) triggers `bgt t4, t6, non_digit`, which executes `j parse_done` (`break`)."
+/>
+
+<Divider label="2 · Theory" />
+
+### Condition Inversion and Signedness
+
+RV32I provides six hardware **B-type** conditional branch instructions (`beq`, `bne`, `blt`, `bge`, `bltu`, `bgeu`), each encoding a 12-bit signed halfword offset shifted left by $1$ bit ($\pm 4\text{ KiB}$ PC-relative range). Standard relational pseudoinstructions (`bgt`, `ble`, `bgtu`, `bleu`, `beqz`, `bnez`) assemble into single hardware instructions by swapping `rs1` and `rs2` or substituting `zero`:
+
+$$\texttt{bgt rs1, rs2, L} \;\equiv\; \texttt{blt rs2, rs1, L}, \qquad \texttt{ble rs1, rs2, L} \;\equiv\; \texttt{bge rs2, rs1, L}$$
+
+When negating a C condition to skip a guarded block, strict inequalities (`<`, `>`) flip into inclusive inequalities (`>=`, `<=`), and vice versa:
+
+$$\neg(a < b) \iff a \ge b, \qquad \neg(a \le b) \iff a > b$$
+
+Choosing between **signed** (`blt`, `bge`, `bgt`, `ble`) and **unsigned** (`bltu`, `bgeu`, `bgtu`, `bleu`) branches depends on the C operand type:
+- **Signed (`int`, `signed char`):** Interprets bit $31$ as a two's complement sign bit, so `0xFFFFFFFF` ($-1$) satisfies `-1 < 0` (`blt` taken).
+- **Unsigned (`unsigned int`, memory addresses, zero-extended bytes):** Treats all $32$ bits as magnitude, so `0xFFFFFFFF` ($4{,}294{,}967{,}295$) is strictly greater than `0` (`bltu` not taken).
+
+### Selection Templates
+
+**1. Simple `if (cond)`:** Emit one inverted branch jumping to `skip_if`:
+
+```asm
+    # C: if (v >= 1) { ris = ris + v * t; }
+    li   t3, 1
+    blt  t0, t3, skip_if      # Inverted v >= 1: skip when v < 1
+    mul  t4, t0, t2
+    add  t1, t1, t4
+skip_if:
+```
+
+**2. Complete `if-else`:** Jump to `else_blk` on the inverted condition, and place an **unconditional `j end_if`** at the bottom of the `then` block so execution never falls into `else_blk`:
+
+```asm
+    # C: if (num < 26) { val += num; } else { err = 1; }
+    li   t3, 26
+    bge  t0, t3, else_blk     # Inverted num < 26: jump to else when num >= 26
+    add  t1, t1, t0           # then body: val += num
+    j    end_if               # Mandatory jump over else_blk!
+else_blk:
+    li   t2, 1                # else body: err = 1
+end_if:
+```
+
+**3. Multi-Way `else if` Ladder:** Chain each negated test to the label of the next `else if` clause, ending every taken branch (except the last) with `j end_cond`:
+
+```asm
+    # C: if (c > ref) { hi++; } else if (c < ref) { lo++; }
+    ble  t0, a1, check_less   # If c <= ref, test next clause
+    addi t2, t2, 1            # hi++
+    j    end_cond
+check_less:
+    bge  t0, a1, end_cond     # If c >= ref, neither clause holds
+    addi t3, t3, 1            # lo++
+end_cond:
+```
+
+### Short-Circuit Compound Guards
+
+C evaluates logical **AND (`&&`)** and **OR (`||`)** from left to right, stopping as soon as the outcome is decided:
+
+- **Logical AND (`if (A && B)`):** Both clauses must hold. Test `!A` first and jump to `skip_body`; if $A$ succeeded, test `!B` and jump to the **same** `skip_body` label:
+  ```asm
+      # C: if (x >= lo && x < hi) { count++; }
+      blt  t0, t1, skip_body  # Clause 1 false (x < lo) -> short-circuit out
+      bge  t0, t2, skip_body  # Clause 2 false (x >= hi) -> exit
+      addi t3, t3, 1          # Executes only when both clauses hold
+  skip_body:
+  ```
+  Preserving left-to-right order is essential when clause $A$ guards a pointer dereference or division in clause $B$ (such as `if (a != 0 && b / a > 2)`).
+
+- **Logical OR (`if (A || B)`):** Either clause suffices to enter the body. Test $A$ **positively** to jump straight into `exec_body`, then test `!B` **inverted** to jump past `exec_body`:
+  ```asm
+      # C: if (c == 32 || c == 9) { spaces++; }
+      li   t1, 32
+      beq  t0, t1, exec_body  # Clause 1 true -> enter body immediately!
+      li   t1, 9
+      bne  t0, t1, skip_body  # Clause 2 also false -> skip body
+  exec_body:
+      addi t2, t2, 1          # spaces++
+  skip_body:
+  ```
+
+### Loop Translation Templates
+
+**1. Top-Tested `for` and `while` Loops:** Both `while (cond)` and `for (init; cond; step)` place `init` once before the loop label, test `!cond` at the top to jump to `loop_exit`, execute the body and `step`, and jump back to `loop_top` with `j`:
+
+```asm
+    # Descending C loop: for (i = n - 1; i >= 0; i--) { ... }
+    addi t0, a2, -1           # init: i = n - 1
+for_top:
+    blt  t0, zero, for_exit   # Inverted i >= 0: exit when i < 0
+    # ... loop body ...
+for_step:
+    addi t0, t0, -1           # step: i--
+    j    for_top
+for_exit:
+```
+
+**2. Bottom-Tested `do-while` Loop:** Unlike `while` and `for`, a `do { ... } while (cond);` loop executes its body **at least once** and tests `cond` at the bottom to decide whether to repeat. Because jumping back repeats the loop, **do not invert the `do-while` condition**:
+
+```asm
+    # C input validation: do { ... } while (len != target);
+do_top:
+    # ... loop body updates len in t0 ...
+    bne  t0, s1, do_top       # Non-inverted: if len != target, repeat!
+```
+
+**3. Early Exit (`break`) and Iteration Skip (`continue`):**
+- **`break`:** Compiles to `j for_exit` (or a direct conditional branch `beq t1, t2, for_exit`), exiting the innermost enclosing loop immediately.
+- **`continue`:** Skips the rest of the current iteration—jumping to `for_step` in a `for` loop (so `i++` still runs!) or to `while_top` in a `while` loop.
+
+<Callout type="bridge" title="Predictable Control Timing in Robotics Firmware">
+
+In $1\text{ kHz}$ quadrotor attitude controllers, taken versus untaken branches alter instruction fetch flow and can introduce small cycle-count variations. For tight saturation checks (`clamping` an actuator command to $[-u_{\max}, +u_{\max}]$), embedded compilers weigh short forward branches against branch-free `slt`/mask sequences depending on pipeline branch penalties.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="You are translating `do { val = val / 2; } while (val >= 16);` where `val` is in `t0` and `16` is in `t1` at the bottom of `do_top:`. Which single branch instruction correctly ends the loop?"
+  options={[
+    "`blt t0, t1, do_top`",
+    "`bge t0, t1, do_top`",
+    "`bgt t0, t1, do_top`",
+    "`ble t0, t1, do_top`"
+  ]}
+  correctIndex={1}
+  explanation="A `do-while` test sits at the bottom of the loop and branches back to `do_top` whenever the continuation condition is **true** (`val >= 16` $\implies$ `bge t0, t1, do_top`), without inverting."
+/>
+
+<Divider label="3 · Summary" />
+
+### Condition Inversion and Control Lookup
+
+| High-Level C Test | Inverted Skip Condition | Signed RV32I Skip Branch | Unsigned RV32I Skip Branch |
+| :---: | :---: | :---: | :---: |
+| `a == b` | `a != b` | `bne rs1, rs2, skip` | `bne rs1, rs2, skip` |
+| `a != b` | `a == b` | `beq rs1, rs2, skip` | `beq rs1, rs2, skip` |
+| `a < b` | `a >= b` | `bge rs1, rs2, skip` | `bgeu rs1, rs2, skip` |
+| `a <= b` | `a > b` | `bgt rs1, rs2, skip` | `bgtu rs1, rs2, skip` |
+| `a > b` | `a <= b` | `ble rs1, rs2, skip` | `bleu rs1, rs2, skip` |
+| `a >= b` | `a < b` | `blt rs1, rs2, skip` | `bltu rs1, rs2, skip` |
+
+| C Construct | Assembly Skeleton | Critical Rule |
+| :--- | :--- | :--- |
+| **`if-else`** | `b_inv else` $\to$ `then` $\to$ `j end` $\to$ `else:` | Never omit `j end` before `else:` |
+| **Logical AND (`A` and `B`)** | `b_inv_A skip` $\to$ `b_inv_B skip` $\to$ `body` | First failure jumps straight to `skip:` |
+| **Logical OR (`A` or `B`)** | `b_pos_A body` $\to$ `b_inv_B skip` $\to$ `body:` | First success jumps straight to `body:` |
+| **`for` / `while`** | `init` $\to$ `top: b_inv exit` $\to$ `body` $\to$ `step` $\to$ `j top` | Invert top test; place `step` before `j top` |
+| **`do-while`** | `top:` $\to$ `body` $\to$ `b_pos top` | Do **not** invert bottom repeat test |
+
+### Control Translation Procedure
+
+1. **Prefix All Labels:** Give every `if` and loop function-scoped labels (`count_loop`, `count_skip`, `count_done`) so labels never collide across `main` and helper routines.
+2. **Invert Header Guards:** For `if`, `else if`, `while`, and `for`, replace the C condition with its exact logical negation from the table above (checking signed vs. unsigned types).
+3. **Wire Multi-Arm Merges:** Place `j end_if` at the end of every `then` and `else if` block, and `j loop_top` after the loop `step`.
+4. **Check Bottom-Tested Loops:** For `do-while`, keep the C condition un-inverted on the backward branch to `do_top`.
+
+### Key Invariants
+
+- **Inclusive/Strict Flip:** Negating `<` always produces `>=` (`bge`), never `>` (`bgt`); boundary equality must land in exactly one arm.
+- **Short-Circuit Safety:** Left-to-right sequential branches guarantee that a guarded right-hand operand (`b / a` or `arr[i]`) never executes when the left-hand guard fails.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Fall-Through into `else`:** Forgetting `j end_if` at the end of `then` executes **both** the `then` body and the `else` body whenever the `if` condition is true.
+2. **Inverting `do-while`:** Writing `beq t0, s1, do_top` for `while (len != target)` exits on invalid input and loops infinitely on valid input.
+3. **Boundary Off-by-One (`ble` vs `bge`):** Translating `for (i = 0; i < n; i++)` with `bgt t0, a1, exit` instead of `bge t0, a1, exit` runs one extra out-of-bounds iteration at `i = n`.
+4. **Duplicate Label Names:** Defining `loop:` in both `main` and a helper subroutine triggers an assembler duplicate-symbol error.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-9-1"
+  title="Exercise 9.1 — Band Filter and Else-If Classification"
+  level="Warm-Up"
+  hint="Use two inverted branches (`blt` and `bge`) to skip the first `&&` arm toward `check_neg:`, and remember `j classify_done` at the end of each taken arm."
+>
+
+Translate the following C leaf function into RV32I assembly using only temporary registers (`t0`–`t2`):
+
+```c
+int classify_sample(int x, int lo, int hi) {
+    int code;
+    if (x >= lo && x < hi) {
+        code = 1;
+    } else if (x < 0) {
+        code = -1;
+    } else {
+        code = 0;
+    }
+    return code;
+}
+```
+
+<StepCheck
+  client:load
+  prompt="When `x = 20`, `lo = 5`, and `hi = 20`, what integer value does `classify_sample` return in `a0`?"
+  expected={0}
+  tolerance={0.01}
+  unit=""
+  explanation="At boundary `x = 20`, the strict upper test `x < hi` (`20 < 20`) is false (`bge a0, a2, check_neg` is taken). Since `20 < 0` is also false, execution enters `else` and returns `0`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+Arguments arrive in `a0 = x`, `a1 = lo`, `a2 = hi`. Negating `x >= lo` gives `blt a0, a1, check_neg`, and negating `x < hi` gives `bge a0, a2, check_neg`:
+
+```asm
+# Arguments: a0 = int x, a1 = int lo, a2 = int hi
+# Returns:   a0 = int code
+classify_sample:
+    blt  a0, a1, check_neg    # x < lo -> first arm fails
+    bge  a0, a2, check_neg    # x >= hi -> first arm fails
+
+    li   t0, 1                # code = 1
+    j    classify_done        # Skip else-if and else arms
+
+check_neg:
+    bge  a0, zero, set_zero   # Inverted x < 0: if x >= 0, jump to else
+    li   t0, -1               # code = -1
+    j    classify_done
+
+set_zero:
+    li   t0, 0                # code = 0
+
+classify_done:
+    mv   a0, t0               # Return code in a0
+    ret
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-9-2"
+  title="Exercise 9.2 — Reverse Scan with Early Break"
+  level="Intermediate"
+  hint="Initialize `i` to `len - 1` (`addi t0, a1, -1`), exit the loop when `i < 0` (`blt t0, zero, scan_done`), and jump directly to `scan_done` when `str[i] == target`."
+>
+
+Complete the RV32I translation of `last_index`, which scans a byte buffer backwards from `len - 1` down to `0` and uses `break` to stop at the rightmost occurrence of `target` (returning `-1` if no match exists):
+
+```c
+int last_index(char *str, int len, char target) {
+    int pos = -1;
+    for (int i = len - 1; i >= 0; i--) {
+        if (str[i] == target) {
+            pos = i;
+            break;
+        }
+    }
+    return pos;
+}
+```
+
+1. Write the exact loop header exit branch for `i >= 0` (with `i` in `t0`).
+2. Write the complete `last_index:` leaf subroutine using `t0`–`t3`.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="With `i` stored in `t0`, which instruction at `scan_loop:` correctly implements the inverted loop exit test for `for (int i = len - 1; i >= 0; i--)`?"
+  options={[
+    "`ble t0, zero, scan_done`",
+    "`blt t0, zero, scan_done`",
+    "`bge t0, zero, scan_done`",
+    "`bltu t0, zero, scan_done`"
+  ]}
+  correctIndex={1}
+  explanation="Index `i = 0` is a valid element (`str[0]`), so the loop must continue at `0` and exit only when signed `i` drops to `-1` (`i < 0` $\implies$ `blt t0, zero, scan_done`). Note `bltu` against `zero` can never be true!"
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+```asm
+# Arguments: a0 = char *str, a1 = int len, a2 = char target
+# Returns:   a0 = int pos (rightmost match index, or -1)
+last_index:
+    li   t1, -1               # pos = -1
+    addi t0, a1, -1           # i = len - 1
+
+scan_loop:
+    blt  t0, zero, scan_done  # Inverted i >= 0: exit when i < 0
+
+    add  t2, a0, t0           # t2 = &str[i]
+    lbu  t3, 0(t2)            # t3 = str[i]
+
+    bne  t3, a2, scan_next    # If str[i] != target, continue scanning
+    mv   t1, t0               # pos = i
+    j    scan_done            # break -> exit loop immediately
+
+scan_next:
+    addi t0, t0, -1           # i--
+    j    scan_loop
+
+scan_done:
+    mv   a0, t1               # Return pos in a0
+    ret
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-9-3"
+  title="Exercise 9.3 — Iterative Reduction with Do-While"
+  level="Exam"
+  hint="Combine RV32M `rem` and `div` from Chapter 8 with an inner `if-else` (`rem == 0` vs odd) and a bottom-tested `bgt a0, a1, reduce_top` for the `do-while` condition `n > limit`."
+>
+
+Translate the following C leaf function (combining RV32M remainder/division arithmetic with an `if-else` inside a `do-while` loop) into complete RV32IM assembly:
+
+```c
+int collatz_bound(int n, int limit) {
+    int steps = 0;
+    do {
+        if (n % 2 == 0) {
+            n = n / 2;
+        } else {
+            n = 3 * n + 1;
+        }
+        steps++;
+    } while (n > limit);
+    return steps;
+}
+```
+
+<StepCheck
+  client:load
+  prompt="Trace `collatz_bound(5, 4)`: what integer value of `steps` is returned in `a0`?"
+  expected={3}
+  tolerance={0.01}
+  unit="steps"
+  explanation="Pass 1: `5` is odd so `n = 16`, `steps = 1` (`16 > 4` repeats). Pass 2: `16` is even so `n = 8`, `steps = 2` (`8 > 4` repeats). Pass 3: `8` is even so `n = 4`, `steps = 3` (`4 > 4` is false, exiting)."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+Tracing `n = 5, limit = 4` confirms the bottom-tested loop behavior:
+- **Pass 1:** `5 % 2 != 0` $\to$ `n = 3 * 5 + 1 = 16`, `steps = 1`; `16 > 4` holds (`bgt` repeats).
+- **Pass 2:** `16 % 2 == 0` $\to$ `n = 16 / 2 = 8`, `steps = 2`; `8 > 4` holds (`bgt` repeats).
+- **Pass 3:** `8 % 2 == 0` $\to$ `n = 8 / 2 = 4`, `steps = 3`; `4 > 4` is false (`bgt` falls through, returning `3`).
+
+The complete RV32IM leaf implementation is:
+
+```asm
+# Arguments: a0 = int n, a1 = int limit
+# Returns:   a0 = int steps
+collatz_bound:
+    li   t0, 0                # steps = 0
+    li   t1, 2                # Constant 2
+    li   t2, 3                # Constant 3
+
+reduce_top:
+    rem  t3, a0, t1           # t3 = n % 2
+    bnez t3, odd_branch       # Inverted (n % 2 == 0): jump if remainder != 0
+
+    div  a0, a0, t1           # then: n = n / 2
+    j    step_count           # Mandatory jump over else!
+
+odd_branch:
+    mul  a0, a0, t2           # n = 3 * n
+    addi a0, a0, 1            # n = 3 * n + 1
+
+step_count:
+    addi t0, t0, 1            # steps++
+    bgt  a0, a1, reduce_top   # do-while (n > limit): non-inverted repeat branch!
+
+    mv   a0, t0               # Return steps in a0
+    ret
+```
+
+</details>
+
+</Exercise>

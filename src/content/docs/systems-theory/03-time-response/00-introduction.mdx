@@ -1,0 +1,38 @@
+---
+title: "Part III — Introduction: Matrix Exponential & Time Response"
+description: "Conceptual overview and real-world framing for Part III of Linear Systems Theory."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part III Roadmap" markdown={`# Part III: Matrix Exponential & Response
+  - 8. Matrix Exponential State Transition
+    - Power series, Cayley-Hamilton & $e^{\\mathbf{A}t}$
+  - 9. Free State Response
+    - Autonomous energy release & phase portraits
+  - 10. Forced Response and Convolution
+    - Lagrange formula & superposition`} />
+
+## Introduction
+
+Once a physical system is written as $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$, the central question is: **where will the state vector be at any future time $t > 0$?** Part III answers this completely in the time domain by generalizing the scalar exponential $e^{at}$ into the **state transition matrix** $\mathbf{\Phi}(t) = e^{\mathbf{A}t}$.
+
+Conceptually, $e^{\mathbf{A}t}$ acts as the system's propagator: multiply any initial state $\mathbf{x}(0)$ by $e^{\mathbf{A}t}$ and you immediately trace its natural, unforced trajectory. Add external actuator commands $\mathbf{u}(t)$, and **Lagrange's Formula** blends every past impulse of control effort up to time $t$ via superposition into one clean free + forced decomposition.
+
+### Practical Real-World Perspective
+
+- **Drone Gust Recovery (Free Response):** When a crosswind tilts a hovering quadrotor and then vanishes, $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}_0$ determines whether the attitude spirals smoothly back to level, overshoots, or tumbles monotonically along an eigenvector manifold.
+- **Digital Simulation & Discrete Control Loops:** Embedded autopilots running on microcontrollers at $400\text{ Hz}$ discretize continuous plant dynamics by evaluating $\mathbf{A}_d = e^{\mathbf{A}\Delta t}$ every $2.5\text{ ms}$.
+- **Impulse Weighting:** Measuring a structure's impulse response $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$ from a single hammer tap lets vibration engineers predict its output under any arbitrary road or aerodynamic load via convolution.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[8. Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/)** — Three analytical routes to $e^{\mathbf{A}t}$: inverse Laplace of the resolvent, spectral decomposition, and Cayley-Hamilton.
+2. **[9. Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/)** — Computing $\mathbf{x}_l(t)$, visualizing natural modes on the phase plane, and exploiting eigenvector invariance.
+3. **[10. Forced Response and Convolution](/dynamic-courses/systems-theory/03-time-response/03-lagrange-convolution-forced-response/)** — Splitting total response into transient vs. steady-state components using Lagrange's integral and Laplace.

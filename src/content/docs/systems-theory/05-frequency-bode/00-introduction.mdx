@@ -1,0 +1,45 @@
+---
+title: "Part V — Introduction: Frequency Response & Bode"
+description: "Conceptual overview and real-world framing for Part V of Linear Systems Theory."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part V Roadmap" markdown={`# Part V: Frequency Response & Bode
+  - 17. Bode Magnitude Diagrams
+    - Decibels, corner breaks & resonant peaks
+  - 18. Bode Phase Diagrams
+    - Phase lag ramps & stability margins
+  - 19. Non-Minimum Phase Systems
+    - RHP zeros, pure delays & undershoot`} />
+
+## Introduction
+
+Up to this point, you have viewed systems through differential equations in time $t$ and algebraic matrices in $s$. Part V introduces the engineer's favorite experimental and design lens: **frequency response**. When you excite a stable system with a steady sinusoid of frequency $\omega$, it responds with a sinusoid of the exact same frequency—only scaled in amplitude by $|W(j\omega)|$ and delayed in phase by $\arg(W(j\omega))$.
+
+Plotting gain in decibels and phase in degrees on a logarithmic frequency axis turns complicated polynomial products into straight, modular building blocks. Better yet, **Bode diagrams** directly expose how close a feedback loop sits to instability (**gain margin** and **phase margin**) and reveal hard physical speed limits caused by right-half-plane zeros and time delays.
+
+### Practical Real-World Perspective
+
+- **Drone Structural Filtering & Bandwidth:** Lightweight carbon-fiber quadrotor frames resonate strongly at high frequencies ($\omega_r$), amplifying propeller vibrations into IMU sensors. Reading a Bode magnitude plot shows immediately where the resonant peak lives so you can place a digital notch filter without wrecking phase margin at the crossover frequency $\omega_c$.
+- **Steering & Aircraft Delays (Non-Minimum Phase):** To turn a bicycle or aircraft right, you first briefly counter-steer or drop a control surface, creating an initial dip in the wrong direction (**undershoot**). Network packet latency in teleoperation adds $e^{-sT_d}$ phase lag that caps maximum safe closed-loop bandwidth.
+
+### Shared Running Example
+
+Throughout Part V, we analyze the same unity-feedback loop from successive angles:
+
+$$L(s) = K \frac{1 \pm s/4}{s(1 + s/2)}, \qquad W_{\text{CL}}(s) = \frac{L(s)}{1 + L(s)}$$
+
+**Chapter 17** sketches its asymptotic magnitude $|L(j\omega)|$, **Chapter 18** adds phase $\angle L(j\omega)$ to measure stability margins, and **Chapter 19** flips the sign of $s/4$ to show how a single right-half-plane zero changes closed-loop stability.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[17. Bode Magnitude Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/)** — Convert transfer functions to Bode canonical form and draft ruler-accurate asymptotic skeletons plus exact $-3.01\text{ dB}$ / resonant corrections.
+2. **[18. Bode Phase Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/02-exact-bode-phase-diagrams/)** — Sketch 3-segment phase ramps, verify $\varphi(0^+)$ and $\varphi(\infty)$ limits, and evaluate phase margin $\varphi_m$.
+3. **[19. Non-Minimum Phase Systems](/dynamic-courses/systems-theory/05-frequency-bode/03-non-minimum-phase-singularity-dynamics/)** — Understand why RHP zeros and transport delays add extra phase lag, cause initial undershoot, and cap feedback speed.

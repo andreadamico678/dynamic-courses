@@ -165,6 +165,10 @@ def compile_tikz_to_svgs(tikz_jobs: list[tuple[str, str]]) -> set[str]:
                     text=True,
                 )
                 if sv.returncode == 0 and out_svg.exists():
+                    svg_txt = out_svg.read_text(encoding="utf-8")
+                    svg_txt = re.sub(r"\bfill-opacity=(['\"])0(?:\.0+)?\1", "", svg_txt)
+                    svg_txt = re.sub(r"\bstroke-opacity=(['\"])0(?:\.0+)?\1", "", svg_txt)
+                    out_svg.write_text(svg_txt, encoding="utf-8")
                     created.add(fig_id)
                 else:
                     print(f"WARNING: dvisvgm failed for {fig_id}: {sv.stderr}")
@@ -176,6 +180,17 @@ def sanitize_mdx_text(text: str) -> str:
     # Strip Quarto {#eq-...} and {#sec-...} tags
     text = re.sub(r"\$\$\s*\{#eq-[A-Za-z0-9_-]+\}", "$$", text)
     text = re.sub(r"^(#{1,6}\s+[^\n]+?)\s*\{#[A-Za-z0-9_-]+\}\s*$", r"\1", text, flags=re.M)
+
+    # remark-math@6 requires multi-line $$ delimiters on their own lines
+    def fence_multiline_math(m: re.Match) -> str:
+        indent = m.group(1)
+        body = m.group(2)
+        if "\n" not in body:
+            return m.group(0)
+        body_clean = body.strip("\r\n")
+        return f"{indent}$$\n{indent}{body_clean}\n{indent}$$"
+
+    text = re.sub(r"^([ \t]*)\$\$(.+?)\$\$$", fence_multiline_math, text, flags=re.M | re.S)
 
     # Convert Quarto tables ::: {#tbl-...} ... : Caption :::
     def repl_tbl(m: re.Match) -> str:
@@ -350,14 +365,15 @@ def main() -> None:
                 part = part.strip()
                 if not part:
                     continue
-                em = re.match(r"^###\s+Exercise\s+(\d+)\.(\d+):?\s*(?:\(([^)]+)\)|\[([^\]]+)\])?\s*(?:—\s*([^\n]+))?\s*(?:\{#[^}]+\})?\s*\n(.*)", part, re.S)
+                em = re.match(r"^###\s+Exercise\s+(\d+)\.(\d+)(?::\s*([^\[\n]+?))?\s*(?:\(([^)]+)\)|\[([^\]]+)\])?\s*(?:—\s*([^\n]+))?\s*(?:\{#[^}]+\})?\s*\n(.*)", part, re.S)
                 if not em:
                     ex_blocks.append(sanitize_mdx_text(part))
                     continue
                 c_n, e_n = int(em.group(1)), int(em.group(2))
-                lvl = (em.group(3) or em.group(4) or "Level 1").strip("[]")
-                extra_title = f": {em.group(5).strip()}" if em.group(5) else ""
-                prompt_md = sanitize_mdx_text(em.group(6).strip())
+                lvl = (em.group(4) or em.group(5) or "Level 1").strip("[]")
+                raw_title = (em.group(3) or em.group(6) or "").strip()
+                extra_title = f": {raw_title}" if raw_title else ""
+                prompt_md = sanitize_mdx_text(em.group(7).strip())
                 sol_raw = re.sub(r"(?<![A-Za-z0-9_])@(sec|fig|tbl|eq)-([A-Za-z0-9_-]+)", repl_ref, solutions.get((c_n, e_n), "Solution pending."))
                 sol_md = sanitize_mdx_text(sol_raw)
                 checks = "\n\n".join(CHAPTER_STEPCHECKS.get((c_n, e_n), []))

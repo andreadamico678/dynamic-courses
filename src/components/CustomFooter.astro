@@ -1,0 +1,77 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+import StudyWorkspace from './StudyWorkspace';
+import TextHighlighter from './TextHighlighter';
+---
+
+<Default {...Astro.props}><slot /></Default>
+<TextHighlighter client:load />
+<StudyWorkspace client:load />
+
+<script is:inline>
+  (function () {
+    function prepareInlineSvg(rawSvg, index) {
+      const prefix = `dcsv${index}_`;
+      return rawSvg
+        .replace(/\bfill-opacity=(['"])0(?:\.0+)?\1/g, '')
+        .replace(/\bstroke-opacity=(['"])0(?:\.0+)?\1/g, '')
+        .replace(/\bid=(['"])([^'"]+)\1/g, (_, quote, id) => `id=${quote}${prefix}${id}${quote}`)
+        .replace(
+          /\b((?:xlink:)?href)=(['"])#([^'"]+)\2/g,
+          (_, attr, quote, id) => `${attr}=${quote}#${prefix}${id}${quote}`,
+        )
+        .replace(/url\(#([^)]+)\)/g, (_, id) => `url(#${prefix}${id})`);
+    }
+
+    async function hydrateSvgDiagrams() {
+      const imgs = document.querySelectorAll('.dc-svg-wrap img[src$=".svg"]');
+      let idx = 0;
+
+      for (const img of imgs) {
+        if (img.dataset.dcSvgHydrated === '1') continue;
+        img.dataset.dcSvgHydrated = '1';
+        const src = img.getAttribute('src');
+        if (!src) continue;
+
+        const svgIndex = idx++;
+        try {
+          const response = await fetch(src);
+          if (!response.ok) continue;
+          const rawText = await response.text();
+          if (!rawText.includes('<svg')) continue;
+
+          const cleaned = prepareInlineSvg(rawText, svgIndex);
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(cleaned, 'image/svg+xml');
+          const svg = doc.querySelector('svg');
+          if (!svg || doc.querySelector('parsererror')) continue;
+
+          const alt = img.getAttribute('alt');
+          if (alt) {
+            svg.setAttribute('role', 'img');
+            svg.setAttribute('aria-label', alt);
+          }
+
+          if (!svg.getAttribute('viewBox')) {
+            const w = parseFloat(svg.getAttribute('width') || '0');
+            const h = parseFloat(svg.getAttribute('height') || '0');
+            if (w > 0 && h > 0) {
+              svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+            }
+          }
+
+          img.replaceWith(document.importNode(svg, true));
+        } catch {
+          // Keep original <img> fallback if fetch fails
+        }
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', hydrateSvgDiagrams);
+    } else {
+      hydrateSvgDiagrams();
+    }
+    document.addEventListener('astro:page-load', hydrateSvgDiagrams);
+  })();
+</script>

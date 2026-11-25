@@ -1,0 +1,384 @@
+---
+title: "8. RISC-V Instructions"
+description: "RV32IM registers, ABI conventions, immediate sign extension, word vs byte memory access, and hardware multiply/divide."
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 8 Outline" markdown={`# Ch. 8: RISC-V Instructions
+  - Sensor Sample Example
+    - Byte vs word offset calculation
+    - Register trace with lbu, lw, mul, rem, sw
+  - RV32IM Instruction Mechanics
+    - 32 registers, x0 zero rule, and ABI roles
+    - 32-bit format alignment and 12-bit sign extension
+    - Arithmetic, bitwise, shift, and RV32M operations
+    - Word (lw/sw) vs byte (lb/lbu/sb) loads and stores
+  - Summary and Exercises`} />
+
+## Load-Store Execution
+
+In C, a single line of code can dereference two pointers, subtract an ASCII offset, multiply by a calibration constant, and write the result back to memory. On a 32-bit RISC-V (**RV32IM**) processor, main memory never participates directly in arithmetic: values must first enter the 32-bit register file via explicit load instructions, undergo fixed-width register-to-register or register-immediate operations, and return to RAM via explicit store instructions.
+
+<Divider label="1 · Example" />
+
+### Scaling One Telemetry Sample
+
+Consider a concrete single-element slice of the telemetry routine introduced in [Part III Introduction](/dynamic-courses/computer-architecture/03-riscv-instructions/00-introduction/). Suppose argument register `a0` holds base address `0x10002000` of a character buffer `char *pkt` where `pkt[3]` stores byte `0x37` (ASCII `'7'`, decimal $55$), while `a1` holds base address `0x10004000` of a 32-bit integer array `int *gain` where `gain[2]` equals $25$:
+
+```c
+int digit  = pkt[3] - 48;               // 55 - 48 = 7
+int scaled = (digit * gain[2]) % 100;   // (7 * 25) % 100 = 75
+gain[2]    = scaled;
+```
+
+Because `pkt` is an array of 1-byte characters, `pkt[3]` sits at byte offset $3 \times 1 = 3$ from `a0`. Because `gain` is an array of 4-byte (`32`-bit) integers, `gain[2]` sits at byte offset $2 \times 4 = 8$ from `a1`. Using caller-saved scratch registers `t0`–`t3` and the hardwired zero register `zero` ($x_0$), this C fragment translates into seven RV32IM instructions:
+
+```asm
+    lbu  t0, 3(a0)        # t0 = ZeroExt(Mem8[0x10002003]) = 0x00000037 (55)
+    addi t0, t0, -48      # t0 = 55 + (-48) = 7
+    lw   t1, 8(a1)        # t1 = Mem32[0x10004008] = 25
+    mul  t2, t0, t1       # t2 = (7 * 25)[31:0] = 175
+    addi t3, zero, 100    # t3 = 0 + 100 = 100
+    rem  t2, t2, t3       # t2 = 175 % 100 = 75
+    sw   t2, 8(a1)        # Mem32[0x10004008] = 75
+```
+
+Every line maps onto one of RISC-V's regular 32-bit instruction layouts shown in [the figure](#fig-riscv-formats):
+
+<figure id="fig-riscv-formats" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-riscv-formats.svg" alt="The 6 canonical 32-bit RISC-V instruction layouts showing fixed bit positions for opcode, rd, rs1, and rs2." />
+  <figcaption>The 6 canonical 32-bit RISC-V instruction layouts. Across every format that uses them, <code>opcode</code> (<code>inst[6:0]</code>), <code>rd</code> (<code>inst[11:7]</code>), <code>rs1</code> (<code>inst[19:15]</code>), and <code>rs2</code> (<code>inst[24:20]</code>) stay vertically aligned.</figcaption>
+</figure>
+
+Three mechanical details stand out in this trace:
+- **Unsigned Byte vs. Word Width:** `lbu` reads exactly $1$ byte from `a0 + 3` and fills upper bits `[31:8]` with zeros (`0x00000037`), whereas `lw` and `sw` transfer all $4$ bytes (`32` bits) at `a1 + 8`.
+- **Negative Immediate Addition:** RISC-V provides no `subi` opcode; subtracting $48$ is performed by `addi` with the 12-bit two's complement constant `-48`.
+- **Synthesizing Constants via `zero`:** Adding `100` to hardwired `zero` (`addi t3, zero, 100`, written with the pseudoinstruction `li t3, 100`) loads a small constant into `t3` without touching memory.
+
+<StepCheck
+  client:load
+  prompt="In the snippet above, if the C statement instead read `gain[5]` from the 32-bit integer array `int *gain` (`a1`), what decimal byte offset must be written in `lw t1, offset(a1)`?"
+  expected={20}
+  tolerance={0.01}
+  unit="bytes"
+  explanation="Each 32-bit `int` occupies $4$ bytes, so element `gain[5]` is located at byte offset $5 \times 4 = 20$ (`lw t1, 20(a1)`)."
+/>
+
+<Divider label="2 · Theory" />
+
+### Register File and ABI Contract
+
+The RV32I integer state consists of a 32-bit **Program Counter ($\text{PC}$)** holding the byte address of the current instruction, alongside **32 general-purpose 32-bit registers** numbered $x_0$ through $x_{31}$. Register **$x_0$ (`zero`)** is hardwired to `0x00000000`: reading `zero` always yields $0$, and any instruction that targets `zero` as its destination silently discards the result.
+
+Because `zero` is always available as a source or sink, the assembler synthesizes common one-operand idioms directly from base instructions without adding extra hardware opcodes:
+- **Register Copy (`mv rd, rs`):** Assembles to `addi rd, rs, 0`.
+- **Small Immediate Load (`li rd, imm12`):** Assembles to `addi rd, zero, imm12` for $-2048 \le \text{imm12} \le +2047$.
+- **Two's Complement Negation (`neg rd, rs`):** Assembles to `sub rd, zero, rs`.
+- **No-Operation (`nop`):** Assembles to `addi zero, zero, 0`.
+
+To allow separately written functions to call one another safely, RISC-V software obeys the **Application Binary Interface (ABI)** register contract (tabulated in full in Section 3):
+- **Arguments and Return Values (`a0`–`a7`, $x_{10}$–$x_{17}$):** Pass the first eight integer or pointer parameters into a function; `a0` (and `a1` for 64-bit pairs) carries the return value back to the caller, while `a7` holds environment call service numbers.
+- **Temporary Scratch Registers (`t0`–`t6`, $x_5$–$x_7$ and $x_{28}$–$x_{31}$):** **Caller-saved** registers that any subroutine may overwrite freely without restoring.
+- **Saved Local Registers (`s0`–`s11`, $x_8$–$x_9$ and $x_{18}$–$x_{27}$):** **Callee-saved** registers guaranteed to retain their values across a subroutine call; a function that modifies any `s` register must save it on the stack on entry and restore it before returning.
+- **Control Pointers (`ra` $x_1$, `sp` $x_2$, `gp` $x_3$, `tp` $x_4$):** `ra` holds the return address placed by a call (`caller-saved` when making nested calls), while `sp` points to the top of the downward-growing stack (`callee-saved`).
+
+### Format Regularity and Sign Extension
+
+Every RV32IM instruction is strictly $32$ bits ($4$ bytes) wide and encoded in one of six formats (`R`, `I`, `S`, `B`, `U`, `J`). Keeping `rs1` at `inst[19:15]`, `rs2` at `inst[24:20]`, and `rd` at `inst[11:7]` lets the register file begin reading source operands immediately in parallel with `opcode` decoding (`inst[6:0]`). Furthermore, across every immediate-bearing format, the **sign bit of the immediate always sits at `inst[31]`**, allowing sign-extension wiring to fan out from a single fixed bit.
+
+In **I-type** (`addi`, `lw`, `lb`, `lbu`, `andi`, `ori`, `xori`, `slti`, `jalr`) and **S-type** (`sw`, `sb`) instructions, the immediate field is $12$ bits wide in two's complement, spanning:
+
+$$[-2^{11},\; 2^{11} - 1] = [-2048,\; +2047]$$
+
+Before reaching the 32-bit ALU, bit `11` of this 12-bit constant is replicated across bits `[31:12]`:
+
+$$\text{SignExt}_{32}(\text{imm}_{12}) = \bigl\{\underbrace{\text{imm}[11], \dots, \text{imm}[11]}_{20\text{ copies}},\; \text{imm}[11:0]\bigr\}$$
+
+When a C program needs a 32-bit constant outside $[-2048, +2047]$ (such as `li t0, 100000`), the assembler emits a two-instruction pair: **U-type** `lui` (*Load Upper Immediate*, placing 20 bits into `rd[31:12]` and clearing `rd[11:0]`) followed by `addi` to add the signed lower 12 bits.
+
+### Arithmetic, Shifts, and RV32M
+
+**R-type register operations** (`op rd, rs1, rs2`) combine two registers and write `rd`:
+- **Addition & Subtraction:** `add rd, rs1, rs2` ($rd = rs1 + rs2$) and `sub rd, rs1, rs2` ($rd = rs1 - rs2$).
+- **Bitwise Logic:** `and`, `or`, `xor` operate bit-by-bit across all 32 positions (`not rd, rs` is synthesized via `xori rd, rs, -1` because $\text{SignExt}_{32}(-1) = \text{0xFFFFFFFF}$).
+- **Set-Less-Than Comparisons:** `slt rd, rs1, rs2` sets $rd = 1$ if $rs1 < rs2$ in signed two's complement (else $0$); `sltu` performs the corresponding unsigned comparison, and `slti`/`sltiu` compare `rs1` against a sign-extended 12-bit immediate.
+
+**Shift operations** move bits left or right by a 5-bit shift amount $\text{shamt} \in [0, 31]$ (immediate forms `slli`, `srli`, `srai` or register forms `sll`, `srl`, `sra`):
+- **Logical Left Shift (`slli rd, rs1, k`):** Inserts $k$ zeros on the right, computing $rs1 \times 2^k$. Shifting left by $2$ (`slli t0, s0, 2`) multiplies an integer index by $4$ in one ALU operation.
+- **Logical Right Shift (`srli rd, rs1, k`):** Inserts $k$ zeros into the most significant bits `[31:32-k]`, implementing unsigned division $\lfloor rs1 / 2^k \rfloor$ or unsigned bitfield extraction.
+- **Arithmetic Right Shift (`srai rd, rs1, k`):** Replicates the original **sign bit `rs1[31]`** into bits `[31:32-k]`, preserving negative values in two's complement.
+
+The **RV32M extension** adds hardware integer multiplication and division (`R-type`), used heavily when converting numbers or reducing results modulo a constant:
+- **Product (`mul rd, rs1, rs2`):** Writes the lower $32$ bits of $rs1 \times rs2$ into `rd`.
+- **Signed Quotient (`div rd, rs1, rs2`):** Computes integer division truncated toward zero ($rs1 / rs2$ in C; `divu` for unsigned).
+- **Signed Remainder (`rem rd, rs1, rs2`):** Computes the remainder $rs1 \bmod rs2$ with the sign of the dividend $rs1$ (`remu` for unsigned).
+
+To peel off base-10 digits from a positive integer in `a0`, pair `rem` and `div` with `10`:
+
+```asm
+    li   t1, 10
+    rem  t2, a0, t1       # t2 = a0 % 10  (units digit)
+    div  a0, a0, t1       # a0 = a0 / 10  (remaining upper digits)
+```
+
+### Word vs Byte Memory Access
+
+Every RISC-V load and store computes its byte address by adding a sign-extended 12-bit offset to base register `rs1`:
+
+$$\text{Effective Address} = \text{rs1} + \text{SignExt}_{32}(\text{offset}_{12})$$
+
+Note the operand order distinction between I-type loads and S-type stores:
+- **Loads (`lw`, `lh`, `lhu`, `lb`, `lbu`):** Write `load rd, offset(rs1)` — destination register `rd` comes first.
+- **Stores (`sw`, `sh`, `sb`):** Write `store rs2, offset(rs1)` — source register `rs2` comes first, and memory `offset(rs1)` is the destination.
+
+Choosing the wrong width or sign-extension mode corrupts upper register bits:
+- **32-Bit Word (`lw` / `sw`):** Reads or writes all $4$ bytes (`[31:0]`) for C `int` values and 32-bit pointers.
+- **8-Bit Signed Byte (`lb rd, offset(rs1)`):** Reads $1$ byte into `rd[7:0]` and copies **bit 7** into `rd[31:8]`. Loading byte `0xFF` produces `0xFFFFFFFF` ($-1$), matching C `signed char` in $[-128, +127]$.
+- **8-Bit Unsigned Byte (`lbu rd, offset(rs1)`):** Reads $1$ byte into `rd[7:0]` and clears `rd[31:8]` to $0$. Loading byte `0xFF` produces `0x000000FF` ($+255$), preventing negative sign-extension when handling raw bytes and character buffers.
+- **8-Bit Store Byte (`sb rs2, offset(rs1)`):** Writes only the lowest byte `rs2[7:0]` to memory, ignoring `rs2[31:8]` (no separate unsigned store instruction is needed).
+
+### Unconditional Jumps and Leaf Returns
+
+Subroutine invocation and return rely on two jump-and-link primitives:
+- **Jump and Link (`jal rd, label`):** Stores the sequential return address $\text{PC} + 4$ into `rd` and jumps to `label`. The assembler pseudoinstruction `call fn` expands to `jal ra, fn` (saving $\text{PC} + 4$ in `ra`), whereas an unconditional jump `j label` expands to `jal zero, label` (discarding $\text{PC} + 4$).
+- **Jump and Link Register (`jalr rd, offset(rs1)`):** Jumps to `(rs1 + offset) & ~1` and writes $\text{PC} + 4$ into `rd`. Returning from a subroutine uses `ret`, which expands to `jalr zero, 0(ra)`—jumping back to `ra` while discarding the link value in `zero`.
+
+<Callout type="bridge" title="Bare-Metal Disassembly on RISC-V Microcontrollers">
+
+On embedded RV32IMC microcontrollers (such as the Espressif ESP32-C3 used in wireless sensor nodes), peripheral status registers sit at memory-mapped addresses read with `lw` and `lbu`, while fixed-point sensor scaling uses `slli`, `srai`, and `mul`. Inspecting compiler output with `riscv32-unknown-elf-objdump -d` confirms whether scaling by powers of two compiled to single-cycle shifts instead of multi-cycle `div` instructions.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Memory address `0x10010000` (held in `s0`) contains the single byte `0x80`. What 32-bit hexadecimal values end up in `t0` and `t1` after executing `lb t0, 0(s0)` followed by `lbu t1, 0(s0)`?"
+  options={[
+    "`t0 = 0x00000080`, `t1 = 0xFFFFFF80`",
+    "`t0 = 0xFFFFFF80`, `t1 = 0x00000080`",
+    "`t0 = 0x80000000`, `t1 = 0x00000080`",
+    "`t0 = 0xFFFFFF80`, `t1 = 0xFFFFFF80`"
+  ]}
+  correctIndex={1}
+  explanation="Byte `0x80` (`1000_0000` in binary) has bit $7$ equal to $1$. Signed `lb` replicates bit $7$ across bits `[31:8]` (`0xFFFFFF80`, decimal $-128$), whereas unsigned `lbu` zero-extends bits `[31:8]` (`0x00000080`, decimal $+128$)."
+/>
+
+<Divider label="3 · Summary" />
+
+### Register and Instruction Reference
+
+| Register(s) | ABI Name | Role | Preservation |
+| :---: | :---: | :--- | :---: |
+| $x_0$ | `zero` | Hardwired constant $0$ (writes ignored) | — |
+| $x_1$ | `ra` | Return address ($\text{PC} + 4$ on `call`) | Caller |
+| $x_2$ | `sp` | Stack pointer (grows downward) | Callee |
+| $x_3, x_4$ | `gp`, `tp` | Global and thread runtime pointers | — |
+| $x_5$–$x_7$, $x_{28}$–$x_{31}$ | `t0`–`t2`, `t3`–`t6` | Temporary scratch registers | Caller |
+| $x_8$–$x_9$, $x_{18}$–$x_{27}$ | `s0`–`s1`, `s2`–`s11` | Saved local variable registers | Callee |
+| $x_{10}$–$x_{11}$ | `a0`–`a1` | Arguments 1–2 and return values | Caller |
+| $x_{12}$–$x_{17}$ | `a2`–`a7` | Arguments 3–8 (`a7` holds `ecall` code) | Caller |
+
+| Category | Instructions | Mechanical Semantics |
+| :--- | :--- | :--- |
+| **Arithmetic** | `add`, `sub`, `addi` | `rd = rs1 ± rs2`; `rd = rs1 + SignExt(imm12)` (use `-K` for subtraction) |
+| **Bitwise Logic** | `and`, `or`, `xor`, `andi`, `ori`, `xori` | 32-bit bitwise operations (`imm12` is sign-extended) |
+| **Shifts** | `slli`, `srli`, `srai` | Left $\times 2^k$ (`0`-fill); right logical (`0`-fill) vs arithmetic (sign-fill) |
+| **Comparisons** | `slt`, `sltu`, `slti`, `sltiu` | `rd = 1` if comparison holds (signed vs unsigned), else `0` |
+| **RV32M Math** | `mul`, `div`, `rem` | Low 32-bit product, truncated signed quotient, signed remainder |
+| **Memory** | `lw`, `sw`, `lb`, `lbu`, `sb` | 32-bit word (`4` B) vs 8-bit signed/unsigned byte (`1` B) at `rs1 + imm12` |
+| **Jumps** | `jal`, `jalr`, `j`, `call`, `ret` | `call fn` $\equiv$ `jal ra, fn`; `ret` $\equiv$ `jalr zero, 0(ra)` |
+
+### C-to-RV32IM Statement Procedure
+
+1. **Bind Variables to Registers:** Map incoming function arguments left-to-right onto `a0`, `a1`, `a2`, ... and assign temporary values in leaf functions to `t0`–`t6`.
+2. **Load Memory Operands First:** Emit `lw` (4-byte `int`, offset $\times 4$) or `lbu`/`lb` (1-byte `char`, offset $\times 1$) into scratch registers before any arithmetic.
+3. **Select ALU or RV32M Primitives:** Replace power-of-two multiplies with `slli`, constant subtractions with `addi rd, rs1, -K` (for $-2047 \le K \le 2048$), and general `*`, `/`, `%` with `mul`, `div`, `rem`.
+4. **Write Results and Return:** Store updated memory cells with `sw` or `sb` (value register first!), move the return value into `a0`, and finish a leaf subroutine with `ret`.
+
+### Key Invariants
+
+- **Hardwired Zero Sink:** Any write to `zero` ($x_0$) is discarded; `j label` and `ret` exploit `rd = zero` to jump without clobbering `ra`.
+- **12-Bit Immediate Window:** Single-instruction I-type and S-type offsets must lie in $[-2048, +2047]$.
+- **Sign-Bit Replication:** `lb` copies bit $7$ across `[31:8]`; `srai` copies bit $31$ across vacated upper bits.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Inventing Non-Existent Mnemonics:** Writing `subi t0, t0, 1` or MIPS `move a0, t0` fails assembly. Always write `addi t0, t0, -1` and `mv a0, t0` (or `addi a0, t0, 0`).
+2. **Reversing Store Operands:** Writing `sw 8(a0), t1` reverses RISC-V syntax; the value register always comes first: `sw t1, 8(a0)`.
+3. **Clobbering `s0`–`s11` in Leaf Helpers:** Modifying a callee-saved `s` register without saving and restoring it violates the ABI contract and corrupts the caller's variables. Stick to `t0`–`t6` inside leaf helpers.
+4. **Using `lb` on Unsigned Byte Codes:** Sign-extending bytes $\ge \text{0x80}$ turns positive byte values into negative 32-bit integers.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-8-1"
+  title="Exercise 8.1 — Instruction Selection Sequences"
+  level="Warm-Up"
+  hint="Use `slli` for power-of-two scaling, `addi` with a negative constant for subtraction, and `div` followed by `rem` for the tens digit."
+>
+
+Write minimal RV32IM instruction sequences for each isolated operation below (using only `t0`–`t3` as scratch registers):
+
+1. Multiply `a0` by $8$ and subtract $12$, placing the result in `t0` without using `mul`.
+2. Clear `t1` to $0$ using a single base R-type instruction (without `li`, `mv`, or `addi`).
+3. Given a positive integer $n$ in `a0`, extract its **tens decimal digit** $\lfloor n / 10 \rfloor \bmod 10$ into `a0`.
+4. Store the lowest byte of `a2` into `buf[6]` (where `char *buf` is in `a1`), and store the 32-bit integer in `a2` into `arr[6]` (where `int *arr` is in `a3`).
+
+<StepCheck
+  client:load
+  prompt="In task 1 (`a0 * 8 - 12` without `mul`), what immediate shift count `k` is used in `slli t0, a0, k`?"
+  expected={3}
+  tolerance={0.01}
+  unit="bits"
+  explanation="Since $8 = 2^3$, shifting left by $k = 3$ bits computes `a0 * 8`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Multiply `a0` by $8$ and subtract $12$ without `mul`:**
+   ```asm
+       slli t0, a0, 3        # t0 = a0 << 3 = a0 * 8
+       addi t0, t0, -12      # t0 = (a0 * 8) - 12
+   ```
+2. **Clear `t1` with a single base R-type instruction:**
+   ```asm
+       add  t1, zero, zero   # t1 = 0 + 0 (or: xor t1, t1, t1)
+   ```
+3. **Extract tens digit $\lfloor n / 10 \rfloor \bmod 10$ into `a0`:**
+   ```asm
+       li   t0, 10           # Divisor/modulus constant 10
+       div  t1, a0, t0       # t1 = n / 10 (drops units digit)
+       rem  a0, t1, t0       # a0 = (n / 10) % 10 (isolates tens digit)
+   ```
+4. **Byte store at `buf[6]` vs. word store at `arr[6]`:**
+   `buf[6]` is at byte offset $6 \times 1 = 6$, while `arr[6]` is at byte offset $6 \times 4 = 24$:
+   ```asm
+       sb   a2, 6(a1)        # Mem8[a1 + 6]  = a2[7:0]
+       sw   a2, 24(a3)       # Mem32[a3 + 24] = a2[31:0]
+   ```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-8-2"
+  title="Exercise 8.2 — Sign Extension and Shift Trace"
+  level="Intermediate"
+  hint="Write `0xEC` in binary (`1110_1100`): bit 7 is 1, so `lb` fills bits `[31:8]` with `1`s (`-20` in two's complement), and `srai` by 2 divides `-20` by `4`."
+>
+
+Suppose register `s0` holds `0x10000000`, and the four consecutive bytes in memory starting at `0x10000000` are:
+
+| Address | `0x10000000` | `0x10000001` | `0x10000002` | `0x10000003` |
+| :---: | :---: | :---: | :---: | :---: |
+| **Byte Value** | `0xEC` | `0x35` | `0x00` | `0x00` |
+
+Trace the exact 32-bit hexadecimal and signed decimal values written to `t0`, `t1`, `t2`, and `t3` by the sequence below:
+
+```asm
+    lb   t0, 0(s0)
+    lbu  t1, 0(s0)
+    srai t2, t0, 2
+    srli t3, t1, 2
+```
+
+<StepCheck
+  client:load
+  prompt="What signed decimal integer is stored in `t2` after `srai t2, t0, 2`?"
+  expected={-5}
+  tolerance={0.01}
+  unit=""
+  explanation="Byte `0xEC` is $236 - 256 = -20$ in 8-bit two's complement (`t0 = 0xFFFFFFEC`). Arithmetic right shift by $2$ preserves the sign bit, yielding $-20 / 4 = -5$ (`0xFFFFFFFB`)."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **`lb t0, 0(s0)`:** Reads byte `0xEC` (`1110_1100` in binary). Because bit $7$ is $1$, `lb` sign-extends `1` across bits `[31:8]`:
+   $$\text{t0} = \text{0xFFFFFFEC} = -20_{10}$$
+2. **`lbu t1, 0(s0)`:** Reads the same byte `0xEC` and zero-extends bits `[31:8]`:
+   $$\text{t1} = \text{0x000000EC} = +236_{10}$$
+3. **`srai t2, t0, 2`:** Shifts `0xFFFFFFEC` (`...1111_1110_1100`) right by $2$ bits while replicating sign bit $1$ on the left (`...1111_1111_1011`):
+   $$\text{t2} = \text{0xFFFFFFFB} = -5_{10}$$
+4. **`srli t3, t1, 2`:** Shifts `0x000000EC` (`0000...1110_1100`) right logically by $2$ bits, inserting zeros on the left (`0000...0011_1011`):
+   $$\text{t3} = \text{0x0000003B} = +59_{10}$$
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-8-3"
+  title="Exercise 8.3 — Leaf Calibration Update"
+  level="Exam"
+  hint="Arguments arrive in `a0` (`int *raw`), `a1` (`char *cfg`), and `a2` (`int scale`). Remember `raw[2]` is offset `8`, `raw[3]` is offset `12`, and `1024` fits inside a 12-bit signed immediate (`<= 2047`)."
+>
+
+Translate the following C leaf function into complete, ABI-compliant RV32IM assembly without allocating a stack frame:
+
+```c
+int update_channel(int *raw, char *cfg, int scale) {
+    int offset = cfg[1] - 48;
+    int val = (raw[2] + offset) * scale;
+    int res = val % 1024;
+    raw[3] = res;
+    return res;
+}
+```
+
+1. Specify the exact ABI register holding each input parameter and the return value.
+2. Compute the byte offsets for `cfg[1]`, `raw[2]`, and `raw[3]`.
+3. Write the complete `update_channel:` assembly subroutine using only `t0`–`t3` as temporaries.
+
+<StepCheck
+  client:load
+  prompt="If `raw[2] = 100`, `cfg[1] = '5'` (ASCII `53`), and `scale = 20`, what integer value does `update_channel` store into `raw[3]` and return in `a0`?"
+  expected={52}
+  tolerance={0.01}
+  unit=""
+  explanation="`offset = 53 - 48 = 5`, `val = (100 + 5) * 20 = 2100`, and `2100 % 1024 = 2100 - 2048 = 52`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **ABI Register Mapping:** `a0` holds `int *raw`, `a1` holds `char *cfg`, `a2` holds `int scale`, and the return value `res` is placed in `a0`. Because `update_channel` makes no nested calls, `ra` is untouched and temporaries `t0`–`t3` require zero stack preservation.
+2. **Byte Offsets:** `cfg[1]` (`char`, $1$ byte) uses offset $1 \times 1 = 1$; `raw[2]` (`int`, $4$ bytes) uses offset $2 \times 4 = 8$; `raw[3]` (`int`, $4$ bytes) uses offset $3 \times 4 = 12$. Note that $1024 \le 2047$, so `li t3, 1024` assembles to a single `addi t3, zero, 1024`.
+3. **Complete RV32IM Subroutine:**
+
+```asm
+# Arguments: a0 = int *raw, a1 = char *cfg, a2 = int scale
+# Returns:   a0 = int res
+update_channel:
+    lbu  t0, 1(a1)        # t0 = (unsigned) cfg[1]
+    addi t0, t0, -48      # t0 = offset = cfg[1] - 48
+
+    lw   t1, 8(a0)        # t1 = raw[2] (byte offset 2 * 4 = 8)
+    add  t1, t1, t0       # t1 = raw[2] + offset
+    mul  t1, t1, a2       # t1 = val = (raw[2] + offset) * scale
+
+    li   t2, 1024         # Modulus 1024 (addi t2, zero, 1024)
+    rem  t3, t1, t2       # t3 = res = val % 1024
+
+    sw   t3, 12(a0)       # raw[3] = res (byte offset 3 * 4 = 12)
+    mv   a0, t3           # Return res in a0
+    ret                   # jalr zero, 0(ra)
+```
+
+</details>
+
+</Exercise>

@@ -11,191 +11,305 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 7 Mental Model" markdown={`# Ch. 7: Transfer Function Matrix
-  - Algebraic Derivation of the Transfer Matrix
-  - Strict Invariance Under Similarity Transformations
-  - Eigenvalues vs. Poles: The Spectrum Subsumption Invariant
-  - Asymptotic Limits and Static DC Gain
-    - 1. High-Frequency Direct Feedthrough Limit ($s \to \infty$)
-    - 2. Low-Frequency Static DC Gain ($s \to 0$)`} />
+<MindMap client:load defaultCollapsed title="Chapter 7 Outline" markdown={`# Ch. 7: Transfer Function Matrix
+  - Cancellation Example
+    - Computing $\\mathbf{W}(s)$ from resolvent
+    - Eigenvalue spectrum vs. poles
+  - Theory and Invariants
+    - Algebraic derivation of $\\mathbf{W}(s)$
+    - Similarity transformation invariance
+    - Minimal realizations and McMillan degree
+    - High-frequency and DC gain limits`} />
 
-## Algebraic Derivation of the Transfer Matrix
+## Introduction
 
-In continuous-time linear systems theory, the **Transfer Function Matrix** $\mathbf{W}(s)$ represents the operational operator mapping the complex Laplace transform of the input vector $\mathbf{U}(s)$ to the complex Laplace transform of the output vector $\mathbf{Y}(s)$ under **strictly zero initial conditions** ($\mathbf{x}(0^-) = \mathbf{0}$):
+In classical control, engineers work with a black-box transfer function $W(s)$ measured from input terminals to output sensors, whereas modern state space models internal states via $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$. This chapter connects both worlds by deriving $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$ directly from the state resolvent.
 
-$$\mathbf{Y}(s) = \mathbf{W}(s) \mathbf{U}(s)$$
+That bridge reveals a crucial physical truth for real systems—from drone rate loops to active filters: while $\mathbf{W}(s)$ is completely independent of internal state coordinates, its **poles** are only a subset of the matrix **eigenvalues**. Whenever pole-zero cancellation hides an internal mode from the sensors, the black-box transfer function misses internal physics that may still destabilize the hardware.
 
-Taking the Laplace transform of the fundamental state equations:
-$$s \mathbf{X}(s) = \mathbf{A} \mathbf{X}(s) + \mathbf{B} \mathbf{U}(s)$$
-$$\mathbf{Y}(s) = \mathbf{C} \mathbf{X}(s) + \mathbf{D} \mathbf{U}(s)$$
+<Divider label="1 · Example" />
 
-Isolating $\mathbf{X}(s)$ from the state equation:
-$$(s\mathbf{I} - \mathbf{A}) \mathbf{X}(s) = \mathbf{B} \mathbf{U}(s) \implies \mathbf{X}(s) = (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} \mathbf{U}(s)$$
+### Hidden Mode Cancellation
 
-Substituting $\mathbf{X}(s)$ into the output equation:
-$$\mathbf{Y}(s) = \mathbf{C} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} \mathbf{U}(s) + \mathbf{D} \mathbf{U}(s) = \left[ \mathbf{C} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} + \mathbf{D} \right] \mathbf{U}(s)$$
+In [State Resolvent Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/03-state-resolvent-matrix-inversion/), we inverted $(s\mathbf{I} - \mathbf{A})$ to capture how all $n$ internal state variables evolve in the complex frequency domain. Now we sandwich that resolvent between the sensor matrix $\mathbf{C}$ and the actuator matrix $\mathbf{B}$ to form the external input-output **transfer function** $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + D$—and see firsthand how an internal state mode can vanish completely from the external transfer function.
 
-Yielding the fundamental **State-Space to Transfer Function Formulation**:
+Consider a second-order state-space system whose dynamic matrix $\mathbf{A}$ is already decoupled in diagonal form:
 
-$$\mathbf{W}(s) = \mathbf{C} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} + \mathbf{D} \in \mathbb{R}^{p \times m}(s)$$
+$$\mathbf{A} = \begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 3 \end{bmatrix}, \quad D = 0$$
 
-For a single-input single-output (SISO) system, $W(s) = \frac{Y(s)}{U(s)}$ is a scalar rational transfer function.
+Writing out the underlying scalar differential equations reveals the physical wiring immediately: $\dot{x}_1(t) = -x_1(t) + u(t)$ is driven by the input $u(t)$, whereas $\dot{x}_2(t) = -4x_2(t) + 0\cdot u(t)$ receives no input signal at all, and the sensor measures $y(t) = 2x_1(t) + 3x_2(t)$. Because $\mathbf{A}$ is diagonal, its characteristic polynomial is $p(s) = \det(s\mathbf{I} - \mathbf{A}) = (s + 1)(s + 4)$, giving two distinct internal eigenvalues $\sigma(\mathbf{A}) = \{-1, -4\}$. Applying the $2 \times 2$ adjugate formula from [State Resolvent Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/03-state-resolvent-matrix-inversion/) gives the state resolvent:
 
-<Divider />
+$$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{(s+1)(s+4)}\begin{bmatrix} s+4 & 0 \\ 0 & s+1 \end{bmatrix}$$
 
-## Strict Invariance Under Similarity Transformations
+Now let us compute the transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + D$ step by step without cancelling factors prematurely. First, post-multiply the adjugate resolvent by the input vector $\mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$:
 
-Let $\mathbf{x} = \mathbf{T}\mathbf{z}$ be an arbitrary coordinate similarity transformation with $\det(\mathbf{T}) \neq 0$, yielding transformed matrices $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$, $\tilde{\mathbf{D}} = \mathbf{D}$.
-Evaluating the transfer function in the new coordinate basis:
+$$(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} = \frac{1}{(s+1)(s+4)}\begin{bmatrix} s+4 & 0 \\ 0 & s+1 \end{bmatrix}\begin{bmatrix} 1 \\ 0 \end{bmatrix} = \frac{1}{(s+1)(s+4)}\begin{bmatrix} (s+4)(1) + 0(0) \\ 0(1) + (s+1)(0) \end{bmatrix} = \frac{1}{(s+1)(s+4)}\begin{bmatrix} s+4 \\ 0 \end{bmatrix}$$
 
-$$\begin{aligned}
-\tilde{\mathbf{W}}(s) &= \tilde{\mathbf{C}} (s\mathbf{I} - \tilde{\mathbf{A}})^{-1} \tilde{\mathbf{B}} + \tilde{\mathbf{D}} \\
-&= (\mathbf{C}\mathbf{T}) \left[ s\mathbf{I} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T} \right]^{-1} (\mathbf{T}^{-1}\mathbf{B}) + \mathbf{D} \\
-&= \mathbf{C}\mathbf{T} \left[ \mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})\mathbf{T} \right]^{-1} \mathbf{T}^{-1}\mathbf{B} + \mathbf{D} \\
-&= \mathbf{C}\mathbf{T} \left( \mathbf{T}^{-1} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{T} \right) \mathbf{T}^{-1}\mathbf{B} + \mathbf{D} \\
-&= \mathbf{C} (\mathbf{T}\mathbf{T}^{-1}) (s\mathbf{I} - \mathbf{A})^{-1} (\mathbf{T}\mathbf{T}^{-1}) \mathbf{B} + \mathbf{D} \\
-&= \mathbf{C} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} + \mathbf{D} = \mathbf{W}(s)
-\end{aligned}$$
+Notice that the second component of $(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$ is identically zero because $B_2 = 0$ fails to excite the second mode. Next, pre-multiply by the output matrix $\mathbf{C} = \begin{bmatrix} 2 & 3 \end{bmatrix}$ and add $D = 0$:
 
-<Callout type="note" title="Theorem: Invariance of the Transfer Matrix">
+$$W(s) = \begin{bmatrix} 2 & 3 \end{bmatrix} \frac{1}{(s+1)(s+4)}\begin{bmatrix} s+4 \\ 0 \end{bmatrix} + 0 = \frac{2(s+4) + 3(0)}{(s+1)(s+4)} = \frac{2\cancel{(s+4)}}{(s+1)\cancel{(s+4)}} = \frac{2}{s+1}$$
 
-The transfer function matrix $\mathbf{W}(s)$ is an **absolute systemic invariant**. It is completely independent of internal state coordinate choices.
-
-</Callout>
-
-<Divider />
-
-## Eigenvalues vs. Poles: The Spectrum Subsumption Invariant
-
-A fundamental question in systems theory is the precise relationship between the eigenvalues of the dynamic matrix $\sigma(\mathbf{A})$ and the poles of the transfer function $\mathcal{P}_{W}$:
-
-Using the adjugate formula for $(s\mathbf{I} - \mathbf{A})^{-1}$:
-$$\mathbf{W}(s) = \mathbf{C} \frac{\operatorname{adj}(s\mathbf{I} - \mathbf{A})}{\det(s\mathbf{I} - \mathbf{A})} \mathbf{B} + \mathbf{D} = \frac{\mathbf{C} \operatorname{adj}(s\mathbf{I} - \mathbf{A}) \mathbf{B} + \mathbf{D} p(s)}{p(s)}$$
-
-Because the denominator is the characteristic polynomial $p(s) = \det(s\mathbf{I} - \mathbf{A})$:
-1. **Every pole of $\mathbf{W}(s)$ is necessarily an eigenvalue of $\mathbf{A}$:**
-   $$\mathcal{P}_{W} \subseteq \sigma(\mathbf{A})$$
-2. **An eigenvalue of $\mathbf{A}$ is NOT necessarily a pole of $\mathbf{W}(s)$!**
-   If an eigenvalue $\lambda_0$ satisfies $\det(\lambda_0 \mathbf{I} - \mathbf{A}) = 0$, but the matrix product in the numerator vanishes at that frequency:
-   $$\left. \mathbf{C} \operatorname{adj}(s\mathbf{I} - \mathbf{A}) \mathbf{B} \right|_{s = \lambda_0} = \mathbf{0}$$
-   then the factor $(s - \lambda_0)$ cancels identically between numerator and denominator.
+Look closely at what happened: the factor $(s + 4)$ appears in both the numerator and the characteristic polynomial $p(s) = (s + 1)(s + 4)$, so it cancels out completely! While the internal matrix $\mathbf{A}$ has order $n = 2$ and spectrum $\sigma(\mathbf{A}) = \{-1, -4\}$, the simplified input-output transfer function $W(s) = \frac{2}{s+1}$ has only a single pole $\mathcal{P}_W = \{-1\}$ (a **McMillan degree** of $n_M = 1 < n$). Even though the sensor $\mathbf{C} = \begin{bmatrix} 2 & 3 \end{bmatrix}$ monitors state $x_2(t)$ with weight $3$, an external input $U(s)$ can never move $x_2(t)$ from zero, so the $e^{-4t}$ mode is completely invisible in any zero-initial-state input-output experiment. As depicted in [the figure](#fig-eigenvalue-pole-partition), the transfer function poles $\mathcal{P}_W$ capture only the minimal controllable and observable core inside $\sigma(\mathbf{A})$.
 
 <figure id="fig-eigenvalue-pole-partition" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-eigenvalue-pole-partition.svg" alt="Venn partition of the dynamic spectrum $\sigma(\mathbf{A})$. Transfer function poles $\mathcal{P}_W$ represent only the minimal controllable and observable core; cancelled modes remain active inside the physical state space." />
   <figcaption>Venn partition of the dynamic spectrum $\sigma(\mathbf{A})$. Transfer function poles $\mathcal{P}_W$ represent only the minimal controllable and observable core; cancelled modes remain active inside the physical state space.</figcaption>
 </figure>
 
+Finally, we check the high-frequency and low-frequency endpoints of $W(s) = \frac{2}{s+1}$. As $s \to \infty$, $\lim_{s\to\infty} W(s) = \lim_{s\to\infty} \frac{2}{s+1} = 0 = D$, confirming strict properness. At $s = 0$ (DC steady state), $W(0) = \frac{2}{0+1} = 2$. We can verify this static DC gain directly from the state matrices using $W(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + D$ with $\mathbf{A}^{-1} = \begin{bmatrix} -1 & 0 \\ 0 & -1/4 \end{bmatrix}$:
+
+$$W(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + D = -\begin{bmatrix} 2 & 3 \end{bmatrix}\begin{bmatrix} -1 & 0 \\ 0 & -1/4 \end{bmatrix}\begin{bmatrix} 1 \\ 0 \end{bmatrix} + 0 = -\begin{bmatrix} 2 & 3 \end{bmatrix}\begin{bmatrix} -1 \\ 0 \end{bmatrix} = -(-2) = 2$$
+
+<StepCheck
+  client:load
+  prompt="In the cancellation example above, what is the static DC gain $W(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + D$?"
+  expected={2}
+  tolerance={0.05}
+  unit=""
+  explanation="After cancelling $(s+4)$, $W(s) = \frac{2}{s+1}$, so $W(0) = 2$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Transfer Matrix Derivation
+
+In [Block Diagram Algebra Reduction](/dynamic-courses/systems-theory/01-state-models/03-block-diagram-algebra-reduction/), we manipulated subsystems as $s$-domain transfer blocks $\mathbf{Y}(s) = \mathbf{W}(s)\mathbf{U}(s)$, whereas in [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/) we modeled physical plants via internal state matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$. We now derive the exact algebraic formula that converts any state-space realization into its external transfer function matrix $\mathbf{W}(s)$.
+
+Consider the general continuous-time LTI state-space model with $m$ inputs $\mathbf{u}(t) \in \mathbb{R}^m$, $n$ states $\mathbf{x}(t) \in \mathbb{R}^n$, and $p$ outputs $\mathbf{y}(t) \in \mathbb{R}^p$:
+
+$$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t), \qquad \mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$$
+
+Applying the Unilateral Laplace Transform from [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/) to both equations with arbitrary initial state $\mathbf{x}(0^-) = \mathbf{x}_0$ gives:
+
+$$s \mathbf{X}(s) - \mathbf{x}_0 = \mathbf{A} \mathbf{X}(s) + \mathbf{B} \mathbf{U}(s), \qquad \mathbf{Y}(s) = \mathbf{C} \mathbf{X}(s) + \mathbf{D} \mathbf{U}(s)$$
+
+Grouping the $\mathbf{X}(s)$ terms on the left via $(s\mathbf{I} - \mathbf{A})\mathbf{X}(s) = \mathbf{x}_0 + \mathbf{B}\mathbf{U}(s)$ and premultiplying by the state resolvent $\mathbf{\Phi}(s) = (s\mathbf{I} - \mathbf{A})^{-1}$ from [State Resolvent Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/03-state-resolvent-matrix-inversion/) yields the complete Laplace state trajectory:
+
+$$\mathbf{X}(s) = \underbrace{(s\mathbf{I} - \mathbf{A})^{-1} \mathbf{x}_0}_{\mathbf{X}_{\text{free}}(s)} + \underbrace{(s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} \mathbf{U}(s)}_{\mathbf{X}_{\text{forced}}(s)}$$
+
+Substituting $\mathbf{X}(s)$ into the transformed sensor equation $\mathbf{Y}(s) = \mathbf{C}\mathbf{X}(s) + \mathbf{D}\mathbf{U}(s)$ decomposes the output spectrum into its free initial-condition decay and its forced input response:
+
+$$\mathbf{Y}(s) = \underbrace{\mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1} \mathbf{x}_0}_{\mathbf{Y}_{\text{free}}(s)} + \underbrace{\left[ \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D} \right] \mathbf{U}(s)}_{\mathbf{Y}_{\text{forced}}(s)}$$
+
+By definition, a transfer function characterizes how external inputs map to external outputs when the system starts completely at rest (**zero initial conditions**, $\mathbf{x}_0 = \mathbf{x}(0^-) = \mathbf{0}$, so $\mathbf{Y}_{\text{free}}(s) = \mathbf{0}$). Under $\mathbf{x}(0^-) = \mathbf{0}$, the input-output relation simplifies to $\mathbf{Y}(s) = \mathbf{W}(s)\mathbf{U}(s)$, where the **Transfer Function Matrix** $\mathbf{W}(s) \in \mathbb{R}^{p \times m}(s)$ is given by:
+
+$$\mathbf{W}(s) \triangleq \mathbf{C} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} + \mathbf{D}$$
+
+In this formula, the matrix product proceeds from right to left: $\mathbf{B}$ injects the $m$ input channels into the $n$-dimensional state space, the resolvent $(s\mathbf{I} - \mathbf{A})^{-1}$ propagates those signals through the internal integrator network at complex frequency $s$, $\mathbf{C}$ projects the resulting state spectrum onto the $p$ output sensors, and $\mathbf{D}$ adds the direct memoryless bypass from input to output. For a single-input single-output (SISO) plant ($m = p = 1$), $\mathbf{W}(s)$ is a $1 \times 1$ scalar rational function $W(s) = Y(s)/U(s)$.
+
+### Similarity Transformation Invariance
+
+In [Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/), we proved that changing internal state coordinates via an invertible matrix $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ ($\det(\mathbf{T}) \neq 0$) maps the state-space matrices to $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}}, \tilde{\mathbf{D}}) = (\mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \mathbf{T}^{-1}\mathbf{B}, \mathbf{C}\mathbf{T}, \mathbf{D})$. Because the sensors $\mathbf{y}(t)$ and actuators $\mathbf{u}(t)$ sit outside the state coordinate frame, the transfer matrix $\mathbf{W}(s)$ must remain identical in both bases.
+
+Let us review the matrix proof directly using the transformed resolvent $(s\mathbf{I} - \tilde{\mathbf{A}})^{-1} = \left[\mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})\mathbf{T}\right]^{-1} = \mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{T}$:
+
+$$
+\begin{aligned}
+\tilde{\mathbf{W}}(s) &= \tilde{\mathbf{C}} (s\mathbf{I} - \tilde{\mathbf{A}})^{-1} \tilde{\mathbf{B}} + \tilde{\mathbf{D}} \\
+&= (\mathbf{C}\mathbf{T}) \left[ \mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{T} \right] (\mathbf{T}^{-1}\mathbf{B}) + \mathbf{D} \\
+&= \mathbf{C}\underbrace{(\mathbf{T}\mathbf{T}^{-1})}_{\mathbf{I}} (s\mathbf{I} - \mathbf{A})^{-1} \underbrace{(\mathbf{T}\mathbf{T}^{-1})}_{\mathbf{I}}\mathbf{B} + \mathbf{D} \\
+&= \mathbf{C} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{B} + \mathbf{D} = \mathbf{W}(s)
+\end{aligned}
+$$
+
+Every internal factor of $\mathbf{T}$ and $\mathbf{T}^{-1}$ cancels out at the boundaries between $\mathbf{C}$, the resolvent, and $\mathbf{B}$. Consequently, infinitely many different state-space realizations $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}}, \tilde{\mathbf{D}})$ share the exact same external transfer function matrix $\mathbf{W}(s)$.
+
+### Eigenvalues vs. Transfer Poles
+
+What is the exact relationship between the internal **eigenvalues** of $\mathbf{A}$ (the roots of $p(s) = \det(s\mathbf{I} - \mathbf{A}) = 0$) and the external **poles** of $\mathbf{W}(s)$ (the roots of the denominator of $\mathbf{W}(s)$ after reducing all fractions to lowest terms)?
+
+Substituting the classical adjugate representation $(s\mathbf{I} - \mathbf{A})^{-1} = \frac{\operatorname{adj}(s\mathbf{I} - \mathbf{A})}{p(s)}$ from [State Resolvent Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/03-state-resolvent-matrix-inversion/) into $\mathbf{W}(s)$ puts the entire transfer matrix over the common characteristic polynomial $p(s)$:
+
+$$\mathbf{W}(s) = \mathbf{C} \frac{\operatorname{adj}(s\mathbf{I} - \mathbf{A})}{p(s)} \mathbf{B} + \mathbf{D} = \frac{\mathbf{C} \operatorname{adj}(s\mathbf{I} - \mathbf{A}) \mathbf{B} + \mathbf{D} p(s)}{p(s)}$$
+
+Because the uncancelled denominator of $\mathbf{W}(s)$ is $p(s) = \det(s\mathbf{I} - \mathbf{A})$, no pole can ever appear in $\mathbf{W}(s)$ unless it is already a root of $p(s) = 0$. Therefore, the set of transfer function poles $\mathcal{P}_W$ is always a subset of the eigenvalue spectrum $\sigma(\mathbf{A})$:
+
+$$\mathcal{P}_{W} \subseteq \sigma(\mathbf{A})$$
+
+When is $\mathcal{P}_W$ a *strict* subset of $\sigma(\mathbf{A})$? Whenever an eigenvalue $\lambda_0 \in \sigma(\mathbf{A})$ is also a root of the numerator polynomial $\mathbf{N}_0(s) = \mathbf{C} \operatorname{adj}(s\mathbf{I} - \mathbf{A}) \mathbf{B}$:
+
+$$\mathbf{C} \operatorname{adj}(\lambda_0\mathbf{I} - \mathbf{A}) \mathbf{B} = \mathbf{0}$$
+
+In that case, the common linear factor $(s - \lambda_0)$ divides both numerator and denominator and cancels out of $\mathbf{W}(s)$. As we saw in Section 1 (and will formalize via Kalman's rank tests in Part VI), pole-zero cancellation occurs whenever the mode $e^{\lambda_0 t}$ is either **uncontrollable** (disconnected from the actuators $\mathbf{B}$, so the input cannot excite it) or **unobservable** (orthogonal to the sensors $\mathbf{C}$, so the output cannot see it). Even though a cancelled eigenvalue $\lambda_0$ vanishes from $\mathbf{W}(s)$, it still appears in the free state response $\mathbf{X}_{\text{free}}(s) = (s\mathbf{I} - \mathbf{A})^{-1}\mathbf{x}_0$ and can still cause the internal physical states to diverge if $\operatorname{Re}(\lambda_0) > 0$!
+
 <Callout type="tip" title="Minimal Realizations and McMillan Degree">
 
-A state-space realization $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ is called **minimal** if and only if no pole-zero cancellations occur between $p(s)$ and the numerator of $\mathbf{W}(s)$. In a minimal realization, the order of the state vector equals the degree of the denominator polynomial of $\mathbf{W}(s)$ (the McMillan degree):
+A state-space realization $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ is **minimal** if and only if no pole-zero cancellations occur between $p(s)$ and the numerator of $\mathbf{W}(s)$. In a minimal realization, the state dimension equals the irreducible denominator degree (the **McMillan degree**):
+
 $$n = \deg(D(s)) \iff \sigma(\mathbf{A}) = \mathcal{P}_W$$
-This condition is mathematically equivalent to the system being **simultaneously completely controllable and completely observable**.
+
+This holds if and only if the system is completely **controllable** and **observable**.
 
 </Callout>
 
-<Divider />
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="For a 3-state realization $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ whose simplified transfer function is $W(s) = \frac{s+2}{(s+1)(s+5)}$, what can you conclude?"
+  options={[
+    "Every eigenvalue of $\\mathbf{A}$ appears as a pole of $W(s)$",
+    "One eigenvalue of $\\mathbf{A}$ cancelled between numerator and denominator, so the realization is non-minimal",
+    "The feedthrough matrix $D$ must be non-zero"
+  ]}
+  correctIndex={1}
+  explanation="Since state dimension is $n = 3$ while the irreducible denominator of $W(s)$ has degree $2$, one mode cancelled and $\mathcal{P}_W \subsetneq \sigma(\mathbf{A})$."
+/>
 
-## Asymptotic Limits and Static DC Gain
+### Asymptotic Limits and DC Gain
 
-For asymptotically stable systems, evaluating $\mathbf{W}(s)$ at the frequency boundaries provides direct physical insight:
+Checking $\mathbf{W}(s)$ at infinite frequency ($s \to \infty$) and zero frequency ($s = 0$) links the rational transfer matrix directly to the time-domain initial and steady-state behavior of the hardware.
 
-### 1. High-Frequency Direct Feedthrough Limit ($s \to \infty$)
-As complex frequency $s \to \infty$:
-$$\lim_{s \to \infty} (s\mathbf{I} - \mathbf{A})^{-1} = \lim_{s \to \infty} \frac{1}{s}\mathbf{I} = \mathbf{0}$$
-Consequently:
-$$\lim_{s \to \infty} \mathbf{W}(s) = \mathbf{D}$$
-The direct transmission matrix $\mathbf{D}$ is the instantaneous, infinite-frequency feedthrough. If $\mathbf{D} = \mathbf{0}$, $\mathbf{W}(s)$ is strictly proper and rolls off to zero as $s \to \infty$.
+First, recall from [State Resolvent Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/03-state-resolvent-matrix-inversion/) that every entry of $(s\mathbf{I} - \mathbf{A})^{-1}$ is strictly proper ($\deg \le n - 1 < n$), meaning every entry of $(s\mathbf{I} - \mathbf{A})^{-1}$ decays to $0$ as $|s| \to \infty$. Taking the high-frequency limit of $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$ therefore kills the entire state-resolvent term and isolates the feedthrough matrix $\mathbf{D}$:
 
-### 2. Low-Frequency Static DC Gain ($s \to 0$)
-For a constant DC excitation $\mathbf{u}(t) = \mathbf{u}_0$, the steady-state frequency is $s = 0$. If $\mathbf{A}$ is non-singular ($\det(\mathbf{A}) \neq 0$):
+$$\lim_{s \to \infty} (s\mathbf{I} - \mathbf{A})^{-1} = \mathbf{0} \implies \lim_{s \to \infty} \mathbf{W}(s) = \mathbf{D}$$
 
-$$\mathbf{W}(0) = -\mathbf{C} \mathbf{A}^{-1} \mathbf{B} + \mathbf{D}$$
+Consequently, $\mathbf{W}(s)$ is **strictly proper** ($\deg N < \deg D$, rolling off to $0$ at high frequency) if and only if $\mathbf{D} = \mathbf{0}$, and **biproper** ($\deg N = \deg D$, approaching a non-zero constant at high frequency) whenever $\mathbf{D} \neq \mathbf{0}$. By the Initial Value Theorem from [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/), if we apply a unit step $\mathbf{U}(s) = \frac{1}{s}\mathbf{u}_0$ from zero initial state, the instantaneous output jump at $t = 0^+$ is $\mathbf{y}(0^+) = \lim_{s\to\infty} s\mathbf{W}(s)\frac{1}{s}\mathbf{u}_0 = \mathbf{D}\mathbf{u}_0$.
 
-The matrix $\mathbf{W}(0) \in \mathbb{R}^{p \times m}$ is the **Static Gain Matrix** of the system, defining the steady-state ratio between constant output and constant input: $\mathbf{y}_{\text{ss}} = \mathbf{W}(0) \mathbf{u}_0$.
+Second, at the low-frequency limit $s = 0$, suppose the system has no eigenvalue at the origin ($\lambda = 0 \notin \sigma(\mathbf{A})$, so $\det(\mathbf{A}) \neq 0$ and $\mathbf{A}^{-1}$ exists). Evaluating the resolvent at $s = 0$ gives $(0\mathbf{I} - \mathbf{A})^{-1} = (-\mathbf{A})^{-1} = -\mathbf{A}^{-1}$, yielding the **Static DC Gain Matrix**:
 
-<Callout type="bridge" title="SDU Robotics Bridge: The Danger of Unstable Pole-Zero Cancellation">
+$$\mathbf{W}(0) = \mathbf{C}(0\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D} = -\mathbf{C} \mathbf{A}^{-1} \mathbf{B} + \mathbf{D}$$
 
-In drone flight control, a common rookie mistake is attempting to stabilize an unstable open-loop airframe mode (e.g. inverted pendulum or pitch-up divergence at $s = +2$) by placing a controller zero at $s = +2$ to cancel the pole:
+How does this formula connect to time-domain equilibrium? When a constant step input $\mathbf{u}(t) = \mathbf{u}_0 \cdot 1(t)$ drives an asymptotically stable system (all eigenvalues in $\operatorname{Re}(\lambda_i) < 0$), the state derivative eventually settles to $\dot{\mathbf{x}}(\infty) = \mathbf{0}$, so $\mathbf{0} = \mathbf{A}\mathbf{x}_{\text{ss}} + \mathbf{B}\mathbf{u}_0 \implies \mathbf{x}_{\text{ss}} = -\mathbf{A}^{-1}\mathbf{B}\mathbf{u}_0$, and the steady-state sensor output is $\mathbf{y}_{\text{ss}} = \mathbf{C}\mathbf{x}_{\text{ss}} + \mathbf{D}\mathbf{u}_0 = (-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0 = \mathbf{W}(0)\mathbf{u}_0$—matching the Final Value Theorem $\lim_{s\to 0} s\mathbf{W}(s)\frac{1}{s}\mathbf{u}_0 = \mathbf{W}(0)\mathbf{u}_0$!
+
+<Callout type="bridge" title="Robotics Bridge: Unstable Pole-Zero Cancellation">
+
+In flight control, attempting to stabilize an unstable open-loop airframe mode (such as pitch divergence at $s = +2$) by placing a controller zero at $s = +2$ fails catastrophically:
+
 $$G_{\text{plant}}(s) = \frac{1}{s - 2}, \quad G_{\text{ctrl}}(s) = \frac{s - 2}{s + 5} \implies W_{\text{apparent}}(s) = \frac{1}{s + 5}$$
-On paper, the cancelled transfer function appears stable with a pole at $-5$.
-**Physical reality:** In state space, the unstable mode $\lambda = +2$ is rendered **unobservable or uncontrollable**. Any physical disturbance (wind gust, sensor noise, imperfect parameter matching $s - 2.001$) excites the hidden internal state mode $e^{+2t}$. Because the mode is decoupled from the output, the feedback loop cannot see it or correct it; the physical drone flips and crashes while the software telemetry shows zero error!
+
+Although the cancelled transfer function looks stable, in state space the unstable mode $\lambda = +2$ becomes **unobservable** or **uncontrollable**. Any disturbance or tiny parameter mismatch ($s - 2.001$) excites the hidden $e^{+2t}$ state mode until the airframe diverges while external error telemetry stays silent.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Concept | Formula / Condition | Key Interpretation |
+| :--- | :--- | :--- |
+| **Transfer Matrix** | $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$ | Zero-initial-state input-output operator ($\mathbf{Y}(s) = \mathbf{W}(s)\mathbf{U}(s)$) |
+| **Coordinate Invariance** | $\tilde{\mathbf{W}}(s) = \mathbf{W}(s)$ | Strictly unchanged under $\mathbf{x} = \mathbf{T}\mathbf{z}$ |
+| **Spectrum Subsumption** | $\mathcal{P}_W \subseteq \sigma(\mathbf{A})$ | Equality holds iff realization is minimal (controllable & observable) |
+| **High-Frequency Limit** | $\lim_{s\to\infty} \mathbf{W}(s) = \mathbf{D}$ | Instantaneous step feedthrough $y(0^+)$ for unit step |
+| **Static DC Gain** | $\mathbf{W}(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D}$ | Steady-state ratio $\mathbf{y}_{\text{ss}} = \mathbf{W}(0)\mathbf{u}_0$ ($\det\mathbf{A} \neq 0$, stable) |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Transfer Matrix Procedure
 
-## Chapter Exercises
+1. **Compute Resolvent:** Form $(s\mathbf{I} - \mathbf{A})^{-1} = \frac{\operatorname{adj}(s\mathbf{I}-\mathbf{A})}{p(s)}$.
+2. **Project via $\mathbf{C}$ and $\mathbf{B}$:** Multiply $\mathbf{C}\operatorname{adj}(s\mathbf{I}-\mathbf{A})\mathbf{B}$ before dividing by $p(s)$, then add $\mathbf{D}p(s)$ over $p(s)$.
+3. **Cancel Common Factors:** Factor numerator and denominator to check whether $\deg(D(s)) < n$ (non-minimal realization).
+4. **Verify Endpoints:** Confirm $\lim_{s\to\infty}\mathbf{W}(s) = \mathbf{D}$ and check $\mathbf{W}(0)$ against $-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D}$.
 
-<Exercise client:load id="ex-7-1" title="Exercise 7.1" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Transfer Formula:** Setting $\mathbf{x}(0^-) = \mathbf{0}$ in $\mathcal{L}\{\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}\}$ yields $\mathbf{X}(s) = (s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}\mathbf{U}(s)$, giving $\mathbf{Y}(s) = [\mathbf{C}(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B} + \mathbf{D}]\mathbf{U}(s)$.
+- **Similarity Invariance:** Substituting $(\mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \mathbf{T}^{-1}\mathbf{B}, \mathbf{C}\mathbf{T}, \mathbf{D})$ cancels $\mathbf{T}\mathbf{T}^{-1} = \mathbf{I}$ identically.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Equating $\mathcal{P}_W$ with $\sigma(\mathbf{A})$:** Cancelled eigenvalues never appear as poles of $\mathbf{W}(s)$, yet they still govern internal state stability.
+2. **Singular $\mathbf{A}$ DC Gain:** If the system has an integrator eigenvalue at $\lambda = 0$, $\mathbf{A}^{-1}$ does not exist and DC gain is infinite.
+3. **Combining $D$ Incorrectly:** When $D \neq 0$, combine $\frac{N_0(s)}{p(s)} + D = \frac{N_0(s) + D\,p(s)}{p(s)}$ before reading the zeros and high-frequency limit.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-7-1" title="Exercise 7.1 — Transfer Function and DC Gain" level="Warm-Up">
 
 Given the continuous-time state-space system:
+
 $$\mathbf{A} = \begin{bmatrix} -2 & 1 \\ 0 & -4 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 3 & 1 \end{bmatrix}, \quad D = 0$$
+
 1. Compute the state resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$.
 2. Calculate the transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$.
 3. Identify the system poles, zeros, and the McMillan degree $n_M$.
 4. Compute the static DC gain $W(0)$ directly from $W(s)$, and verify using the matrix formula $W(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B}$.
 
+<StepCheck
+  client:load
+  prompt="What is the static DC gain $W(0)$ of this system?"
+  expected={2.75}
+  tolerance={0.02}
+  unit=""
+  explanation="Evaluating $W(s) = \frac{5s+22}{(s+2)(s+4)}$ at $s = 0$ gives $22/8 = 2.75$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Characteristic matrix and resolvent:
-   $$s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s + 2 & -1 \\ 0 & s + 4 \end{bmatrix}, \quad \det(s\mathbf{I} - \mathbf{A}) = (s + 2)(s + 4)$$
+1. Forming the characteristic matrix $s\mathbf{I} - \mathbf{A}$ and applying the $2 \times 2$ adjugate inversion formula:
+   $$s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s + 2 & -1 \\ 0 & s + 4 \end{bmatrix}, \qquad p(s) = \det(s\mathbf{I} - \mathbf{A}) = (s + 2)(s + 4)$$
+   Swapping the diagonal elements and negating the off-diagonal elements yields:
    $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{(s + 2)(s + 4)} \begin{bmatrix} s + 4 & 1 \\ 0 & s + 2 \end{bmatrix}$$
-2. Input-output transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$:
-   $$\begin{aligned}
-   W(s) &= \begin{bmatrix} 3 & 1 \end{bmatrix} \frac{1}{(s+2)(s+4)} \begin{bmatrix} s+4 & 1 \\ 0 & s+2 \end{bmatrix} \begin{bmatrix} 1 \\ 2 \end{bmatrix} \\
-   &= \frac{1}{(s+2)(s+4)} \begin{bmatrix} 3s + 12 & s + 5 \end{bmatrix} \begin{bmatrix} 1 \\ 2 \end{bmatrix} \\
-   &= \frac{(3s + 12) + 2(s + 5)}{(s+2)(s+4)} = \frac{5s + 22}{(s+2)(s+4)}
-   \end{aligned}$$
-3. Singularity classification:
-   * Poles: $p_1 = -2, \; p_2 = -4$.
-   * Zero: $5s + 22 = 0 \implies z = -\frac{22}{5} = -4.4$.
-   * McMillan degree: $n_M = 2$ (the degree of the irreducible denominator is 2, matching state dimension $n=2$).
-4. Static DC gain $W(0)$:
-   * Evaluating $W(s)$ at $s = 0$:
-     $$W(0) = \frac{22}{(2)(4)} = \frac{22}{8} = \frac{11}{4} = 2.75$$
-   * Matrix formula $W(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B}$:
-     $$\mathbf{A}^{-1} = \frac{1}{8}\begin{bmatrix} -4 & -1 \\ 0 & -2 \end{bmatrix}$$
-     $$-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} = -\begin{bmatrix} 3 & 1 \end{bmatrix} \left( \frac{1}{8}\begin{bmatrix} -6 \\ -4 \end{bmatrix} \right) = -\frac{-22}{8} = 2.75 \quad \checkmark$$
+2. Multiplying $\mathbf{C}\operatorname{adj}(s\mathbf{I} - \mathbf{A})\mathbf{B}$ step by step and dividing by $p(s)$:
+   $$
+   \begin{aligned}
+   \operatorname{adj}(s\mathbf{I} - \mathbf{A})\mathbf{B} &= \begin{bmatrix} s + 4 & 1 \\ 0 & s + 2 \end{bmatrix} \begin{bmatrix} 1 \\ 2 \end{bmatrix} = \begin{bmatrix} (s + 4)(1) + (1)(2) \\ (0)(1) + (s + 2)(2) \end{bmatrix} = \begin{bmatrix} s + 6 \\ 2s + 4 \end{bmatrix} \\
+   W(s) &= \frac{\mathbf{C}\operatorname{adj}(s\mathbf{I} - \mathbf{A})\mathbf{B}}{p(s)} = \frac{1}{(s+2)(s+4)} \begin{bmatrix} 3 & 1 \end{bmatrix} \begin{bmatrix} s + 6 \\ 2s + 4 \end{bmatrix} \\
+   &= \frac{3(s + 6) + 1(2s + 4)}{(s+2)(s+4)} = \frac{3s + 18 + 2s + 4}{(s+2)(s+4)} = \frac{5s + 22}{(s+2)(s+4)}
+   \end{aligned}
+   $$
+3. Analyzing the rational expression $W(s) = \frac{5s + 22}{(s + 2)(s + 4)}$:
+   - **Zero:** Setting $5s + 22 = 0 \implies z = -\frac{22}{5} = -4.4$.
+   - **Poles:** Since neither $s = -2$ nor $s = -4$ cancels with $z = -4.4$, the poles are $p_1 = -2$ and $p_2 = -4$.
+   - **McMillan degree:** $n_M = 2$, matching the state dimension $n = 2$ (minimal realization, $\mathcal{P}_W = \sigma(\mathbf{A}) = \{-2, -4\}$).
+4. Static DC gain verification:
+   - Directly from $W(s)$ at $s = 0$:
+     $$W(0) = \frac{5(0) + 22}{(0 + 2)(0 + 4)} = \frac{22}{8} = \frac{11}{4} = 2.75$$
+   - From the matrix formula $W(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B}$ with $\det(\mathbf{A}) = (-2)(-4) - (1)(0) = 8$:
+     $$\mathbf{A}^{-1} = \frac{1}{8}\begin{bmatrix} -4 & -1 \\ 0 & -2 \end{bmatrix} \implies \mathbf{A}^{-1}\mathbf{B} = \frac{1}{8}\begin{bmatrix} -4 & -1 \\ 0 & -2 \end{bmatrix}\begin{bmatrix} 1 \\ 2 \end{bmatrix} = \frac{1}{8}\begin{bmatrix} -4 - 2 \\ 0 - 4 \end{bmatrix} = \frac{1}{8}\begin{bmatrix} -6 \\ -4 \end{bmatrix}$$
+     $$W(0) = -\mathbf{C}\left(\mathbf{A}^{-1}\mathbf{B}\right) = -\begin{bmatrix} 3 & 1 \end{bmatrix}\left(\frac{1}{8}\begin{bmatrix} -6 \\ -4 \end{bmatrix}\right) = -\frac{3(-6) + 1(-4)}{8} = -\frac{-22}{8} = 2.75$$
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-7-2" title="Exercise 7.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-7-2" title="Exercise 7.2 — Direct Feedthrough Step Limits" level="Exam Standard">
 
-In a UniCT written examination, consider a system with non-zero direct feedthrough:
+Consider a state-space system with non-zero direct feedthrough:
+
 $$\mathbf{A} = \begin{bmatrix} -1 & 2 \\ 0 & -3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 1 \end{bmatrix}, \quad D = 2$$
+
 1. Formulate the resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$.
 2. Compute the complete transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + D$ and express it as a single irreducible rational fraction $\frac{N(s)}{D(s)}$.
 3. Identify the system poles, zero, and the high-frequency limit $\lim_{s \to \infty} W(s)$.
 4. For a unit step excitation $u(t) = 1(t)$ with zero initial state, evaluate the initial response $y(0^+)$ and the steady-state response $y(\infty)$ using Laplace limit theorems.
 
+<StepCheck
+  client:load
+  prompt="For a unit step input $u(t) = 1(t)$ at zero initial state, what is the steady-state output $y(\infty)$?"
+  expected={3}
+  tolerance={0.05}
+  unit=""
+  explanation="After $(s+3)$ cancels, $W(s) = \frac{2s+3}{s+1}$. By the Final Value Theorem on $Y(s) = W(s)/s$, $y(\infty) = W(0) = 3$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Resolvent matrix:
-   $$s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s + 1 & -2 \\ 0 & s + 3 \end{bmatrix} \implies (s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{(s+1)(s+3)}\begin{bmatrix} s+3 & 2 \\ 0 & s+1 \end{bmatrix}$$
-2. Transfer function with feedthrough $D = 2$:
-   $$\begin{aligned}
-   \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} &= \begin{bmatrix} 1 & 1 \end{bmatrix} \frac{1}{(s+1)(s+3)}\begin{bmatrix} 2 \\ s+1 \end{bmatrix} = \frac{2 + s + 1}{(s+1)(s+3)} = \frac{s+3}{(s+1)(s+3)} = \frac{1}{s+1} \\
-   W(s) &= \frac{1}{s+1} + 2 = \frac{1 + 2(s+1)}{s+1} = \frac{2s + 3}{s+1}
-   \end{aligned}$$
-3. Singularities and high-frequency limit:
-   * Pole: $p = -1$.
-   * Zero: $2s + 3 = 0 \implies z = -1.5$.
-   * High-frequency limit:
-     $$\lim_{s \to \infty} W(s) = \lim_{s \to \infty} \frac{2s + 3}{s + 1} = 2 = D$$
-4. Step response limits for $U(s) = \frac{1}{s}$:
-   $$Y(s) = W(s) U(s) = \frac{2s + 3}{s(s+1)}$$
-   * Initial output $y(0^+)$ via Initial Value Theorem:
-     $$y(0^+) = \lim_{s \to \infty} s Y(s) = \lim_{s \to \infty} \frac{2s + 3}{s + 1} = 2 = D$$
-     The direct feedthrough matrix $D$ instantaneously transmits the step discontinuity of magnitude 2 to the output port at $t = 0^+$.
-   * Steady-state output $y(\infty)$ via Final Value Theorem:
-     $$y(\infty) = \lim_{s \to 0} s Y(s) = \lim_{s \to 0} \frac{2s + 3}{s + 1} = 3 = W(0)$$
+1. Forming $s\mathbf{I} - \mathbf{A}$ and inverting via the $2 \times 2$ adjugate rule:
+   $$s\mathbf{I} - \mathbf{A} = \begin{bmatrix} s + 1 & -2 \\ 0 & s + 3 \end{bmatrix}, \qquad p(s) = (s + 1)(s + 3)$$
+   $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{(s+1)(s+3)}\begin{bmatrix} s+3 & 2 \\ 0 & s+1 \end{bmatrix}$$
+2. Multiplying $\mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$ first and then combining with $D = 2$ over a common denominator:
+   $$
+   \begin{aligned}
+   (s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} &= \frac{1}{(s+1)(s+3)}\begin{bmatrix} s+3 & 2 \\ 0 & s+1 \end{bmatrix}\begin{bmatrix} 0 \\ 1 \end{bmatrix} = \frac{1}{(s+1)(s+3)}\begin{bmatrix} 2 \\ s+1 \end{bmatrix} \\
+   \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} &= \begin{bmatrix} 1 & 1 \end{bmatrix} \frac{1}{(s+1)(s+3)}\begin{bmatrix} 2 \\ s+1 \end{bmatrix} = \frac{2 + (s + 1)}{(s+1)(s+3)} = \frac{\cancel{s+3}}{(s+1)\cancel{(s+3)}} = \frac{1}{s+1}
+   \end{aligned}
+   $$
+   Notice that the eigenvalue at $\lambda_2 = -3$ cancels out! Adding the direct feedthrough $D = 2$:
+   $$W(s) = \frac{1}{s+1} + 2 = \frac{1 + 2(s + 1)}{s + 1} = \frac{2s + 3}{s + 1}$$
+3. From the irreducible biproper transfer function $W(s) = \frac{2s + 3}{s + 1}$:
+   - **Pole:** $\mathcal{P}_W = \{-1\}$ (McMillan degree $n_M = 1 < n = 2$, so the realization is non-minimal due to the unobservable mode at $\lambda_2 = -3$).
+   - **Zero:** Setting $2s + 3 = 0 \implies z = -\frac{3}{2} = -1.5$.
+   - **High-frequency limit:**
+     $$\lim_{s \to \infty} W(s) = \lim_{s \to \infty} \frac{2 + 3/s}{1 + 1/s} = 2 = D$$
+4. Applying a unit step input $u(t) = 1(t) \leftrightarrow U(s) = \frac{1}{s}$ under zero initial conditions gives the output transform:
+   $$Y(s) = W(s) U(s) = \frac{2s + 3}{s(s + 1)}$$
+   - **Initial value $y(0^+)$** via the Initial Value Theorem:
+     $$y(0^+) = \lim_{s \to \infty} s Y(s) = \lim_{s \to \infty} W(s) = \lim_{s \to \infty} \frac{2s + 3}{s + 1} = 2 = D$$
+     Because $D = 2 \neq 0$, the output jumps instantaneously from $0$ to $2$ at $t = 0^+$.
+   - **Steady-state value $y(\infty)$** via the Final Value Theorem (valid since the only pole of $sY(s) = \frac{2s+3}{s+1}$ is at $s = -1 < 0$):
+     $$y(\infty) = \lim_{s \to 0} s Y(s) = W(0) = \lim_{s \to 0} \frac{2s + 3}{s + 1} = \frac{3}{1} = 3$$
 
 </details>
 

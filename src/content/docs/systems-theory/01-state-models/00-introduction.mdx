@@ -1,0 +1,40 @@
+---
+title: "Part I — Introduction: Dynamic State Models"
+description: "Conceptual overview and real-world framing for Part I of Linear Systems Theory."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part I Roadmap" markdown={`# Part I: Dynamic State Models
+  - 1. First Order Differential State Equations
+    - Energy storage and state variables
+    - From high-order ODEs to $(\\mathbf{A}, \\mathbf{B}, \\mathbf{C}, \\mathbf{D})$
+  - 2. Coordinate Basis Similarity Transformations
+    - Same physics, different measurement frames
+    - Eigenvalue & transfer invariants
+  - 3. Block Diagram Algebra Reduction
+    - Interconnected subsystems and feedback loops`} />
+
+## Introduction
+
+Before analyzing stability or designing controllers, an engineer must choose a mathematical language to describe how a physical system evolves over time. High-school and introductory physics courses model mechanical or electrical setups as a single high-order differential equation linking one input to one output. That input-output view breaks down as soon as a system has multiple actuators, multiple sensors, or internal energy-storing elements whose internal behavior matters even when the output looks quiet.
+
+Part I builds the universal **state-space representation**. Instead of tracking derivatives up to order $n$ of a single output, you pack the system's instantaneous memory—positions, velocities, capacitor voltages, inductor currents—into a vector $\mathbf{x}(t)$ and write every physical law as a clean system of coupled first-order differential equations $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$.
+
+### Practical Real-World Perspective
+
+- **Suspension & Robotics:** A two-cart spring-damper bench or a flexible robotic joint stores potential energy in springs and kinetic energy in moving masses. Choosing position and velocity as states lets one $4 \times 4$ matrix model predict both oscillation and sensor output regardless of whether you bolt an accelerometer, tachometer, or encoder onto the hardware.
+- **Coordinate Frames in Drones:** An inertial measurement unit (IMU) measures angular rates in the drone's body frame, while navigation requires coordinates in the ground Earth frame. Similarity transformations $\mathbf{x} = \mathbf{T}\mathbf{z}$ formalize why rotating or rescaling internal coordinates leaves physical eigenvalues and input-output behavior completely unchanged.
+- **Modular Control Architecture:** Real flight stacks and industrial plants cascade motor drivers, gearboxes, sensors, and feedback compensators. Block diagram algebra turns those interconnected loops into a single clean operator for analysis.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[1. First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/)** — Define the minimal state vector, convert $n$-th order ODEs into companion form, and derive $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ matrices from Newton's laws.
+2. **[2. Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/)** — Transform state realizations via $\mathbf{x} = \mathbf{T}\mathbf{z}$, diagonalize modes, and prove which quantities remain physically invariant.
+3. **[3. Block Diagram Algebra Reduction](/dynamic-courses/systems-theory/01-state-models/03-block-diagram-algebra-reduction/)** — Collapse series, parallel, and multi-loop feedback architectures systematically without changing node signals.

@@ -1,0 +1,41 @@
+---
+title: "Parte V — Introduzione: Logica Combinatoria CMOS"
+description: "Quadro concettuale ed esempi reali per la Parte V di Elettronica."
+sidebar:
+  label: "Introduzione"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load lang="it" title="Mappa della Parte V" markdown={`# Parte V: Logica Combinatoria CMOS
+  - 18. Metriche dei Circuiti Digitali
+    - VTC, margini di rumore, ritardi e potenza
+  - 19. Invertitore CMOS Statico
+    - 5 regioni operative, soglia V_M e simmetria
+  - 20. Porte Logiche Combinatorie
+    - Dualità PUN/PDN, AOI/OAI e Transmission Gate
+  - 21. Buffer Scalati in Cascata
+    - Ottimizzazione ritardo su carichi f_o = C_L / C_in`} />
+
+## Introduzione
+
+Come fa un blocco di silicio contenente miliardi di transistori a calcolare somme binarie miliardi di volte al secondo senza fondersi per il calore? La risposta è la **logica CMOS complementare**: associare reti NMOS verso massa (PDN) e reti PMOS verso $V_{DD}$ (PUN) in modo che a regime statico non scorra mai corrente continua dall'alimentazione a massa.
+
+La Parte V parte dalle metriche oggettive con cui si giudica una famiglia digitale—robustezza ai disturbi (*Noise Margins*), velocità ($t_p$) e consumo ($P = C V_{DD}^2 f$)—studia l'atomo fondamentale di tutto il mondo VLSI (l'**invertitore CMOS**), generalizza la sintesi a porte NAND/NOR/AOI arbitrarie e risolve il problema fisico di pilotare grandi capacità esterne tramite catene di **buffer scalati**.
+
+### Esempi Pratici nel Mondo Reale
+
+- **Gestione Termica delle CPU Moderne ($P \propto V_{DD}^2 f$):** Quando la frequenza di clock $f$ cresce, l'energia dinamica di carica/scarica dei condensatori interni domina la potenza del chip: abbassare la tensione di alimentazione $V_{DD}$ riduce drasticamente il calore perché compare al quadrato.
+- **Dimensionamento Simmetrico ($W_p \approx 2.5\div 3\,W_n$):** Poiché le lacune nel PMOS hanno mobilità $\mu_p$ inferiore agli elettroni nell'NMOS, gli standard-cell layout dei microprocessori allargano il PMOS per centrare la soglia logica $V_M \approx V_{DD}/2$ ed equilibrare fronti di salita e discesa.
+- **Pilotaggio dei Pin di I/O e Alberi di Clock:** Una porta logica minima interna ($C_{in} \approx \text{fF}$) impiegherebbe decine di nanosecondi a caricare un pin di scheda ($C_L \approx \text{pF}$): una catena geometrica di invertitori crescenti di fattore $u \approx e$ (o $3\div 4$ su silicio reale) minimizza il ritardo totale.
+
+<Divider />
+
+## Mappa dei Capitoli
+
+1. **[18. Metriche dei Circuiti Digitali](/dynamic-courses/elettronica/05-logica-cmos/18-metriche-digitali/)** — Livelli $V_{OH}, V_{OL}, V_{IH}, V_{IL}$, margini di rumore, ritardi di propagazione, potenza statica/dinamica e PDP/EDP.
+2. **[19. Invertitore CMOS Statico](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/)** — Analisi delle 5 regioni della VTC, calcolo della soglia logica $V_M$, simmetria geometrica e corrente di cortocircuito.
+3. **[20. Porte Logiche Combinatorie](/dynamic-courses/elettronica/05-logica-cmos/20-porte-logiche-cmos/)** — Sintesi duale NMOS/PMOS, criterio dell'invertitore equivalente, porte complesse AOI/OAI e Transmission Gate.
+4. **[21. Buffer Scalati in Cascata](/dynamic-courses/elettronica/05-logica-cmos/21-buffer-scalati/)** — Derivazione del numero ottimo di stadi $N$ e del fattore di scalamento $u$ per carichi capacitivi elevati.

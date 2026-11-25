@@ -1,0 +1,77 @@
+---
+title: "Part IV — Introduction: RISC-V Subroutines & Systems"
+description: "Conceptual overview, embedded firmware context, and shared running system for Part IV of Computer Architecture."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part IV Roadmap" markdown={`# Part IV: RISC-V Subroutines & Systems
+  - 11. System Calls
+    - Static .data directives and la addressing
+    - RARS console ecall services in a7 (1, 4, 5, 8, 10, 11)
+    - Input validation loops and clean termination
+  - 12. Subroutine Stack Frames
+    - Caller-saved vs. callee-saved ABI registers
+    - 16-byte sp alignment and prologue/epilogue template
+    - Local stack buffers and leaf vs. non-leaf calls
+  - 13. Recursive Subroutines
+    - Per-activation stack frames and ra preservation
+    - Shielding live arguments across recursive jal
+    - Single linear and dual-branching recursion`} />
+
+## Introduction
+
+In Part III, every C snippet lived inside a single flat instruction stream operating on registers and pre-existing pointers ([RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/), [Control Flow](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/), and [Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/)). Standalone programs in real firmware and in **Section III (Question 6)** of the written exam require two capabilities beyond flat loops: requesting input/output services from the execution environment via **`ecall`**, and composing multiple functions—`main`, leaf helpers like `strlen`, and recursive procedures—without overwriting return addresses or live variables.
+
+Part IV builds the mechanical **Application Binary Interface (ABI)** rules that turn isolated RV32IM snippets into complete, self-contained assembly programs: static `.data` layouts and console system calls, downward-growing 16-byte-aligned stack frames (`sp`), caller-saved (`t0`–`t6`, `a0`–`a7`, `ra`) versus callee-saved (`s0`–`s11`, `sp`) register contracts, and multi-frame recursive execution.
+
+### Practical Embedded Perspective
+
+- **Privilege Boundaries in Firmware:** User-mode programs under an operating system (or simulator such as RARS) cannot touch shared I/O hardware directly; executing `ecall` triggers a synchronous trap into kernel code that inspects `a7` and dispatches the driver. On bare-metal microcontrollers without an OS, firmware replaces `ecall` with direct loads and stores to memory-mapped UART peripheral registers.
+- **Deterministic RTOS Stack Budgets:** On embedded RISC-V and ARM Cortex-M controllers running FreeRTOS or Zephyr, each real-time task owns a fixed stack buffer (typically $1\text{–}4\text{ KiB}$). Computing exact 16-byte-aligned frame sizes and bounding call depth prevents runtime stack overflows from corrupting adjacent task memory.
+- **Zero-Friction C/Assembly Interop:** Interrupt service routines, DSP filters, and cryptographic primitives written in hand-tuned assembly link cleanly into compiled C firmware only when every routine honors the ABI split between volatile scratch registers and preserved registers.
+
+### Shared Running Program
+
+Across Chapters 11–13, we progressively translate every layer of a single interactive C program that reads a sensor tag into a local stack buffer, validates an integer order $n$, computes a recursive factorial, and prints a formatted summary:
+
+```c
+int fact(int n) {
+    if (n <= 1) return 1;
+    return n * fact(n - 1);
+}
+
+int main(void) {
+    char tag[16];
+    int len, n, res;
+
+    printf("Sensor tag: ");
+    scanf("%s", tag);
+    len = strlen(tag);
+
+    do {
+        printf("Order n (0..10): ");
+        scanf("%d", &n);
+    } while (n < 0 || n > 10);
+
+    res = fact(n);
+    printf("[%d] Result = %d\n", len, res);
+    return 0;
+}
+```
+
+- **Console I/O Layer:** `.data` string literals, `la` address loading, `printf`/`scanf` via `ecall` (`a7` codes `4`, `8`, `5`, `1`, `11`), the `do-while` bounds check, and clean exit (`a7 = 10`).
+- **Non-Leaf Stack Frame Layer:** `main`'s 32-byte aligned stack frame holding local array `tag[16]` at `0(sp)`, saved `ra`, and callee-saved locals (`len`, `n`, `res`) across `call strlen` and `call fact`, paired with a zero-stack leaf `strlen`.
+- **Recursive Activation Layer:** `fact(n)` allocating a fresh 16-byte frame per recursive call so `ra` and live parameter `n` survive `jal` down to the base case and back.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[11. System Calls](/dynamic-courses/computer-architecture/04-riscv-subroutines/11-system-calls/)** — Declare static `.data` buffers and strings, load addresses with `la`, invoke RARS console I/O services (`a7 = 1, 4, 5, 8, 10, 11`), and build validated input loops.
+2. **[12. Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/)** — Partition caller-saved and callee-saved registers, size 16-byte-aligned stack frames, allocate local C buffers via `sp`, and write exact prologue/epilogue pairs.
+3. **[13. Recursive Subroutines](/dynamic-courses/computer-architecture/04-riscv-subroutines/13-recursive-subroutines/)** — Translate single linear and dual-branching recursive C functions by preserving `ra`, live arguments, and partial results across `jal`.

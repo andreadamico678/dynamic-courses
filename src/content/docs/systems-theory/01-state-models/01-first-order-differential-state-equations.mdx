@@ -11,250 +11,354 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 1 Mental Model" markdown={`# Ch. 1: First Order Differential State Equations
-  - Mathematical Formulation of Dynamical State
-  - State Space Architecture & Structural Block Topology
-  - Canonical Conversion from High-Order ODEs
-  - Non-Uniqueness of State Coordinates
-  - Physical Modeling of Mechanical Systems (Exam Archetype 1)
-    - Problem Formulation: Coupled Two-Cart Mechanical System
-    - Dynamic Equations via Newton's Second Law
-    - State-Space Representation
-    - Output Equation Variants`} />
+<MindMap client:load defaultCollapsed title="Chapter 1 Outline" markdown={`# Ch. 1: First Order Differential State Equations
+  - Coupled Two-Cart Example
+    - Newton's second law equations
+    - Four-state matrix realization
+    - Sensor output matrix variants
+  - Dynamical State Formulation
+    - Minimal state vector $\\mathbf{x}(t)$
+    - Integrator block topology
+    - Phase-variable companion form
+    - Non-uniqueness of coordinates`} />
 
-## Mathematical Formulation of Dynamical State
+## Introduction
 
-A dynamical system is fundamentally defined by its capacity to store energy, matter, or information across time. In classical input-output formulations, such systems are often modeled using high-order differential equations relating an external excitation $u(t)$ to an observed output $y(t)$. However, modern control engineering and state estimation rely upon the **state-space representation**, where the internal condition of the system is encapsulated by a finite-dimensional state vector $\mathbf{x}(t) \in \mathbb{R}^n$.
+Any physical system whose present behavior depends on its past history—whether a car suspension compressing over a bump, a capacitor holding charge, or a spinning motor rotor—stores energy internally. Knowing only the current external input is not enough to predict what happens next; you also need a compact snapshot of that stored energy right now. That snapshot is the **state vector**, and rewriting physical laws as first-order differential equations in that state gives us one uniform matrix template ($\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$) across mechanics, circuits, and robotics.
 
-<Callout type="note" title="Definition: State of a Dynamical System">
+In real engineering systems—such as a two-mass vehicle suspension model, a quadrotor altitude axis, or a DC motor drive—the state variables map directly to physical energy reservoirs (positions, velocities, currents, and voltages). Once translated into first-order state equations, every downstream tool in this course (Laplace inversion, stability tests, Kalman rank, and feedback synthesis) works identically without caring whether the hardware is mechanical or electrical.
 
-The state $\mathbf{x}(t_0)$ of a dynamical system at an initial time instant $t_0$ is the minimal set of physical or mathematical variables $\{x_1(t_0), x_2(t_0), \dots, x_n(t_0)\}$ such that the knowledge of these variables, together with the knowledge of the input trajectory $\mathbf{u}(t)$ for all $t \ge t_0$, uniquely and completely determines the future state trajectory $\mathbf{x}(t)$ and output trajectory $\mathbf{y}(t)$ for all $t \ge t_0$.
+<Divider label="1 · Example" />
 
-</Callout>
+### Coupled Two-Cart System
 
-For continuous-time, linear, time-invariant (LTI) systems, the physical interactions governing the evolution of the state variables are formalized as a system of coupled, first-order ordinary differential equations:
+Before introducing general matrix definitions, let us build a state-space model from first principles on a concrete mechanical bench. High-order differential equations become cumbersome as soon as two moving bodies interact, because each mass accelerates in response to forces exerted by its neighbors. Converting those coupled second-order equations into a single vector of first-order equations gives us a clean, systematic way to track every energy-storing element at once.
 
-$$\dot{\mathbf{x}}(t) = \mathbf{A} \mathbf{x}(t) + \mathbf{B} \mathbf{u}(t)$$
-
-$$\mathbf{y}(t) = \mathbf{C} \mathbf{x}(t) + \mathbf{D} \mathbf{u}(t)$$
-
-where:
-* $\mathbf{x}(t) = \begin{bmatrix} x_1(t) & x_2(t) & \dots & x_n(t) \end{bmatrix}^T \in \mathbb{R}^n$ is the **state vector**, whose dimension $n$ defines the *order* of the system.
-* $\mathbf{u}(t) = \begin{bmatrix} u_1(t) & u_2(t) & \dots & u_m(t) \end{bmatrix}^T \in \mathbb{R}^m$ is the **control input vector**.
-* $\mathbf{y}(t) = \begin{bmatrix} y_1(t) & y_2(t) & \dots & y_p(t) \end{bmatrix}^T \in \mathbb{R}^p$ is the **measured output vector**.
-* $\mathbf{A} \in \mathbb{R}^{n \times n}$ is the **dynamic matrix** (or system matrix), characterizing the internal coupling between state variables in the absence of external inputs.
-* $\mathbf{B} \in \mathbb{R}^{n \times m}$ is the **input matrix**, defining how the actuators inject control energy into the internal state coordinates.
-* $\mathbf{C} \in \mathbb{R}^{p \times n}$ is the **output matrix**, mapping internal states to observable sensor measurements.
-* $\mathbf{D} \in \mathbb{R}^{p \times m}$ is the **direct transmission matrix** (or feedthrough matrix), representing algebraic feedthrough from input directly to output. In strictly proper physical systems with non-zero inertia, $\mathbf{D} = \mathbf{0}$.
-
-<Divider />
-
-## State Space Architecture & Structural Block Topology
-
-The algebraic structure of the equation above and the equation above corresponds directly to an analog computing network comprising an integrator bank, gain amplifiers, and summing nodes.
-
-<figure id="fig-state-space-architecture" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-state-space-architecture.svg" alt="Continuous-time LTI state-space architectural topology illustrating the integrator core $\int dt$, dynamic feedback matrix $\mathbf{A}$, input distribution matrix $\mathbf{B}$, sensor matrix $\mathbf{C}$, and direct algebraic feedthrough $\mathbf{D}$." />
-  <figcaption>Continuous-time LTI state-space architectural topology illustrating the integrator core $\int dt$, dynamic feedback matrix $\mathbf{A}$, input distribution matrix $\mathbf{B}$, sensor matrix $\mathbf{C}$, and direct algebraic feedthrough $\mathbf{D}$.</figcaption>
-</figure>
-
-As revealed in [the figure](#fig-state-space-architecture), the state vector $\mathbf{x}(t)$ represents the **outputs of the integrators**. Integrators are the only memory elements in continuous-time physical systems; algebraic gains ($\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$) perform static transformations without storing historical energy.
-
-<Divider />
-
-## Canonical Conversion from High-Order ODEs
-
-Consider an arbitrary single-input single-output (SISO) linear physical system described by an $n$-th order scalar ordinary differential equation:
-
-$$y^{(n)}(t) + a_{n-1} y^{(n-1)}(t) + \dots + a_1 \dot{y}(t) + a_0 y(t) = b_0 u(t)$$
-
-where $y^{(k)}(t) = \frac{d^k y(t)}{dt^k}$. To express the equation above in the standard state-space form, we define the **phase variables** (canonical state assignment):
-
-$$\begin{aligned}
-x_1(t) &= y(t) \\
-x_2(t) &= \dot{y}(t) = \dot{x}_1(t) \\
-x_3(t) &= \ddot{y}(t) = \dot{x}_2(t) \\
-&\;\;\vdots \\
-x_n(t) &= y^{(n-1)}(t) = \dot{x}_{n-1}(t)
-\end{aligned}$$
-
-Differentiating the $n$-th state variable $x_n(t)$ and substituting from the equation above yields:
-
-$$\dot{x}_n(t) = y^{(n)}(t) = -a_0 x_1(t) - a_1 x_2(t) - \dots - a_{n-1} x_n(t) + b_0 u(t)$$
-
-Stacking these relations into matrix notation produces the **Frobenius Companion Canonical Form**:
-
-$$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \\ \vdots \\ \dot{x}_{n-1}(t) \\ \dot{x}_n(t) \end{bmatrix} = \begin{bmatrix}
-0 & 1 & 0 & \dots & 0 \\
-0 & 0 & 1 & \dots & 0 \\
-\vdots & \vdots & \vdots & \ddots & \vdots \\
-0 & 0 & 0 & \dots & 1 \\
--a_0 & -a_1 & -a_2 & \dots & -a_{n-1}
-\end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ \vdots \\ x_{n-1}(t) \\ x_n(t) \end{bmatrix} + \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \\ b_0 \end{bmatrix} u(t)$$
-
-$$y(t) = \begin{bmatrix} 1 & 0 & 0 & \dots & 0 \end{bmatrix} \mathbf{x}(t)$$
-
-<Callout type="bridge" title="SDU Robotics Bridge: Drone Multirotor Equations of Motion">
-
-In autonomous aerial robotics (such as the PX4 autopilot and SDU's drone testbeds in Odense), multirotor quadcopter dynamics are modeled around hover equilibrium. For example, the pitch rate dynamics $\theta(t)$ driven by differential propeller thrust $\Delta T(t)$ follow:
-$$J_{yy} \ddot{\theta}(t) + d_r \dot{\theta}(t) = l \Delta T(t)$$
-where $J_{yy}$ is the pitch moment of inertia, $d_r$ is the aerodynamic rotational damping coefficient, and $l$ is the rotor arm length. Assigning state coordinates $x_1 = \theta$ (pitch angle) and $x_2 = \dot{\theta} = q$ (pitch rate) produces the continuous state-space model:
-$$\begin{bmatrix} \dot{x}_1 \\ \dot{x}_2 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ 0 & -\frac{d_r}{J_{yy}} \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} + \begin{bmatrix} 0 \\ \frac{l}{J_{yy}} \end{bmatrix} u(t)$$
-This state-space representation forms the exact foundation upon which inner angular-rate controllers and Extended Kalman Filters (EKF) are implemented in ROS 2 flight navigation packages.
-
-</Callout>
-
-<Divider />
-
-## Non-Uniqueness of State Coordinates
-
-While the input-output behavior ($u(t) \to y(t)$) of a physical system is invariant, its state-space representation is **not unique**. Any invertible linear transformation of the state vector:
-
-$$\mathbf{z}(t) = \mathbf{T}^{-1} \mathbf{x}(t) \iff \mathbf{x}(t) = \mathbf{T} \mathbf{z}(t), \quad \det(\mathbf{T}) \neq 0$$
-
-yields an entirely equivalent state-space model in the new coordinate basis $\mathbf{z}(t)$:
-
-$$\dot{\mathbf{z}}(t) = \tilde{\mathbf{A}} \mathbf{z}(t) + \tilde{\mathbf{B}} \mathbf{u}(t), \quad \mathbf{y}(t) = \tilde{\mathbf{C}} \mathbf{z}(t) + \tilde{\mathbf{D}} \mathbf{u}(t)$$
-
-where:
-$$\tilde{\mathbf{A}} = \mathbf{T}^{-1} \mathbf{A} \mathbf{T}, \quad \tilde{\mathbf{B}} = \mathbf{T}^{-1} \mathbf{B}, \quad \tilde{\mathbf{C}} = \mathbf{C} \mathbf{T}, \quad \tilde{\mathbf{D}} = \mathbf{D}$$
-
-The systemic invariants under similarity transformations will be established rigorously in [Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/).
-
-<Divider />
-
-## Physical Modeling of Mechanical Systems (Exam Archetype 1)
-
-In university examinations (specifically matching the UniCT L-8 Automatica syllabus), state differential equations are frequently derived directly from mechanical multi-body systems rather than abstract ODEs.
-
-### Problem Formulation: Coupled Two-Cart Mechanical System
-
-Consider the horizontal translational system depicted in [the figure](#fig-two-mass-system). It consists of two rigid carts of masses $m_1$ and $m_2$ translating horizontally on a frictionless surface, interconnected by a linear spring of stiffness $k$. Mass $m_1$ is attached to a rigid fixed wall through a linear viscous damper of coefficient $B_1$ and is driven by an external horizontal control force $F(t) = u(t)$.
+Consider the horizontal translational system in [the figure](#fig-two-mass-system): two rigid carts of masses $m_1$ and $m_2$ slide on a frictionless rail and are coupled by a linear spring of stiffness $k$. Mass $m_1$ is tethered to a fixed left wall through a viscous damper of coefficient $B_1$ and is driven to the right by an external horizontal control force $F(t) = u(t)$.
 
 <figure id="fig-two-mass-system" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-two-mass-system.svg" alt="Horizontal two-body translational mechanical system with coupling spring $k$, wall damper $B_1$, and control force $u(t)$." />
   <figcaption>Horizontal two-body translational mechanical system with coupling spring $k$, wall damper $B_1$, and control force $u(t)$.</figcaption>
 </figure>
 
-### Dynamic Equations via Newton's Second Law
+Let $p_1(t)$ and $p_2(t)$ denote the horizontal displacements of $m_1$ and $m_2$ measured to the right from their static unstretched equilibrium positions. To derive the equations of motion, we isolate each cart as a free body and sum all horizontal forces according to Newton's second law ($\sum F = m\ddot{p}$).
 
-Let $p_1(t)$ and $p_2(t)$ denote the absolute horizontal displacements of masses $m_1$ and $m_2$ measured from static equilibrium.
+For **mass $m_1$**, three horizontal forces act on the cart: the external actuator force $+u(t)$ pushing right, the wall damper resisting velocity with force $-B_1 \dot{p}_1(t)$, and the coupling spring between the two carts. Whenever cart 2 moves farther right than cart 1 ($p_2(t) > p_1(t)$), the spring stretches by $(p_2(t) - p_1(t))$ and pulls cart 1 to the right with force $+k\big(p_2(t) - p_1(t)\big)$. Summing these three forces and dividing through by $m_1$ isolates the acceleration $\ddot{p}_1(t)$:
 
-1. **Free-Body Diagram for Mass $m_1$:**
-   Mass $m_1$ is acted upon by:
-   - External driving force: $+u(t)$
-   - Viscous damping force opposing velocity $\dot{p}_1$: $-B_1 \dot{p}_1(t)$
-   - Elastic restoring force from spring elongation $(p_2 - p_1)$: $+k(p_2(t) - p_1(t))$
+$$
+\begin{aligned}
+m_1 \ddot{p}_1(t) &= u(t) - B_1 \dot{p}_1(t) + k\big(p_2(t) - p_1(t)\big) \\
+\ddot{p}_1(t) &= -\frac{k}{m_1} p_1(t) - \frac{B_1}{m_1} \dot{p}_1(t) + \frac{k}{m_1} p_2(t) + \frac{1}{m_1} u(t)
+\end{aligned}
+$$
 
-   Applying $\sum F = m_1 \ddot{p}_1$:
-   $$m_1 \ddot{p}_1(t) = u(t) - B_1 \dot{p}_1(t) + k(p_2(t) - p_1(t))$$
-   $$\ddot{p}_1(t) = -\frac{k}{m_1} p_1(t) - \frac{B_1}{m_1} \dot{p}_1(t) + \frac{k}{m_1} p_2(t) + \frac{1}{m_1} u(t)$$
+In this acceleration balance, $-\frac{k}{m_1}p_1(t)$ is the elastic restoring pull toward equilibrium, $-\frac{B_1}{m_1}\dot{p}_1(t)$ dissipates kinetic energy into heat in the wall damper, $+\frac{k}{m_1}p_2(t)$ transmits elastic force from the second cart, and $+\frac{1}{m_1}u(t)$ is the direct acceleration produced by the external control force.
 
-2. **Free-Body Diagram for Mass $m_2$:**
-   Mass $m_2$ is acted upon solely by the coupling spring force in the opposite direction:
-   Applying $\sum F = m_2 \ddot{p}_2$:
-   $$m_2 \ddot{p}_2(t) = -k(p_2(t) - p_1(t)) = k p_1(t) - k p_2(t)$$
-   $$\ddot{p}_2(t) = \frac{k}{m_2} p_1(t) - \frac{k}{m_2} p_2(t)$$
+For **mass $m_2$**, no external actuator or wall damper touches the cart; the only horizontal force is the coupling spring pulling in the opposite direction (Newton's third law) with force $-k\big(p_2(t) - p_1(t)\big)$:
 
-### State-Space Representation
+$$
+\begin{aligned}
+m_2 \ddot{p}_2(t) &= -k\big(p_2(t) - p_1(t)\big) = k p_1(t) - k p_2(t) \\
+\ddot{p}_2(t) &= \frac{k}{m_2} p_1(t) - \frac{k}{m_2} p_2(t)
+\end{aligned}
+$$
 
-Since the system contains two independent mechanical degrees of freedom (each governed by a second-order ODE), the state dimension is $n = 4$. We define the state variables as the physical positions and velocities of the two masses:
-$$\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \\ x_4(t) \end{bmatrix} = \begin{bmatrix} p_1(t) \\ \dot{p}_1(t) \\ p_2(t) \\ \dot{p}_2(t) \end{bmatrix}$$
+Because cart 2 has no direct damper attached to it, its acceleration $\ddot{p}_2(t)$ is proportional purely to the relative displacement $p_1(t) - p_2(t)$ across the coupling spring, scaled by its reciprocal inertia $1/m_2$.
 
-Evaluating the first-order time derivatives:
-$$\dot{x}_1(t) = \dot{p}_1(t) = x_2(t)$$
-$$\dot{x}_2(t) = \ddot{p}_1(t) = -\frac{k}{m_1} x_1(t) - \frac{B_1}{m_1} x_2(t) + \frac{k}{m_1} x_3(t) + \frac{1}{m_1} u(t)$$
-$$\dot{x}_3(t) = \dot{p}_2(t) = x_4(t)$$
-$$\dot{x}_4(t) = \ddot{p}_2(t) = \frac{k}{m_2} x_1(t) - \frac{k}{m_2} x_3(t)$$
+Notice that the physics is governed by two coupled second-order differential equations. Each cart stores both **potential energy** (via its displacement compressing or stretching the spring) and **kinetic energy** (via its translational velocity), giving $n = 4$ independent energy reservoirs in total. To reduce these two second-order equations to four first-order equations, we assign one state variable to each position and velocity:
 
-Arranging into the continuous-time matrix state equation $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B} u(t)$:
-$$\begin{bmatrix} \dot{x}_1 \\ \dot{x}_2 \\ \dot{x}_3 \\ \dot{x}_4 \end{bmatrix} = \begin{bmatrix}
+$$
+\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \\ x_4(t) \end{bmatrix} = \begin{bmatrix} p_1(t) \\ \dot{p}_1(t) \\ p_2(t) \\ \dot{p}_2(t) \end{bmatrix}
+$$
+
+Here $x_1$ and $x_3$ track the cart positions (in meters), while $x_2$ and $x_4$ track the cart velocities (in meters per second). Differentiating each component of $\mathbf{x}(t)$ with respect to time links the position derivatives directly to the velocity states ($\dot{x}_1 = \dot{p}_1 = x_2$ and $\dot{x}_3 = \dot{p}_2 = x_4$) and substitutes our two Newton acceleration equations for $\dot{x}_2 = \ddot{p}_1$ and $\dot{x}_4 = \ddot{p}_2$:
+
+$$
+\begin{aligned}
+\dot{x}_1(t) &= x_2(t) \\
+\dot{x}_2(t) &= -\frac{k}{m_1} x_1(t) - \frac{B_1}{m_1} x_2(t) + \frac{k}{m_1} x_3(t) + \frac{1}{m_1} u(t) \\
+\dot{x}_3(t) &= x_4(t) \\
+\dot{x}_4(t) &= \frac{k}{m_2} x_1(t) - \frac{k}{m_2} x_3(t)
+\end{aligned}
+$$
+
+Every time derivative on the left-hand side is now first-order, and every right-hand side is a purely linear combination of the four current state variables $x_1, x_2, x_3, x_4$ and the input $u(t)$. Collecting the coefficients of $x_1, x_2, x_3, x_4$ row by row into a $4 \times 4$ matrix $\mathbf{A}$ and the coefficients of $u(t)$ into a $4 \times 1$ column vector $\mathbf{B}$ casts the entire mechanical bench into the standard state equation $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B} u(t)$:
+
+$$
+\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \\ \dot{x}_3(t) \\ \dot{x}_4(t) \end{bmatrix} = \begin{bmatrix}
 0 & 1 & 0 & 0 \\
 -\frac{k}{m_1} & -\frac{B_1}{m_1} & \frac{k}{m_1} & 0 \\
 0 & 0 & 0 & 1 \\
 \frac{k}{m_2} & 0 & -\frac{k}{m_2} & 0
-\end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ x_3 \\ x_4 \end{bmatrix} + \begin{bmatrix} 0 \\ \frac{1}{m_1} \\ 0 \\ 0 \end{bmatrix} u(t)$$
+\end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \\ x_4(t) \end{bmatrix} + \begin{bmatrix} 0 \\ \frac{1}{m_1} \\ 0 \\ 0 \end{bmatrix} u(t)
+$$
 
-### Output Equation Variants
+In this matrix layout, the $1$ entries in rows 1 and 3 enforce the kinematic identity that velocity is the derivative of position, while rows 2 and 4 encode Newton's force balances on $m_1$ and $m_2$. Because the external force $u(t)$ pushes directly on mass $m_1$, the input column $\mathbf{B}$ is non-zero only in row 2 (the acceleration of cart 1).
 
-Depending on the specific measurement required in the exam problem:
-- **Case A: Output is Position of Mass $m_2$ ($y(t) = p_2(t)$):**
-  $$y(t) = x_3(t) \implies \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix}, \quad D = 0$$
-- **Case B: Output is Velocity of Mass $m_2$ ($y(t) = \dot{p}_2(t)$):**
-  $$y(t) = x_4(t) \implies \mathbf{C} = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix}, \quad D = 0$$
-- **Case C: Output is Relative Elongation of the Coupling Spring ($y(t) = p_2(t) - p_1(t)$):**
-  $$y(t) = -x_1(t) + x_3(t) \implies \mathbf{C} = \begin{bmatrix} -1 & 0 & 1 & 0 \end{bmatrix}, \quad D = 0$$
+Now let us substitute concrete bench values: $m_1 = 1\text{ kg}$, $m_2 = 2\text{ kg}$, $k = 4\text{ N/m}$, and $B_1 = 3\text{ N}\cdot\text{s/m}$. Evaluating each physical ratio explicitly gives $\frac{k}{m_1} = \frac{4}{1} = 4\text{ s}^{-2}$, $\frac{B_1}{m_1} = \frac{3}{1} = 3\text{ s}^{-1}$, $\frac{1}{m_1} = 1\text{ kg}^{-1}$, and $\frac{k}{m_2} = \frac{4}{2} = 2\text{ s}^{-2}$, yielding the numerical state equation:
 
-In all cases, because physical accelerations cannot produce instantaneous jump discontinuities in position or velocity, the direct transmission term is strictly zero: $D = 0$.
+$$
+\dot{\mathbf{x}}(t) = \begin{bmatrix}
+0 & 1 & 0 & 0 \\
+-4 & -3 & 4 & 0 \\
+0 & 0 & 0 & 1 \\
+2 & 0 & -2 & 0
+\end{bmatrix} \mathbf{x}(t) + \begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix} u(t)
+$$
 
-<Divider />
+Notice how the coupling between the two carts appears as the off-diagonal entries $A_{23} = +4$ (cart 2 pulling cart 1) and $A_{41} = +2$ (cart 1 pulling cart 2), weighted inversely by their respective masses.
 
+While $\mathbf{A}$ and $\mathbf{B}$ capture the internal mechanics of the carts, the **output equation** $y(t) = \mathbf{C}\mathbf{x}(t) + D u(t)$ depends entirely on which physical sensor we bolt onto the rail. If an optical encoder measures **cart 2 position** ($y(t) = p_2(t) = x_3(t)$), we pick out the third state with $\mathbf{C} = \begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix}$. If a tachometer measures **cart 2 velocity** ($y(t) = \dot{p}_2(t) = x_4(t)$), we use $\mathbf{C} = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix}$. If a strain gauge measures **spring elongation** ($y(t) = p_2(t) - p_1(t) = -x_1(t) + x_3(t)$), the output row becomes $\mathbf{C} = \begin{bmatrix} -1 & 0 & 1 & 0 \end{bmatrix}$. In all three sensor configurations, an applied force produces finite acceleration that must be integrated over time before velocity or position can change, so $u(t)$ cannot jump instantaneously to $y(t)$ and the feedthrough scalar is $D = 0$.
 
-<Divider label="Interactive Practice & Exam Drills" />
+<StepCheck
+  client:load
+  prompt="In the numerical two-cart model above ($m_1 = 1\;\mathrm{kg}$, $m_2 = 2\;\mathrm{kg}$, $k = 4\;\mathrm{N/m}$, $B_1 = 3\;\mathrm{N\cdot s/m}$), what is the value of matrix entry $A_{43}$ (coupling $x_3 = p_2$ into $\dot{x}_4 = \ddot{p}_2$)?"
+  expected={-2}
+  tolerance={0.05}
+  unit="$\mathrm{s}^{-2}$"
+  explanation="From $\ddot{p}_2 = \frac{k}{m_2} p_1 - \frac{k}{m_2} p_2$, the coefficient of $x_3 = p_2$ is $-k/m_2 = -4/2 = -2$."
+/>
 
-## Chapter Exercises
+<Divider label="2 · Theory" />
 
-<Exercise client:load id="ex-1-1" title="Exercise 1.1: Decoupled First-Order Equations" level="LEVEL 1: WARM-UP DRILL">
+### Dynamical State Definition
+
+A single high-order differential equation linking one input $u(t)$ to one output $y(t)$ treats the system as a sealed black box: it hides internal forces between components, requires clumsy reconfiguration whenever we add a second actuator or sensor, and buries initial stored energy inside high-order output derivatives at $t = 0^-$. To analyze any dynamical system with a single universal toolkit, we need a minimal internal summary that captures all stored energy, matter, or information at a given instant.
+
+Formally, the **state** $\mathbf{x}(t_0)$ of a dynamical system at initial time $t_0$ is the minimal vector of internal variables $\{x_1(t_0), x_2(t_0), \dots, x_n(t_0)\}$ such that knowing $\mathbf{x}(t_0)$ together with the future input trajectory $\mathbf{u}(t)$ for all $t \ge t_0$ uniquely determines the state trajectory $\mathbf{x}(t)$ and sensor output $\mathbf{y}(t)$ for all $t \ge t_0$. In physical terms, the state vector summarizes the entire past history $t < t_0$ of the hardware; once $\mathbf{x}(t_0)$ is specified, how the system reached that state no longer affects its future motion.
+
+For continuous-time, linear, time-invariant (LTI) systems, the differential laws governing those $n$ state variables and the algebraic readout of the $p$ sensors take the standard state-space form:
+
+$$
+\begin{aligned}
+\dot{\mathbf{x}}(t) &= \mathbf{A} \mathbf{x}(t) + \mathbf{B} \mathbf{u}(t) \\
+\mathbf{y}(t) &= \mathbf{C} \mathbf{x}(t) + \mathbf{D} \mathbf{u}(t)
+\end{aligned}
+$$
+
+The first line is the **state differential equation**, which tells us the instantaneous velocity $\dot{\mathbf{x}}(t)$ of the state vector as the sum of internal restoring/damping forces ($\mathbf{A}\mathbf{x}(t)$) and external actuator forces ($\mathbf{B}\mathbf{u}(t)$). The second line is the **output equation**, an algebraic (memoryless) projection that combines the current internal state ($\mathbf{C}\mathbf{x}(t)$) with any direct input feedthrough ($\mathbf{D}\mathbf{u}(t)$) to form the measured output $\mathbf{y}(t)$.
+
+Specifically, the **state vector** $\mathbf{x}(t) \in \mathbb{R}^n$ fixes the system **order** $n$, while $\mathbf{u}(t) \in \mathbb{R}^m$ stacks the $m$ control inputs and $\mathbf{y}(t) \in \mathbb{R}^p$ stacks the $p$ sensor outputs. The **dynamic matrix** $\mathbf{A} \in \mathbb{R}^{n \times n}$ governs autonomous internal coupling between states, and the **input matrix** $\mathbf{B} \in \mathbb{R}^{n \times m}$ distributes actuator effort into each state derivative. On the sensor side, the **output matrix** $\mathbf{C} \in \mathbb{R}^{p \times n}$ weights internal states into measured channels, while the **feedthrough matrix** $\mathbf{D} \in \mathbb{R}^{p \times m}$ represents any instantaneous algebraic path from input to output (which is $\mathbf{D} = \mathbf{0}$ in physical plants with mass, inertia, or inductance).
+
+### Integrator Block Topology
+
+Why are the outputs of integrators the natural state variables of any continuous-time circuit or mechanical simulation? Because an integrator $\int_{t_0}^t (\cdot)\,d\tau$ accumulates its input over time, it is the fundamental continuous-time memory element: you cannot predict an integrator's output without knowing its initial stored value $x_i(t_0)$. Rewriting an $n$-th order differential system in first-order state-space form isolates all time memory inside a bank of $n$ parallel scalar integrators.
+
+<figure id="fig-state-space-architecture" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-state-space-architecture.svg" alt="Continuous-time LTI state-space architectural topology illustrating the integrator core $\int dt$, dynamic feedback matrix $\mathbf{A}$, input distribution matrix $\mathbf{B}$, sensor matrix $\mathbf{C}$, and direct algebraic feedthrough $\mathbf{D}$." />
+  <figcaption>Continuous-time LTI state-space architectural topology illustrating the integrator core $\int dt$, dynamic feedback matrix $\mathbf{A}$, input distribution matrix $\mathbf{B}$, sensor matrix $\mathbf{C}$, and direct algebraic feedthrough $\mathbf{D}$.</figcaption>
+</figure>
+
+As shown in [the figure](#fig-state-space-architecture), the signal entering the integrator bank is the derivative vector $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$, and the signal emerging from the integrator bank is the state vector $\mathbf{x}(t)$ itself. The four surrounding matrix blocks ($\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$) contain zero memory—they act as pure instantaneous gain networks that route signals around the integrator core.
+
+### Phase-Variable Companion Form
+
+In many control problems, a plant is specified not by a multi-body drawing, but by a single $n$-th order scalar input-output differential equation. To apply state-space tools (such as resolvent inversion or pole placement) to that scalar ODE, we need a systematic algorithm that converts any $n$-th order equation into an $n$-dimensional state realization $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ by inspection.
+
+Consider a normalized single-input single-output (SISO) $n$-th order differential equation with no input derivatives on the right-hand side, where we have already divided through by the leading coefficient so that $y^{(n)}(t)$ has coefficient $1$:
+
+$$y^{(n)}(t) + a_{n-1} y^{(n-1)}(t) + \dots + a_1 \dot{y}(t) + a_0 y(t) = b_0 u(t)$$
+
+Here $y^{(k)}(t) = \frac{d^k y(t)}{dt^k}$ denotes the $k$-th time derivative of the output, and $a_0, a_1, \dots, a_{n-1}, b_0$ are constant real coefficients. We construct the **phase-variable state vector** by chaining the output $y(t)$ and its first $n - 1$ time derivatives in ascending order:
+
+$$
+\begin{aligned}
+x_1(t) &= y(t) \\
+x_2(t) &= \dot{y}(t) = \dot{x}_1(t) \\
+x_3(t) &= \ddot{y}(t) = \dot{x}_2(t) \\
+&\;\;\vdots \\
+x_n(t) &= y^{(n-1)}(t) = \dot{x}_{n-1}(t)
+\end{aligned}
+$$
+
+By this chained definition, the derivative of each state $x_k(t)$ for $k = 1, 2, \dots, n - 1$ is simply the very next state variable $x_{k+1}(t)$. Only the last state $x_n(t) = y^{(n-1)}(t)$ differentiates into $y^{(n)}(t)$, which we express in terms of $x_1, \dots, x_n$ and $u(t)$ by moving all lower-derivative terms in the original ODE to the right-hand side:
+
+$$\dot{x}_n(t) = y^{(n)}(t) = -a_0 x_1(t) - a_1 x_2(t) - \dots - a_{n-1} x_n(t) + b_0 u(t)$$
+
+Notice that the coefficients $-a_0, -a_1, \dots, -a_{n-1}$ appear negated and ordered from lowest derivative ($x_1 = y$) to highest state derivative ($x_n = y^{(n-1)}$). Stacking the $n - 1$ kinematic chain equations above this final dynamic row produces the **Frobenius Companion Form**:
+
+$$
+\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \\ \vdots \\ \dot{x}_{n-1}(t) \\ \dot{x}_n(t) \end{bmatrix} = \begin{bmatrix}
+0 & 1 & 0 & \dots & 0 \\
+0 & 0 & 1 & \dots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & \dots & 1 \\
+-a_0 & -a_1 & -a_2 & \dots & -a_{n-1}
+\end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ \vdots \\ x_{n-1}(t) \\ x_n(t) \end{bmatrix} + \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \\ b_0 \end{bmatrix} u(t)
+$$
+
+Because our first phase variable was chosen as $x_1(t) = y(t)$, the companion output equation simply reads out the first component of $\mathbf{x}(t)$ with zero feedthrough:
+
+$$y(t) = \begin{bmatrix} 1 & 0 & 0 & \dots & 0 \end{bmatrix} \mathbf{x}(t)$$
+
+Geometrically, the first $n - 1$ rows of the companion matrix $\mathbf{A}$ form a pure shift-register chain of integrators (with $1$s along the superdiagonal and zeros everywhere else), while the bottom row closes the feedback loop from all $n$ states back into the highest derivative $\dot{x}_n(t)$.
+
+<Callout type="bridge" title="Robotics Bridge: Multirotor Pitch Dynamics">
+
+In aerial robotics autopilots (such as PX4), quadcopter pitch dynamics around hover equilibrium follow:
+
+$$J_{yy} \ddot{\theta}(t) + d_r \dot{\theta}(t) = l \Delta T(t)$$
+
+where $J_{yy}$ is pitch moment of inertia, $d_r$ is rotational damping, $l$ is the rotor arm length, and $u(t) = \Delta T(t)$ is differential thrust. Assigning $x_1 = \theta$ (pitch angle) and $x_2 = \dot{\theta} = q$ (pitch rate) yields:
+
+$$\begin{bmatrix} \dot{x}_1 \\ \dot{x}_2 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ 0 & -\frac{d_r}{J_{yy}} \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} + \begin{bmatrix} 0 \\ \frac{l}{J_{yy}} \end{bmatrix} u(t)$$
+
+This two-state model underlies inner angular-rate controllers and Extended Kalman Filters (EKF) in ROS 2 flight stacks.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="For the third-order differential equation $\dddot{y} + 4\ddot{y} + 9\dot{y} + 2y = 5u$ in phase-variable companion form ($x_1 = y, x_2 = \dot{y}, x_3 = \ddot{y}$), what is the bottom row of $\mathbf{A}$?"
+  options={[
+    "$[-4\\quad -9\\quad -2]$",
+    "$[-2\\quad -9\\quad -4]$",
+    "$[2\\quad 9\\quad 4]$"
+  ]}
+  correctIndex={1}
+  explanation="Solving for $\dot{x}_3 = \dddot{y}$ gives $-2x_1 - 9x_2 - 4x_3 + 5u$, placing negated coefficients $[-a_0, -a_1, -a_2] = [-2, -9, -4]$ in ascending derivative order."
+/>
+
+### Coordinate Non-Uniqueness
+
+While the external input-output behavior ($u(t) \to y(t)$) of a physical machine is fixed by nature, its internal state vector $\mathbf{x}(t)$ is **not unique**. In our two-cart example, we chose absolute displacements $p_1$ and $p_2$ as state variables, but another engineer might choose cart 1 position $p_1$ and spring stretch $\Delta p = p_2 - p_1$, or measure positions in millimeters instead of meters. Both choices describe the exact same physical carts, yet they produce different numbers inside $(\mathbf{A}, \mathbf{B}, \mathbf{C})$.
+
+To formalize how any two valid state representations of the same system are related, let $\mathbf{T} \in \mathbb{R}^{n \times n}$ be a constant invertible matrix ($\det(\mathbf{T}) \neq 0$) that maps a new coordinate vector $\mathbf{z}(t) \in \mathbb{R}^n$ onto the original state vector $\mathbf{x}(t)$:
+
+$$\mathbf{x}(t) = \mathbf{T} \mathbf{z}(t) \iff \mathbf{z}(t) = \mathbf{T}^{-1} \mathbf{x}(t)$$
+
+Here the columns of $\mathbf{T}$ act as the new basis vectors expressed in the original coordinates. Because $\mathbf{T}$ is constant in time, differentiating $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ yields $\dot{\mathbf{x}}(t) = \mathbf{T}\dot{\mathbf{z}}(t)$. Substituting $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ and $\dot{\mathbf{x}}(t) = \mathbf{T}\dot{\mathbf{z}}(t)$ into the original state-space equations gives:
+
+$$\mathbf{T}\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{T}\mathbf{z}(t) + \mathbf{B}\mathbf{u}(t), \qquad \mathbf{y}(t) = \mathbf{C}\mathbf{T}\mathbf{z}(t) + \mathbf{D}\mathbf{u}(t)$$
+
+Premultiplying the differential equation on the left by $\mathbf{T}^{-1}$ cancels $\mathbf{T}^{-1}\mathbf{T} = \mathbf{I}$ on the left-hand side and isolates $\dot{\mathbf{z}}(t)$:
+
+$$\dot{\mathbf{z}}(t) = \underbrace{\left(\mathbf{T}^{-1} \mathbf{A} \mathbf{T}\right)}_{\tilde{\mathbf{A}}} \mathbf{z}(t) + \underbrace{\left(\mathbf{T}^{-1} \mathbf{B}\right)}_{\tilde{\mathbf{B}}} \mathbf{u}(t), \qquad \mathbf{y}(t) = \underbrace{\left(\mathbf{C} \mathbf{T}\right)}_{\tilde{\mathbf{C}}} \mathbf{z}(t) + \underbrace{\mathbf{D}}_{\tilde{\mathbf{D}}} \mathbf{u}(t)$$
+
+The transformed quadruple $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}}, \tilde{\mathbf{D}}) = (\mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \mathbf{T}^{-1}\mathbf{B}, \mathbf{C}\mathbf{T}, \mathbf{D})$ is completely equivalent to $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$: $\tilde{\mathbf{B}}$ expresses how inputs enter the new $\mathbf{z}$ coordinates, $\tilde{\mathbf{A}}$ evolves $\mathbf{z}(t)$ internally, and $\tilde{\mathbf{C}}$ translates $\mathbf{z}(t)$ back into the physical sensor output $\mathbf{y}(t)$. In [Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/), we will prove that this transformation leaves both the system eigenvalues and the input-output transfer function strictly invariant.
+
+<Divider label="3 · Summary" />
+
+| Matrix / Vector | Dimension | Physical & Structural Role |
+| :--- | :--- | :--- |
+| **State Vector $\mathbf{x}(t)$** | $n \times 1$ | Integrator outputs capturing stored energy (positions, velocities, currents, voltages) |
+| **Dynamic Matrix $\mathbf{A}$** | $n \times n$ | Internal coupling among state variables; off-diagonal zeros indicate decoupled modes |
+| **Input Matrix $\mathbf{B}$** | $n \times m$ | Maps actuator inputs $\mathbf{u}(t)$ into state derivatives $\dot{\mathbf{x}}(t)$ |
+| **Output Matrix $\mathbf{C}$** | $p \times n$ | Projects internal states onto measured sensor channels $\mathbf{y}(t)$ |
+| **Feedthrough Matrix $\mathbf{D}$** | $p \times m$ | Direct instantaneous algebraic path from $\mathbf{u}$ to $\mathbf{y}$ ($0$ in inertial plants) |
+
+### Modeling Procedure
+
+1. **Count Energy Reservoirs:** Identify each independent energy-storing degree of freedom to fix the system order $n$ (e.g., two translating masses give $n = 4$ states).
+2. **Write Physical Laws:** Apply Newton's second law or Kirchhoff's laws to obtain coupled differential equations free of higher derivatives on the right-hand side.
+3. **Assign State Variables:** Pick physical states (positions/velocities) or phase variables ($x_1 = y, x_2 = \dot{y}, \dots, x_n = y^{(n-1)}$) and express every $\dot{x}_i$ as a linear combination of $\mathbf{x}$ and $\mathbf{u}$.
+4. **Extract Matrices:** Read off $\mathbf{A}$ and $\mathbf{B}$ row by row from $\dot{\mathbf{x}}$, then read $\mathbf{C}$ and $\mathbf{D}$ from the sensor output expression $\mathbf{y}$.
+
+### Key Proofs
+
+- **Companion Matrix Construction:** Differentiating $x_k = y^{(k-1)}$ yields $\dot{x}_k = x_{k+1}$ for $k < n$, while the $n$-th row isolates $y^{(n)}$ with negated coefficients $[-a_0, -a_1, \dots, -a_{n-1}]$.
+- **Coordinate Equivalence:** Substituting $\mathbf{x} = \mathbf{T}\mathbf{z}$ with $\det(\mathbf{T}) \neq 0$ leaves the input-output trajectory $\mathbf{y}(t)$ unchanged under $(\mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \mathbf{T}^{-1}\mathbf{B}, \mathbf{C}\mathbf{T}, \mathbf{D})$.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Reversed Companion Order:** Putting $[-a_{n-1}, \dots, -a_0]$ instead of $[-a_0, -a_1, \dots, -a_{n-1}]$ in the bottom row of $\mathbf{A}$ flips the characteristic polynomial. Always match each column to $[x_1, x_2, \dots, x_n]$.
+2. **Spring Force Sign Errors:** When cart 2 moves farther than cart 1 ($p_2 > p_1$), the coupling spring pulls cart 1 forward ($+k(p_2 - p_1)$) and cart 2 backward ($-k(p_2 - p_1)$).
+3. **Forgetting to Normalize Highest Derivative:** Before reading companion coefficients from $c_n y^{(n)} + \dots + c_0 y = d_0 u$, divide through by $c_n$ so the coefficient of $y^{(n)}$ is $1$.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-1-1" title="Exercise 1.1 — Decoupled First-Order Equations" level="Warm-Up">
 
 Consider a system with two independent state variables and a single input $u(t)$:
+
 $$\dot{x}_1(t) = -3 x_1(t) + 2 u(t)$$
+
 $$\dot{x}_2(t) = -7 x_2(t) - u(t)$$
+
 with observed output:
+
 $$y(t) = x_1(t) + 4 x_2(t)$$
 
 1. Formulate the state vector $\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix}$ and write the state and output equations in standard matrix form.
 2. Identify the matrices $\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$ and their respective matrix dimensions.
 3. Why are all off-diagonal entries in $\mathbf{A}$ equal to zero? What does this mean physically for the coupling between $x_1$ and $x_2$?
 
+<StepCheck
+  client:load
+  prompt="What is the $(2,1)$ entry of the input matrix $\mathbf{B}$?"
+  expected={-1}
+  tolerance={0.05}
+  unit=""
+  explanation="The second state equation is $\dot{x}_2 = -7x_2 + (-1)u$, so $\mathbf{B} = [2, -1]^T$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. In vector-matrix form, stacking the state variables $\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix}$:
+1. Stacking the two state variables into $\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix}$, we match the coefficients of $x_1(t)$ and $x_2(t)$ in each derivative equation. In the first equation, $\dot{x}_1(t) = (-3)x_1(t) + (0)x_2(t) + (2)u(t)$; in the second equation, $\dot{x}_2(t) = (0)x_1(t) + (-7)x_2(t) + (-1)u(t)$. Writing this system in matrix form gives:
    $$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \end{bmatrix} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + \begin{bmatrix} 2 \\ -1 \end{bmatrix} u(t)$$
-   The output equation is:
+   Similarly, writing the output $y(t) = (1)x_1(t) + (4)x_2(t) + (0)u(t)$ as a row-by-column inner product gives:
    $$y(t) = \begin{bmatrix} 1 & 4 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + [0] u(t)$$
-2. Reading off the matrix definitions:
-   * $\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \in \mathbb{R}^{2 \times 2}$
-   * $\mathbf{B} = \begin{bmatrix} 2 \\ -1 \end{bmatrix} \in \mathbb{R}^{2 \times 1}$
-   * $\mathbf{C} = \begin{bmatrix} 1 & 4 \end{bmatrix} \in \mathbb{R}^{1 \times 2}$
-   * $\mathbf{D} = 0 \in \mathbb{R}^{1 \times 1}$
-3. All off-diagonal elements in $\mathbf{A}$ are zero ($a_{12} = a_{21} = 0$). Physically, this indicates that the two states are completely uncoupled: the rate of change $\dot{x}_1$ depends only on $x_1$ and $u$, with zero influence from $x_2$, and vice versa. Each state behaves as an isolated first-order dynamic subsystem.
+2. With $n = 2$ states, $m = 1$ input, and $p = 1$ output, the four state-space matrices and their dimensions are:
+   - $\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \in \mathbb{R}^{2 \times 2}$
+   - $\mathbf{B} = \begin{bmatrix} 2 \\ -1 \end{bmatrix} \in \mathbb{R}^{2 \times 1}$
+   - $\mathbf{C} = \begin{bmatrix} 1 & 4 \end{bmatrix} \in \mathbb{R}^{1 \times 2}$
+   - $\mathbf{D} = [0] \in \mathbb{R}^{1 \times 1}$
+3. All off-diagonal elements in $\mathbf{A}$ vanish ($A_{12} = A_{21} = 0$). Physically, this means the two energy reservoirs are completely decoupled: the rate of change $\dot{x}_1(t)$ depends only on $x_1(t)$ and the external input $u(t)$ with zero feedback from $x_2(t)$, while $\dot{x}_2(t)$ evolves independently of $x_1(t)$. The two states only interact at the very end when the sensor combines them into $y(t) = x_1(t) + 4x_2(t)$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-1-2" title="Exercise 1.2: Coupled Modes & Algebraic Feedthrough" level="LEVEL 1: WARM-UP DRILL">
+<Exercise client:load id="ex-1-2" title="Exercise 1.2 — Coupled Modes and Feedthrough" level="Warm-Up">
 
 Consider the coupled dynamic system:
+
 $$\dot{x}_1(t) = -2 x_1(t) + 4 x_2(t) + u(t)$$
+
 $$\dot{x}_2(t) = -x_1(t) - 5 x_2(t) + 3 u(t)$$
+
 with observed output:
+
 $$y(t) = 2 x_1(t) - x_2(t) + 0.5 u(t)$$
 
 1. Identify the system matrices $\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$.
 2. State the physical meaning of a non-zero feedthrough term $D = 0.5$.
 3. Describe the block diagram topology: identify the integrator outputs, the feedback branches from each state, and the direct feedforward path from input to output.
 
+<StepCheck
+  client:load
+  prompt="What is the direct feedthrough scalar $D$ in this system?"
+  expected={0.5}
+  tolerance={0.01}
+  unit=""
+  explanation="The output equation has an explicit $+0.5u(t)$ term, so $\mathbf{D} = [0.5]$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. The system matrices are extracted directly from the coefficients:
-   $$\mathbf{A} = \begin{bmatrix} -2 & 4 \\ -1 & -5 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 3 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & -1 \end{bmatrix}, \quad \mathbf{D} = [0.5]$$
-2. A non-zero direct feedthrough $D = 0.5$ represents an instantaneous, algebraic transmission of control energy to the output terminal without passing through an integrator. While ideal physical mechanical and electrical systems with mass or inductance have $D = 0$, approximations or sensor-level proportional bypasses introduce non-zero $D$.
-3. Block diagram structural description:
-   * Two integrator blocks whose outputs are $x_1(t)$ and $x_2(t)$ and whose inputs are $\dot{x}_1(t)$ and $\dot{x}_2(t)$.
-   * Input $u(t)$ injects into $\dot{x}_1$ via gain $1$ and into $\dot{x}_2$ via gain $3$, while simultaneously feeding through directly to the output summer via gain $0.5$.
-   * State feedback loops: $x_1$ feeds back to $\dot{x}_1$ with gain $-2$ and to $\dot{x}_2$ with gain $-1$. $x_2$ feeds back to $\dot{x}_2$ with gain $-5$ and couples into $\dot{x}_1$ with gain $+4$.
-   * Output summing node combines $2x_1$, $-x_2$, and $0.5u$.
+1. Reading the coefficients of $x_1(t), x_2(t), u(t)$ directly from the two first-order state equations and the output equation:
+   $$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \end{bmatrix} = \underbrace{\begin{bmatrix} -2 & 4 \\ -1 & -5 \end{bmatrix}}_{\mathbf{A}} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + \underbrace{\begin{bmatrix} 1 \\ 3 \end{bmatrix}}_{\mathbf{B}} u(t)$$
+   $$y(t) = \underbrace{\begin{bmatrix} 2 & -1 \end{bmatrix}}_{\mathbf{C}} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + \underbrace{[0.5]}_{\mathbf{D}} u(t)$$
+2. A non-zero direct feedthrough scalar $D = 0.5$ means that half of the input signal $u(t)$ bypasses the integrators completely and appears instantaneously at the output $y(t)$ with zero time lag. If $u(t)$ jumps by $\Delta u$ at $t = 0$, the output $y(t)$ immediately jumps by $0.5\Delta u$ at $t = 0^+$ before the state variables $x_1(t)$ and $x_2(t)$ have had time to change.
+3. In the integrator block diagram topology:
+   - Two parallel integrator blocks $\int dt$ take inputs $\dot{x}_1(t)$ and $\dot{x}_2(t)$ and produce the state outputs $x_1(t)$ and $x_2(t)$.
+   - The input $u(t)$ branches into three paths: through gain $B_1 = 1$ into the $\dot{x}_1$ summing junction, through gain $B_2 = 3$ into the $\dot{x}_2$ summing junction, and through the direct feedthrough gain $D = 0.5$ straight to the output summing junction.
+   - Internal state feedback and cross-coupling: $x_1(t)$ feeds back to $\dot{x}_1$ with self-damping gain $A_{11} = -2$ and couples into $\dot{x}_2$ with gain $A_{21} = -1$; meanwhile $x_2(t)$ feeds back to $\dot{x}_2$ with self-damping gain $A_{22} = -5$ and couples into $\dot{x}_1$ with gain $A_{12} = +4$.
+   - The output summer adds $C_1 x_1(t) = 2x_1(t)$, $C_2 x_2(t) = -x_2(t)$, and $D u(t) = 0.5u(t)$ to form $y(t)$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-1-3" title="Exercise 1.3: Second-Order ODE to Phase-Variable Companion Form" level="LEVEL 1: INTERMEDIATE STEP">
+<Exercise client:load id="ex-1-3" title="Exercise 1.3 — Second-Order Companion Form" level="Intermediate">
 
 A physical system governed by Newton's law with viscous friction is described by:
+
 $$\ddot{y}(t) + 5\dot{y}(t) + 6 y(t) = 2 u(t)$$
 
 1. Choose phase canonical state variables $x_1(t) = y(t)$ and $x_2(t) = \dot{y}(t)$.
@@ -262,27 +366,37 @@ $$\ddot{y}(t) + 5\dot{y}(t) + 6 y(t) = 2 u(t)$$
 3. Express $\dot{x}_2(t)$ in terms of $x_1(t)$, $x_2(t)$, and $u(t)$.
 4. Construct the standard companion matrices $\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$. Notice how the coefficients of the ODE appear directly in the bottom row of $\mathbf{A}$.
 
+<StepCheck
+  client:load
+  prompt="In the companion matrix $\mathbf{A}$, what is entry $A_{21}$ (multiplying $x_1 = y$)?"
+  expected={-6}
+  tolerance={0.05}
+  unit=""
+  explanation="Isolating $\ddot{y} = -6y - 5\dot{y} + 2u$ gives $\dot{x}_2 = -6x_1 - 5x_2 + 2u$, so $A_{21} = -6$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Choosing phase canonical state variables:
-   $$x_1(t) = y(t), \quad x_2(t) = \dot{y}(t)$$
-2. The derivative of the first state is:
-   $$\dot{x}_1(t) = \dot{y}(t) = x_2(t)$$
-3. Differentiating $x_2(t)$ and solving the ODE for the highest derivative:
+1. The differential equation is already normalized so that the highest derivative $\ddot{y}(t)$ has leading coefficient $1$, with $a_1 = 5$, $a_0 = 6$, and $b_0 = 2$. We assign the phase variables in ascending derivative order:
+   $$x_1(t) = y(t), \qquad x_2(t) = \dot{y}(t)$$
+2. Differentiating $x_1(t)$ once links it directly to $x_2(t)$:
+   $$\dot{x}_1(t) = \dot{y}(t) = (0)x_1(t) + (1)x_2(t) + (0)u(t)$$
+3. Differentiating $x_2(t)$ gives $\dot{x}_2(t) = \ddot{y}(t)$. Solving the scalar ODE for $\ddot{y}(t)$ and substituting $y(t) = x_1(t)$ and $\dot{y}(t) = x_2(t)$ yields:
    $$\dot{x}_2(t) = \ddot{y}(t) = -6 y(t) - 5\dot{y}(t) + 2u(t) = -6 x_1(t) - 5 x_2(t) + 2u(t)$$
-4. Writing in matrix form:
+4. Packing the two scalar equations and the output read-out $y(t) = x_1(t)$ into matrix form produces the second-order Frobenius companion realization:
    $$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + \begin{bmatrix} 0 \\ 2 \end{bmatrix} u(t)$$
    $$y(t) = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \end{bmatrix} + [0] u(t)$$
-   The bottom row of $\mathbf{A}$ contains the negated ODE coefficients $[-a_0, -a_1] = [-6, -5]$ in ascending derivative order.
+   Thus $\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}$, $\mathbf{B} = \begin{bmatrix} 0 \\ 2 \end{bmatrix}$, $\mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}$, and $D = 0$, with the bottom row of $\mathbf{A}$ holding $[-a_0, -a_1] = [-6, -5]$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-1-4" title="Exercise 1.4: Third-Order Companion Form Realization" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-1-4" title="Exercise 1.4 — Third-Order Companion Form" level="Exam Standard">
 
 A continuous-time dynamic process is described by the third-order scalar differential equation:
+
 $$\dddot{y}(t) + 6\ddot{y}(t) + 11\dot{y}(t) + 6 y(t) = 4 u(t)$$
 
 1. Select phase variables $x_1(t) = y(t)$, $x_2(t) = \dot{y}(t)$, and $x_3(t) = \ddot{y}(t)$ to transform the scalar ODE into a set of first-order differential equations.
@@ -294,27 +408,31 @@ $$\dddot{y}(t) + 6\ddot{y}(t) + 11\dot{y}(t) + 6 y(t) = 4 u(t)$$
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Choosing phase canonical state variables:
-   $$x_1(t) = y(t), \quad x_2(t) = \dot{y}(t), \quad x_3(t) = \ddot{y}(t)$$
-   Their time derivatives are:
-   $$\dot{x}_1(t) = x_2(t), \quad \dot{x}_2(t) = x_3(t)$$
+1. The third-order ODE is normalized (coefficient of $\dddot{y}(t)$ is $1$) with parameters $a_0 = 6$, $a_1 = 11$, $a_2 = 6$, and $b_0 = 4$. Defining the three phase variables:
+   $$x_1(t) = y(t), \qquad x_2(t) = \dot{y}(t), \qquad x_3(t) = \ddot{y}(t)$$
+   Differentiating $x_1(t)$ and $x_2(t)$ gives the two kinematic shift equations:
+   $$\dot{x}_1(t) = x_2(t), \qquad \dot{x}_2(t) = x_3(t)$$
+   Differentiating $x_3(t)$ gives $\dot{x}_3(t) = \dddot{y}(t)$, which we isolate from the third-order ODE and rewrite in terms of $x_1, x_2, x_3$:
    $$\dot{x}_3(t) = \dddot{y}(t) = -6 y(t) - 11\dot{y}(t) - 6\ddot{y}(t) + 4u(t) = -6 x_1(t) - 11 x_2(t) - 6 x_3(t) + 4 u(t)$$
-2. Expressing in Frobenius companion canonical form:
+2. Stacking the three state equations and the output identity $y(t) = x_1(t)$ into matrix form yields:
    $$\begin{bmatrix} \dot{x}_1(t) \\ \dot{x}_2(t) \\ \dot{x}_3(t) \end{bmatrix} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \end{bmatrix} + \begin{bmatrix} 0 \\ 0 \\ 4 \end{bmatrix} u(t)$$
    $$y(t) = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix} \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \end{bmatrix} + [0] u(t)$$
-3. The extracted state matrices are:
+3. The extracted companion matrices are:
    $$\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 4 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}, \quad D = 0$$
-4. The system order is $n = 3$, equal to the order of the highest derivative in the ODE. The direct feedthrough scalar is $D = 0$ because $y(t) = x_1(t)$ depends purely on the integrator state, meaning the physical system has strictly proper dynamics (non-zero inertial delay) with zero instantaneous feedthrough.
+4. The state dimension is $n = 3$, matching the order of the highest time derivative $\dddot{y}(t)$. The feedthrough scalar is $D = 0$ because the external input $u(t)$ enters only into the third derivative $\dot{x}_3 = \dddot{y}$ and must pass through three cascaded integrations before reaching $y(t) = x_1(t)$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-1-5" title="Exercise 1.5: Direct Linear Coordinate Rescaling" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-1-5" title="Exercise 1.5 — Linear Coordinate Rescaling" level="Exam Standard">
 
 Consider the system from Exercise 1.1:
+
 $$\mathbf{A} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 2 \\ -1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 4 \end{bmatrix}, \quad D = 0$$
+
 Suppose we rescale the state variables by changing units (e.g. from meters to millimeters for $x_1$, and radians to degrees for $x_2$) via the transformation $\mathbf{x} = \mathbf{T}\mathbf{z}$ where:
+
 $$\mathbf{T} = \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix}$$
 
 1. Invert $\mathbf{T}$ by inspection.
@@ -324,19 +442,20 @@ $$\mathbf{T} = \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix}$$
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. For any diagonal matrix, the inverse is obtained by inverting each diagonal entry:
+1. Because $\mathbf{T}$ is diagonal with non-zero diagonal entries $10$ and $2$ ($\det(\mathbf{T}) = 20 \neq 0$), its inverse is obtained by taking the reciprocal of each diagonal entry:
    $$\mathbf{T}^{-1} = \begin{bmatrix} 1/10 & 0 \\ 0 & 1/2 \end{bmatrix} = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix}$$
-2. Computing the transformed state matrices:
-   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix} \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} = \mathbf{A}$$
-   $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix} \begin{bmatrix} 2 \\ -1 \end{bmatrix} = \begin{bmatrix} 0.2 \\ -0.5 \end{bmatrix}$$
-   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 4 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} 10 & 8 \end{bmatrix}$$
-3. Because diagonal matrices commute under multiplication ($\mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \mathbf{T}^{-1}\mathbf{T}\mathbf{A} = \mathbf{A}$), diagonal coordinate rescaling preserves diagonal system matrices unchanged. However, rescaling state variables re-weights how input control effort is distributed into the state ($\tilde{\mathbf{B}}$) and how states are observed at the sensors ($\tilde{\mathbf{C}}$), leaving the input-output transmission product invariant ($\tilde{c}_1 \tilde{b}_1 = 10 \cdot 0.2 = 2 = c_1 b_1$).
+2. Applying the similarity transformation formulas $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$ step by step:
+   $$\mathbf{A}\mathbf{T} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} (-3)(10) + (0)(0) & (-3)(0) + (0)(2) \\ (0)(10) + (-7)(0) & (0)(0) + (-7)(2) \end{bmatrix} = \begin{bmatrix} -30 & 0 \\ 0 & -14 \end{bmatrix}$$
+   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}(\mathbf{A}\mathbf{T}) = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix} \begin{bmatrix} -30 & 0 \\ 0 & -14 \end{bmatrix} = \begin{bmatrix} (0.1)(-30) & 0 \\ 0 & (0.5)(-14) \end{bmatrix} = \begin{bmatrix} -3 & 0 \\ 0 & -7 \end{bmatrix} = \mathbf{A}$$
+   $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.5 \end{bmatrix} \begin{bmatrix} 2 \\ -1 \end{bmatrix} = \begin{bmatrix} (0.1)(2) + (0)(-1) \\ (0)(2) + (0.5)(-1) \end{bmatrix} = \begin{bmatrix} 0.2 \\ -0.5 \end{bmatrix}$$
+   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 4 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} (1)(10) + (4)(0) & (1)(0) + (4)(2) \end{bmatrix} = \begin{bmatrix} 10 & 8 \end{bmatrix}$$
+3. Because any two diagonal matrices commute under multiplication ($\mathbf{A}\mathbf{T} = \mathbf{T}\mathbf{A}$), we have $\mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \mathbf{T}^{-1}\mathbf{T}\mathbf{A} = \mathbf{I}\mathbf{A} = \mathbf{A}$, so pure unit rescaling leaves the decoupled decay rates $-3$ and $-7$ untouched. Meanwhile, dividing $B_1$ by $10$ ($\tilde{B}_1 = 0.2$) is exactly compensated by multiplying $C_1$ by $10$ ($\tilde{C}_1 = 10$), and dividing $B_2$ by $2$ ($\tilde{B}_2 = -0.5$) is compensated by multiplying $C_2$ by $2$ ($\tilde{C}_2 = 8$), keeping the input-to-output path products $\tilde{C}_1 \tilde{B}_1 = 2 = C_1 B_1$ and $\tilde{C}_2 \tilde{B}_2 = -4 = C_2 B_2$ strictly invariant.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-1-6" title="Exercise 1.6: Mechanical Cart-Spring-Damper State-Space Formulation" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-1-6" title="Exercise 1.6 — Two-Cart State-Space Model" level="Exam Standard">
 
 Consider the horizontal mechanical system from [the figure](#fig-two-mass-system) with two carts of masses $m_1$ and $m_2$, a coupling spring of constant $k$, a wall damper of constant $B_1$, and external force $F(t) = u(t)$. Let $m_1 = 2\text{ kg}$, $m_2 = 1\text{ kg}$, $k = 4\text{ N/m}$, and $B_1 = 6\text{ N}\cdot\text{s/m}$.
 
@@ -345,30 +464,44 @@ Consider the horizontal mechanical system from [the figure](#fig-two-mass-system
 3. Formulate the output vector matrix $\mathbf{C}$ when the measured sensor output is the velocity of cart 2 ($y(t) = \dot{p}_2(t)$).
 4. What is the value of the direct feedthrough scalar $D$? Justify your answer physically.
 
+<StepCheck
+  client:load
+  prompt="For $m_1 = 2\;\mathrm{kg}$, $m_2 = 1\;\mathrm{kg}$, $k = 4\;\mathrm{N/m}$, and $B_1 = 6\;\mathrm{N\cdot s/m}$, what is the numerical value of entry $B_2 = 1/m_1$?"
+  expected={0.5}
+  tolerance={0.01}
+  unit="$\mathrm{kg}^{-1}$"
+  explanation="In $\dot{x}_2 = \ddot{p}_1$, the input force $u(t)$ enters with coefficient $1/m_1 = 1/2 = 0.5$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Defining the state vector with position and velocity coordinates:
+1. Choosing the positions and velocities of the two carts as our four energy-storing state variables:
    $$\mathbf{x}(t) = \begin{bmatrix} x_1(t) \\ x_2(t) \\ x_3(t) \\ x_4(t) \end{bmatrix} = \begin{bmatrix} p_1(t) \\ \dot{p}_1(t) \\ p_2(t) \\ \dot{p}_2(t) \end{bmatrix}$$
-2. Substituting the numerical parameters $m_1 = 2$, $m_2 = 1$, $k = 4$, $B_1 = 6$:
-   $$\frac{k}{m_1} = \frac{4}{2} = 2, \quad \frac{B_1}{m_1} = \frac{6}{2} = 3, \quad \frac{1}{m_1} = 0.5$$
-   $$\frac{k}{m_2} = \frac{4}{1} = 4$$
-   The resulting linear first-order differential state equations are:
-   $$\dot{x}_1 = x_2$$
-   $$\dot{x}_2 = -2 x_1 - 3 x_2 + 2 x_3 + 0.5 u$$
-   $$\dot{x}_3 = x_4$$
-   $$\dot{x}_4 = 4 x_1 - 4 x_3$$
-   In matrix notation:
-   $$\mathbf{A} = \begin{bmatrix}
+2. Evaluating the physical parameter ratios for $m_1 = 2\text{ kg}$, $m_2 = 1\text{ kg}$, $k = 4\text{ N/m}$, and $B_1 = 6\text{ N}\cdot\text{s/m}$:
+   $$\frac{k}{m_1} = \frac{4}{2} = 2\text{ s}^{-2}, \qquad \frac{B_1}{m_1} = \frac{6}{2} = 3\text{ s}^{-1}, \qquad \frac{1}{m_1} = \frac{1}{2} = 0.5\text{ kg}^{-1}, \qquad \frac{k}{m_2} = \frac{4}{1} = 4\text{ s}^{-2}$$
+   Substituting these coefficients into the four first-order differential equations derived in Section 1 gives:
+   $$
+   \begin{aligned}
+   \dot{x}_1(t) &= x_2(t) \\
+   \dot{x}_2(t) &= -2 x_1(t) - 3 x_2(t) + 2 x_3(t) + 0.5 u(t) \\
+   \dot{x}_3(t) &= x_4(t) \\
+   \dot{x}_4(t) &= 4 x_1(t) - 4 x_3(t)
+   \end{aligned}
+   $$
+   Assembling the coefficients of $x_1, x_2, x_3, x_4$ into $\mathbf{A}$ and the coefficients of $u(t)$ into $\mathbf{B}$ yields:
+   $$
+   \mathbf{A} = \begin{bmatrix}
    0 & 1 & 0 & 0 \\
    -2 & -3 & 2 & 0 \\
    0 & 0 & 0 & 1 \\
    4 & 0 & -4 & 0
-   \end{bmatrix}, \quad
-   \mathbf{B} = \begin{bmatrix} 0 \\ 0.5 \\ 0 \\ 0 \end{bmatrix}$$
-3. For output $y(t) = \dot{p}_2(t) = x_4(t)$:
-   $$y(t) = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix} \mathbf{x}(t) \implies \mathbf{C} = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix}$$
-4. The direct transmission feedthrough scalar is $D = 0$. In translational mechanical bodies, applied forces directly produce finite accelerations through Newton's second law ($\ddot{p} = F/m$), while velocity and position require single and double time integrations. Consequently, applied input forces cannot cause an instantaneous finite step discontinuity in velocity, ensuring $D \equiv 0$.
+   \end{bmatrix}, \qquad
+   \mathbf{B} = \begin{bmatrix} 0 \\ 0.5 \\ 0 \\ 0 \end{bmatrix}
+   $$
+3. Because the sensor measures the velocity of cart 2, $y(t) = \dot{p}_2(t) = x_4(t) = (0)x_1 + (0)x_2 + (0)x_3 + (1)x_4$, which gives the output row vector:
+   $$\mathbf{C} = \begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix}$$
+4. The direct feedthrough scalar is $D = 0$. By Newton's second law, an external force $u(t)$ applied to mass $m_1$ produces a finite acceleration $\ddot{p}_1(t)$ that must be integrated across time and transmitted through the spring displacement before altering the velocity $\dot{p}_2(t)$ of mass $m_2$, ruling out any instantaneous step jump from $u(t)$ to $y(t)$.
 
 </details>
 

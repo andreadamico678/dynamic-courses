@@ -8,7 +8,7 @@ The textbook structure must form a clean, navigable Matryoshka hierarchy across 
 
 Every curriculum blueprint follows a nested **Matryoshka** hierarchy:
 * **Tier 1 (Root):** Course title (e.g., *Linear Systems Theory*).
-* **Tier 2 (Parts / Area Clusters):** 4 to 8 coherent parts mapped to Starlight sidebar groups.
+* **Tier 2 (Parts / Area Clusters):** 4 to 8 coherent parts mapped to Starlight sidebar groups, each beginning with an `00-introduction.mdx` (`00-introduzione.mdx` for Italian courses, `sidebar.order: 0`) conceptual overview page.
 * **Tier 3 (Modules):** Logical sub-domains inside a part.
 * **Tier 4 (Chapters / Leaves):** One continuous scrolling MDX page per atomic topic.
 

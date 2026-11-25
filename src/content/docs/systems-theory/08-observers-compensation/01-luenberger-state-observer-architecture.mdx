@@ -11,130 +11,379 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 27 Mental Model" markdown={`# Ch. 27: Luenberger Observer Architecture
-  - Why Open-Loop Simulation Fails
-  - The Closed-Loop Correction Architecture
+<MindMap client:load defaultCollapsed title="Chapter 27 Outline" markdown={`# Ch. 27: Luenberger Observer Architecture
+  - Why Open-Loop Estimation Fails
+    - Error equation $\\dot{\\mathbf{e}} = \\mathbf{A}\\mathbf{e}$
+    - Unstable drift and disturbance sensitivity
+  - Closed-Loop Innovation Correction
+    - Output residual $\\tilde{\\mathbf{y}} = \\mathbf{y} - \\mathbf{C}\\hat{\\mathbf{x}}$
+    - Predictor-corrector vs. LTI filter form
   - Observer Error Dynamics
-    - Asymptotic Convergence Theorem
-  - Observer Bandwidth Design Rules`} />
+    - Error matrix $\\mathbf{A}_o = \\mathbf{A} - \\mathbf{L}\\mathbf{C}$
+    - Observability and detectability criteria
+  - Observer Bandwidth Trade-Offs
+    - Controller speed vs. sensor noise`} />
 
-State feedback control relies on a critical assumption: the instantaneous value of every state variable $x_i(t)$ is available for feedback. In engineering practice, this assumption rarely holds. Measuring every physical state (such as internal temperatures in a reactor, rotor flux linkages in an induction motor, or flexural modes of an aircraft wing) is either economically prohibitive, physically impossible, or corrupted by harsh operating conditions. Only a small subset of state combinations is measured at the output:
-$$\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t), \quad \mathbf{y} \in \mathbb{R}^p, \; p \ll n$$
+## Introduction
 
-To implement state feedback without direct sensors, we must construct a dynamic software algorithm that reconstructs the unmeasured state vector in real time. This software system is the **Luenberger State Observer**.
+Full-state feedback $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t)$ works cleanly on paper, yet on real hardware you almost never have a dedicated sensor on every state variable: a robotic joint typically carries an optical angle encoder without a separate velocity tachometer, and numerically differentiating noisy encoder counts destroys the servo loop. Running a blind open-loop software copy of the plant in parallel also drifts apart whenever initial conditions or external disturbances mismatch.
 
-<Divider />
+David Luenberger solved this problem by closing an estimation feedback loop *inside* the software simulator: continuously compare the predicted sensor output $\hat{\mathbf{y}}(t) = \mathbf{C}\hat{\mathbf{x}}(t)$ against the true physical measurement $\mathbf{y}(t)$, and feed their residual difference back through an **observer gain matrix** $\mathbf{L}$ so the estimated state $\hat{\mathbf{x}}(t)$ converges rapidly onto the true physical state $\mathbf{x}(t)$.
 
-## Why Open-Loop Simulation Fails
+<Divider label="1 · Example" />
 
-A naive approach to state estimation is to run a numerical twin (open-loop simulator) of the plant inside the control processor:
-$$\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t)$$
-where $\hat{\mathbf{x}}(t)$ is the estimated state.
+### Reconstructing Unmeasured Velocity from Position
 
-Defining the estimation error vector:
-$$\mathbf{e}(t) \triangleq \mathbf{x}(t) - \hat{\mathbf{x}}(t)$$
-its time derivative is:
-$$\dot{\mathbf{e}}(t) = \dot{\mathbf{x}}(t) - \dot{\hat{\mathbf{x}}}(t) = (\mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)) - (\mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t)) = \mathbf{A}\mathbf{e}(t)$$
+Consider a damped inertial axis (such as a motor-driven robotic joint) where an optical encoder measures angular position $y(t) = x_1(t)$, while angular velocity $x_2(t) = \dot{x}_1(t)$ has no physical sensor:
 
-Integrating yields:
-$$\mathbf{e}(t) = e^{\mathbf{A}t} \mathbf{e}(0) = e^{\mathbf{A}t} (\mathbf{x}(0) - \hat{\mathbf{x}}(0))$$
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 1 \\ 0 & -2 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+$$
 
-<Callout type="warning" title="Fatal Pitfalls of Open-Loop Estimators">
+Written out as scalar differential equations, the physical plant obeys $\dot{x}_1 = x_2$ and $\dot{x}_2 = -2x_2 + u(t)$, with open-loop eigenvalues at $\lambda_1 = 0$ and $\lambda_2 = -2$. Because only $y(t) = x_1(t)$ is available from the sensor hardware, we cannot compute the full-state feedback command $u = -k_1 x_1 - k_2 x_2$ directly from raw measurements.
 
-1. **Unstable Plants:** If any eigenvalue of $\mathbf{A}$ has $\operatorname{Re}(\lambda) \ge 0$, any initial guess error $\mathbf{e}(0) \neq \mathbf{0}$ diverges exponentially ($e^{\lambda t} \to \infty$).
-2. **Slow Convergence:** Even if $\mathbf{A}$ is asymptotically stable, the error decays only as fast as the slowest open-loop plant mode.
-3. **Zero Disturbance Rejection:** Any unmodeled external force or parameter mismatch accumulates indefinitely without correction.
+To reconstruct both position and velocity in real time, we run a software **Luenberger observer** with estimated state vector $\hat{\mathbf{x}}(t) = \begin{bmatrix} \hat{x}_1(t) & \hat{x}_2(t) \end{bmatrix}^T$. The observer integrates a copy of the plant dynamics driven by the known actuator command $u(t)$, plus a corrective injection proportional to the sensor prediction error $y(t) - \mathbf{C}\hat{\mathbf{x}}(t) = x_1(t) - \hat{x}_1(t)$:
 
-</Callout>
+$$
+\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}u(t) + \mathbf{L}\left(y(t) - \mathbf{C}\hat{\mathbf{x}}(t)\right), \qquad \mathbf{L} = \begin{bmatrix} l_1 \\ l_2 \end{bmatrix}
+$$
 
-<Divider />
+Writing out the two scalar observer equations shows how the single position sensor corrects both state estimates simultaneously:
 
-## The Closed-Loop Correction Architecture
+$$
+\begin{cases}
+\dot{\hat{x}}_1(t) = \hat{x}_2(t) + l_1\left(y(t) - \hat{x}_1(t)\right) \\
+\dot{\hat{x}}_2(t) = -2\hat{x}_2(t) + u(t) + l_2\left(y(t) - \hat{x}_1(t)\right)
+\end{cases}
+$$
 
-The breakthrough conceived by David Luenberger (1964) is to feed back the **innovation error** (the discrepancy between the actual physical measurement $\mathbf{y}(t)$ and the estimated measurement $\hat{\mathbf{y}}(t)$):
-$$\mathbf{y}(t) - \hat{\mathbf{y}}(t) = \mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)$$
-through an observer gain matrix $\mathbf{L} \in \mathbb{R}^{n \times p}$.
-
-The dynamic state equation of the **Luenberger Observer** is:
-$$\boxed{\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}(\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t))}$$
-$$\hat{\mathbf{y}}(t) = \mathbf{C}\hat{\mathbf{x}}(t)$$
+Physically, whenever the measured position $y(t)$ is ahead of the estimated position $\hat{x}_1(t)$, the positive residual $y - \hat{x}_1 > 0$ pulls $\dot{\hat{x}}_1$ upward via $l_1$ and simultaneously boosts the estimated acceleration $\dot{\hat{x}}_2$ via $l_2$ so the velocity estimate $\hat{x}_2(t)$ catches up to the true shaft speed.
 
 <figure id="fig-luenberger-block-diagram" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-luenberger-block-diagram.svg" alt="Luenberger State Observer architecture. The plant output $\mathbf{y}(t)$ is compared to the estimated output $\mathbf{C}\hat{\mathbf{x}}(t)$; the residual innovation is injected through gain matrix $\mathbf{L}$ to continuously correct the observer state." />
   <figcaption>Luenberger State Observer architecture. The plant output $\mathbf{y}(t)$ is compared to the estimated output $\mathbf{C}\hat{\mathbf{x}}(t)$; the residual innovation is injected through gain matrix $\mathbf{L}$ to continuously correct the observer state.</figcaption>
 </figure>
 
-<Divider />
+To determine how rapidly the estimate locks onto the true state, define the estimation error vector $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$. Subtracting $\dot{\hat{\mathbf{x}}}(t)$ from $\dot{\mathbf{x}}(t)$ cancels the control input term $\mathbf{B}u(t)$ completely and leaves $\dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t)$, where the $2 \times 2$ observer error matrix is:
 
-## Observer Error Dynamics
+$$
+\mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} 0 & 1 \\ 0 & -2 \end{bmatrix} - \begin{bmatrix} l_1 \\ l_2 \end{bmatrix}\begin{bmatrix} 1 & 0 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ 0 & -2 \end{bmatrix} - \begin{bmatrix} l_1 & 0 \\ l_2 & 0 \end{bmatrix} = \begin{bmatrix} -l_1 & 1 \\ -l_2 & -2 \end{bmatrix}
+$$
 
-Substituting the physical output $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$ into the observer equation:
-$$\begin{aligned}
-\dot{\hat{\mathbf{x}}}(t) &= \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}(\mathbf{C}\mathbf{x}(t) - \mathbf{C}\hat{\mathbf{x}}(t)) \\
-&= \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\mathbf{C}(\mathbf{x}(t) - \hat{\mathbf{x}}(t)) \\
-&= (\mathbf{A} - \mathbf{L}\mathbf{C})\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\mathbf{y}(t)
-\end{aligned}$$
+Notice that subtracting $\mathbf{L}\mathbf{C}$ modifies the first column of $\mathbf{A}$ (the column associated with the measured state $x_1$). Evaluating the characteristic polynomial of $\mathbf{A} - \mathbf{L}\mathbf{C}$ gives:
 
-Subtracting this from the plant state equation $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$:
-$$\dot{\mathbf{e}}(t) = \dot{\mathbf{x}}(t) - \dot{\hat{\mathbf{x}}}(t) = (\mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}) - (\mathbf{A}\hat{\mathbf{x}} + \mathbf{B}\mathbf{u} + \mathbf{L}\mathbf{C}(\mathbf{x} - \hat{\mathbf{x}}))$$
+$$
+\det(s\mathbf{I}_2 - (\mathbf{A} - \mathbf{L}\mathbf{C})) = \det\begin{bmatrix} s + l_1 & -1 \\ l_2 & s + 2 \end{bmatrix} = (s + l_1)(s + 2) - (-1)(l_2) = s^2 + (l_1 + 2)s + (2l_1 + l_2)
+$$
 
-The input terms cancel identically ($\mathbf{B}\mathbf{u} - \mathbf{B}\mathbf{u} = \mathbf{0}$):
-$$\boxed{\dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t)}$$
+Suppose we want both observer error eigenvalues placed at $\beta_1 = \beta_2 = -6$, which defines the desired observer characteristic polynomial $p_o^*(s) = (s + 6)^2 = s^2 + 12s + 36$. Matching coefficients power-by-power yields a triangular system for $l_1$ and $l_2$:
 
-### Asymptotic Convergence Theorem
-The estimation error dynamics are autonomous and governed entirely by the **observer error matrix**:
-$$\mathbf{A}_o \triangleq \mathbf{A} - \mathbf{L}\mathbf{C}$$
+$$
+l_1 + 2 = 12 \implies l_1 = 10, \qquad 2l_1 + l_2 = 36 \implies 2(10) + l_2 = 36 \implies l_2 = 16
+$$
 
-<Callout type="note" title="Theorem: Asymptotic Observer Convergence">
+With $\mathbf{L} = \begin{bmatrix} 10 & 16 \end{bmatrix}^T$, every initial estimation error $\mathbf{e}(0) = \mathbf{x}(0) - \hat{\mathbf{x}}(0)$ decays exponentially at rate $e^{-6t}$, locking $\hat{x}_2(t)$ onto the true velocity $x_2(t)$ within roughly $3/6 = 0.5\text{ s}$ even if the observer starts from $\hat{\mathbf{x}}(0) = \mathbf{0}$.
 
-The state estimate $\hat{\mathbf{x}}(t)$ converges asymptotically to the true state $\mathbf{x}(t)$ for any initial condition $\hat{\mathbf{x}}(0)$:
-$$\lim_{t \to \infty} \|\mathbf{x}(t) - \hat{\mathbf{x}}(t)\| = 0$$
-if and only if $\mathbf{A} - \mathbf{L}\mathbf{C}$ is a **Hurwitz matrix** (all eigenvalues have $\operatorname{Re}(\lambda_i) < 0$).
+<StepCheck client:load
+  prompt="In the observer design above with target polynomial $(s + 6)^2 = s^2 + 12s + 36$, what is the second observer gain entry $l_2$?"
+  expected={16}
+  tolerance={0.01}
+  unit=""
+  explanation="Matching $l_1 + 2 = 12$ gives $l_1 = 10$, and matching $2l_1 + l_2 = 36$ gives $20 + l_2 = 36 \implies l_2 = 16$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Why Open-Loop Estimation Fails
+
+In Part VII, every state-feedback law $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$ assumed that the entire state vector $\mathbf{x}(t) \in \mathbb{R}^n$ is directly measurable. In real engineering hardware, sensors only measure a lower-dimensional output vector $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t) \in \mathbb{R}^p$ with $p < n$.
+
+Since we know the mathematical model $(\mathbf{A}, \mathbf{B})$ and we generate the actuator input $\mathbf{u}(t)$ in software, a tempting first idea is to run an **open-loop simulator** (a pure copy of the plant differential equations) in real time inside the microcontroller:
+
+$$
+\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t), \qquad \hat{\mathbf{x}}(0) = \hat{\mathbf{x}}_0
+$$
+
+To test whether the simulated state $\hat{\mathbf{x}}(t)$ tracks the true physical state $\mathbf{x}(t)$, define the **state estimation error** vector:
+
+$$
+\mathbf{e}(t) \triangleq \mathbf{x}(t) - \hat{\mathbf{x}}(t)
+$$
+
+Differentiating $\mathbf{e}(t)$ and subtracting the open-loop simulator equation from the physical plant equation $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$ cancels the known input term $\mathbf{B}\mathbf{u}(t)$ identically:
+
+$$
+\dot{\mathbf{e}}(t) = \dot{\mathbf{x}}(t) - \dot{\hat{\mathbf{x}}}(t) = \left(\mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)\right) - \left(\mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t)\right) = \mathbf{A}\left(\mathbf{x}(t) - \hat{\mathbf{x}}(t)\right) = \mathbf{A}\mathbf{e}(t)
+$$
+
+Solving this homogeneous differential equation via the [matrix exponential](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/) gives:
+
+$$
+\mathbf{e}(t) = e^{\mathbf{A}t}\mathbf{e}(0) = e^{\mathbf{A}t}\left(\mathbf{x}(0) - \hat{\mathbf{x}}(0)\right)
+$$
+
+Because the open-loop simulator ignores the physical sensor measurements $\mathbf{y}(t)$, its estimation error dynamics are governed entirely by the unforced open-loop matrix $\mathbf{A}$. This open-loop approach is unusable in practice for three reasons:
+
+1. **Divergence on Unstable or Integrator Plants:** If $\mathbf{A}$ has any eigenvalue with $\operatorname{Re}(\lambda_i) > 0$ (such as an inverted pendulum) or at $\lambda_i = 0$ (such as a motor shaft position integrator), any tiny initial mismatch $\mathbf{e}(0) \neq \mathbf{0}$ grows exponentially without bound or persists as a permanent offset forever.
+2. **Uncontrollable Convergence Rate:** Even when $\mathbf{A}$ is asymptotically stable, the estimation error decays only as fast as the plant's slowest open-loop eigenvalue—which cannot be sped up to serve a fast closed-loop controller.
+3. **Blindness to Disturbances and Model Uncertainty:** Any unmodeled external load torque, wind gust, or slight parameter discrepancy between the physical plant and the software model enters $\dot{\mathbf{x}}(t)$ without entering $\dot{\hat{\mathbf{x}}}(t)$, causing $\hat{\mathbf{x}}(t)$ to drift steadily away from $\mathbf{x}(t)$.
+
+### Closed-Loop Innovation Correction
+
+David Luenberger (1964) eliminated all three failure modes by feeding the physical sensor output $\mathbf{y}(t)$ into the simulator through a corrective feedback loop. For a plant $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$ with measured output $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$, the estimator predicts what the sensors *should* read based on its current estimate, $\hat{\mathbf{y}}(t) = \mathbf{C}\hat{\mathbf{x}}(t)$, and forms the **output residual** (or **innovation**) $\tilde{\mathbf{y}}(t) \triangleq \mathbf{y}(t) - \hat{\mathbf{y}}(t) = \mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)$. Multiplying this residual by an **observer gain matrix** $\mathbf{L} \in \mathbb{R}^{n \times p}$ yields the **Luenberger State Observer**:
+
+$$
+\boxed{\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\left(\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)\right)}
+$$
+
+$$
+\hat{\mathbf{y}}(t) = \mathbf{C}\hat{\mathbf{x}}(t)
+$$
+
+This equation has a clear **predictor-corrector** physical structure: the model copy $\mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t)$ predicts the state velocity forward in time, while the innovation term $\mathbf{L}(\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t))$ corrects the trajectory whenever the predicted output diverges from the measured sensor output. Once $\hat{\mathbf{x}}(t) = \mathbf{x}(t)$, the innovation $\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)$ vanishes and the observer coasts in lockstep with the plant. *(If the plant has a direct feedthrough term $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$, we simply define $\hat{\mathbf{y}}(t) = \mathbf{C}\hat{\mathbf{x}}(t) + \mathbf{D}\mathbf{u}(t)$ so that $\mathbf{D}\mathbf{u}(t)$ cancels inside $\mathbf{y}(t) - \hat{\mathbf{y}}(t) = \mathbf{C}(\mathbf{x}(t) - \hat{\mathbf{x}}(t))$.)*
+
+Expanding the innovation product and grouping the $\hat{\mathbf{x}}(t)$ terms together rewrites the Luenberger observer in its equivalent **autonomous LTI filter form**:
+
+$$
+\dot{\hat{\mathbf{x}}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\mathbf{y}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\hat{\mathbf{x}}(t) + \begin{bmatrix} \mathbf{B} & \mathbf{L} \end{bmatrix} \begin{bmatrix} \mathbf{u}(t) \\ \mathbf{y}(t) \end{bmatrix}
+$$
+
+In this form, the observer is a dynamical system with internal dynamics matrix $\mathbf{A}_o = \mathbf{A} - \mathbf{L}\mathbf{C}$, driven simultaneously by two known real-time signals: the actuator command $\mathbf{u}(t)$ and the sensor stream $\mathbf{y}(t)$.
+
+### Observer Error Dynamics
+
+To prove that the observer gain matrix $\mathbf{L}$ governs the convergence of $\hat{\mathbf{x}}(t) \to \mathbf{x}(t)$ independently of the control signal $\mathbf{u}(t)$, substitute $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$ into the predictor-corrector equation:
+
+$$
+\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\mathbf{C}\left(\mathbf{x}(t) - \hat{\mathbf{x}}(t)\right)
+$$
+
+Now differentiate the estimation error $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$ and subtract $\dot{\hat{\mathbf{x}}}(t)$ from $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$:
+
+$$
+\dot{\mathbf{e}}(t) = \left(\mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)\right) - \left(\mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\mathbf{C}(\mathbf{x}(t) - \hat{\mathbf{x}}(t))\right)
+$$
+
+The two forced input terms $+\mathbf{B}\mathbf{u}(t)$ and $-\mathbf{B}\mathbf{u}(t)$ cancel identically, and factoring out $\mathbf{x}(t) - \hat{\mathbf{x}}(t) = \mathbf{e}(t)$ yields the homogeneous **observer error differential equation**:
+
+$$
+\boxed{\dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t) \implies \mathbf{e}(t) = e^{(\mathbf{A} - \mathbf{L}\mathbf{C})t}\mathbf{e}(0)}
+$$
+
+This result is fundamental: because $\mathbf{u}(t)$ drops out completely, the estimation error $\mathbf{e}(t)$ evolves autonomously according to the **observer error matrix** $\mathbf{A}_o \triangleq \mathbf{A} - \mathbf{L}\mathbf{C}$, no matter how aggressively the input $\mathbf{u}(t)$ maneuvers the physical plant.
+
+Consequently, the Luenberger observer is an **asymptotic state observer**—meaning $\lim_{t \to \infty} \|\mathbf{x}(t) - \hat{\mathbf{x}}(t)\| = 0$ for every initial condition $\mathbf{x}(0), \hat{\mathbf{x}}(0) \in \mathbb{R}^n$—if and only if every eigenvalue $\beta_i$ of $\mathbf{A} - \mathbf{L}\mathbf{C}$ lies strictly in the open left-half complex plane ($\operatorname{Re}(\beta_i) < 0$). Linking back to Part VI:
+- **Arbitrary Observer Pole Placement:** The eigenvalues $\{\beta_1, \dots, \beta_n\}$ of $\mathbf{A} - \mathbf{L}\mathbf{C}$ can be placed at any desired conjugate-symmetric locations if and only if the pair $(\mathbf{A}, \mathbf{C})$ is **completely observable** ($\operatorname{rank}(\mathcal{O}) = n$, [Kalman Observability](/dynamic-courses/systems-theory/06-kalman-structure/02-kalman-observability-matrix-rank-criterion/)).
+- **Asymptotic Observer Existence (Detectability):** If $(\mathbf{A}, \mathbf{C})$ has unobservable modes ([Kalman Canonical Decomposition](/dynamic-courses/systems-theory/06-kalman-structure/03-kalman-canonical-subspace-decomposition/)), those unobservable eigenvalues are invariant under $\mathbf{A} - \mathbf{L}\mathbf{C}$ for every $\mathbf{L}$. An asymptotic observer still exists if and only if the pair $(\mathbf{A}, \mathbf{C})$ is **detectable**—meaning every unobservable eigenvalue already satisfies $\operatorname{Re}(\lambda_i) < 0$.
+
+### Observer Bandwidth Trade-Offs
+
+Where in the left-half plane should you place the observer eigenvalues $\{\beta_1, \dots, \beta_n\}$? Choosing observer bandwidth involves a fundamental engineering trade-off between **fast state locking** and **sensor noise rejection**:
+
+1. **Fast Enough to Outrun the Controller ($2\times$ to $5\times$ Rule):** When the estimated state $\hat{\mathbf{x}}(t)$ is fed into a state-feedback controller $\mathbf{u}(t) = -\mathbf{K}\hat{\mathbf{x}}(t)$, the controller initially acts on corrupted estimates until $\mathbf{e}(t)$ decays. To prevent initial estimation errors from distorting the closed-loop physical step response, the observer poles $\beta_i$ are placed **$2$ to $5$ times deeper** into the left-half plane than the dominant controller poles $\mu_{\text{dom}}$:
+   $$
+   \boxed{|\operatorname{Re}(\beta_i)| \approx (2 \text{ to } 5) \times |\operatorname{Re}(\mu_{\text{dom}})|}
+   $$
+   This guarantees that the observer estimation transient settles within the first fraction of the controller's rise time.
+2. **Slow Enough to Filter High-Frequency Sensor Noise:** Physical sensors never deliver a pure signal $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$; they deliver a noise-corrupted signal $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{v}_m(t)$ alongside process disturbances $\mathbf{w}_d(t)$ on the plant ($\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u} + \mathbf{w}_d$). Substituting these into the error equation $\dot{\mathbf{e}} = \dot{\mathbf{x}} - \dot{\hat{\mathbf{x}}}$ reveals how both noise sources drive the estimation error:
+   $$
+   \dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t) + \mathbf{w}_d(t) - \mathbf{L}\mathbf{v}_m(t)
+   $$
+   Notice the opposite roles of $\mathbf{L}$: large observer gains $\mathbf{L}$ (very fast observer poles $\beta_i$) suppress the effect of plant disturbances $\mathbf{w}_d(t)$, but they multiply the high-frequency measurement noise $\mathbf{v}_m(t)$ directly through $-\mathbf{L}\mathbf{v}_m(t)$! Pushing observer poles $20\times$ or $50\times$ faster than the controller inflates $\mathbf{L}$ into a high-gain differentiator, injecting amplified sensor noise straight into $\hat{\mathbf{x}}(t)$ and chattering the physical actuators. *(Balancing $\mathbf{w}_d(t)$ covariance against $\mathbf{v}_m(t)$ covariance optimally is the exact role of the steady-state Kalman Filter.)*
+
+<StepCheck client:load
+  mode="choice"
+  prompt="If a controller's dominant closed-loop poles sit at $\mu_{1,2} = -5 \pm j4$, where should the observer error poles typically be placed?"
+  options={[
+    "At $-1 \\pm j1$, slower than the controller so sensor noise is heavily filtered",
+    "In the band $-10$ to $-25$ (roughly $2$ to $5$ times faster than the controller real part)",
+    "At $-500$, as far left as floating-point arithmetic permits"
+  ]}
+  correctIndex={1}
+  explanation="Placing observer poles $2\\text{–}5\\times$ faster than controller poles ensures rapid error convergence without turning $\\mathbf{L}$ into a noise amplifier."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Robot Velocity Estimation from Encoders">
+
+Industrial robotic arms (such as Universal Robots running ROS 2 control) measure joint angular position $q_i$ with optical encoders but lack direct velocity sensors. Finite-differencing $(q_k - q_{k-1})/\Delta t$ amplifies quantization noise and adds phase lag. Running a 2nd-order Luenberger observer per joint with:
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 1 \\ 0 & -b/J \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1/J \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+$$
+
+and tuning $\mathbf{L} = [l_1, l_2]^T$ for critically damped observer poles at $\omega_o = 80\text{ rad/s}$ (roughly $3\times$ faster than the $25\text{ rad/s}$ joint servo loop) delivers smooth, low-latency velocity estimates $\hat{\dot{q}}_i$.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
-## Observer Bandwidth Design Rules
+| Estimator Type | State Equation | Error Dynamics | Limitation / Requirement |
+| :--- | :--- | :--- | :--- |
+| **Open-Loop Simulator** | $\dot{\hat{\mathbf{x}}} = \mathbf{A}\hat{\mathbf{x}} + \mathbf{B}\mathbf{u}$ | $\dot{\mathbf{e}} = \mathbf{A}\mathbf{e}$ | Cannot stabilize unstable errors or reject disturbances |
+| **Luenberger Observer** | $\dot{\hat{\mathbf{x}}} = \mathbf{A}\hat{\mathbf{x}} + \mathbf{B}\mathbf{u} + \mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ | $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$ | Requires $(\mathbf{A}, \mathbf{C})$ detectable (observable for arbitrary poles) |
 
-When designing the observer gain $\mathbf{L}$, how fast should the observer eigenvalues $\{\beta_1, \dots, \beta_n\}$ be placed?
+### Observer Design Procedure
 
-1. **Faster than the Closed-Loop Controller:**
-   The state estimate $\hat{\mathbf{x}}$ must converge before the feedback controller $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}}$ drives the system along transients.
-   $$\operatorname{Re}(\beta_i) \approx (2 \text{ to } 5) \times \operatorname{Re}(\mu_{\text{controller}})$$
-2. **Slower than Sensor Noise Bandwidth:**
-   Increasing $\mathbf{L}$ widens the observer bandwidth. Any high-frequency measurement noise $\mathbf{v}(t)$ in $\mathbf{y}(t) = \mathbf{C}\mathbf{x} + \mathbf{v}$ enters the state estimate scaled by $\mathbf{L}$:
-   $$\dot{\hat{\mathbf{x}}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\hat{\mathbf{x}} + \mathbf{B}\mathbf{u} + \mathbf{L}\mathbf{y} + \mathbf{L}\mathbf{v}$$
-   An excessively fast observer acts as a differentiator, feeding amplified sensor noise directly into the control actuators.
+1. Verify $(\mathbf{A}, \mathbf{C})$ is observable (or at least detectable) via [Chapter 21](/dynamic-courses/systems-theory/06-kalman-structure/02-kalman-observability-matrix-rank-criterion/).
+2. Choose observer poles $\beta_i$ roughly $2\text{–}5\times$ faster than the desired controller poles, forming $p_o^*(s) = \prod_{i=1}^n (s - \beta_i)$.
+3. Compute $\mathbf{L}$ by matching $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C})) = p_o^*(s)$ (or via Dual Ackermann in the next chapter).
+4. Implement $\dot{\hat{\mathbf{x}}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\hat{\mathbf{x}} + \mathbf{B}\mathbf{u} + \mathbf{L}\mathbf{y}$.
 
-<Divider />
+### Key Proofs
 
-<Callout type="bridge" title="SDU Robotics Bridge: Robot Velocity Estimation from Encoders">
+- **Autonomous Error Equation:** Subtracting $\dot{\hat{\mathbf{x}}} = \mathbf{A}\hat{\mathbf{x}} + \mathbf{B}\mathbf{u} + \mathbf{L}\mathbf{C}(\mathbf{x} - \hat{\mathbf{x}})$ from $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$ cancels $\mathbf{B}\mathbf{u}$ identically, leaving $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$.
+- **Asymptotic Convergence:** $\mathbf{e}(t) = e^{(\mathbf{A}-\mathbf{L}\mathbf{C})t}\mathbf{e}(0) \to \mathbf{0}$ for every $\mathbf{e}(0)$ if and only if every eigenvalue of $\mathbf{A} - \mathbf{L}\mathbf{C}$ has $\operatorname{Re}(\beta_i) < 0$.
 
-Industrial robotic arms (such as Universal Robots running ROS 2 control) use optical encoders that measure joint angular position $q_i$, but not joint velocity $\dot{q}_i$. 
-
-Differentiating position numerically ($\frac{q_k - q_{k-1}}{\Delta t}$) introduces massive quantization noise and latency. Instead, robotic controllers run a 2nd-order Luenberger observer on each joint:
-$$\mathbf{A} = \begin{bmatrix} 0 & 1 \\ 0 & -b/J \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1/J \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
-By tuning $\mathbf{L} = [l_1, l_2]^T$ to achieve critically damped observer poles at $\omega_o = 80\text{ rad/s}$ (roughly $3\times$ faster than the $25\text{ rad/s}$ joint servo loop), the observer provides smooth, zero-latency velocity estimates $\hat{\dot{q}}_i$ while filtering encoder quantization noise.
-
+<Callout type="warning" title="Common Mistakes">
+1. **Flipping the Sign of Innovation Feedback:** The correction term is $+\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ (giving $\mathbf{A} - \mathbf{L}\mathbf{C}$); subtracting $-\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ produces $\mathbf{A} + \mathbf{L}\mathbf{C}$ and destabilizes the estimator.
+2. **Writing $\mathbf{C}\mathbf{L}$ Instead of $\mathbf{L}\mathbf{C}$:** Because $\mathbf{L} \in \mathbb{R}^{n \times p}$ and $\mathbf{C} \in \mathbb{R}^{p \times n}$, the $n \times n$ correction product in $\mathbf{A}_o$ is always $\mathbf{L}\mathbf{C}$, never $\mathbf{C}\mathbf{L}$.
+3. **Ignoring Sensor Noise When Choosing $\beta_i$:** Placing observer poles $20\text{–}50\times$ faster than the controller saturates actuators with amplified measurement noise.
 </Callout>
 
-<Divider />
+<Divider label="4 · Exercises" />
 
-### Exercise 27.1: Second-Order Observer Synthesis via Characteristic Matching [LEVEL 1: WARM-UP DRILL]
+<Exercise client:load id="ex-27-1" title="Exercise 27.1 — Second-Order Observer Synthesis" level="Warm-Up" hint="Compute $\mathbf{L}\mathbf{C} = \begin{bmatrix} l_1 & 0 \\ l_2 & 0 \end{bmatrix}$ and equate $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C}))$ to $(s + 10)^2 = s^2 + 20s + 100$.">
+
 A second-order plant is given by:
-$$\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+$$
 
 1. Determine the open-loop plant eigenvalues.
 2. For an arbitrary observer gain vector $\mathbf{L} = \begin{bmatrix} l_1 \\ l_2 \end{bmatrix}$, compute the observer error matrix $\mathbf{A} - \mathbf{L}\mathbf{C}$.
 3. Calculate the observer characteristic polynomial $\det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C}))$ in terms of $l_1$ and $l_2$.
 4. Determine the observer gains $l_1, l_2$ required to place both observer poles at $\beta_1 = \beta_2 = -10$.
 
-### Exercise 27.2: Third-Order Observer Synthesis and Estimation Error Dynamics [LEVEL 2: EXAM BENCHMARK]
+<StepCheck client:load
+  prompt="For target observer poles $\beta_1 = \beta_2 = -10$, compute the second observer gain entry $l_2$:"
+  expected={19}
+  tolerance={0.01}
+  unit=""
+  explanation="$5 + l_1 = 20 \implies l_1 = 15$, and $5l_1 + l_2 + 6 = 100 \implies 75 + l_2 + 6 = 100 \implies l_2 = 19$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Open-loop plant eigenvalues:**
+   Because $\mathbf{A}$ is in companion form with bottom row $\begin{bmatrix} -6 & -5 \end{bmatrix}$, its open-loop characteristic polynomial is:
+   $$
+   \det(s\mathbf{I}_2 - \mathbf{A}) = \det\begin{bmatrix} s & -1 \\ 6 & s + 5 \end{bmatrix} = s(s + 5) + 6 = s^2 + 5s + 6 = (s + 2)(s + 3) = 0
+   $$
+   Thus the open-loop eigenvalues sit at $\lambda_1 = -2$ and $\lambda_2 = -3$.
+
+2. **Observer error matrix $\mathbf{A} - \mathbf{L}\mathbf{C}$:**
+   First form the $2 \times 2$ outer product $\mathbf{L}\mathbf{C}$:
+   $$
+   \mathbf{L}\mathbf{C} = \begin{bmatrix} l_1 \\ l_2 \end{bmatrix} \begin{bmatrix} 1 & 0 \end{bmatrix} = \begin{bmatrix} l_1 & 0 \\ l_2 & 0 \end{bmatrix}
+   $$
+   Subtracting $\mathbf{L}\mathbf{C}$ from $\mathbf{A}$ modifies the first column:
+   $$
+   \mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} 0 & 1 \\ -6 & -5 \end{bmatrix} - \begin{bmatrix} l_1 & 0 \\ l_2 & 0 \end{bmatrix} = \begin{bmatrix} -l_1 & 1 \\ -6 - l_2 & -5 \end{bmatrix}
+   $$
+
+3. **Observer characteristic polynomial:**
+   Forming $s\mathbf{I}_2 - (\mathbf{A} - \mathbf{L}\mathbf{C})$ and expanding its $2 \times 2$ determinant gives:
+   $$
+   \begin{aligned}
+   p_o(s) &= \det\left(s\mathbf{I}_2 - (\mathbf{A} - \mathbf{L}\mathbf{C})\right) = \det\begin{bmatrix} s + l_1 & -1 \\ 6 + l_2 & s + 5 \end{bmatrix} \\
+   &= (s + l_1)(s + 5) - (-1)(6 + l_2) = s^2 + (5 + l_1)s + (5l_1 + l_2 + 6)
+   \end{aligned}
+   $$
+
+4. **Coefficient matching for $\beta_1 = \beta_2 = -10$:**
+   The desired observer polynomial is:
+   $$
+   p_o^*(s) = (s - (-10))^2 = (s + 10)^2 = s^2 + 20s + 100
+   $$
+   Matching the $s^1$ coefficient solves directly for $l_1$:
+   $$
+   5 + l_1 = 20 \implies l_1 = 15
+   $$
+   Substituting $l_1 = 15$ into the constant ($s^0$) coefficient equation solves for $l_2$:
+   $$
+   5l_1 + l_2 + 6 = 100 \implies 5(15) + l_2 + 6 = 100 \implies 81 + l_2 = 100 \implies l_2 = 19
+   $$
+   Therefore, the required observer gain column vector is:
+   $$
+   \mathbf{L} = \begin{bmatrix} 15 \\ 19 \end{bmatrix}
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-27-2" title="Exercise 27.2 — Third-Order Observer Error Dynamics" level="Exam Standard" hint="Because $(\mathbf{A}, \mathbf{C})$ is in observable companion form, $\mathbf{A} - \mathbf{L}\mathbf{C}$ keeps companion structure and its characteristic coefficients can be read directly from column 3.">
+
 A third-order system in observable companion form is given by:
-$$\mathbf{A} = \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}
+$$
 
 1. Find the open-loop characteristic polynomial $p(s) = \det(s\mathbf{I} - \mathbf{A})$ and verify that the open-loop poles are at $-1, -2, -3$.
 2. For observer gain vector $\mathbf{L} = \begin{bmatrix} l_1 \\ l_2 \\ l_3 \end{bmatrix}$, form $\mathbf{A} - \mathbf{L}\mathbf{C}$ and express its characteristic polynomial in terms of $l_1, l_2, l_3$.
 3. Synthesize the observer gain vector $\mathbf{L}$ to assign the observer poles at $\beta_1 = \beta_2 = \beta_3 = -5$ ($p_o^*(s) = (s + 5)^3$).
 4. Write down the estimation error differential equation $\dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t)$ and verify that $\mathbf{e}(t) \to \mathbf{0}$ asymptotically as $t \to \infty$ for any initial error $\mathbf{e}(0)$.
+
+<StepCheck client:load
+  prompt="For $p_o^*(s) = (s + 5)^3 = s^3 + 15s^2 + 75s + 125$, compute the first observer gain entry $l_1$:"
+  expected={119}
+  tolerance={0.01}
+  unit=""
+  explanation="Matching the constant term $6 + l_1 = 125$ gives $l_1 = 119$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Open-loop characteristic polynomial of $\mathbf{A}$:**
+   Notice that $\mathbf{A}$ is the transpose of a controllable companion matrix (putting $(\mathbf{A}, \mathbf{C})$ in **Observable Canonical Form**). Expanding $\det(s\mathbf{I}_3 - \mathbf{A})$ along row 1 gives:
+   $$
+   \begin{aligned}
+   p(s) &= \det(s\mathbf{I}_3 - \mathbf{A}) = \det\begin{bmatrix} s & 0 & 6 \\ -1 & s & 11 \\ 0 & -1 & s + 6 \end{bmatrix} \\
+   &= s\left(s(s + 6) - (-1)(11)\right) + 6\left((-1)(-1) - 0\right) = s(s^2 + 6s + 11) + 6 \\
+   &= s^3 + 6s^2 + 11s + 6 = (s + 1)(s + 2)(s + 3)
+   \end{aligned}
+   $$
+   The open-loop eigenvalues are $\lambda_1 = -1$, $\lambda_2 = -2$, and $\lambda_3 = -3$, and the negated polynomial coefficients $[-a_0, -a_1, -a_2]^T = [-6, -11, -6]^T$ appear down the third column of $\mathbf{A}$.
+
+2. **Observer error matrix and characteristic polynomial:**
+   Because $\mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}$ has $1$ only in its third entry, the outer product $\mathbf{L}\mathbf{C}$ is non-zero only in column 3:
+   $$
+   \mathbf{L}\mathbf{C} = \begin{bmatrix} l_1 \\ l_2 \\ l_3 \end{bmatrix} \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 0 & 0 & l_1 \\ 0 & 0 & l_2 \\ 0 & 0 & l_3 \end{bmatrix}
+   $$
+   Subtracting $\mathbf{L}\mathbf{C}$ from $\mathbf{A}$ shifts each entry in the third column cleanly:
+   $$
+   \mathbf{A} - \mathbf{L}\mathbf{C} = \begin{bmatrix} 0 & 0 & -(6 + l_1) \\ 1 & 0 & -(11 + l_2) \\ 0 & 1 & -(6 + l_3) \end{bmatrix}
+   $$
+   Because $\mathbf{A} - \mathbf{L}\mathbf{C}$ preserves the exact observable companion form, its characteristic polynomial is read directly from the negated third column:
+   $$
+   p_o(s) = \det\left(s\mathbf{I}_3 - (\mathbf{A} - \mathbf{L}\mathbf{C})\right) = s^3 + (6 + l_3)s^2 + (11 + l_2)s + (6 + l_1)
+   $$
+
+3. **Gain synthesis for $\beta_1 = \beta_2 = \beta_3 = -5$:**
+   Expanding the desired cubic observer polynomial gives:
+   $$
+   p_o^*(s) = (s + 5)^3 = s^3 + 3(5)s^2 + 3(25)s + 125 = s^3 + 15s^2 + 75s + 125
+   $$
+   Equating coefficients power-by-power decouples all three observer gains immediately:
+   $$
+   6 + l_3 = 15 \implies l_3 = 9, \qquad 11 + l_2 = 75 \implies l_2 = 64, \qquad 6 + l_1 = 125 \implies l_1 = 119
+   $$
+   Assembling these into the column vector $\mathbf{L}$ gives:
+   $$
+   \mathbf{L} = \begin{bmatrix} 119 \\ 64 \\ 9 \end{bmatrix}
+   $$
+
+4. **Estimation error differential equation and asymptotic convergence:**
+   With $\mathbf{L} = \begin{bmatrix} 119 & 64 & 9 \end{bmatrix}^T$, the estimation error $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$ obeys:
+   $$
+   \dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t) = \begin{bmatrix} 0 & 0 & -125 \\ 1 & 0 & -75 \\ 0 & 1 & -15 \end{bmatrix} \mathbf{e}(t)
+   $$
+   Because all three eigenvalues of $\mathbf{A} - \mathbf{L}\mathbf{C}$ sit strictly in the open left-half plane at $\beta_{1,2,3} = -5 < 0$, every natural mode of $e^{(\mathbf{A}-\mathbf{L}\mathbf{C})t}$ ($e^{-5t}$, $t e^{-5t}$, and $t^2 e^{-5t}$) decays exponentially to zero, guaranteeing $\lim_{t \to \infty} \mathbf{e}(t) = \mathbf{0}$ for every initial error $\mathbf{e}(0) \in \mathbb{R}^3$.
+
+</details>
+
+</Exercise>

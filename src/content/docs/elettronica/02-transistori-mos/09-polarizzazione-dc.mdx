@@ -12,92 +12,148 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import MosfetExplorer from "@components/MosfetExplorer.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 9" markdown={`# Cap. 9: Polarizzazione DC del MOSFET
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Obiettivi e Procedura per l'Analisi di Polarizzazione
-    - La Rete di Polarizzazione a 3 Resistori (a $V_{GS}$ Costante)
-    - La Rete di Polarizzazione a 4 Resistori
-    - Il Meccanismo Fisico della Retroazione Negativa di Source
-    - Verifica della Regione di Saturazione
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 9" markdown={`# Cap. 9: Polarizzazione DC del MOSFET
+  - 1. Procedura per il Punto Q e Rete a 3 Resistori
+    - Esempio: Punto di Lavoro e Deriva Termica (+44%) a $V_{GS}$ Fissa
+    - Teoria: Procedura in 5 Passi e Equivalente di Thévenin a 3 Resistori
+  - 2. Rete a 4 Resistori e Retroazione di Source
+    - Esempio: Stabilizzazione della Corrente con $R_S$ e Verifica di Saturazione
+    - Teoria: Equazione Quadratica in $V_{OV}$, Retroazione Negativa e Condizione $V_D \\ge V_G - V_{th}$
+  - 3. Polarizzazione Drain-Gate (Self-Biasing)
+    - Esempio: Punto di Lavoro con Retroazione Drain-Gate
+    - Teoria: Connessione a Diodo ($V_{DS} = V_{GS}$) e Saturazione Garantita`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
-La determinazione del punto statico di lavoro $Q(I_D, V_{GS}, V_{DS})$ costituisce il passo preliminare di qualsiasi progetto o analisi di amplificatori a transistori. In questo capitolo esaminiamo la procedura generale di analisi in continua, la **rete di polarizzazione a 3 resistori** (a tensione $V_{GS}$ costante) con i suoi limiti di sensibilità ai parametri tecnologici, la **rete di polarizzazione a 4 resistori** con degenerazione di Source $R_S$ (sia per NMOS sia per PMOS) e la configurazione autopolarizzata con retroazione Drain-Gate.
+Nel [Capitolo 7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/) abbiamo visto che per amplificare un segnale senza distorcerlo occorre prima fissare un punto di lavoro statico $Q(I_D, V_{GS}, V_{DS})$ nella regione di saturazione. Nella pratica industriale, tuttavia, due transistori dello stesso modello o esposti a temperature diverse possono presentare variazioni della tensione di soglia $V_{th}$ e del guadagno $K_n$ anche del $20\%\div 30\%$. Se fissiamo rigidamente $V_{GS}$ con una rete ingenua a 3 resistori, la corrente $I_D$ subisce oscillazioni enormi e rischia di spingere il MOSFET fuori dalla saturazione; occorrono quindi reti stabilizzate mediante **retroazione negativa di Source ($R_S$)** o **retroazione Drain-Gate (*self-biasing*)**.
 
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+<Divider label="1 · Procedura per il Punto Q e Rete a 3 Resistori" />
 
-## Obiettivi e Procedura per l'Analisi di Polarizzazione
+### Esempio — Punto di Lavoro e Sensibilità alle Derive nella Rete a 3 Resistori
 
-Il circuito di polarizzazione DC (*biasing*) ha il compito di stabilire un punto di lavoro quiescente ben definito $(I_D, V_{GS}, V_{DS})$:
-* Nelle applicazioni logiche digitali, il MOSFET opera come un interruttore che commuta tra la regione di interdizione (*OFF*) e la regione di triodo (*ON*).
-* Nelle applicazioni di amplificazione lineare, il punto di lavoro $Q$ deve essere posizionato stabilmente nella **regione di saturazione** ($V_{GS} > V_{th}$ e $V_{DS} \ge V_{GS} - V_{th}$), garantendo la transconduttanza richiesta e un'adeguata dinamica di tensione in uscita, pur mantenendo l'immunità alle dispersioni di processo su $V_{th}$ e $K_n = k_n' (W/L)$ e alle variazioni di temperatura.
-
-La procedura sistematica per il calcolo manuale del punto di riposo $Q$ (trascurando di norma la modulazione di canale in DC, ossia assumendo $\lambda = 0$) si articola in cinque passi:
-1. Formulare un'ipotesi sulla regione di funzionamento del transistore (tipicamente la **regione di saturazione**).
-2. Ridurre la rete connessa al Gate mediante l'equivalente di Thévenin e applicare la KVL alla maglia d'ingresso Gate-Source per determinare $V_{GS}$ (sfruttando $I_G = 0$).
-3. Utilizzare l'equazione di corrente della regione ipotizzata per calcolare $I_D$ e applicare la KVL alla maglia d'uscita Drain-Source per ricavare $V_{DS}$.
-4. Verificare la consistenza dell'ipotesi iniziale controllando le disuguaglianze ($V_{GS} > V_{th}$ e $V_{DS} \ge V_{GS} - V_{th}$ per un NMOS in saturazione).
-5. Qualora la verifica fallisca (ad esempio se $V_{DS} < V_{GS} - V_{th}$), modificare l'ipotesi assumendo la regione di triodo e ricalcolare la coppia $(I_D, V_{DS})$.
-
-## La Rete di Polarizzazione a 3 Resistori (a $V_{GS}$ Costante)
-
-La prima architettura di polarizzazione a singola alimentazione $V_{DD}$ (o doppia alimentazione $V_{GG}, V_{DD}$) è la **rete di polarizzazione a 3 resistori** (detta anche *polarizzazione a tensione Gate-Source costante*), illustrata in [la figura](#fig-bias-three-resistors) insieme al suo circuito equivalente di Thévenin.
+Consideriamo un transistore NMOS con $K_n = 2.0\,\text{mA/V}^2$ ($\lambda = 0$) inserito nella **rete a 3 resistori** di [la figura](#fig-bias-three-resistors), alimentata a $V_{DD} = 10\,\text{V}$ con partitore di Gate $R_1 = 250\,\text{k}\Omega$ (verso massa), $R_2 = 750\,\text{k}\Omega$ (verso $V_{DD}$) e resistore di Drain $R_D = 2.0\,\text{k}\Omega$:
 
 <figure id="fig-bias-three-resistors" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-bias-three-resistors.svg" alt="Rete di polarizzazione a 3 resistori (R_1, R_2, R_D) a V_GS costante (a) e circuito semplificato con l'equivalente di Thévenin sulla maglia di Gate (b)." />
   <figcaption>Rete di polarizzazione a 3 resistori ($R_1, R_2, R_D$) a $V_{GS}$ costante (a) e circuito semplificato con l'equivalente di Thévenin sulla maglia di Gate (b).</figcaption>
 </figure>
 
-Il partitore resistivo $R_1, R_2$ fissa la tensione sul Gate, mentre il terminale di Source è connesso direttamente a massa ($V_S = 0$):
-1. **Equivalente di Thévenin al Gate:**
-   $$ V_{EQ} = V_{DD} \frac{R_1}{R_1 + R_2}, \qquad R_{EQ} = R_1 \parallel R_2 = \frac{R_1 R_2}{R_1 + R_2} $$
-2. **Maglia di Ingresso (KVL):** Poiché in continua la corrente di Gate è identicamente nulla ($I_G = 0$), non cade tensione su $R_{EQ}$ e la tensione Gate-Source è fissata rigidamente dal partitore:
-   $$ V_{EQ} = R_{EQ} I_G + V_{GS} \implies V_{GS} = V_{EQ} $$
-3. **Corrente di Drain e Tensione di Uscita:** Assumendo la regione di saturazione con $\lambda = 0$ e $K_n = k_n' (W/L)$:
-   $$ I_D = \frac{K_n}{2} (V_{GS} - V_{th})^2 = \frac{K_n}{2} (V_{EQ} - V_{th})^2, \qquad V_{DS} = V_{DD} - R_D I_D $$
-   La verifica della saturazione richiede che risulti $V_{DS} \ge V_{GS} - V_{th}$.
+1. **Punto di lavoro nominale ($V_{th} = 1.0\,\text{V}$):**
+   Poiché $I_G = 0$, il partitore di ingresso impone sul Gate una tensione rigida $V_{GS} = V_{EQ} = V_{DD} \frac{R_1}{R_1 + R_2} = 10 \times \frac{250}{1000} = 2.5\,\text{V}$ rispetto al Source collegato a massa ($V_S = 0$). Con la soglia nominale $V_{th} = 1.0\,\text{V}$, l'overdrive vale $V_{OV} = 2.5 - 1.0 = 1.5\,\text{V}$ e la corrente di Drain in saturazione risulta:
 
-### Limite Progettuale della Rete a 3 Resistori
-Sebbene molto semplice, la rete a 3 resistori è **scarsamente utilizzabile nelle applicazioni pratiche discreti** perché il punto di lavoro $Q$ è estremamente sensibile alle tolleranze sui parametri del transistore: poiché $V_{GS} = V_{EQ}$ è mantenuta fissa e indipendente da $I_D$, la corrente di polarizzazione $I_D$ varia in proporzione diretta alle dispersioni di $K_n$ e varia con il **quadrato** delle variazioni della tensione di soglia $V_{th}$ (anche per deriva termica).
+$$
+I_D = \frac{1}{2} K_n (V_{GS} - V_{th})^2 = \frac{1}{2} (2.0\,\text{mA/V}^2) (2.5 - 1.0)^2 = 1.0 \times 2.25 = 2.25\,\text{mA}
+$$
 
-## La Rete di Polarizzazione a 4 Resistori
+   La tensione Drain-Source vale $V_{DS} = V_{DD} - R_D I_D = 10 - 2.0 \times 2.25 = 5.5\,\text{V} \ge V_{OV} = 1.5\,\text{V}$ (saturazione verificata).
 
-Per stabilizzare efficacemente il punto di lavoro $Q$, si introduce un quarto resistore $R_S$ tra il terminale di Source e massa, ottenendo la **rete di polarizzazione a 4 resistori** illustrata in [la figura](#fig-bias-four-resistors) (per NMOS e nella versione duale per PMOS).
+2. **Effetto di una deriva della soglia ($V_{th}' = 0.7\,\text{V}$):**
+   Supponiamo ora che, per effetto di un riscaldamento o di una dispersione di fabbricazione nel lotto successivo, la tensione di soglia scenda a $V_{th}' = 0.7\,\text{V}$. Poiché $V_{GS}$ è bloccata a $2.5\,\text{V}$, l'overdrive sale da $1.5\,\text{V}$ a $1.8\,\text{V}$ e la corrente schizza a:
+
+$$
+I_D' = \frac{1}{2} (2.0\,\text{mA/V}^2) (2.5 - 0.7)^2 = 1.0 \times 3.24 = 3.24\,\text{mA}
+$$
+
+   Una variazione di $-0.3\,\text{V}$ sulla soglia ha provocato un salto di corrente di ben **$+44\%$** (con $V_{DS}' = 10 - 2.0 \times 3.24 = 3.52\,\text{V}$), riducendo drasticamente il margine di dinamica sul Drain!
+
+<StepCheck client:load lang="it" prompt="Con $K_n = 2.0\,\text{mA/V}^2$ e $V_{GS} = 2.5\,\text{V}$ fissato rigidamente, calcola la nuova corrente $I_D'$ quando $V_{th}$ scende a $0.7\,\text{V}$ (in $\text{mA}$):" expected={3.24} tolerance={0.05} unit="mA" explanation="$I_D' = 0.5 \cdot 2.0 \cdot (2.5 - 0.7)^2 = 1.0 \cdot 1.8^2 = 3.24\,\text{mA}$." />
+
+Usa l'esploratore qui sotto per osservare direttamente quanto la curva $I_D$-$V_{DS}$ si sposti al variare di $V_{GS}$ (o di $V_{th}$) e verifica la distanza dal confine di *pinch-off*.
+
+<MosfetExplorer client:load />
+
+### Teoria — Procedura Generale in 5 Passi e Rete a $V_{GS}$ Costante
+
+Il circuito di polarizzazione DC (*biasing*) ha il compito di fissare un punto di lavoro statico $Q(I_D, V_{GS}, V_{DS})$ stabile contro le tolleranze dei componenti e le derive termiche. Mentre nei circuiti digitali il MOSFET lavora come interruttore tra interdizione e triodo, negli amplificatori lineari il punto $Q$ deve trovarsi sempre nella **regione di saturazione** ($V_{GS} > V_{th}$ e $V_{DS} \ge V_{GS} - V_{th}$), in modo da garantire la transconduttanza $g_m$ desiderata e un'ampia dinamica di uscita senza distorsioni.
+
+Poiché nei conti manuali di polarizzazione il termine $(1 + \lambda V_{DS})$ introduce una correzione di pochi punti percentuali, si assume di norma $\lambda = 0$ e si segue una procedura sistematica in cinque passi:
+1. **Ipotesi iniziale:** assumere che il transistore sia acceso e operi in **regione di saturazione**.
+2. **Riduzione al Gate:** sostituire l'eventuale partitore di ingresso con il suo equivalente di Thévenin e scrivere la KVL sulla maglia Gate-Source sfruttando il fatto che la corrente statica di Gate è sempre nulla ($I_G = 0$).
+3. **Calcolo di $I_D$ e $V_{DS}$:** inserire la relazione della KVL nell'equazione di saturazione ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)) per ricavare $I_D$ (scartando l'eventuale radice non fisica), poi applicare la KVL sulla maglia Drain-Source per calcolare $V_{DS}$.
+4. **Verifica della saturazione:** controllare che valgano entrambe le condizioni $V_{GS} > V_{th}$ e $V_{DS} \ge V_{GS} - V_{th}$.
+5. **Eventuale correzione:** se $V_{DS} < V_{GS} - V_{th}$, l'ipotesi di saturazione è falsa: il MOSFET è entrato in **regione di triodo** e occorre reimpostare il sistema utilizzando l'equazione del triodo.
+
+Nella **rete a 3 resistori** (o polarizzazione a $V_{GS}$ costante, [la figura](#fig-bias-three-resistors)), il partitore formato da $R_1$ e $R_2$ fissa la tensione sul Gate mentre il Source è collegato direttamente a massa ($V_S = 0$). Seguendo la convenzione di [la figura](#fig-bias-three-resistors)(a), in cui $R_2$ collega il Gate a $V_{DD}$ e $R_1$ collega il Gate a massa, l'equivalente di Thévenin visto dal Gate vale:
+
+$$
+V_{EQ} = V_{DD} \frac{R_1}{R_1 + R_2}, \qquad R_{EQ} = R_1 \parallel R_2 = \frac{R_1 R_2}{R_1 + R_2}
+$$
+
+Poiché l'ossido di Gate isola perfettamente il terminale di controllo, in continua scorre corrente nulla ($I_G = 0$), quindi non c'è alcuna caduta di tensione su $R_{EQ}$:
+
+$$
+V_{EQ} = R_{EQ} I_G + V_{GS} \implies V_{GS} = V_{EQ}
+$$
+
+Assumendo il transistore in saturazione (con $\lambda = 0$ e $K_n = k_n' \frac{W}{L}$), la corrente di Drain e la tensione Drain-Source risultano immediate:
+
+$$
+I_D = \frac{K_n}{2} (V_{EQ} - V_{th})^2, \qquad V_{DS} = V_{DD} - R_D I_D
+$$
+
+Nonostante la sua semplicità algebrica, la rete a 3 resistori è quasi inutilizzabile nei circuiti discreti reali: poiché $V_{GS}$ è bloccata a $V_{EQ}$ indipendentemente da $I_D$, ogni variazione di $K_n$ o di $V_{th}$ si trasferisce integralmente e quadraticamente su $I_D$.
+
+<Divider label="2 · Rete a 4 Resistori e Retroazione Locale di Source" />
+
+### Esempio — Stabilizzazione della Corrente con $R_S$ e Verifica di Saturazione
+
+Inseriamo ora nello stesso circuito ($K_n = 2.0\,\text{mA/V}^2$, $R_D = 2.0\,\text{k}\Omega$, $V_{DD} = 12\,\text{V}$) un quarto resistore di Source $R_S = 1.0\,\text{k}\Omega$ verso massa e dimensioniamo il partitore di Gate per avere $V_{EQ} = 4.0\,\text{V}$ (**rete a 4 resistori**, [la figura](#fig-bias-four-resistors)):
 
 <figure id="fig-bias-four-resistors" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-bias-four-resistors.svg" alt="Rete di polarizzazione a 4 resistori con stabilizzazione di Source: (a) schema completo per NMOS; (b) riduzione mediante equivalente di Thévenin; (c) configurazione duale a 4 resistori per transistore PMOS (con Source posto in alto verso V_DD)." />
   <figcaption>Rete di polarizzazione a 4 resistori con stabilizzazione di Source: (a) schema completo per NMOS; (b) riduzione mediante equivalente di Thévenin; (c) configurazione duale a 4 resistori per transistore PMOS (con Source posto in alto verso $V_{DD}$).</figcaption>
 </figure>
 
-### Riduzione di Thévenin e Calcolo Analitico del Punto $Q$
-Sostituendo il partitore al Gate con l'equivalente di Thévenin ($V_{EQ} = V_{DD}\frac{R_1}{R_1+R_2}$ e $R_{EQ} = R_1 \parallel R_2$, scegliendo $R_1 + R_2$ dell'ordine dei $\text{M}\Omega$ per limitare la corrente assorbita dal partitore a pochi microampere) e applicando la KVL alla maglia d'ingresso ([la figura](#fig-bias-four-resistors)(b)) con $I_G = 0$:
-$$ V_{EQ} = R_{EQ} I_G + V_{GS} + R_S I_D \implies V_{EQ} = V_{GS} + R_S I_D $$
+1. **Punto di lavoro con $V_{th} = 1.0\,\text{V}$ e scelta della radice fisica:**
+   La tensione sul Source cresce con la corrente secondo $V_S = R_S I_D = 1.0 \cdot I_D$ (con $I_D$ in $\text{mA}$), per cui $V_{GS} = V_{EQ} - R_S I_D = 4.0 - I_D$. Sostituendo nella legge di saturazione $I_D = \frac{1}{2} K_n (V_{GS} - V_{th})^2$:
 
-Scrivendo inoltre la KVL sulla maglia di uscita Drain-Source:
-$$ V_{DD} = R_D I_D + V_{DS} + R_S I_D \implies V_{DS} = V_{DD} - (R_D + R_S) I_D $$
+$$
+I_D = 1.0 \cdot (4.0 - I_D - 1.0)^2 = (3.0 - I_D)^2 \implies I_D^2 - 7 I_D + 9 = 0
+$$
 
-### Sviluppo Matematico: Risoluzione dell'Equazione Quadratica della Rete a 4 Resistori
+   Le due soluzioni matematiche sono $I_{D1} \approx 5.30\,\text{mA}$ (da scartare perché darebbe $V_{GS} = 4.0 - 5.30 = -1.30\,\text{V} < V_{th}$, canale spento!) e la **radice fisica** $I_D \approx 1.70\,\text{mA}$, con $V_{GS} = 4.0 - 1.70 = 2.30\,\text{V}$ ($V_{OV} = 1.30\,\text{V}$).
 
-Assumendo il transistore NMOS in saturazione con $I_D = \frac{K_n}{2}(V_{GS} - V_{th})^2$ (dove $K_n = k_n' \frac{W}{L}$) e sostituendo nella KVL di ingresso $V_{EQ} = V_{GS} + R_S I_D$, si ottiene l'equazione quadratica in $V_{GS}$:
-$$ V_{EQ} = V_{GS} + \frac{K_n R_S}{2} (V_{GS} - V_{th})^2 $$
-Ponendo $V_{OV} = V_{GS} - V_{th}$, l'equazione diventa $\frac{K_n R_S}{2} V_{OV}^2 + V_{OV} - (V_{EQ} - V_{th}) = 0$. Selezionando l'unica radice fisicamente accettabile con $V_{OV} > 0$ ($V_{GS} > V_{th}$) e sostituendola nell'espressione di $I_D$, si ricavano le formule chiuse del punto di riposo:
-$$ V_{GS} = V_{th} + \frac{\sqrt{1 + 2 K_n R_S (V_{EQ} - V_{th})} - 1}{K_n R_S}, \qquad I_D = \frac{\left(\sqrt{1 + 2 K_n R_S (V_{EQ} - V_{th})} - 1\right)^2}{2 K_n R_S^2} $$
-Nel caso duale di un **transistore PMOS** ([la figura](#fig-bias-four-resistors)(c)), il Source si trova in alto verso $V_{DD}$: la KVL d'ingresso si scrive $V_{DD} - V_{EQ} = V_{SG} + R_S I_D$, con $I_D = \frac{K_p}{2}(V_{SG} - |V_{thp}|)^2$ e $V_{SD} = V_{DD} - (R_D + R_S)I_D \ge V_{SG} - |V_{thp}|$.
+2. **Verifica obbligatoria della saturazione ($V_D \ge V_G - V_{th}$):**
+   Calcoliamo la tensione sul Drain e $V_{DS}$:
 
-## Il Meccanismo Fisico della Retroazione Negativa di Source
+$$
+V_D = V_{DD} - R_D I_D \approx 12.0 - 2.0 \times 1.70 = 8.60\,\text{V} \ge V_G - V_{th} = 4.0 - 1.0 = 3.0\,\text{V}
+$$
 
-La presenza del resistore $R_S$ introduce un fondamentale meccanismo di **retroazione negativa locale serie-serie** in continua, che stabilizza il punto di lavoro contro derive termiche e variazioni di processo:
-$$\begin{aligned}
-\text{Se la temperatura aumenta o la soglia cala } (V_{th} \downarrow) &\implies I_D \uparrow \\
-&\implies V_S = R_S I_D \uparrow \\
-&\implies V_{GS} = V_{EQ} - V_S \downarrow \quad (\text{poiché } V_{EQ} \text{ è fisso}) \\
-&\implies I_D \downarrow \quad (\text{l'aumento iniziale viene contrastato})
-\end{aligned}$$
+   In modo equivalente, $V_{DS} = V_{DD} - (R_D + R_S)I_D \approx 12.0 - 3.0 \times 1.70 = 6.90\,\text{V} \ge V_{OV} = 1.30\,\text{V}$: il MOSFET è saldamente in saturazione.
 
-Dalla relazione $I_D = \frac{V_{EQ} - V_{GS}}{R_S}$, se il circuito è dimensionato in modo che la caduta statica su $R_S$ sia nettamente superiore a $V_{GS}$ ($V_{EQ} \gg V_{GS}$), allora $I_D \approx \frac{V_{EQ}}{R_S}$ diventa dipendente quasi esclusivamente dai rapporti tra i resistori passivi.
+3. **Abbattimento della deriva quando $V_{th}$ scende a $0.7\,\text{V}$:**
+   Se la soglia scende a $V_{th}' = 0.7\,\text{V}$, l'equazione diventa $I_D' = (3.3 - I_D')^2$, la cui radice fisica è $I_D' \approx 1.92\,\text{mA}$. Grazie alla retroazione negativa di $R_S$, la variazione di corrente crolla dal $+44\%$ della rete a 3 resistori a circa **$+13\%$**!
+
+<StepCheck client:load lang="it" prompt="Nella rete a 4 resistori dell'esempio ($V_G = 4.0\,\text{V}$, $R_S = 1.0\,\text{k}\Omega$, $I_D = 1.697\,\text{mA}$), quanto vale il potenziale statico del Source $V_S = R_S I_D$ (in $\text{V}$)?" expected={1.697} tolerance={0.02} unit="V" explanation="$V_S = R_S I_D = 1.0\,\text{k}\Omega \times 1.697\,\text{mA} = 1.697\,\text{V}$, da cui $V_{GS} = 4.0 - 1.697 = 2.303\,\text{V}$." />
+
+### Teoria — Equazione Quadratica in $V_{OV}$, Retroazione su $R_S$ e Verifica $V_D \ge V_G - V_{th}$
+
+Per rendere il punto di riposo $Q$ insensibile alle variazioni dei parametri del transistore, si introduce un quarto resistore $R_S$ tra il terminale di Source e massa, ottenendo la **rete a 4 resistori** illustrata in [la figura](#fig-bias-four-resistors) sia per NMOS sia nella versione duale per PMOS.
+
+Sostituendo il partitore di ingresso con il suo equivalente di Thévenin ($V_{EQ}$ e $R_{EQ}$, scegliendo $R_1 + R_2$ nell'ordine dei $\text{M}\Omega$) e ricordando che $I_G = 0$, la KVL sulla maglia di ingresso ([la figura](#fig-bias-four-resistors)(b)) e quella sulla maglia di uscita diventano:
+
+$$
+V_{EQ} = V_{GS} + R_S I_D, \qquad V_{DS} = V_{DD} - (R_D + R_S) I_D
+$$
+
+Ipotizzando la regione di saturazione ($I_D = \frac{K_n}{2}(V_{GS} - V_{th})^2$) e sostituendo $V_{GS} = V_{EQ} - R_S I_D$, si ottiene sempre una semplice equazione di secondo grado in $I_D$:
+
+$$
+I_D = \frac{K_n}{2} (V_{EQ} - R_S I_D - V_{th})^2
+$$
+
+Non serve memorizzare formule risolutive complicate: basta inserire i numeri nell'equazione, trovare le due radici e **scartare quella maggiore**, perché renderebbe $V_{GS} < V_{th}$ (cioè corrisponderebbe a un transistore spento, dove la formula di saturazione non vale).
+
+Nel caso duale del **transistore PMOS** ([la figura](#fig-bias-four-resistors)(c)), il terminale di Source è rivolto verso $V_{DD}$ tramite $R_S$: la KVL di ingresso si scrive $V_{DD} - V_{EQ} = V_{SG} + R_S I_D$, la corrente in saturazione vale $I_D = \frac{K_p}{2}(V_{SG} - |V_{TP}|)^2$ e la verifica sulla maglia di uscita richiede $V_{SD} = V_{DD} - (R_D + R_S)I_D \ge V_{SG} - |V_{TP}|$.
+
+Il meccanismo che stabilizza la rete a 4 resistori è una **retroazione negativa locale** introdotta da $R_S$. Se la temperatura aumenta o la soglia $V_{th}$ cala, la catena di reazione si oppone automaticamente alla deriva:
+
+$$
+\Delta V_{th} \downarrow \implies I_D \uparrow \implies V_S = R_S I_D \uparrow \implies V_{GS} = V_{EQ} - V_S \downarrow \implies I_D \downarrow
+$$
+
+Dalla relazione $I_D = \frac{V_{EQ} - V_{GS}}{R_S}$ si vede che, progettando $V_{EQ} \gg V_{GS}$, la corrente di Drain tende a $I_D \approx V_{EQ}/R_S$, dipendendo quasi esclusivamente da resistori passivi precisi.
 
 <Callout type="tip" title="Vantaggio Pratico: Perché la Rete a 4 Resistori Domina nei Circuiti Discreti">
 
@@ -105,27 +161,64 @@ Questa configurazione a 4 resistori ha un vantaggio pratico decisivo rispetto a 
 
 </Callout>
 
-## Verifica della Regione di Saturazione
+Una volta calcolati $I_D$, $V_{GS}$ e $V_{DS}$, la **verifica della regione di saturazione** è obbligatoria. Partendo dalla condizione di pinch-off $V_{DS} \ge V_{GS} - V_{th}$ ed esprimendo $V_{DS} = V_D - V_S$ e $V_{GS} = V_G - V_S$, il potenziale di Source $V_S$ si elide da entrambi i membri lasciando una regola visiva immediata sul potenziale di Drain:
 
-Una volta ricavato il punto di lavoro, è **obbligatorio verificare la saturazione** tramite la condizione $V_{DS} \ge V_{GS} - V_{th}$. Poiché $V_{DS} = V_D - V_S$ e $V_{GS} = V_G - V_S$, sommando $V_S$ ad ambo i membri si ottiene anche la verifica immediata sul potenziale di Drain:
-$$ V_D \ge V_G - V_{th} \iff \text{Saturazione Verificata} $$
-Se invece risulta $V_D < V_G - V_{th}$ (ossia $V_{DS} < V_{GS} - V_{th}$), il transistore è entrato in **regione di triodo** e occorre ricalcolare $I_D$ sostituendo l'equazione del triodo nella KVL.
+$$
+V_D - V_S \ge V_G - V_S - V_{th} \iff V_D \ge V_G - V_{th}
+$$
 
-## Topologia con Retroazione Drain-Gate (Self-Biasing)
+Se invece la verifica fallisce ($V_D < V_G - V_{th}$, ossia $V_{DS} < V_{GS} - V_{th}$), il transistore è entrato in **regione di triodo** e occorre ricalcolare $I_D$ sostituendo le KVL nell'equazione del triodo $I_D = K_n \left[(V_{GS} - V_{th})V_{DS} - \frac{1}{2}V_{DS}^2\right]$.
 
-Collegando una resistenza $R_G$ direttamente tra Drain e Gate ([la figura](#fig-drain-feedback)):
+<Divider label="3 · Polarizzazione Drain-Gate (Self-Biasing)" />
+
+### Esempio — Punto di Lavoro in Self-Biasing con Saturazione Garantita
+
+Analizziamo il circuito di polarizzazione con retroazione Drain-Gate (*self-biasing*) di [la figura](#fig-drain-feedback), utilizzando un NMOS con $K_n = 2.0\,\text{mA/V}^2$ e $V_{th} = 1.0\,\text{V}$ ($\lambda = 0$), Source a massa ($R_S = 0$), resistore di Drain $R_D = 1.0\,\text{k}\Omega$ verso $V_{DD} = 5.0\,\text{V}$ e resistore di retroazione $R_G = 1.0\,\text{M}\Omega$ tra Drain e Gate:
 
 <figure id="fig-drain-feedback" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-drain-feedback.svg" alt="Circuito di polarizzazione con retroazione Drain-Gate (*self-biasing*)." />
   <figcaption>Circuito di polarizzazione con retroazione Drain-Gate (*self-biasing*).</figcaption>
 </figure>
 
-Poiché a regime DC la corrente di Gate è nulla ($I_G = 0$), non vi è caduta di potenziale su $R_G$:
-$$ V_G = V_D \implies V_{GS} = V_{DS} $$
+1. **Uguaglianza tra $V_{GS}$ e $V_{DS}$ in continua:**
+   Poiché in DC la corrente di Gate è nulla ($I_G = 0$), attraverso $R_G = 1.0\,\text{M}\Omega$ non scorre alcuna corrente e non c'è caduta di tensione:
 
-Confrontando con la disuguaglianza di pinch-off:
-$$ V_{DS} = V_{GS} > V_{GS} - V_{th} \quad (\text{essendo } V_{th} > 0) $$
-Un MOSFET a arricchimento connesso con $V_{DS} = V_{GS}$ si trova **sempre e intrinsecamente in regione di saturazione**.
+$$
+V_G = V_D \implies V_{GS} = V_{DS} = V_{DD} - R_D I_D = 5.0 - 1.0 \cdot I_D
+$$
+
+2. **Saturazione garantita e calcolo di $I_D$:**
+   Essendo $V_{DS} = V_{GS}$ e $V_{th} = 1.0\,\text{V} > 0$, la disuguaglianza $V_{DS} > V_{GS} - V_{th}$ è **sempre soddisfatta**: il MOSFET non può mai entrare in triodo! Sostituendo $V_{GS} = 5.0 - I_D$ nell'equazione di saturazione:
+
+$$
+I_D = \frac{1}{2}(2.0)(5.0 - I_D - 1.0)^2 = (4.0 - I_D)^2 \implies I_D^2 - 9 I_D + 16 = 0
+$$
+
+   Scegliendo la radice minore (l'unica con $V_{GS} > 1.0\,\text{V}$), troviamo:
+
+$$
+I_D = \frac{9 - \sqrt{17}}{2} \approx 2.44\,\text{mA}, \qquad V_{DS} = V_{GS} = 5.0 - 2.44 = 2.56\,\text{V} > V_{th}
+$$
+
+<StepCheck client:load lang="it" mode="choice" prompt="Perché un MOSFET ad arricchimento ($V_{th} > 0$) polarizzato con connessione Drain-Gate ($V_D = V_G$ tramite $R_G$) non può mai entrare in regione di triodo quando è acceso?" options={["Perché $I_G = 0$ impone $V_{DS} = V_{GS}$, quindi $V_{DS} > V_{GS} - V_{th}$ è sempre vera", "Perché $R_G$ cortocircuita il Source al Drain riducendo $V_{OV}$ a zero", "Perché la corrente di Drain si annulla appena $V_D$ scende sotto $V_{DD}$", "Perché $V_{th}$ diventa negativa nella connessione a diodo"]} correctIndex={0} explanation="Con $I_G = 0$, non scorre corrente in $R_G$, per cui $V_D = V_G \implies V_{DS} = V_{GS}$. Essendo $V_{th} > 0$, la disuguaglianza di saturazione $V_{DS} \ge V_{GS} - V_{th}$ è sempre soddisfatta." />
+
+### Teoria — Connessione Drain-Gate ($V_{DS} = V_{GS}$) e Saturazione Intrinseca
+
+Un'alternativa compatta alla rete a 4 resistori è la **polarizzazione con retroazione Drain-Gate** (*self-biasing*), in cui un resistore $R_G$ di valore elevato (nell'ordine dei $\text{M}\Omega$) collega direttamente il Drain al Gate ([la figura](#fig-drain-feedback)).
+
+Poiché in continua la corrente di Gate è identicamente nulla ($I_G = 0$), attraverso $R_G$ non scorre corrente e ai suoi capi non vi è caduta di potenziale. Ne consegue che Gate e Drain si trovano allo stesso potenziale statico:
+
+$$
+V_G = V_D \implies V_{GS} = V_{DS}
+$$
+
+Confrontando questa identità con la disuguaglianza di saturazione, per qualunque transistore ad arricchimento ($V_{th} > 0$) si ha automaticamente:
+
+$$
+V_{DS} = V_{GS} > V_{GS} - V_{th}
+$$
+
+Un MOSFET polarizzato con $V_{DS} = V_{GS}$ è dunque **sempre in saturazione** finché è acceso ($V_{GS} > V_{th}$), senza necessità di verifiche a posteriori. Inoltre la rete gode di una forte **retroazione negativa**: se $I_D$ tende ad aumentare, la caduta $R_D I_D$ aumenta, abbassando $V_D = V_G$ e quindi riducendo $V_{GS}$, il che riporta $I_D$ verso l'equilibrio. In questo schema $R_G$ ha il solo scopo di isolare il Gate dal Drain alle frequenze di segnale AC, mentre quando Drain e Gate sono cortocircuitati direttamente ($R_G = 0$) il bipolo risultante prende il nome di **transistore connesso a diodo**.
 
 <Callout type="tip" title="Vantaggio della Connessione a Diodo (V_DS = V_GS): Compattezza e Saturazione Garantita">
 
@@ -133,43 +226,156 @@ Questa configurazione (o la sua variante diretta con Drain cortocircuitato al Ga
 
 </Callout>
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+<Divider label="4 · Sintesi" />
 
-### Procedura Sistematica di Analisi DC (Rete a 4 Resistori)
+### Tabella di Riferimento Rapido
 
-1. **Tensione di Gate ($I_G = 0$):** $V_G = V_{DD} \frac{R_2}{R_1 + R_2}$.
-2. **Ipotesi di Saturazione:** sostituire $V_{GS} = V_G - I_D R_S$ in $I_D = \frac{1}{2} K_n (V_{GS} - V_{th})^2$ ottenendo un'equazione quadratica in $I_D$.
-3. **Scelta della radice fisica:** delle due radici matematiche, scartare quella per cui $V_{GS} &lt; V_{th}$ (corrente non fisica a canale spento).
-4. **Verifica finale:** calcolare $V_{DS} = V_{DD} - I_D (R_D + R_S)$ e controllare che $V_{DS} \ge V_{GS} - V_{th}$. Se falso, ricalcolare usando l'equazione del triodo.
+| Topologia di Bias | Equazione d'Ingresso (KVL) | Equazione d'Uscita ($V_{DS}$) | Stabilità e Regione |
+| :--- | :--- | :--- | :--- |
+| **Rete a 3 Resistori** | $V_{GS} = V_{EQ}$ | $V_{DS} = V_{DD} - R_D I_D$ | Bassa stabilità rispetto a $V_{th}, K_n$; verificare $V_{DS} \ge V_{OV}$ |
+| **Rete 4 Resistori NMOS** | $V_{EQ} = V_{GS} + R_S I_D$ | $V_{DS} = V_{DD} - (R_D + R_S) I_D$ | Alta stabilità per retroazione su $R_S$; verificare $V_D \ge V_G - V_{th}$ |
+| **Rete 4 Resistori PMOS** | $V_{DD} - V_{EQ} = V_{SG} + R_S I_D$ | $V_{SD} = V_{DD} - (R_D + R_S) I_D$ | Alta stabilità; verificare $V_{SD} \ge V_{SG} - \lvert V_{TP}\rvert$ |
+| **Self-Biasing / Diodo** | $V_{GS} = V_{DS}$ | $V_{DS} = V_{DD} - (R_D + R_S) I_D$ | Saturazione intrinseca garantita per $V_{th} > 0$ |
 
-<MosfetExplorer client:load />
+### Procedura di Analisi
 
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
+1. **Tensione di Gate:** con $I_G = 0$, calcolare la tensione a vuoto del partitore di Gate ($V_G$ o $V_{EQ}$).
+2. **Ipotesi di saturazione:** sostituire $V_{GS} = V_G - I_D R_S$ in $I_D = \frac{1}{2} K_n (V_{GS} - V_{th})^2$ ottenendo un'equazione quadratica in $I_D$.
+3. **Scelta della radice:** delle due radici matematiche, scartare quella per cui $V_{GS} < V_{th}$ (corrente non fisica a canale spento).
+4. **Verifica finale:** calcolare $V_{DS} = V_{DD} - I_D (R_D + R_S)$ e controllare che $V_{DS} \ge V_{GS} - V_{th}$ (ovvero $V_D \ge V_G - V_{th}$). Se falso, ricalcolare usando l'equazione del triodo.
 
-<Callout type="warning" title="Trappola d'Esame: Scegliere la Radice Sbagliata dell'Equazione Quadratica">
+### Dimostrazioni Chiave
 
-Risolvendo $(V_G - I_D R_S - V_{th})^2 = \frac{2 I_D}{K_n}$ si ottengono sempre due valori positivi per $I_D$. **Solo la radice minore** garantisce $V_{GS} &gt; V_{th}$; l'altra corrisponde a $V_{GS} &lt; V_{th}$ dove il polinomio quadratico non è fisicamente valido.
+* **Rete a 4 resistori:** sostituzione della KVL di Gate-Source nella legge quadratica di saturazione e derivazione della radice fisica positiva con $V_{OV} > 0$.
+* **Retroazione di Source:** dimostrazione della catena di compensazione $\Delta V_{th} \downarrow \implies I_D \uparrow \implies V_S \uparrow \implies V_{GS} \downarrow$.
+* **Collegamento a diodo:** prova che $V_G = V_D$ implica $V_{DS} = V_{GS} > V_{GS} - V_{th}$ per qualsiasi $V_{th} > 0$.
+
+<Callout type="warning" title="Errori Comuni">
+
+Risolvendo $(V_G - I_D R_S - V_{th})^2 = \frac{2 I_D}{K_n}$ si ottengono sempre due valori positivi per $I_D$. **Solo la radice minore** garantisce $V_{GS} > V_{th}$; l'altra corrisponde a $V_{GS} < V_{th}$ dove il polinomio quadratico non è fisicamente valido. Ricorda inoltre di verificare sempre a posteriori che $V_{DS} \ge V_{GS} - V_{th}$ e, nel caso PMOS, di riferire correttamente il partitore al terminale di Source collegato verso $V_{DD}$.
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-9-1" title="Esercizio 9.1: Punto di Lavoro Q nella Rete a 4 Resistori" level="Livello 2 · Esame" hint="Calcola prima V_G col partitore, poi risolvi (3 - I_D)^2 = I_D prendendo la radice che mantiene V_GS > V_th.">
+<Divider label="5 · Esercizi" />
 
-Una rete di polarizzazione NMOS a 4 resistori ha $V_{DD} = 12\,\text{V}$, $R_1 = 200\,\text{k}\Omega$, $R_2 = 100\,\text{k}\Omega$, $R_S = 1\,\text{k}\Omega$, $R_D = 2\,\text{k}\Omega$, $K_n = 2\,\text{mA/V}^2$ e $V_{th} = 1.0\,\text{V}$ ($\lambda = 0$).
+<Exercise client:load lang="it" id="ex-9-1" title="Esercizio 9.1 — Punto di Lavoro $Q$ nella Rete a 4 Resistori" level="Intermedio" hint="Calcola prima $V_G$ col partitore, poi risolvi $(3 - I_D)^2 = I_D$ scegliendo la radice che mantiene $V_{GS} > V_{th}$.">
 
-<StepCheck client:load lang="it" prompt="Calcola la tensione di Gate V_G (in V):" expected={4.0} tolerance={0.05} unit="V" explanation="V_G = 12 * 100 / (200 + 100) = 4.0 V." />
+Una rete di polarizzazione NMOS a 4 resistori ha $V_{DD} = 12\,\text{V}$, $R_1 = 200\,\text{k}\Omega$, $R_2 = 100\,\text{k}\Omega$, $R_S = 1\,\text{k}\Omega$, $R_D = 2\,\text{k}\Omega$, $K_n = 2\,\text{mA/V}^2$ e $V_{th} = 1.0\,\text{V}$ ($\lambda = 0$). (Qui $R_1$ è collegata a $V_{DD}$ e $R_2$ verso massa.)
 
-<StepCheck client:load lang="it" prompt="Calcola la corrente di Drain I_D al punto Q (in mA):" expected={1.697} tolerance={0.03} unit="mA" explanation="I_D^2 - 7*I_D + 9 = 0 ⇒ I_D = (7 - sqrt(13))/2 ≈ 1.697 mA (l'altra radice 5.303 mA darebbe V_GS < 1 V)." />
+<StepCheck client:load lang="it" prompt="Calcola la tensione di Gate $V_G$ (in $\text{V}$):" expected={4.0} tolerance={0.05} unit="V" explanation="$V_G = 12 \cdot \frac{100}{200 + 100} = 4.0\,\text{V}$." />
 
-<StepCheck client:load lang="it" prompt="Calcola V_DS al punto Q e verifica la saturazione (in V):" expected={6.91} tolerance={0.08} unit="V" explanation="V_DS = 12 - 1.697*(2 + 1) ≈ 6.91 V >= V_OV = 1.30 V (Saturazione confermata)." />
+<StepCheck client:load lang="it" prompt="Calcola la corrente di Drain $I_D$ al punto $Q$ (in $\text{mA}$):" expected={1.697} tolerance={0.03} unit="mA" explanation="$I_D^2 - 7 I_D + 9 = 0 \implies I_D = \frac{7 - \sqrt{13}}{2} \approx 1.697\,\text{mA}$ (l'altra radice $5.303\,\text{mA}$ darebbe $V_{GS} < 1\,\text{V}$)." />
+
+<StepCheck client:load lang="it" prompt="Calcola $V_{DS}$ al punto $Q$ e verifica la saturazione (in $\text{V}$):" expected={6.91} tolerance={0.08} unit="V" explanation="$V_{DS} = 12 - 1.697(2 + 1) \approx 6.91\,\text{V} \ge V_{OV} = 1.30\,\text{V}$ (Saturazione confermata)." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. $V_G = 12 \frac{100}{300} = 4.0\,\text{V}$.
-2. Ipotizzando saturazione ($I_D$ in $\text{mA}$, $R_S$ in $\text{k}\Omega$):
-   $$ I_D = \frac{1}{2}(2)(4 - I_D - 1)^2 = (3 - I_D)^2 \implies I_D^2 - 7 I_D + 9 = 0 $$
-   Le radici sono $I_D = \frac{7 \pm \sqrt{13}}{2}$: con $5.303\,\text{mA}$ si avrebbe $V_{GS} = 4 - 5.303 = -1.303\,\text{V} &lt; V_{th}$ (non fisica). Resta **$I_D \approx 1.697\,\text{mA}$**.
-3. $V_{GS} = 4 - 1.697 = 2.303\,\text{V}$ ($V_{OV} = 1.303\,\text{V}$), $V_{DS} = 12 - 1.697(2 + 1) \approx 6.908\,\text{V} \ge 1.303\,\text{V} \implies$ **Saturazione confermata**.
+1. Poiché $I_G = 0$, il partitore di ingresso è a vuoto e fissa la tensione di Gate:
+   $$
+   V_G = V_{DD} \frac{R_2}{R_1 + R_2} = 12\,\text{V} \times \frac{100\,\text{k}\Omega}{200\,\text{k}\Omega + 100\,\text{k}\Omega} = 4.0\,\text{V}
+   $$
+2. Esprimendo $I_D$ in $\text{mA}$ e le resistenze in $\text{k}\Omega$, la tensione sul Source vale $V_S = R_S I_D = 1 \cdot I_D = I_D$, quindi $V_{GS} = 4.0 - I_D$. Ipotizzando il MOSFET in saturazione:
+   $$
+   I_D = \frac{1}{2} K_n (V_{GS} - V_{th})^2 = \frac{1}{2}(2)(4.0 - I_D - 1.0)^2 = (3 - I_D)^2
+   $$
+   Sviluppando il quadrato otteniamo l'equazione di secondo grado:
+   $$
+   I_D = 9 - 6I_D + I_D^2 \implies I_D^2 - 7 I_D + 9 = 0
+   $$
+   Le due radici matematiche sono:
+   $$
+   I_D = \frac{7 \pm \sqrt{49 - 36}}{2} = \frac{7 \pm \sqrt{13}}{2} \approx \frac{7 \pm 3.6056}{2} \implies I_{D1} \approx 5.303\,\text{mA}, \quad I_{D2} \approx 1.697\,\text{mA}
+   $$
+   Con $I_{D1} = 5.303\,\text{mA}$ si avrebbe $V_{GS} = 4.0 - 5.303 = -1.303\,\text{V} < V_{th}$ (il transistore sarebbe spento, quindi la radice è non fisica). Accettiamo quindi **$I_D \approx 1.697\,\text{mA}$**.
+3. Calcoliamo $V_{GS}$, l'overdrive $V_{OV}$ e la tensione $V_{DS}$ sulla maglia di uscita:
+   $$
+   V_{GS} = 4.0 - 1.697 = 2.303\,\text{V} \implies V_{OV} = V_{GS} - V_{th} = 2.303 - 1.0 = 1.303\,\text{V}
+   $$
+   $$
+   V_{DS} = V_{DD} - (R_D + R_S) I_D = 12 - (2 + 1) \times 1.697 = 12 - 5.091 \approx 6.91\,\text{V}
+   $$
+   Poiché $V_{DS} \approx 6.91\,\text{V} \ge V_{OV} = 1.303\,\text{V}$, l'ipotesi di **saturazione è confermata**.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-9-2" title="Esercizio 9.2 — Polarizzazione Drain-Gate (Self-Biasing)" level="Base" hint="Con $I_G = 0$, $V_{GS} = V_{DS} = V_{DD} - I_D R_D$; imposta la quadratica scegliendo la radice con $V_{GS} > V_{th}$.">
+
+Un transistore NMOS con $K_n = 2.0\,\text{mA/V}^2$ e $V_{th} = 1.0\,\text{V}$ ($\lambda = 0$) è polarizzato in configurazione *self-biasing* con Source a massa ($V_S = 0$), resistore di carico $R_D = 1\,\text{k}\Omega$ verso $V_{DD} = 5.0\,\text{V}$ e resistore di retroazione $R_G = 1\,\text{M}\Omega$ tra Drain e Gate.
+
+<StepCheck client:load lang="it" prompt="Calcola la corrente di Drain $I_D$ (in $\text{mA}$):" expected={2.438} tolerance={0.04} unit="mA" explanation="Da $I_D = (4 - I_D)^2$ si ha $I_D^2 - 9 I_D + 16 = 0 \implies I_D = \frac{9 - \sqrt{17}}{2} \approx 2.438\,\text{mA}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola la tensione $V_{DS} = V_{GS}$ al punto $Q$ (in $\text{V}$):" expected={2.562} tolerance={0.05} unit="V" explanation="$V_{DS} = V_{GS} = 5.0 - 2.438 \cdot 1.0 = 2.562\,\text{V} > V_{th} = 1.0\,\text{V}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. Poiché in continua $I_G = 0$, non scorre corrente in $R_G$ e non vi è alcuna caduta di potenziale tra Drain e Gate. Con il Source a massa ($V_S = 0$), la KVL di uscita fornisce:
+   $$
+   V_{GS} = V_{DS} = V_{DD} - R_D I_D = 5.0 - 1.0 \cdot I_D = 5.0 - I_D
+   $$
+   (esprimendo $I_D$ in $\text{mA}$ e $R_D$ in $\text{k}\Omega$).
+2. Essendo $V_{DS} = V_{GS} > V_{GS} - V_{th}$ per $V_{th} = 1.0\,\text{V} > 0$, il transistore è intrinsecamente in **regione di saturazione**. Sostituendo $V_{GS}$ nell'equazione quadratica:
+   $$
+   I_D = \frac{1}{2} K_n (V_{GS} - V_{th})^2 = \frac{1}{2}(2.0)(5.0 - I_D - 1.0)^2 = (4 - I_D)^2
+   $$
+   Sviluppando il quadrato si ottiene:
+   $$
+   I_D = 16 - 8 I_D + I_D^2 \implies I_D^2 - 9 I_D + 16 = 0
+   $$
+3. Le due radici dell'equazione quadratica sono:
+   $$
+   I_D = \frac{9 \pm \sqrt{81 - 64}}{2} = \frac{9 \pm \sqrt{17}}{2} \approx \frac{9 \pm 4.1231}{2} \implies I_{D1} \approx 6.562\,\text{mA}, \quad I_{D2} \approx 2.438\,\text{mA}
+   $$
+   La radice maggiore ($6.562\,\text{mA}$) darebbe $V_{GS} = 5.0 - 6.562 = -1.562\,\text{V} < V_{th}$ (non fisica). L'unica soluzione valida è **$I_D \approx 2.438\,\text{mA}$**, da cui segue:
+   $$
+   V_{DS} = V_{GS} = 5.0 - 2.438 = 2.562\,\text{V} > V_{th}
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-9-3" title="Esercizio 9.3 — Verifica Fallita e Ricalcolo in Regione di Triodo" level="Livello Esame" hint="Se l'ipotesi di saturazione produce $V_{DS} < V_{OV}$, ricalcola $V_{DS}$ e $I_D$ con l'equazione della regione di triodo del Capitolo 6.">
+
+Un transistore NMOS con $K_n = 2.0\,\text{mA/V}^2$ e $V_{th} = 1.0\,\text{V}$ ($\lambda = 0$) è polarizzato con Source a massa ($V_S = 0$), tensione di Gate fissa $V_{GS} = 3.0\,\text{V}$, alimentazione $V_{DD} = 5.0\,\text{V}$ e un resistore di Drain elevato $R_D = 2.0\,\text{k}\Omega$.
+
+<StepCheck client:load lang="it" prompt="Se ipotizzassimo erroneamente la saturazione ($I_D = 4.0\,\text{mA}$), quale valore non fisico di $V_{DS}$ otterremmo dalla KVL d'uscita (in $\text{V}$)?" expected={-3.0} tolerance={0.05} unit="V" explanation="In saturazione sarebbe $I_D = 0.5 \cdot 2.0 \cdot (3 - 1)^2 = 4.0\,\text{mA}$, che darebbe $V_{DS} = 5.0 - 2.0 \cdot 4.0 = -3.0\,\text{V} < V_{OV} = 2.0\,\text{V}$ (impossibile: il MOSFET è in triodo!)." />
+
+<StepCheck client:load lang="it" prompt="Ricalcola la tensione reale $V_{DS}$ in regione di triodo (in $\text{V}$):" expected={0.649} tolerance={0.015} unit="V" explanation="Sostituendo $I_D = 4 V_{DS} - V_{DS}^2$ nella KVL $V_{DS} = 5 - 2 I_D$ si ottiene $2 V_{DS}^2 - 9 V_{DS} + 5 = 0 \implies V_{DS} = \frac{9 - \sqrt{41}}{4} \approx 0.649\,\text{V} < V_{OV} = 2.0\,\text{V}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola la corrente di Drain reale $I_D$ nel punto di lavoro in triodo (in $\text{mA}$):" expected={2.175} tolerance={0.03} unit="mA" explanation="Con $V_{DS} \approx 0.649\,\text{V}$, dalla KVL d'uscita vale $I_D = \frac{5.0 - 0.649}{2.0\,\text{k}\Omega} \approx 2.175\,\text{mA}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Ipotesi di saturazione:** l'overdrive vale $V_{OV} = V_{GS} - V_{th} = 3.0 - 1.0 = 2.0\,\text{V} > 0$. Se il MOSFET fosse in saturazione, la corrente varrebbe:
+   $$
+   I_{D,sat} = \frac{1}{2} K_n V_{OV}^2 = \frac{1}{2}(2.0\,\text{mA/V}^2)(2.0\,\text{V})^2 = 4.0\,\text{mA}
+   $$
+   Sostituendo nella KVL di uscita troviamo però:
+   $$
+   V_{DS} = V_{DD} - R_D I_{D,sat} = 5.0\,\text{V} - (2.0\,\text{k}\Omega)(4.0\,\text{mA}) = -3.0\,\text{V} < V_{OV} = 2.0\,\text{V}
+   $$
+   La condizione di saturazione $V_{DS} \ge V_{OV}$ è **violata**: l'elevata caduta su $R_D$ ha spinto il transistore in **regione di triodo**.
+2. **Equazione in triodo:** usiamo il modello della regione di triodo ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)) con $K_n = 2.0\,\text{mA/V}^2$ e $V_{OV} = 2.0\,\text{V}$:
+   $$
+   I_D = K_n \left( V_{OV} V_{DS} - \frac{1}{2} V_{DS}^2 \right) = 2.0 \left( 2.0 V_{DS} - 0.5 V_{DS}^2 \right) = 4 V_{DS} - V_{DS}^2
+   $$
+   Sostituiamo questa espressione di $I_D$ (in $\text{mA}$) nella KVL della maglia d'uscita $V_{DS} = V_{DD} - R_D I_D = 5.0 - 2.0 I_D$:
+   $$
+   V_{DS} = 5.0 - 2.0 \left( 4 V_{DS} - V_{DS}^2 \right) = 5.0 - 8 V_{DS} + 2 V_{DS}^2 \implies 2 V_{DS}^2 - 9 V_{DS} + 5 = 0
+   $$
+3. **Scelta della radice:** risolviamo l'equazione quadratica in $V_{DS}$:
+   $$
+   V_{DS} = \frac{9 \pm \sqrt{81 - 40}}{4} = \frac{9 \pm \sqrt{41}}{4} \approx \frac{9 \pm 6.4031}{4} \implies V_{DS1} \approx 3.851\,\text{V}, \quad V_{DS2} \approx 0.649\,\text{V}
+   $$
+   Poiché in regione di triodo deve valere $V_{DS} < V_{OV} = 2.0\,\text{V}$, scartiamo $3.851\,\text{V}$ e accettiamo **$V_{DS} \approx 0.649\,\text{V}$**. La corrente reale nel circuito vale quindi:
+   $$
+   I_D = \frac{V_{DD} - V_{DS}}{R_D} = \frac{5.0 - 0.649}{2.0\,\text{k}\Omega} \approx 2.175\,\text{mA}
+   $$
 
 </details>
 

@@ -1,28 +1,20 @@
-# Exercise & Interactive Practice Rules
+# Exercise Rules — Interactive Practice Protocol
 
-Exercises are embedded inline at the end of every chapter using the stateless `<Exercise>` and `<StepCheck>` components—combining Brilliant-style active step verification with authentic university written exam rigor.
+Practice appears both inline during the explanation and at the end of each chapter under `<Divider label="4 · Exercises" />` (`"4 · Esercizi"`).
 
----
+### 1. Inline Checks & Explorers (Sections 1 & 2)
 
-### 1. Inline Structure & Revealable Solutions
+* Place quick `<StepCheck>` checks right after key ideas in Sections 1 and 2 so the reader verifies understanding immediately.
+* Above any interactive explorer (`<BodeExplorer />`, `<RouthExplorer />`, `<PhaseFlowExplorer />`), write one short 1–2 sentence instruction telling the student what parameter to adjust and what change to look for—without gimmicky labels.
 
-* **No Separate Solutions Appendix Needed for Web:** Each `<Exercise>` lives at the end of its chapter and contains:
-  1. Clear problem statement with KaTeX math.
-  2. One or more `<StepCheck>` micro-prompts (numeric with tolerance or multiple-choice) for immediate active verification without storing user state.
-  3. Optional `hint` and an expandable `<details>` / `<Exercise>` solution drawer showing the complete step-by-step algebraic derivation.
-* **Unified Numbering:** Always match the chapter number (`Exercise 17.1`, `Exercise 17.2`). Never use legacy `Exercise 2.5.1` three-part strings.
+### 2. End-of-Chapter Progression (Section 4)
 
----
+Use plain topic titles inside `<Exercise id="..." title="Exercise N.k — Topic" level="...">` (never add meta-labels like *Worked Archetype*, *Faded Completion*, or *Interleaved Synthesis* to titles):
 
-### 2. Progression
+1. **`Exercise N.1`:** Complete solved exam-style problem with a `<StepCheck>` before `<details className="dc-solution">`.
+2. **`Exercise N.2`:** Problem that gives the setup/first step and asks the student to finish the critical step via `<StepCheck>` before expanding `<details className="dc-solution">`.
+3. **`Exercise N.3+`:** Synthesis problem combining the current chapter's method with earlier chapters' tools (e.g., Bode + Routh-Hurwitz + Laplace IVT).
 
-1. **`[LEVEL 1: WARM-UP DRILL]`** — Clean parameters isolating the core algorithm.
-2. **`[LEVEL 2: EXAM BENCHMARK]`** — Full written-exam problem matching official archetypes.
-3. **`[LEVEL 3: EXAM VARIATION & PITFALLS]`** *(optional per course scope)* — Boundary edge cases and traps.
+### 3. `<StepCheck>` Math Formatting
 
----
-
-### 3. Math Verification & Zero Boilerplate
-
-* All numeric `<StepCheck>` answers and worked solutions should be cross-checked with `sympy` / `scipy.signal`.
-* Never append repetitive `"Level 3 Omitted"` disclaimer boxes to chapters.
+* All string props (`prompt`, `options`, `unit`, `explanation`, `title`, `hint`) support inline `$...$` KaTeX math via `<MathText />`. Remember to double backslashes inside JS arrays (`options={["$\\omega_{gc}$"]}`).

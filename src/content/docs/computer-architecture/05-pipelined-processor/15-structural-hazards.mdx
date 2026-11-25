@@ -1,0 +1,277 @@
+---
+title: "15. Structural Hazards"
+description: "Computer Architecture — Chapter 15: Structural Hazards"
+sidebar:
+  order: 2
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 15 Outline" markdown={`# Ch. 15: Structural Hazards
+  - Unified Memory Example
+    - Cycle 4 IF vs. MEM port collision
+    - $+1 \\times (f_{\\text{load}} + f_{\\text{store}})$ stall formula
+  - Hardware Resource Solutions
+    - Hazard taxonomy: structural, data, control
+    - Split Harvard I-Cache and D-Cache
+    - Register File split-cycle double-pumping
+    - Dedicated PC, branch, and main adders`} />
+
+## Hardware Resource Contention
+
+Overlapping five instructions in the [Five-Stage Pipeline](/dynamic-courses/computer-architecture/05-pipelined-processor/14-five-stage-pipeline/) achieves $\text{CPI}_{\text{ideal}} = 1$ only if all five stages can operate concurrently on every clock cycle without fighting over shared silicon blocks. Whenever two in-flight instructions simultaneously demand the same physical hardware port—such as a single memory bus or a single-ported register array—a **structural hazard** forces the pipeline control logic to stall the younger instruction, injecting idle bubble cycles into $\text{CPI}_{\text{pipe}}$.
+
+<Divider label="1 · Example" />
+
+### Unified Memory Port Collision
+
+Trace the first four instructions of our shared calibration loop on a 5-stage RISC-V processor built with a **single-port unified memory** (*memoria unificata*) holding both machine code and program data:
+
+```asm
+lw   t0, 0(s0)       # Enters IF in Cycle 1 -> reaches MEM in Cycle 4
+addi t1, t0, -128    # Enters IF in Cycle 2
+add  s2, s2, t1      # Enters IF in Cycle 3
+addi s0, s0, 4       # Attempts IF in Cycle 4 -> COLLISION!
+```
+
+As shown in [the figure](#fig-unified-memory-conflict), watch what happens during **Clock Cycle 4** (even ignoring data dependencies for a moment): `lw t0, 0(s0)` is inside stage **`MEM`** reading its 32-bit sensor sample from Data Memory, while three instructions behind it (`addi s0, s0, 4`, instruction $k + 3$) is in stage **`IF`** trying to fetch its 32-bit instruction word over the exact same single memory port.
+
+<figure id="fig-unified-memory-conflict" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-unified-memory-conflict.svg" alt="Structural memory collision in Clock Cycle 4 on a unified single-port memory system. The lw instruction in stage MEM demands data access while a younger instruction in stage IF demands instruction fetch simultaneously." />
+  <figcaption>Structural memory collision on a single-port unified memory system: an older memory instruction in stage MEM accesses data during the same cycle a younger instruction in stage IF attempts to fetch code.</figcaption>
+</figure>
+
+Because one physical memory port cannot service two distinct addresses in the same clock cycle, the hardware prioritizes the older instruction (`lw` in `MEM`) and freezes instruction fetch (`IF`) for **1 stall cycle**, injecting a `NOP` bubble into `IF/ID`. Both `lw` (`MemRead = 1`) and `sw` (`MemWrite = 1`) access Data Memory in `MEM`, so every dynamic load and store adds exactly $1$ structural stall cycle.
+
+For a benchmark containing $22\%$ `lw` instructions and $13\%$ `sw` instructions (with zero data or control hazards), the structural stall penalty per instruction is:
+
+$$\text{Stalls}_{\text{struct}} = (f_{\text{load}} + f_{\text{store}}) \times 1 = (0.22 + 0.13) \times 1 = 0.35\text{ cycles/instr}$$
+
+Raising the ideal baseline $\text{CPI}_{\text{base}} = 1.00$ by $+0.35$ yields $\text{CPI}_{\text{pipe}} = 1.35$—wasting over a quarter of all processor cycles on memory port contention alone.
+
+<StepCheck
+  client:load
+  prompt="A pipelined processor with a single-port unified memory executes an instruction mix of $52\%$ ALU, $18\%$ Load, $12\%$ Store, and $18\%$ Branch. Assuming all data and control hazards are eliminated, what is $\text{CPI}_{\text{pipe}}$?"
+  expected={1.3}
+  tolerance={0.01}
+  unit="cycles/instr"
+  explanation="Every Load and Store collides with stage IF during its MEM stage, adding $(0.18 + 0.12) \times 1 = 0.30$ structural stalls per instruction, so $\text{CPI}_{\text{pipe}} = 1.00 + 0.30 = 1.30$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Pipeline Hazard Taxonomy
+
+A **pipeline hazard** is any condition that prevents the next instruction in the dynamic stream from executing during its scheduled clock cycle. Every stall in an in-order pipeline belongs to one of three orthogonal categories:
+
+1. **Structural Hazards:** Hardware resource conflicts where two instructions in different pipeline stages require the same physical functional unit or memory port during the same clock cycle.
+2. **Data Hazards:** Operand ordering dependencies where an instruction needs a data value produced by an older instruction still in flight ([Data Hazards and Forwarding](/dynamic-courses/computer-architecture/05-pipelined-processor/16-data-hazards/)).
+3. **Control Hazards:** Control-flow uncertainties where stage `IF` does not yet know whether a branch is taken or what target address to load into `PC` ([Control Hazards and Branching](/dynamic-courses/computer-architecture/05-pipelined-processor/17-control-hazards/)).
+
+In the 5-stage RISC-V datapath, three shared hardware subsystems would suffer structural hazards every cycle if not engineered with dedicated ports or split-phase clocking: the **memory interface** (`IF` vs. `MEM`), the **Register File** (`ID` vs. `WB`), and the **adders/ALU** (`IF`, `ID`/`EX`, and `EX`).
+
+### Unified Versus Split Harvard Memory
+
+Whether memory accesses cause structural stalls depends entirely on the L1 memory port topology:
+
+- **Unified Memory (Single-Port Von Neumann Topology):** Instructions and data share a single-ported memory array (*una sola memoria per dati e istruzioni*). Every `lw` and `sw` entering stage `MEM` blocks stage `IF` for $1$ cycle:
+  $$\text{Stalls}_{\text{struct}} = f_{\text{mem}} \times 1 = (f_{\text{load}} + f_{\text{store}}) \times 1$$
+- **Split Caches (Harvard L1 Topology):** Virtually all pipelined CPUs retain a unified main DRAM address space at lower levels while splitting the L1 interface into two physically independent caches (*due memorie distinte per istruzioni e dati*): a read-only **L1 Instruction Cache (`I-Cache`)** wired exclusively to `IF` and a dual-access **L1 Data Cache (`D-Cache`)** wired exclusively to `MEM`. Because both ports operate on separate address and data buses simultaneously:
+  $$\text{Split I/D Memories (Harvard L1)} \implies \text{Stalls}_{\text{struct}} = 0$$
+
+### Register File Double-Pumping
+
+Look closely at Clock Cycle 5 when an instruction $i$ writing a register (`RegWrite = 1`) is separated by **distance $k = 3$** from a younger instruction $i + 3$ reading registers:
+
+| Instruction | C1 | C2 | C3 | C4 | C5 | C6 | C7 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `i:   add x1, x2, x3` | `IF` | `ID` | `EX` | `MEM` | **`WB`** | | |
+| `i+1: addi t4, t4, 1` | | `IF` | `ID` | `EX` | `MEM` | `WB` | |
+| `i+2: addi t5, t5, 1` | | | `IF` | `ID` | `EX` | `MEM` | `WB` |
+| `i+3: sub x4, x1, x5` | | | | `IF` | **`ID`** | `EX` | `MEM` |
+
+In Cycle 5, `add` is in `WB` writing `x1` while `sub` is in `ID` reading `rs1 = x1` and `rs2 = x5`. The RISC-V Register File eliminates both port contention and stale-read errors with **zero stall cycles** using two hardware rules:
+
+1. **Dedicated Read/Write Ports:** The small $32 \times 32$-bit SRAM/register array provides two independent combinational read ports (`rs1`, `rs2`) and one synchronous write port (`rd`).
+2. **Split-Cycle Double-Pumping:** As illustrated in [the figure](#fig-double-pumping), stage `WB` commits its write during the **first half of the clock cycle** (on the falling mid-cycle edge or high phase), while stage `ID` samples the read ports during the **second half of the clock cycle** (latched into `ID/EX` on the next rising edge).
+
+<figure id="fig-double-pumping" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-double-pumping.svg" alt="Register File double-pumping: writing in the first half of the clock cycle and reading in the second half allows an instruction at distance 3 to read freshly written data in the same clock cycle with zero stalls." />
+  <figcaption>Register File split-cycle double-pumping: writing in the first half of Cycle 5 and reading in the second half lets an instruction at distance $k = 3$ capture the updated register value with zero stall cycles.</figcaption>
+</figure>
+
+Because the write finishes before the read settles within the same clock period, any dependency at **distance $k \ge 3$ incurs $0$ stall cycles**—even on a pipeline with no forwarding buses!
+
+### Dedicated Stage Adders
+
+Every clock cycle, a 5-stage pipeline potentially needs three arithmetic additions simultaneously: incrementing `PC + 4` in `IF`, computing a branch target `PC + Imm` in `ID` or `EX`, and executing data arithmetic or `Base + Offset` address generation in `EX`. Sharing one ALU across these tasks would stall every instruction. Instead, architects instantiate two compact fixed-function 32-bit adders (`PC + 4` in `IF` and `PC + Imm` for branches) alongside the full **Main ALU** in `EX`, eliminating arithmetic structural hazards permanently.
+
+<Callout type="bridge" title="DMA Bus Contention in Microcontroller SRAM">
+
+Even microcontrollers with split Flash instruction fetch and SRAM data access (such as STM32 Cortex-M7 or embedded RISC-V SoCs) can suffer structural memory stalls when a Direct Memory Access (DMA) engine streams high-rate camera or LiDAR frames into the same physical SRAM bank the CPU uses for stack variables. Partitioning memory into independent crossbar-connected banks (`SRAM1` for CPU execution, `SRAM2` for DMA buffers) restores zero-stall determinism.
+
+</Callout>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="In a 5-stage RISC-V pipeline **without** hardware forwarding, instruction $i$ (`add x1, x2, x3`) enters `IF` in Cycle 1 and instruction $i+3$ (`or x6, x1, x7`) enters `IF` in Cycle 4. How many stall cycles does $i+3$ incur?"
+  options={[
+    "0 stall cycles, because Register File double-pumping writes `x1` in the first half of Cycle 5 and reads `x1` in the second half of Cycle 5",
+    "1 stall cycle, because `WB` and `ID` collide on the same clock cycle",
+    "2 stall cycles, because forwarding is disabled",
+    "3 stall cycles, until `add` completely exits the pipeline"
+  ]}
+  correctIndex={0}
+  explanation="Instruction $i$ reaches `WB` in Cycle 5, and instruction $i+3$ reaches `ID` in Cycle 5 (distance $k = 3$). Split-cycle double-pumping writes `x1` during the first half of Cycle 5 and reads the updated `x1` during the second half of Cycle 5 with 0 stalls."
+/>
+
+<Divider label="3 · Summary" />
+
+| Shared Hardware Resource | Potentially Colliding Stages | Single-Resource Fallback Penalty | Zero-Stall Hardware Resolution |
+| :--- | :--- | :--- | :--- |
+| **Memory Subsystem** | `IF` (code fetch) vs. `MEM` (`lw` / `sw` data) | $+1\text{ stall} \times (f_{\text{load}} + f_{\text{store}})$ on unified memory | **Split L1 Harvard Caches** (`I-Cache` + `D-Cache`) |
+| **Register File** | `WB` (write `rd`) vs. `ID` (read `rs1`, `rs2`) | $+1\text{ stall}$ on every `RegWrite = 1` conflict | **2R/1W Ports + Double-Pumping** (write 1st half, read 2nd half) |
+| **Arithmetic / Adders** | `IF` (`PC + 4`), Branch (`PC + Imm`), `EX` (ALU) | Multi-cycle serialization | **Hardware Duplication** (2 dedicated adders + 1 Main ALU) |
+
+### Structural Stall Procedure
+
+1. **Check Memory Topology Wording:** Scan the problem specification for **unified memory** (*una sola memoria per dati e istruzioni* / single-port memory) versus **separate memories** (*due memorie distinte* / split I-Cache and D-Cache).
+2. **Sum Memory Access Frequencies:** Add both load and store fractions: $f_{\text{mem}} = f_{\text{load}} + f_{\text{store}}$.
+3. **Assign Structural Penalty:** Set $\text{Stalls}_{\text{struct}} = f_{\text{mem}} \times 1$ for unified single-port memory, or $\text{Stalls}_{\text{struct}} = 0$ for separate instruction and data memories.
+4. **Apply Distance-3 Register Rule:** Unless a counterfactual single-port non-double-pumped Register File is explicitly posited, treat `WB`/`ID` overlap (distance $k = 3$) as **0 stalls**.
+
+### Key Mechanisms
+
+- **Unified Memory Stall:** In a single-port Von Neumann pipeline, `lw` and `sw` in `MEM` starve `IF` of an instruction fetch for 1 clock cycle.
+- **Harvard L1 Separation:** Independent `I-Cache` and `D-Cache` ports service `IF` and `MEM` concurrently in 0 stall cycles while backed by unified main RAM.
+- **Split-Cycle Register File:** Writing in Phase 1 and reading in Phase 2 of the same clock period resolves both the `WB`/`ID` structural conflict and distance-3 data reads at zero stall cost.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Omitting Stores from Unified Memory Stalls:** Both `lw` (`MemRead = 1`) and `sw` (`MemWrite = 1`) occupy the unified memory port during stage `MEM`. Always use $f_{\text{load}} + f_{\text{store}}$, never $f_{\text{load}}$ alone.
+2. **Adding Structural Stalls on Split Memories:** When the prompt specifies *"due memorie distinte per istruzioni e dati"*, $\text{Stalls}_{\text{struct}} = 0$—do not add $f_{\text{load}} + f_{\text{store}}$.
+3. **Penalizing Distance-3 Register Reads:** Under standard split-cycle double-pumping, an instruction at distance $k = 3$ reads the newly written register value in Cycle 5 with $0$ stalls even when forwarding is disabled.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-15-1"
+  title="Exercise 15.1 — Unified Memory Versus Split Caches"
+  level="Exam"
+  hint="Compute $\text{CPI}_1 = 1 + f_{\text{load}} + f_{\text{store}}$ on the unified design at $T_{\text{clk},1}$, then compare $T_{\text{exec},1} = \text{IC} \cdot \text{CPI}_1 \cdot T_{\text{clk},1}$ against $\text{CPI}_2 = 1.00$ at $T_{\text{clk},2} = 1.05 \, T_{\text{clk},1}$."
+>
+
+A 5-stage pipelined processor runs at $f_{\text{clk}} = 1.5\text{ GHz}$ on a benchmark consisting of $50\%$ ALU, $20\%$ Load, $10\%$ Store, and $20\%$ Branch instructions (assume zero data and control hazard stalls so we isolate structural effects).
+
+1. Compute the structural stall cycles per instruction and effective $\text{CPI}_1$ if the processor uses a **unified single-port memory**.
+2. Suppose upgrading to **separate L1 Instruction and Data caches** eliminates this structural hazard completely, but cache controller multiplexing stretches the clock period $T_{\text{clk}}$ by $+5\%$. Compute the overall execution-time speedup $S = T_{\text{exec},1} / T_{\text{exec},2}$ and state whether the upgrade is worthwhile.
+
+<StepCheck
+  client:load
+  prompt="What is the overall execution-time speedup $S = T_{\text{exec},1} / T_{\text{exec},2}$ of the split-cache design (rounded to two decimal places)?"
+  expected={1.24}
+  tolerance={0.02}
+  unit="x"
+  explanation="$T_{\text{exec},1} / T_{\text{exec},2} = (\text{CPI}_1 \cdot T_{\text{clk},1}) / (\text{CPI}_2 \cdot 1.05 \, T_{\text{clk},1}) = 1.30 / 1.05 = 1.238 \approx 1.24\times$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Unified Single-Port Memory:** Every Load ($20\%$) and Store ($10\%$) collides with `IF` during stage `MEM`:
+   $$\text{Stalls}_{\text{struct}} = (0.20 + 0.10) \times 1 = 0.30\text{ cycles/instr} \implies \text{CPI}_1 = 1.00 + 0.30 = 1.30$$
+2. **Split L1 Caches with $+5\%$ Clock Period Overhead:**
+   - Baseline clock period: $T_{\text{clk},1} = 1 / 1.5\text{ GHz} = 0.6667\text{ ns}$, so $T_{\text{exec},1} = \text{IC} \times 1.30 \times T_{\text{clk},1}$.
+   - Upgraded split caches eliminate structural stalls ($\text{CPI}_2 = 1.00$) while setting $T_{\text{clk},2} = 1.05 \, T_{\text{clk},1}$:
+     $$S = \frac{T_{\text{exec},1}}{T_{\text{exec},2}} = \frac{\text{IC} \times 1.30 \times T_{\text{clk},1}}{\text{IC} \times 1.00 \times (1.05 \, T_{\text{clk},1})} = \frac{1.30}{1.05} = 1.238\times$$
+   The Harvard L1 cache upgrade delivers a **$23.8\%$ speedup** ($19.2\%$ reduction in runtime), easily outweighing the $5\%$ clock period penalty.
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-15-2"
+  title="Exercise 15.2 — Non-Double-Pumped Register File Counterfactual"
+  level="Intermediate"
+  hint="Only instructions that assert `RegWrite = 1` in stage WB (`ALU` and `Load`, NOT `Store` or `Branch`) contend with stage ID if the Register File cannot read and write in the same clock cycle."
+>
+
+Suppose a low-cost 5-stage RISC-V microcontroller uses split instruction/data memories, **omits split-cycle double-pumping** on its Register File so the array cannot perform a `WB` write and an `ID` read during the same clock cycle, and pauses stage `ID` for $1$ cycle whenever an older instruction in `WB` asserts `RegWrite = 1` (assume stage `ID` decodes a register-reading instruction every cycle, with zero data/control hazards).
+
+Given an instruction mix of **$55\%$ ALU**, **$20\%$ Load**, **$10\%$ Store**, and **$15\%$ Branch**:
+
+1. Identify which instruction classes assert `RegWrite = 1` in stage `WB`.
+2. Compute the resulting structural stall penalty per instruction and the effective $\text{CPI}_{\text{pipe}}$.
+
+<StepCheck
+  client:load
+  prompt="What effective $\text{CPI}_{\text{pipe}}$ results from omitting simultaneous read/write support on the Register File for this mix?"
+  expected={1.75}
+  tolerance={0.01}
+  unit="cycles/instr"
+  explanation="ALU ($55\%$) and Load ($20\%$) instructions write back to registers (`RegWrite = 1`), whereas Stores and conditional Branches do not (`RegWrite = 0`). Thus $\text{Stalls}_{\text{RF}} = (0.55 + 0.20) \times 1 = 0.75$, giving $\text{CPI}_{\text{pipe}} = 1.75$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Instructions Asserting `RegWrite = 1`:**
+   - **ALU ($55\%$)** and **Load ($20\%$)** write a 32-bit result into `Reg[rd]` during stage `WB` (`RegWrite = 1`).
+   - **Store ($10\%$)** writes to Data Memory (`RegWrite = 0`) and **Conditional Branch ($15\%$)** updates `PC` (`RegWrite = 0`), leaving the Register File write port idle in `WB`.
+2. **Structural Stall Penalty and Effective CPI:**
+   $$\text{Stalls}_{\text{RF}} = (f_{\text{ALU}} + f_{\text{load}}) \times 1 = (0.55 + 0.20) \times 1 = 0.75\text{ cycles/instr}$$
+   $$\text{CPI}_{\text{pipe}} = 1.00 + 0.75 = 1.75$$
+   Without split-cycle double-pumping (or dedicated simultaneous read/write ports), $75\%$ of all instructions would stall the decode stage!
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-15-3"
+  title="Exercise 15.3 — Amdahl's Law Applied to Unified Memory Stalls"
+  level="Exam"
+  hint="First compute total baseline cycles per instruction $\text{CPI}_{\text{old}}$ including unified memory stalls and other stalls. The fraction of execution time spent in unified memory stalls is $F_{\text{enh}} = \text{Stalls}_{\text{struct}} / \text{CPI}_{\text{old}}$."
+>
+
+A 5-stage RISC-V processor with a **unified single-port memory** executes a workload with $25\%$ Loads and $15\%$ Stores. In addition to unified-memory structural stalls, the processor incurs $0.20\text{ cycles/instr}$ of combined data and control hazard stalls, at a fixed clock period $T_{\text{clk}}$.
+
+1. Compute the baseline $\text{CPI}_{\text{old}}$ of the unified-memory processor.
+2. Express the fraction $F_{\text{enh}}$ of total execution time currently wasted in unified-memory structural stalls.
+3. Using [Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/) ($S_{\text{enh}} \to \infty$, since adding a second memory port removes $100\%$ of those structural stalls without changing $T_{\text{clk}}$), compute the overall speedup $S_{\text{tot}}$ and verify it matches $\text{CPI}_{\text{old}} / \text{CPI}_{\text{new}}$.
+
+<StepCheck
+  client:load
+  prompt="What fraction $F_{\text{enh}}$ of total baseline execution time is spent in unified-memory structural stalls?"
+  expected={0.25}
+  tolerance={0.01}
+  unit=""
+  explanation="$\text{Stalls}_{\text{struct}} = 0.25 + 0.15 = 0.40$, and $\text{CPI}_{\text{old}} = 1.00 + 0.40 + 0.20 = 1.60$. Therefore $F_{\text{enh}} = 0.40 / 1.60 = 0.25$ ($25\%$ of total cycles)."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Baseline $\text{CPI}_{\text{old}}$:**
+   $$\text{Stalls}_{\text{struct}} = (0.25 + 0.15) \times 1 = 0.40\text{ cycles/instr}$$
+   $$\text{CPI}_{\text{old}} = 1.00 + 0.40 + 0.20 = 1.60\text{ cycles/instr}$$
+2. **Affected Execution-Time Fraction $F_{\text{enh}}$:** Out of every $1.60$ average cycles per instruction, $0.40$ cycles are structural memory bubbles:
+   $$F_{\text{enh}} = \frac{\text{Stalls}_{\text{struct}}}{\text{CPI}_{\text{old}}} = \frac{0.40}{1.60} = 0.25 \quad (25\%)$$
+3. **Amdahl's Law Verification:** Eliminating the unified-memory bottleneck completely corresponds to $S_{\text{enh}} \to \infty$ ($F_{\text{enh}} / S_{\text{enh}} \to 0$) on that $25\%$ stall slice:
+   $$S_{\text{tot}} = \frac{1}{(1 - F_{\text{enh}}) + 0} = \frac{1}{1 - 0.25} = \frac{1}{0.75} = 1.333\times$$
+   Cross-checking directly via $\text{CPI}_{\text{new}} = 1.00 + 0 + 0.20 = 1.20$ at identical $\text{IC}$ and $T_{\text{clk}}$ gives $\text{CPI}_{\text{old}} / \text{CPI}_{\text{new}} = 1.60 / 1.20 = 1.333\times$.
+
+</details>
+
+</Exercise>

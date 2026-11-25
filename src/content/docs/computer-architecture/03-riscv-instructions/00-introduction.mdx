@@ -1,0 +1,59 @@
+---
+title: "Part III — Introduction: RISC-V Instruction Set"
+description: "Conceptual overview, shared C-to-RISC-V buffer example, and chapter roadmap for Part III of Computer Architecture."
+sidebar:
+  label: "Introduction"
+  order: 0
+---
+
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="Part III Roadmap" markdown={`# Part III: RISC-V Instruction Set
+  - 8. RISC-V Instructions
+    - 32-register ABI roles and zero hardwiring
+    - RV32IM arithmetic, shifts, and sign-extended loads
+  - 9. Control Flow Translation
+    - Condition inversion for if-else blocks
+    - Short-circuit compound guards and loop templates
+  - 10. Arrays and Strings
+    - Word scaling (x4) vs single-byte string stride
+    - Null-terminated ASCII loops and leaf subroutines`} />
+
+## Introduction
+
+In [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/), the dynamic instruction count $IC$ appeared as a high-level summary of compiler output. To understand how C code actually becomes hardware operations—and to translate structured algorithms by hand—we must cross the **Instruction Set Architecture (ISA)** boundary, the formal contract between software and processor hardware.
+
+Part III introduces the 32-bit **RISC-V integer and multiply/divide architecture (RV32IM)**. Unlike memory-to-memory legacy ISAs, RISC-V is a strict **load-store machine**: arithmetic, bitwise, and multiplication instructions operate exclusively on thirty-two 32-bit registers ($x_0$ through $x_{31}$), while main memory is read and written only through explicit byte and word load/store instructions.
+
+### Practical Real-World Perspective
+
+- **Bare-Metal Sensor Drivers:** Companion microcontrollers such as the ESP32-C3 and FPGA RISC-V softcores parse raw UART and SPI telemetry packets using tight register-only loops with deterministic cycle counts.
+- **Compiler Disassembly Audits:** Embedded systems engineers routinely inspect `objdump -d` listings to verify that critical inner loops emit single-cycle left shifts (`slli`) and hardware `mul`/`rem` instructions rather than slow library calls or unintended stack spills.
+- **Zero-Overhead Leaf Helpers:** Keeping pure computational subroutines inside argument registers (`a0`–`a7`) and caller-saved scratch registers (`t0`–`t6`) eliminates stack traffic completely.
+
+### Shared Running Example
+
+Across all three chapters of Part III, we progressively translate one realistic embedded routine—an ASCII telemetry packet parser `parse_scaled` paired with a 32-bit integer calibration table:
+
+```c
+int parse_scaled(char *pkt, int *gain, int idx) {
+    int sum = 0;
+    for (int i = 0; pkt[i] != '\0'; i++) {
+        if (pkt[i] >= '0' && pkt[i] <= '9') {
+            sum = sum * 10 + (pkt[i] - '0');
+        }
+    }
+    return (sum * gain[idx]) % 1000;
+}
+```
+
+Each chapter unlocks one mechanical layer of this translation: arithmetic and word/byte loads on a single sample first, then the inverted branches for the `for` loop and compound `&&` digit guard, and finally the full pointer-strided routine combining 1-byte `char *pkt` traversal with 4-byte `int *gain` scaling.
+
+<Divider />
+
+## Chapter Roadmap
+
+1. **[8. RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/)** — Map C variables onto the 32 ABI registers, apply 12-bit signed immediate arithmetic and shifts, separate 32-bit word (`lw`/`sw`) from 8-bit byte (`lb`/`lbu`/`sb`) accesses, and compute products and remainders with RV32M (`mul`/`div`/`rem`).
+2. **[9. Control Flow Translation](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/)** — Invert relational conditions for `if-else` ladders, wire short-circuit `&&` and `||` branch targets, and translate `for`, `while`, `do-while`, and `break` loops cleanly.
+3. **[10. Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/)** — Scale 32-bit `int` array indices with `slli` by `2`, scan null-terminated `'\0'` strings byte-by-byte with `lbu`, apply ASCII digit and letter offsets, and assemble complete zero-stack leaf functions.

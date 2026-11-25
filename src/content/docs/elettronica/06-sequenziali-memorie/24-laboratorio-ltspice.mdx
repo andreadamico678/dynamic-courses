@@ -11,90 +11,37 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 24" markdown={`# Cap. 24: Simulazione Circuitale LTspice
-  - 1 · Intuizione Fisica
-    - Netlist testuale e flusso SPICE
-  - 2 · Definizione e Sintassi (Orale & Lab)
-    - Nodi, suffissi numerici e componenti
-    - Direttive di analisi (.op, .dc, .ac, .tran)
-    - Generatori controllati e .MODEL
-  - 3 · Algoritmo Operativo (Laboratorio)
-    - Protocollo di verifica circuitale
-  - 4 · Archetipo Svolto ed Esercizi
-    - Circuito Bridge-T e filtro RLC`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 24" markdown={`# Cap. 24: Simulazione Circuitale LTspice
+  - 1. Netlist SPICE e Analisi DC (.op, .dc)
+    - Esempio: Risoluzione .op della Rete Bridge-T
+    - Teoria: Sintassi Netlist, Suffissi e Solutori .op / .dc
+  - 2. Analisi Transitoria (.tran) e Modelli .MODEL
+    - Esempio: Commutazione .tran di un Invertitore CMOS
+    - Teoria: Integrazione Temporale, Sorgenti e Parametri .MODEL
+  - 3. Analisi in Frequenza (.ac)
+    - Esempio: Risposta Armonica e Risonanza RLC
+    - Teoria: Linearizzazione attorno a .op e Solutore Fasoriale`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
-Prima di mandare in fabbricazione un circuito integrato o assemblare un prototipo su scheda, il progettista verifica il comportamento della rete tramite un simulatore numerico **SPICE** (*Simulation Program with Integrated Circuit Emphasis*). Anche quando si disegna uno schema grafico in **LTspice**, il programma traduce sempre il disegno in una descrizione testuale pura chiamata **netlist** (`.cir` o `.net`), assembla il sistema di equazioni ai nodi modificato (MNA) e lo risolve numericamente nei regimi DC, AC e transitorio.
+I modelli su carta visti finora servono a capire come funziona un circuito e a dimensionarlo. Prima però di costruire un prototipo reale, ogni progetto viene verificato con un simulatore numerico della famiglia **SPICE**, come **LTspice**.
 
-Capire la netlist significa saper leggere e correggere qualsiasi simulazione quando un circuito non converge o restituisce risultati inattesi.
+Anche quando si disegna uno schema a video, LTspice lo traduce sempre in un file di testo chiamato **netlist** e lo risolve con tre analisi principali: l'**analisi DC (`.op` / `.dc`)**, l'**analisi nel tempo (`.tran`)** e l'**analisi in frequenza di piccolo segnale (`.ac`)**.
 
-<Divider label="2 · Definizione e Sintassi (Orale & Lab)" />
+<Divider label="1 · Netlist SPICE e Analisi Stazionaria (.op, .dc)" />
 
-## Struttura di una Netlist SPICE
+### Esempio — Risoluzione .op e Scansione .dc della Rete Bridge-T
 
-Una netlist rispetta quattro regole sintattiche rigide:
-1. **Prima riga:** titolo del circuito (sempre ignorato dal risolutore — non inserire mai un componente sulla prima riga!).
-2. **Nodo di massa (`0`):** il riferimento di massa globale deve essere obbligatoriamente il nodo `0` (o `GND`).
-3. **Commenti e continuazione:** una riga che inizia con `*` (o un suffisso dopo `;`) è un commento; una riga che inizia con `+` continua la riga precedente.
-4. **Prefissi dei componenti:** la prima lettera identifica il tipo di elemento (`R` resistore, `C` condensatore, `L` induttanza, `D` diodo, `M` MOSFET, `V` generatore di tensione, `I` generatore di corrente, `E/G/H/F` generatori controllati VCVS/VCCS/CCVS/CCCS).
-
-### Suffissi di Scala (Case-Insensitive!)
-
-| Suffisso SPICE | Fattore | Attenzione critica |
-| :--- | :--- | :--- |
-| `F` / `P` / `N` / `U` | $10^{-15}$ / $10^{-12}$ / $10^{-9}$ / $10^{-6}$ | Validi per fF, pF, nF, $\mu$F |
-| `M` | **$10^{-3}$ (milli)** | **MAI usare `M` per Mega!** |
-| `MEG` | $10^{6}$ (Mega) | Obbligatorio per Megaohm (`1MEG`) o MHz (`10MEG`) |
-| `K` / `G` | $10^{3}$ / $10^{9}$ | Standard per chilo e giga |
-
-<Callout type="warning" title="Errore Classico in LTspice: M vs MEG">
-
-Poiché SPICE non distingue tra maiuscole e minuscole, scrivere `R1 1 2 10M` o `10m` viene sempre interpretato come **$10\,\text{m}\Omega = 0.01\,\Omega$**, **non** $10\,\text{M}\Omega$! Per i megaohm si deve sempre scrivere `10MEG`.
-
-</Callout>
-
-## Le Quattro Analisi Fondamentali
-
-1. **`.op` (*Operating Point*):** calcola il punto di riposo in continua aprendo tutti i condensatori e cortocircuitando tutti gli induttori.
-2. **`.dc <src> <start> <stop> <step>`:** esegue una scansione parametrica di un generatore DC (anche annidata, ad es. `.dc Vds 0 5 0.05 Vgs 0 3.5 0.5`) per tracciare le famiglie di curve $I_D$–$V_{DS}$ del MOSFET o la transcaratteristica VTC dell'invertitore CMOS.
-3. **`.ac [DEC|OCT|LIN] <Nsteps> <f_start> <f_end>`:** linearizza i dispositivi non lineari attorno al punto `.op` e calcola la risposta armonica di piccolo segnale (diagramma di Bode) rispetto a un generatore dotato di direttiva `AC <mag> [<phase>]`.
-4. **`.tran <Tstep> <Tstop> [<Tstart> [<Tmax>]]`:** risolve nel dominio del tempo le equazioni differenziali non lineari complete per osservare forme d'onda di raddrizzatori, clipping di amplificatori e commutazioni logiche (`PULSE`, `SIN`, `PWL`).
-
-## Generatori Controllati e Modelli `.MODEL`
-
-I modelli di piccolo segnale e gli stadi operazionali ideali usano spesso i generatori dipendenti:
-* `E<nome> N+ N- NC+ NC- <A>`: generatore di tensione controllato in tensione (**VCVS**).
-* `G<nome> N+ N- NC+ NC- <gm>`: generatore di corrente controllato in tensione (**VCCS**, usato per modellare $g_m v_{gs}$).
-* `H<nome> N+ N- <Vnam> <rm>` e `F<nome> N+ N- <Vnam> <beta>`: **CCVS** e **CCCS** riferiti alla corrente uscente da un generatore di tensione `<Vnam>`.
-
-Per i dispositivi reali (diodi e MOSFET) si definiscono i parametri fisici tramite `.MODEL`:
-```spice
-.MODEL DMOD D(IS=1e-14 N=1 BV=5.1)
-.MODEL NMOS_LAB NMOS(LEVEL=1 VTO=0.8 KP=200u LAMBDA=0.02)
-```
-
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
-
-### Protocollo di Verifica di una Simulazione CAD
-1. **Controllo massa e prima riga:** verificare che la riga 1 sia un titolo e che esista il nodo `0`.
-2. **Controllo polarità e suffissi:** controllare il verso positivo $\to$ negativo dei generatori e sostituire ogni `M` inteso come mega con `MEG`.
-3. **Coerenza tra generatore e analisi:** per `.ac` assicurarsi che la sorgente abbia `AC 1`; per `.tran` assicurarsi che abbia `SIN(...)`, `PULSE(...)` o `PWL(...)`.
-4. **Validazione analitica:** calcolare a mano il punto di lavoro DC o la frequenza di taglio $f_{-3\,\text{dB}}$ e confrontare con il file `.log` o il cursore grafico.
-
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
-
-### Archetipo Svolto: Circuito Bridge-T in `.op` e Filtro RLC in `.ac`
-
-Consideriamo il circuito Bridge-T mostrato in [la figura](#fig-ltspice-bridge-t) e il filtro RLC serie in [la figura](#fig-ltspice-rlc).
+Consideriamo il circuito resistivo **Bridge-T** in [la figura](#fig-ltspice-bridge-t): vogliamo calcolarne le tensioni dei nodi con una simulazione `.op` (*Operating Point*) e confrontarle con le leggi di Kirchhoff (KCL):
 
 <figure id="fig-ltspice-bridge-t" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-ltspice-bridge-t.svg" alt="Circuito Bridge-T per analisi del punto operativo .op in LTspice." />
   <figcaption>Circuito Bridge-T di riferimento per la scrittura della netlist `.op`.</figcaption>
 </figure>
 
-La netlist corrispondente per `.op` vale:
-```spice
+Chiamiamo `0` il nodo di massa (obbligatorio) e `1`, `2`, `3` gli altri tre nodi. La netlist completa è:
+
+```txt
 BRIDGE-T CIRCUIT
 Vbias 1 0 12
 R1 1 2 10
@@ -104,37 +51,311 @@ R4 1 3 5
 .op
 .end
 ```
-Per simmetria ($V(1) = 12\,\text{V}$), il risolutore restituisce $V(2) = 8\,\text{V}$ e $V(3) = 10\,\text{V}$, verificabili via KCL ai nodi `2` e `3`:
-$$ \frac{8-12}{10} + \frac{8}{10} + \frac{8-10}{5} = -0.4 + 0.8 - 0.4 = 0 $$
+
+Vediamo cosa fa SPICE riga per riga:
+1. **Lettura della netlist:**
+   - La **prima riga** (`BRIDGE-T CIRCUIT`) è sempre il titolo: non viene mai simulata come componente.
+   - `Vbias 1 0 12` fissa il nodo `1` a $12\,\text{V}$ rispetto a massa `0`.
+   - `R1`–`R4` dichiarano i quattro resistori con i loro nodi e valori in ohm. Attenzione ai suffissi: per aggiungere un resistore da $10\,\text{M}\Omega$ bisogna scrivere `10MEG` (mai `10M`, che in SPICE significa $10\,\text{m}\Omega$!).
+   - `.op` calcola il punto di lavoro in continua; `.end` chiude il file.
+
+2. **Risoluzione del punto di lavoro (`.op`) e scansione (`.dc`):**
+   Con $V(1) = 12\,\text{V}$, il simulatore imposta l'equilibrio delle correnti (KCL) ai nodi incogniti `2` e `3`:
+
+$$
+\begin{cases}
+\text{Nodo 2:} & \dfrac{V(2) - 12}{10} + \dfrac{V(2)}{10} + \dfrac{V(2) - V(3)}{5} = 0 \\[10pt]
+\text{Nodo 3:} & \dfrac{V(3) - 12}{5} + \dfrac{V(3) - V(2)}{5} = 0
+\end{cases}
+$$
+
+   Risolvendo il sistema lineare, LTspice stampa subito `V(1) = 12 V`, `V(2) = 8 V` e `V(3) = 10 V`, in perfetto accordo con il calcolo manuale del [Capitolo 1](/dynamic-courses/elettronica/01-fondamenti-dispositivi/01-teoria-circuitale/). Se sostituiamo `.op` con `.dc Vbias 0 12 3`, il calcolo viene ripetuto per $V_{\text{bias}} = 0, 3, 6, 9, 12\,\text{V}$.
+
+<StepCheck client:load lang="it" prompt="Nella netlist del circuito Bridge-T dell'esempio ($V(1) = 12\,\text{V}$, $V(2) = 8\,\text{V}$, $V(3) = 10\,\text{V}$), qual è la corrente che scorre dal nodo `1` al nodo `2` attraverso $R_1 = 10\,\Omega$ (in $\text{A}$)?" expected={0.4} tolerance={0.02} unit="$\text{A}$" explanation="$I_{R1} = (V(1) - V(2)) / R_1 = (12 - 8) / 10 = 0.4\,\text{A}$ (mentre attraverso $R_4 = 5\,\Omega$ scorrono $(12-10)/5 = 0.4\,\text{A}$, per un totale di $0.8\,\text{A}$ erogati da `Vbias`)." />
+
+### Teoria — Anatomia della Netlist, Suffissi di Scala e Solutori .op / .dc
+
+Una netlist SPICE segue poche regole essenziali, ma violarle può produrre errori silenziosi:
+
+1. **Prima riga e `.end`:** la **prima riga** del file è sempre trattata come titolo e ignorata dal simulatore; l'ultima riga deve essere `.end`.
+2. **Nodo di massa `0`:** ogni circuito deve avere un riferimento `0` (la massa `GND`), e ogni nodo deve poter raggiungere `0` in continua.
+3. **Commenti e continuazioni:** le righe che iniziano con `*` (o dopo `;`) sono commenti; una riga che inizia con `+` continua la precedente.
+4. **Prefissi dei componenti:** la **prima lettera** del nome identifica il componente: `R` resistore, `C` condensatore, `L` induttore, `V` generatore di tensione, `I` generatore di corrente, `D` diodo, `M` MOSFET (`M<nome> Drain Gate Source Bulk <modello> W=... L=...`).
+5. **Insensibilità alle maiuscole:** SPICE non distingue tra maiuscole e minuscole (`Vout` e `vout` sono lo stesso nodo).
+
+Proprio per questo i **suffissi di scala** nascondono una trappola famosa:
+- `F` ($10^{-15}$), `P` ($10^{-12}$), `N` ($10^{-9}$), `U` ($10^{-6}$), **`M` ($10^{-3}$, milli!)**, `K` ($10^{3}$), **`MEG` ($10^{6}$, mega!)**, `G` ($10^{9}$).
+- Poiché `m` e `M` sono identici per SPICE, scrivere `10M` significa **$10\,\text{m}\Omega$**, non $10\,\text{M}\Omega$! Per i megaohm si deve scrivere **`MEG`** (`10MEG`).
+
+Le due analisi stazionarie in continua sono:
+- **`.op` (*Operating Point*):** trova tensioni e correnti in continua ($d/dt = 0$), sostituendo i **condensatori con circuiti aperti** e gli **induttori con cortocircuiti**. Se ci sono diodi o MOSFET ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)), risolve il sistema non lineare per approssimazioni successive (metodo di Newton-Raphson).
+- **`.dc <sorgente> <start> <stop> <step>`:** ripete `.op` facendo variare un generatore a passi costanti. È ideale per tracciare le curve caratteristiche di un MOSFET o la VTC statica $V_{out}(V_{in})$ dell'invertitore CMOS ([Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/)).
+
+<Divider label="2 · Analisi Transitoria (.tran) e Modelli .MODEL" />
+
+### Esempio — Transitorio di Scarica .tran in un Invertitore CMOS LEVEL=1
+
+Simuliamo nel dominio del tempo (`.tran`) la scarica in uscita ($t_{pHL}$) di un invertitore CMOS a $V_{DD} = 1.8\,\text{V}$ con carico $C_L = 40\,\text{fF}$, usando il modello `LEVEL=1`:
+
+```txt
+TRANSITORIO INVERTITORE CMOS
+Vdd vdd 0 1.8
+Vin in 0 PULSE(0 1.8 0 10p 10p 2n 4n)
+Mp out in vdd vdd PMOS_018 W=2.5u L=0.5u
+Mn out in 0 0 NMOS_018 W=1.0u L=0.5u
+CL out 0 40f
+.MODEL NMOS_018 NMOS(LEVEL=1 VTO=0.4 KP=300u LAMBDA=0)
+.MODEL PMOS_018 PMOS(LEVEL=1 VTO=-0.4 KP=120u LAMBDA=0)
+.tran 5p 4n
+.end
+```
+
+Ecco cosa calcola `.tran 5p 4n`:
+1. **Stato iniziale ($t = 0^-$):** con `Vin = 0 V`, `Mn` è spento e `Mp` tiene il condensatore carico a $V(out) = 1.8\,\text{V}$.
+2. **Scarica attraverso `Mn` ($t > 0^+$):** appena `Vin` sale a $1.8\,\text{V}$, `Mp` si spegne e `Mn` (con $W/L = 1.0/0.5 = 2.0$) entra in saturazione con corrente costante:
+
+$$
+I_{D,\text{sat}} = \frac{1}{2}\,\text{KP}_n\left(\frac{W}{L}\right)_n (V_{DD} - \text{VTO}_n)^2 = \frac{1}{2}\,(300\,\mu\text{A/V}^2)(2.0)(1.8 - 0.4)^2 = 588\,\mu\text{A}
+$$
+
+3. **Tempo di scarica fino a $V_{DD}/2 = 0.9\,\text{V}$:** integrando $C_L \frac{dV}{dt} = -I_{D,\text{sat}}$, il ritardo di propagazione stimato vale $t_{pHL} \approx \frac{C_L (V_{DD}/2)}{I_{D,\text{sat}}} = \frac{40\,\text{fF} \times 0.9\,\text{V}}{588\,\mu\text{A}} \approx 61\,\text{ps}$.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Quale direttiva SPICE permette invece di tracciare la transcaratteristica statica $v_{out}(v_{in})$ del medesimo invertitore CMOS al variare lento della tensione d'ingresso da $0$ a $1.8\,\text{V}$?" options={["`.tran 0.01 1.8`", "`.dc Vin 0 1.8 0.01`", "`.ac dec 100 1 100k`"]} correctIndex={1} explanation="La direttiva `.dc Vin 0 1.8 0.01` esegue una scansione stazionaria in continua della sorgente `Vin` da $0$ a $1.8\,\text{V}$ a passi di $10\,\text{mV}$." />
+
+### Teoria — Integrazione nel Dominio del Tempo (.tran), Sorgenti e .MODEL
+
+L'**Analisi Transitoria (`.tran <Tstep> <Tstop>`)** funziona come un oscilloscopio: parte dal punto operativo `.op` a $t = 0$ e integra passo dopo passo le equazioni differenziali dei condensatori ($i_C = C\,dv_C/dt$) e degli induttori ($v_L = L\,di_L/dt$). A differenza di `.ac`, riproduce fedelmente tutti gli effetti di **grande segnale**: saturazione, *Slew-Rate* ([Capitolo 12](/dynamic-courses/elettronica/03-amplificatori-operazionali/12-non-idealita-opamp/)), ritardi logici ([Capitolo 18](/dynamic-courses/elettronica/05-logica-cmos/18-metriche-digitali/)) e *charge sharing* ([Capitolo 23](/dynamic-courses/elettronica/06-sequenziali-memorie/23-architetture-memoria/)).
+
+Le forme d'onda più usate per i generatori sono:
+- `SIN(Voffset Vamp Freq)` per una sinusoide;
+- `PULSE(V1 V2 Tdelay Trise Tfall Ton Tperiod)` per onde quadre o gradini;
+- `PWL(t1 v1 t2 v2 ...)` per segnali lineari a tratti.
+
+Per costruire modelli ideali (come un Op-Amp del [Capitolo 10](/dynamic-courses/elettronica/03-amplificatori-operazionali/10-opamp-ideale/) o un generatore $g_m v_{gs}$), SPICE offre anche i generatori controllati: `E` (tensione controllata in tensione), `G` (corrente controllata in tensione), `H` e `F` (controllati in corrente).
+
+Per diodi (`D`) e MOSFET (`M`), i parametri tecnologici si assegnano con **`.MODEL <nome> <TIPO>(...)`**:
+
+```txt
+.MODEL DLAB D(IS=1e-14 N=1.05 RS=2 CJO=5p BV=5.1)
+.MODEL NMOS_035 NMOS(LEVEL=1 VTO=0.7 KP=200u GAMMA=0.4 PHI=0.7 LAMBDA=0.02)
+.MODEL PMOS_035 PMOS(LEVEL=1 VTO=-0.7 KP=80u GAMMA=0.4 PHI=0.7 LAMBDA=0.02)
+```
+
+I nomi dei parametri corrispondono direttamente alle grandezze del corso:
+- Nel **diodo** ([Capitolo 3](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn/) e [Capitolo 4](/dynamic-courses/elettronica/01-fondamenti-dispositivi/04-modelli-diodo/)): `IS` è $I_S$, `N` è $\eta$, `RS` la resistenza serie, `CJO` la capacità di giunzione e `BV` la tensione Zener.
+- Nel **MOSFET `LEVEL=1`** ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)): `VTO` è la soglia $V_{th0}$, `KP` è $k' = \mu C_{ox}''$, `GAMMA` l'effetto body, `PHI` è $2\phi_F$ e `LAMBDA` è $\lambda = 1/V_A$.
+
+In saturazione, SPICE `LEVEL=1` usa esattamente la nostra formula quadratica:
+
+$$
+I_D = \frac{1}{2}\,\text{KP}\,\left(\frac{W}{L}\right)\big(V_{GS} - V_{th}\big)^2\big(1 + \text{LAMBDA}\cdot V_{DS}\big)
+$$
+
+così i risultati della simulazione coincidono direttamente con i calcoli svolti a mano.
+
+<Divider label="3 · Analisi in Frequenza di Piccolo Segnale (.ac)" />
+
+### Esempio — Risposta Armonica .ac e Sovratensione Risonante RLC
+
+Tracciamo il diagramma di Bode del filtro **RLC serie** in [la figura](#fig-ltspice-rlc) tra $100\,\text{Hz}$ e $1\,\text{MHz}$, con uscita sul nodo `3` ($R_1 = 50\,\Omega$, $L_1 = 2.5\,\text{mH}$, $C_1 = 10\,\text{nF}$):
 
 <figure id="fig-ltspice-rlc" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-ltspice-rlc.svg" alt="Filtro RLC serie per analisi .ac e .tran in LTspice." />
   <figcaption>Circuito RLC serie per analisi `.ac` e `.tran`.</figcaption>
 </figure>
 
-<Exercise client:load lang="it" id="ex-24-1" title="Esercizio 24.1: Analisi .AC di un Filtro RC" level="Livello 1 · Base" hint="La frequenza di taglio a -3 dB di un filtro RC del primo ordine è f_c = 1 / (2*pi*R*C).">
+```txt
+RISPOSTA IN FREQUENZA RLC SERIE
+Vin 1 0 0 AC 1
+R1 1 2 50
+L1 2 3 2.5m
+C1 3 0 10n
+.ac dec 200 100 1MEG
+.end
+```
 
-Un circuito filtro passa-basso RC è descritto dalla netlist:
-```spice
-FILTRO RC
+1. **Perché si scrive `AC 1`:** impostando l'ampiezza d'ingresso a $1\,\text{V}$ (fase $0^\circ$), la tensione complessa calcolata sul nodo `3` coincide direttamente con la funzione di trasferimento $H(j\omega) = V(3)/V(1)$:
+
+$$
+V(3)(j\omega) = \frac{1}{\big(1 - \omega^2 L_1 C_1\big) + j\omega R_1 C_1}
+$$
+
+2. **Risonanza $f_0$ e fattore di qualità $Q$:**
+   Alla risonanza le reattanze di $L_1$ e $C_1$ si cancellano:
+
+$$
+\omega_0 = \frac{1}{\sqrt{L_1 C_1}} = 2\times 10^5\,\text{rad/s} \implies f_0 = \frac{\omega_0}{2\pi} \approx 31.8\,\text{kHz}
+$$
+
+   Con impedenza caratteristica $Z_0 = \sqrt{L_1 / C_1} = 500\,\Omega$, il fattore di qualità vale $Q = Z_0 / R_1 = 500 / 50 = 10$. A $31.8\,\text{kHz}$ il diagramma di Bode mostra un picco di $20\log_{10}(10) = +20\,\text{dB}$ e una fase di $-90^\circ$.
+
+<StepCheck client:load lang="it" prompt="Nell'esempio RLC precedente ($Q = 10.0$), quanto vale in decibel (dB) il guadagno $|V(3)/V(1)|_{\text{dB}}$ misurato da LTspice esattamente alla frequenza di risonanza $f_0 \approx 31.83\,\text{kHz}$?" expected={20.0} tolerance={0.1} unit="$\text{dB}$" explanation="Alla risonanza $|H(j\omega_0)| = Q = 10.0$, che in decibel corrisponde a $20\log_{10}(10.0) = +20.0\,\text{dB}$." />
+
+### Teoria — Linearizzazione Armonica e Solutore Fasoriale .ac
+
+L'**Analisi in Frequenza (`.ac [DEC|OCT|LIN] <Npunti> <f_start> <f_end>`)** traccia i diagrammi di Bode ([Capitolo 17](/dynamic-courses/elettronica/04-amplificatori-frequenza/17-risposta-frequenza/)) in tre passi automatici:
+1. Calcola il punto di lavoro DC con **`.op`**.
+2. Sostituisce ogni diodo o MOSFET con il suo **modello lineare di piccolo segnale** ($g_m, r_o, C_{gs}, C_{gd}$ dei Capitoli [7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/) e [8](/dynamic-courses/elettronica/02-transistori-mos/08-capacita-parassite/)) e spegne i generatori DC.
+3. Risolve il circuito con i fasori per ogni frequenza della griglia (`DEC` per decadi, `OCT` per ottave, `LIN` lineare).
+
+Poiché il circuito viene completamente **linearizzato**, `.ac` non mostra mai distorsioni o saturazione dell'alimentazione: se si imposta `AC 1` in ingresso, `V(out)` restituisce direttamente il guadagno in dB e la fase della funzione di trasferimento.
+
+<Divider label="4 · Sintesi" />
+
+### Tabella Direttive e Suffissi SPICE
+
+| Elemento / Direttiva | Sintassi | Significato / Fattore |
+| :--- | :--- | :--- |
+| **Suffissi piccoli** | `F` / `P` / `N` / `U` / `M` | $10^{-15}$ / $10^{-12}$ / $10^{-9}$ / $10^{-6}$ / $10^{-3}$ (**milli**) |
+| **Suffissi grandi** | `K` / `MEG` / `G` | $10^{3}$ / $10^{6}$ (**mega**) / $10^{9}$ |
+| **Analisi DC** | `.op` oppure `.dc src v1 v2 step` | Punto di lavoro statico ($C$ aperti, $L$ in corto) o scansione VTC |
+| **Analisi Frequenza** | `.ac dec N f1 f2` | Risposta armonica linearizzata attorno a `.op` (richiede `AC 1`) |
+| **Analisi Temporale** | `.tran Tstep Tstop` | Integrazione differenziale non lineare nel tempo (`SIN`, `PULSE`) |
+| **Modelli Dispositivi** | `.MODEL nome tipo(parametri)` | `D(IS N BV)` e `NMOS/PMOS(LEVEL=1 VTO KP LAMBDA)` |
+
+### Procedura di Verifica CAD
+
+1. **Controllare titolo e massa:** verificare che la prima riga sia un'intestazione testuale, l'ultima sia `.end` e il nodo di riferimento sia battezzato `0`.
+2. **Verificare ordine dei nodi e suffissi:** controllare per ogni MOSFET l'ordine `Drain Gate Source Bulk` e sostituire qualunque `M` inteso come mega con `MEG`.
+3. **Accoppiare sorgente e direttiva:** verificare che per `.ac` il generatore d'ingresso contenga la specifica `AC 1`, mentre per `.tran` contenga una funzione temporale `SIN(...)` o `PULSE(...)`.
+4. **Confrontare con la stima analitica:** prima di fidarsi del grafico, stimare a mano il punto di lavoro `.op`, il guadagno in banda e la frequenza di taglio $f_{-3\,\text{dB}}$.
+
+### Dimostrazioni Chiave
+
+- **Riduzione DC nell'analisi `.op`:** ponendo $d/dt = 0$, le relazioni costitutive $i_C = C\,dv_C/dt = 0$ e $v_L = L\,di_L/dt = 0$ trasformano i condensatori in circuiti aperti e gli induttori in cortocircuiti, riducendo la rete a un sistema algebrico risolto via KCL e Newton-Raphson.
+- **Linearizzazione nell'analisi `.ac`:** poiché `.ac` risolve il sistema fasoriale lineare $\mathbf{Y}(j\omega)\mathbf{V} = \mathbf{I}$ ottenuto dalle derivate parziali valutate nel punto `.op`, ponendo `AC 1` in ingresso la tensione complessa sul nodo di uscita fornisce direttamente la funzione di trasferimento di piccolo segnale $H(j\omega)$.
+
+<Callout type="warning" title="Errori Comuni">
+
+Poiché il parser SPICE è *case-insensitive*, scrivere `R1 1 2 10M` o `10m` viene sempre interpretato come **$10\,\text{m}\Omega = 0.01\,\Omega$**, mai come $10\,\text{M}\Omega$: per i fattori $10^6$ è obbligatorio scrivere `MEG` (`10MEG`). Altri tre errori classici sono: scrivere il primo componente sulla riga 1 della netlist (dove viene ignorato come titolo), dimenticare il collegamento del substrato (*Bulk*) nel MOSFET a 4 terminali, oppure lanciare un'analisi `.ac` su un generatore che ha solo `SIN(...)` ma è privo dell'attributo `AC 1`.
+
+</Callout>
+
+<Divider label="5 · Esercizi" />
+
+<Exercise client:load lang="it" id="ex-24-1" title="Esercizio 24.1 — Analisi .AC di un Filtro RC" level="Base" hint="La frequenza di taglio a $-3\,\text{dB}$ di un filtro RC del primo ordine è $f_c = 1 / (2\pi R C)$.">
+
+Un circuito filtro passa-basso RC è descritto dalla seguente netlist SPICE:
+
+```txt
+FILTRO RC PASSA-BASSO
 Vin 1 0 0 AC 1
 R1 1 2 1k
 C1 2 0 100n
 .ac dec 100 10 100k
 .end
 ```
-Calcolare la frequenza di taglio a $-3\,\text{dB}$ letta sul nodo `V(2)`.
 
-<StepCheck client:load lang="it" prompt="Calcola la frequenza di taglio f_c in Hz:" expected={1591.55} tolerance={5} unit="Hz" explanation="f_c = 1 / (2 * pi * 1e3 * 100e-9) ≈ 1591.55 Hz." />
+Determinare la funzione di trasferimento e la frequenza di taglio a $-3\,\text{dB}$ letta sul nodo di uscita `V(2)`.
 
-<StepCheck client:load lang="it" mode="choice" prompt="Quale suffisso SPICE rappresenta correttamente un resistore da 2.2 Megaohm?" options={["2.2M", "2.2MEG", "2.2MG"]} correctIndex={1} explanation="In SPICE M indica milli (10^-3); per Mega (10^6) è obbligatorio scrivere MEG." />
+<StepCheck client:load lang="it" prompt="Calcola la frequenza di taglio $f_c$ a $-3\,\text{dB}$ (in $\text{Hz}$):" expected={1591.55} tolerance={5} unit="$\text{Hz}$" explanation="$f_c = 1 / (2\pi \cdot 10^3 \cdot 100\times 10^{-9}) \approx 1591.55\,\text{Hz}$." />
+
+<StepCheck client:load lang="it" mode="choice" prompt="Quale suffisso SPICE rappresenta correttamente un resistore da $2.2\,\text{M}\Omega$?" options={["2.2M", "2.2MEG", "2.2MG"]} correctIndex={1} explanation="In SPICE `M` indica milli ($10^{-3}$); per Mega ($10^6$) è obbligatorio scrivere `MEG`." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. La netlist collega $R_1 = 1\,\text{k}\Omega$ tra il generatore AC `1` e il nodo d'uscita `2`, con $C_1 = 100\,\text{nF}$ verso massa `0`.
-2. La funzione di trasferimento è $H(j\omega) = \frac{1}{1 + j\omega R_1 C_1}$, con frequenza di taglio:
-   $$ f_c = \frac{1}{2\pi R_1 C_1} = \frac{1}{2\pi (10^3)(100 \times 10^{-9})} = \frac{10^4}{2\pi} \approx 1591.55\,\text{Hz} $$
+1. **Interpretazione della topologia e dei suffissi dalla netlist:**
+   - La riga 1 (`FILTRO RC PASSA-BASSO`) è il titolo.
+   - `Vin 1 0 0 AC 1` collega tra il nodo `1` e la massa `0` un generatore con valore DC nullo ($0\,\text{V}$) e ampiezza fasoriale per l'analisi `.ac` pari a $|V(1)| = 1\,\text{V}$ con fase $0^\circ$.
+   - `R1 1 2 1k` inserisce un resistore $R_1 = 1\,\text{k}\Omega = 10^3\,\Omega$ tra l'ingresso `1` e l'uscita `2`.
+   - `C1 2 0 100n` inserisce un condensatore $C_1 = 100\,\text{nF} = 10^{-7}\,\text{F}$ tra il nodo `2` e la massa `0`.
+   - `.ac dec 100 10 100k` esegue una scansione logaritmica in frequenza da $10\,\text{Hz}$ a $100\,\text{kHz}$ con $100$ punti per decade.
+2. **Calcolo della funzione di trasferimento e della frequenza di polo:**
+   Per partizione di tensione tra $R_1$ e l'impedenza $Z_{C1} = 1/(j\omega C_1)$, la tensione complessa sul nodo `2` vale:
+   $$
+   V(2) = \frac{1/(j\omega C_1)}{R_1 + 1/(j\omega C_1)}\,V(1) = \frac{1}{1 + j\omega R_1 C_1}
+   $$
+   La frequenza di taglio superiore a $-3\,\text{dB}$ (dove $|\text{V(2)}| = 1/\sqrt{2} \approx 0.707\,\text{V}$ e la fase vale $-45^\circ$) risulta:
+   $$
+   f_c = \frac{1}{2\pi R_1 C_1} = \frac{1}{2\pi \times 10^3\,\Omega \times 10^{-7}\,\text{F}} = \frac{10^4}{2\pi}\,\text{Hz} \approx 1591.55\,\text{Hz}
+   $$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-24-2" title="Esercizio 24.2 — Filtro RLC Serie in Analisi .AC" level="Intermedio" hint="La frequenza di risonanza vale $f_0 = \frac{1}{2\pi\sqrt{L_1 C_1}}$ e il fattore di merito vale $Q = \frac{1}{R_1}\sqrt{\frac{L_1}{C_1}}$.">
+
+Si consideri il circuito RLC serie mostrato in [la figura](#fig-ltspice-rlc), descritto dalla seguente netlist SPICE con uscita prelevata ai capi del condensatore $C_1$ (nodo `3`):
+
+```txt
+FILTRO RLC SERIE
+Vin 1 0 0 AC 1
+R1 1 2 20
+L1 2 3 1m
+C1 3 0 100n
+.ac dec 200 100 1MEG
+.end
+```
+
+<StepCheck client:load lang="it" prompt="Calcola la frequenza di risonanza naturale $f_0$ del filtro RLC (in $\text{kHz}$):" expected={15.915} tolerance={0.15} unit="$\text{kHz}$" explanation="$L_1 C_1 = 10^{-3} \cdot 10^{-7} = 10^{-10}\,\text{s}^2$; $f_0 = 1 / (2\pi \cdot 10^{-5}) \approx 15.915\,\text{kHz}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola il fattore di qualità $Q$ del circuito alla risonanza:" expected={5.0} tolerance={0.05} explanation="$Q = \frac{1}{20}\sqrt{\frac{10^{-3}}{10^{-7}}} = \frac{100}{20} = 5.0$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Decodifica dei parametri e dell'intervallo di scansione dalla netlist:**
+   - $R_1 = 20\,\Omega$ (tra i nodi `1` e `2`);
+   - $L_1 = \text{1m} = 1\,\text{mH} = 10^{-3}\,\text{H}$ (tra i nodi `2` e `3`);
+   - $C_1 = \text{100n} = 100\,\text{nF} = 10^{-7}\,\text{F}$ (tra il nodo d'uscita `3` e la massa `0`);
+   - La direttiva `.ac dec 200 100 1MEG` esplora la banda da $100\,\text{Hz}$ fino a $1\,\text{MHz}$ (`1MEG` $= 10^6\,\text{Hz}$) con $200$ punti per decade.
+2. **Calcolo della frequenza di risonanza naturale $f_0$:**
+   Alla risonanza le reattanze dell'induttore e del condensatore si annullano reciprocamente ($\omega_0 L_1 = \frac{1}{\omega_0 C_1}$):
+   $$
+   \omega_0 = \frac{1}{\sqrt{L_1 C_1}} = \frac{1}{\sqrt{10^{-3}\,\text{H} \times 10^{-7}\,\text{F}}} = 10^5\,\text{rad/s} \implies f_0 = \frac{\omega_0}{2\pi} = \frac{10^5}{2\pi}\,\text{Hz} \approx 15.915\,\text{kHz}
+   $$
+3. **Calcolo del fattore di qualità $Q$ e del picco a risonanza:**
+   L'impedenza caratteristica della coppia risonante vale $Z_0 = \sqrt{L_1 / C_1} = \sqrt{10^{-3} / 10^{-7}} = 100\,\Omega$. Il fattore di merito $Q$ del circuito serie vale pertanto:
+   $$
+   Q = \frac{Z_0}{R_1} = \frac{1}{R_1}\sqrt{\frac{L_1}{C_1}} = \frac{100\,\Omega}{20\,\Omega} = 5.0
+   $$
+   Alla frequenza $f_0 \approx 15.915\,\text{kHz}$, la corrente nella maglia è limitata dal solo resistore $R_1$ ($I = V(1)/R_1$) e la tensione sul nodo `3` raggiunge l'ampiezza $|V(3)| = \frac{1}{\omega_0 C_1} \frac{|V(1)|}{R_1} = Q\,|V(1)| = 5.0\,\text{V}$ (corrispondente a un picco di risonanza di $20\log_{10}(5) \approx +13.98\,\text{dB}$ sul diagramma di Bode di LTspice).
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-24-3" title="Esercizio 24.3 — Verifica .DC dell'Invertitore CMOS" level="Livello Esame" hint="Ricava $K_n = \text{KP}_n (W/L)_n$ e $K_p = \text{KP}_p (W/L)_p$ dalle righe della netlist, poi usa la formula della soglia logica $V_M$ del Capitolo 19.">
+
+Un invertitore CMOS statico viene caratterizzato in LTspice mediante la seguente netlist di scansione `.dc`:
+
+```txt
+INVERTITORE CMOS VTC
+Vdd vdd 0 3.3
+Vin in 0 0
+M1 out in 0 0 N1 W=2u L=1u
+M2 out in vdd vdd P1 W=5u L=1u
+.MODEL N1 NMOS(LEVEL=1 VTO=0.7 KP=200u)
+.MODEL P1 PMOS(LEVEL=1 VTO=-0.7 KP=80u)
+.dc Vin 0 3.3 0.01
+.end
+```
+
+<StepCheck client:load lang="it" prompt="Calcola il parametro geometrico di transconduttanza $K_n = k_n'(W/L)_1$ di `M1` estratto dalla netlist (in $\mu\text{A/V}^2$):" expected={400} tolerance={2} unit="$\mu\text{A/V}^2$" explanation="$K_n = \text{KP}_n \cdot (W/L)_1 = 200\,\mu\text{A/V}^2 \cdot (2\,\mu\text{m} / 1\,\mu\text{m}) = 400\,\mu\text{A/V}^2$." />
+
+<StepCheck client:load lang="it" prompt="Quale tensione di soglia logica $V_M$ (in $\text{V}$) verrà letta sulla curva `.dc` nel punto di intersezione `V(out) = V(in)`?" expected={1.65} tolerance={0.02} unit="$\text{V}$" explanation="Poiché $K_p = 80\,\mu\text{A/V}^2 \cdot (5/1) = 400\,\mu\text{A/V}^2 = K_n$ e $V_{tn} = |V_{tp}| = 0.7\,\text{V}$, l'invertitore è perfettamente simmetrico e commuta a $V_M = V_{DD}/2 = 1.65\,\text{V}$." />
+
+<details className="dc-solution">
+<summary>Mostra Soluzione Passo-Passo</summary>
+
+1. **Estrazione della topologia e dei parametri fisici dalla netlist:**
+   - Secondo la sintassi `M<nome> <Drain> <Gate> <Source> <Bulk> <Modello>`, il transistore `M1` è un NMOS con drain su `out`, gate su `in`, source e substrato (`Bulk`) a massa `0` ($V_{SBn} = 0$), larghezza $W_1 = 2\,\mu\text{m}$ e lunghezza $L_1 = 1\,\mu\text{m}$. Dal modello `N1` leggiamo $V_{tn} = \text{VTO} = 0.7\,\text{V}$ e $k_n' = \text{KP} = 200\,\mu\text{A/V}^2$:
+     $$
+     K_n = k_n'\left(\frac{W}{L}\right)_1 = 200\,\mu\text{A/V}^2 \times \frac{2\,\mu\text{m}}{1\,\mu\text{m}} = 400\,\mu\text{A/V}^2
+     $$
+   - Il transistore `M2` è un PMOS con drain su `out`, gate su `in`, source e n-well (`Bulk`) collegati all'alimentazione `vdd` ($V_{DD} = 3.3\,\text{V}$, $V_{BSp} = 0$), larghezza $W_2 = 5\,\mu\text{m}$ e lunghezza $L_2 = 1\,\mu\text{m}$. Dal modello `P1` leggiamo $V_{tp} = \text{VTO} = -0.7\,\text{V}$ ($|V_{tp}| = 0.7\,\text{V}$) e $k_p' = \text{KP} = 80\,\mu\text{A/V}^2$:
+     $$
+     K_p = k_p'\left(\frac{W}{L}\right)_2 = 80\,\mu\text{A/V}^2 \times \frac{5\,\mu\text{m}}{1\,\mu\text{m}} = 400\,\mu\text{A/V}^2
+     $$
+2. **Calcolo della soglia logica $V_M$ sulla caratteristica `.dc`:**
+   - Il rapporto di asimmetria tra i due dispositivi vale $r = \sqrt{K_n / K_p} = \sqrt{400 / 400} = 1$.
+   - Applicando l'equazione della soglia logica dell'invertitore CMOS derivata nel [Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/):
+     $$
+     V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r} = \frac{3.3\,\text{V} - 0.7\,\text{V} + 1 \times 0.7\,\text{V}}{1 + 1} = \frac{3.3\,\text{V}}{2} = 1.65\,\text{V}
+     $$
+   - La scansione `.dc Vin 0 3.3 0.01` calcola $331$ punti operativi per $V_{in} \in [0, 3.3\,\text{V}]$ a passi di $10\,\text{mV}$: in corrispondenza del passo `Vin = 1.65`, il simulatore restituisce esattamente `V(out) = 1.65 V`.
 
 </details>
 

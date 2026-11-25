@@ -12,240 +12,268 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 import BodeExplorer from "@components/BodeExplorer.tsx";
 
-<MindMap client:load title="Chapter 18 Mental Model" markdown={`# Ch. 18: Bode Phase Diagrams
-  - Intuition and Physical Meaning
-  - Formal Definition and Derivation (Oral Core)
-    - Derivation / Oral Proof: The 3-Segment Ramp and Second-Order Steepness
-  - 4-Step Phase Construction Algorithm (Written Exam Core)
-    - Step 1: Order Corner Frequencies and Pick $[\omega_{\text{start}}, \omega_{\text{end}}]$
-    - Step 2: Compute the Low-Frequency Horizontal Limit $\varphi(0^+)$
-    - Step 3: Evaluate Exact Points or Sum the 3-Segment Ramps
-    - Step 4: Verify the High-Frequency Horizontal Limit $\varphi(\infty)$
-  - Stability Margins on the Bode Diagram
-  - Worked Exam Archetype and Pitfalls
-    - Worked Example: 4-Step Phase Construction and Margin Evaluation`} />
+<MindMap client:load defaultCollapsed title="Chapter 18 Outline" markdown={`# Ch. 18: Bode Phase Diagrams
+  - Phase Addition Principle
+  - 3-Segment Phase Ramps
+    - Breakpoints $[0.1\\omega_c, 10\\omega_c]$ and $\\pm 45^\\circ/\\mathrm{dec}$ slopes
+    - Second-order steepness $-1/\\zeta$
+  - Closed-Loop Margins
+    - Low- and high-frequency limits $\\varphi(0^+), \\varphi(\\infty)$
+    - Gain crossover $\\omega_{gc}$ and phase margin $\\varphi_m$
+    - Phase crossover $\\omega_\\pi$ and gain margin $K_{m,\\mathrm{dB}}$`} />
 
-## Intuition and Physical Meaning
+## Introduction
 
-While the Bode magnitude plot measures how strongly a system amplifies or attenuates a sinusoidal input at frequency $\omega$, the **Bode phase diagram** $\varphi(\omega) = \arg(W(j\omega))$ measures the **time shift (phase lag or lead)** between the input and steady-state output sinusoids. In negative-feedback control loops, excessive phase lag is dangerous: when the open-loop phase reaches $-180^\circ$, negative feedback turns into *positive* feedback, amplifying oscillations and potentially destabilizing the system.
+Knowing how much a system amplifies a sinusoid tells you only half of its frequency behavior: every physical energy storage element—whether a motor inductance, a mechanical mass, or an RC filter—also delays the output waveform in time relative to the input. In an open-loop audio filter, a phase shift merely delays a note by a few milliseconds; inside a closed negative-feedback loop, however, phase lag decides whether the system stabilizes or destroys itself.
 
-Just like magnitude diagrams, phase diagrams use a logarithmic horizontal axis ($\log_{10}\omega$) and separate the ruler-drawn **Asymptotic Plot** (piecewise-linear ramps) from the smooth **Exact Response** ($\arctan$ curves).
+If the total open-loop phase shift reaches $-180^\circ$ (half a cycle of delay) at a frequency where the loop gain $|L(j\omega)|$ is still $1$ ($0\text{ dB}$) or greater, the feedback signal arrives at the summing junction completely inverted. Subtracting an inverted signal adds it in phase, turning negative feedback into self-sustaining positive feedback. The **Bode phase diagram** tracks this phase evolution across decades of frequency and lets us read **phase margin** ($\varphi_m$) and **gain margin** ($K_{m,\text{dB}}$) directly off the open-loop curves.
 
-<Divider />
+<Divider label="1 · Example" />
 
-## Formal Definition and Derivation (Oral Core)
+### Phase Trajectory and Phase Margin of the Part V Loop
 
-For any minimum-phase rational transfer function in Bode canonical form:
-$$W(s) = \frac{K_B}{s^g} \frac{\prod_{i=1}^{m_0} (1 + s\tau_{z,i}) \prod_{q} \left(1 + \frac{2\zeta_{z,q}}{\omega_{n,z,q}}s + \frac{s^2}{\omega_{n,z,q}^2}\right)}{\prod_{k=1}^{n_0} (1 + s\tau_{p,k}) \prod_{l} \left(1 + \frac{2\zeta_{p,l}}{\omega_{n,p,l}}s + \frac{s^2}{\omega_{n,p,l}^2}\right)}$$
-evaluating at $s = j\omega$ and taking the complex argument converts multiplication into addition and division into subtraction:
-$$\boxed{\arg(W(j\omega)) = \arg(K_B) - g \cdot 90^\circ + \sum \arg(\text{numerator factors}) - \sum \arg(\text{denominator factors})}$$
+Consider our Part V running system placed inside the standard unity negative-feedback architecture from [Chapter 3](/dynamic-courses/systems-theory/01-state-models/03-block-diagram-algebra-reduction/):
 
-### Derivation / Oral Proof: The 3-Segment Ramp and Second-Order Steepness
-
-For a stable first-order pole $(1 + j\omega/\omega_c)^{-1}$ ($\tau_p = 1/\omega_c > 0$), the exact phase contribution is $\varphi_p(\omega) = -\arctan(\omega/\omega_c)$:
-* At $\omega = 0.1\omega_c$: $-\arctan(0.1) \approx -5.71^\circ$.
-* At $\omega = \omega_c$: $-\arctan(1) = -45^\circ$.
-* At $\omega = 10\omega_c$: $-\arctan(10) \approx -84.29^\circ$.
-
-Approximating this smooth S-curve by $0^\circ$ for $\omega \le 0.1\omega_c$, a straight ramp of $-45^\circ/\text{dec}$ across $[0.1\omega_c, 10\omega_c]$, and $-90^\circ$ for $\omega \ge 10\omega_c$ gives **zero error at $\omega_c$** and a maximum discrepancy of **$5.71^\circ$** at the ramp endpoints $0.1\omega_c$ and $10\omega_c$.
-
-For a stable complex conjugate pole pair with $\zeta > 0$, $\varphi_{p2}(\omega) = -\operatorname{atan2}\!\left(2\zeta\frac{\omega}{\omega_n},\; 1 - \frac{\omega^2}{\omega_n^2}\right)$ passes through $-90^\circ$ at $\omega = \omega_n$ regardless of $\zeta$, with local slope $\left.\frac{d\varphi}{d(\omega/\omega_n)}\right|_{\omega_n} = -\frac{1}{\zeta}$ (lightly damped pairs drop steeply across $\omega_n$, whereas heavily damped pairs spread out smoothly).
-
-<Divider />
-
-## 4-Step Phase Construction Algorithm (Written Exam Core)
-
-All operational factor phase rules—both exact trigonometric formulas and 3-segment asymptotic ramps—are consolidated into a single reference in the reference table.
-
-| Factor in Bode Form | Exact Phase $\arg(\cdot)$ | Low-Freq ($\omega \ll \omega_c$) | Ramp Interval & Slope | High-Freq ($\omega \gg \omega_c$) |
-| :--- | :--- | :--- | :--- | :--- |
-| Constant gain $K_B$ | $0^\circ$ ($K_B > 0$), $-180^\circ$ ($K_B < 0$) | Constant | None ($0^\circ/\text{dec}$) | Constant |
-| Origin poles/zeros $s^{-g}$ | $-g \cdot 90^\circ$ | Constant | None ($0^\circ/\text{dec}$) | Constant |
-| Real pole $(1 + s\tau_p)^{-1}$ | $-\arctan(\omega\tau_p)$ | $0^\circ$ | $[0.1\omega_c, 10\omega_c]$: $-45^\circ/\text{dec}$ | $-90^\circ$ |
-| Real zero $(1 + s\tau_z)$ | $+\arctan(\omega\tau_z)$ | $0^\circ$ | $[0.1\omega_c, 10\omega_c]$: $+45^\circ/\text{dec}$ | $+90^\circ$ |
-| Complex poles ($\omega_n, \zeta > 0$) | $-\operatorname{atan2}\!\left(2\zeta\frac{\omega}{\omega_n}, 1-\frac{\omega^2}{\omega_n^2}\right)$ | $0^\circ$ | $[0.1\omega_n, 10\omega_n]$: $-90^\circ/\text{dec}$ | $-180^\circ$ |
-| Complex zeros ($\omega_n, \zeta > 0$) | $+\operatorname{atan2}\!\left(2\zeta\frac{\omega}{\omega_n}, 1-\frac{\omega^2}{\omega_n^2}\right)$ | $0^\circ$ | $[0.1\omega_n, 10\omega_n]$: $+90^\circ/\text{dec}$ | $+180^\circ$ |
-
-*Table: Single-source operational exact phase formulas and 3-segment asymptotic ramps for minimum-phase factors ($\tau > 0$).*
-
-### Step 1: Order Corner Frequencies and Pick $[\omega_{\text{start}}, \omega_{\text{end}}]$
-
-Sort all corner frequencies $\omega_c = 1/\tau$ and natural frequencies $\omega_n$ in ascending order:
-$$\omega_{c,1} < \omega_{c,2} < \dots < \omega_{c,r}$$
-Because every phase ramp spans $[0.1\omega_{c,k}, 10\omega_{c,k}]$, choose a finite plotting window $[\omega_{\text{start}}, \omega_{\text{end}}]$ extending at least one decade past the outermost corners:
-$$\omega_{\text{start}} \le 0.1\,\omega_{c,1}, \qquad \omega_{\text{end}} \ge 10\,\omega_{c,r}$$
-
-### Step 2: Compute the Low-Frequency Horizontal Limit $\varphi(0^+)$
-
-For $\omega \le \omega_{\text{start}} \le 0.1\omega_{c,1}$, every non-origin factor contributes $0^\circ$. Place your starting dot at $(\omega_{\text{start}},\, \varphi(0^+))$ on the initial horizontal line:
-$$\boxed{\varphi(0^+) = \arg(K_B) - g \cdot 90^\circ}$$
-where $\arg(K_B) = 0^\circ$ if $K_B > 0$ and $-180^\circ$ if $K_B < 0$.
-
-### Step 3: Evaluate Exact Points or Sum the 3-Segment Ramps
-
-Depending on whether the exam asks for an **exact curve** or a **piecewise-linear asymptotic sketch**:
-* **Exact Phase Curve (Point-by-Point):** Evaluate the exact sum at key frequencies ($\omega_{\text{start}}$, each corner $\omega_{c,k}$, gain crossover $\omega_c$, and $\omega_{\text{end}}$):
-  $$\varphi(\omega) = \varphi(0^+) + \sum_{i} \arctan(\omega\tau_{z,i}) - \sum_{k} \arctan(\omega\tau_{p,k}) - \sum_{l} \operatorname{atan2}\!\left(2\zeta_{p,l}\frac{\omega}{\omega_{n,p,l}},\, 1 - \frac{\omega^2}{\omega_{n,p,l}^2}\right) + \dots$$
-  and connect those dots with a smooth S-shaped curve.
-* **Asymptotic Phase Plot (Connect-the-Dots Ramps):** List all ramp transitions $0.1\omega_{c,k}$ (add factor slope from the reference table) and $10\omega_{c,k}$ (subtract factor slope) in ascending order $\omega_1 < \omega_2 < \dots < \omega_q$. Starting from $(\omega_{\text{start}}, \varphi(0^+))$, walk vertex-to-vertex using:
-  $$\boxed{\varphi(\omega_{m+1}) = \varphi(\omega_m) + S_{\varphi,\text{current}} \cdot \log_{10}\left(\frac{\omega_{m+1}}{\omega_m}\right)}$$
-  and connect consecutive vertices with straight line segments ([the figure](#fig-bode-phase)).
-
-### Step 4: Verify the High-Frequency Horizontal Limit $\varphi(\infty)$
-
-For $\omega \ge \omega_{\text{end}} \ge 10\omega_{c,r}$, every factor has saturated at its final horizontal value. Verify that your plot lands on the exact pole-zero excess asymptote:
-$$\boxed{\varphi(\infty) = \arg(K_B) - (n - m)\cdot 90^\circ}$$
-where $n$ is the total number of poles (including $g$ at the origin) and $m$ is the total number of zeros of $W(s)$.
-
-<figure id="fig-bode-phase" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/systems-theory/fig-bode-phase.svg" alt="Three-segment asymptotic phase approximation vs. exact $-\arctan(\omega/\omega_c)$ curve for a first-order stable real pole. The ramp starts at $0.1\omega_c$, passes exactly through $(\omega_c, -45^\circ)$, and finishes at $10\omega_c$ with maximum error $5.71^\circ$ at the ramp endpoints." />
-  <figcaption>Three-segment asymptotic phase approximation vs. exact $-\arctan(\omega/\omega_c)$ curve for a first-order stable real pole. The ramp starts at $0.1\omega_c$, passes exactly through $(\omega_c, -45^\circ)$, and finishes at $10\omega_c$ with maximum error $5.71^\circ$ at the ramp endpoints.</figcaption>
+<figure id="fig-bode-unity-feedback-loop" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-bode-unity-feedback-loop.svg" alt="Unity negative-feedback loop connecting the open-loop transfer function L(s) = C(s)G(s) plotted on Bode diagrams to the closed-loop transfer function W_CL(s) = L(s)/(1 + L(s))." />
+  <figcaption>Unity negative-feedback loop: Bode diagrams plot open-loop $L(s) = C(s)G(s)$ to test how close $1 + L(j\omega) = 0$ is to destabilizing $W_{\text{CL}}(s) = L(s)/(1 + L(s))$.</figcaption>
 </figure>
 
-<Divider />
+Why do we plot the **open-loop transfer function** $L(s) = C(s)G(s)$ on a Bode diagram when our real goal is the stability of the **closed-loop transfer function** $W_{\text{CL}}(s) = \frac{L(s)}{1 + L(s)}$? Because the closed-loop poles are the solutions of $1 + L(s) = 0 \iff L(s) = -1$. In complex polar coordinates, the critical point $-1$ has magnitude $|-1| = 1$ ($0\text{ dB}$) and phase $\arg(-1) = -180^\circ$. Thus, checking how far $L(j\omega)$ stays away from $0\text{ dB}$ and $-180^\circ$ simultaneously on the open-loop Bode plot tells us directly how far the closed-loop poles sit from the imaginary axis.
 
-## Stability Margins on the Bode Diagram
+Let us trace the open-loop phase $\varphi(\omega) = \arg L(j\omega)$ of our minimum-phase Part V system with $K = 6$:
 
-For a unity negative-feedback loop $W_{CL}(s) = \frac{L(s)}{1 + L(s)}$:
-* **Gain Crossover Frequency $\omega_c$:** $|L(j\omega_c)|_{\text{dB}} = 0\text{ dB}$. The **phase margin** is:
-  $$\boxed{\varphi_m = 180^\circ + \arg(L(j\omega_c))}$$
-* **Phase Crossover Frequency $\omega_\pi$:** $\arg(L(j\omega_\pi)) = -180^\circ$. The **gain margin** in decibels is:
-  $$\boxed{K_{m,\text{dB}} = -|L(j\omega_\pi)|_{\text{dB}}}$$
+$$L(s) = \frac{6(1 + s/4)}{s(1 + s/2)}$$
 
-<Divider />
+Substituting $s = j\omega$ gives the complex quotient $L(j\omega) = \frac{6(1 + j\omega/4)}{(j\omega)(1 + j\omega/2)}$. Because the angle of a product or quotient of complex numbers equals the sum of the numerator angles minus the sum of the denominator angles, we can write $\varphi(\omega)$ as the sum of three elementary phase angles:
 
-## Worked Exam Archetype and Pitfalls
+$$\varphi(\omega) = \underbrace{\arg(6)}_{0^\circ} - \underbrace{\arg(j\omega)}_{90^\circ} - \underbrace{\arg(1 + j\omega/2)}_{\arctan(\omega/2)} + \underbrace{\arg(1 + j\omega/4)}_{\arctan(\omega/4)}$$
 
-### Worked Example: 4-Step Phase Construction and Margin Evaluation
+$$\varphi(\omega) = -90^\circ - \arctan\!\left(\frac{\omega}{2}\right) + \arctan\!\left(\frac{\omega}{4}\right)$$
 
-Construct the phase diagram and compute the phase margin for $W(s) = \frac{10(1 + 0.2s)}{s(1 + 0.5s)(1 + 0.02s)}$ from [Bode Magnitude Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/) ($g = 1$, $K_B = 10 > 0$):
+Follow how this phase curve evolves from low to high frequency:
+1. **Low-Frequency Asymptote ($\omega \to 0^+$):** As $\omega \to 0^+$, $\arctan(0) = 0^\circ$ for both the pole at $\omega_p = 2$ and the zero at $\omega_z = 4$. Only the integrator $1/(j\omega) = -j/\omega$ contributes, holding the phase at a constant horizontal line $\varphi(0^+) = -90^\circ$.
+2. **Pole Lag vs. Zero Lead ($0.2 \le \omega \le 40\text{ rad/s}$):**
+   - At $\omega = 2\text{ rad/s}$ (the pole corner $\omega_p$), the pole lags by $-\arctan(2/2) = -45^\circ$, while the zero at $\omega_z = 4$ already leads by $+\arctan(2/4) = +\arctan(0.5) \approx +26.57^\circ$. Their sum is:
+     $$\varphi(2) = -90^\circ - 45^\circ + 26.57^\circ = -108.43^\circ$$
+   - At $\omega_{gc} \approx 3.84\text{ rad/s}$ (where $|L(j\,3.84)| = 1$, i.e., $0\text{ dB}$), the pole lags by $-\arctan(3.84/2) \approx -62.5^\circ$ and the zero leads by $+\arctan(3.84/4) \approx +43.8^\circ$, giving:
+     $$\varphi(3.84) = -90^\circ - 62.5^\circ + 43.8^\circ = -108.7^\circ$$
+     Since the critical instability boundary sits at $-180^\circ$, our safety buffer—the **phase margin** $\varphi_m$—is:
+     $$\varphi_m = 180^\circ + \varphi(3.84) = 180^\circ - 108.7^\circ = +71.3^\circ > 0^\circ$$
+3. **High-Frequency Asymptote ($\omega \to \infty$):** As $\omega \to \infty$, $\arctan(\omega/2) \to 90^\circ$ and $\arctan(\omega/4) \to 90^\circ$. The pole's $-90^\circ$ lag and the zero's $+90^\circ$ lead cancel completely, bringing the curve back to the horizontal asymptote $\varphi(\infty) = -90^\circ - 90^\circ + 90^\circ = -90^\circ$.
 
-1. **Order Corners & Pick Window:**
-   $\omega_{p1} = 2\text{ rad/s}$ ($\tau_{p1} = 0.5$), $\omega_{z1} = 5\text{ rad/s}$ ($\tau_{z1} = 0.2$), $\omega_{p2} = 50\text{ rad/s}$ ($\tau_{p2} = 0.02$).
-   Ramp endpoints are $0.2, 0.5, 5, 20, 50, 500\text{ rad/s}$, so pick $[\omega_{\text{start}}, \omega_{\text{end}}] = [0.1, 1000]\text{ rad/s}$.
-2. **Low-Frequency Horizontal Limit:**
-   $$\varphi(0^+) = 0^\circ - 1 \cdot 90^\circ = -90^\circ$$
-3. **Evaluate Exact Phase & Ramp Vertices:**
-   * Exact formula: $\varphi(\omega) = -90^\circ + \arctan(0.2\omega) - \arctan(0.5\omega) - \arctan(0.02\omega)$.
-   * At the asymptotic gain crossover $\omega_c \approx 4.47\text{ rad/s}$:
-     $$\varphi(4.47) = -90^\circ + \arctan(0.894) - \arctan(2.235) - \arctan(0.0894) \approx -90^\circ + 41.8^\circ - 65.9^\circ - 5.1^\circ = -119.2^\circ$$
-     $$\varphi_m = 180^\circ + (-119.2^\circ) = +60.8^\circ > 0^\circ$$
-   * Ramp slopes: $0$ on $[0.1, 0.2]$; $-45^\circ/\text{dec}$ on $[0.2, 0.5]$; $0^\circ/\text{dec}$ on $[0.5, 5]$; $-45^\circ/\text{dec}$ on $[5, 20]$; $0^\circ/\text{dec}$ on $[20, 50]$; $-45^\circ/\text{dec}$ on $[50, 500]$; $0^\circ/\text{dec}$ on $[500, 1000]$.
-4. **Verify High-Frequency Horizontal Limit:**
-   $W(s)$ has $n = 3$ poles and $m = 1$ zero, so:
-   $$\varphi(\infty) = 0^\circ - (3 - 1)\cdot 90^\circ = -180^\circ$$
-   which matches the cumulative ramp change $-90^\circ - 45^\circ\log_{10}(0.5/0.2) - 45^\circ\log_{10}(20/5) - 45^\circ\log_{10}(500/50) = -90^\circ - 90^\circ = -180^\circ$.
+Vary $\omega_p$ and $\omega_z$ in the interactive plot below to watch how moving the zero $\omega_z$ closer to $\omega_p$ reduces the phase dip, while moving $\omega_z$ higher lets the phase drop deeper toward $-180^\circ$.
 
-<Callout type="warning" title="Exam Pitfall: Forgetting the $-90^\circ$ Integrator Offset">
+<BodeExplorer client:load initialKb={6} initialType={1} initialPole={2} initialZero={4} showComplexOption={false} />
 
-Students often start the phase plot at $0^\circ$ when $g = 1$. Remember that every integrator $1/s^g$ shifts the **entire** phase curve down by $g \cdot 90^\circ$ starting at $\omega_{\text{start}}$.
+<StepCheck client:load
+  prompt="For $L(s) = \frac{6(1 + s/4)}{s(1 + s/2)}$, what is the exact phase angle $\angle L(j\omega)$ at the zero corner frequency $\omega = 4\;\mathrm{rad/s}$ (round to 1 decimal place)?"
+  expected={-108.4}
+  tolerance={0.5}
+  unit="$\mathrm{deg}$"
+  explanation="At $\omega = 4\;\mathrm{rad/s}$, $\angle L(j4) = -90^\circ - \arctan(4/2) + \arctan(4/4) = -90^\circ - \arctan(2) + 45^\circ = -90^\circ - 63.43^\circ + 45^\circ = -108.43^\circ$."
+/>
 
+<Divider label="2 · Theory" />
+
+### Phase Addition Principle
+
+Why do phases add when transfer functions multiply? Every complex factor $F_k(j\omega)$ can be written in Euler polar form as $F_k(j\omega) = |F_k(j\omega)|\,e^{j\arg F_k(j\omega)}$. When a transfer function $W(j\omega)$ consists of numerator factors divided by denominator factors, combining the complex exponentials adds the exponents in the numerator and subtracts the exponents in the denominator.
+
+For any minimum-phase transfer function in Bode canonical form:
+
+$$W(s) = \frac{K_B}{s^g} \frac{\prod_{i=1}^{m_0} (1 + s\tau_{z,i}) \prod_{q} \left(1 + \frac{2\zeta_{z,q}}{\omega_{n,z,q}}s + \frac{s^2}{\omega_{n,z,q}^2}\right)}{\prod_{k=1}^{n_0} (1 + s\tau_{p,k}) \prod_{l} \left(1 + \frac{2\zeta_{p,l}}{\omega_{n,p,l}}s + \frac{s^2}{\omega_{n,p,l}^2}\right)}$$
+
+evaluating at $s = j\omega$ gives the exact total phase at frequency $\omega$:
+
+$$\boxed{\arg(W(j\omega)) = \arg(K_B) - g \cdot 90^\circ + \sum \arg(\text{numerator factors}) - \sum \arg(\text{denominator factors})}$$
+
+Notice the two constant baseline terms at the front:
+- **Sign of Bode Gain ($\arg K_B$):** If $K_B > 0$, $\arg(K_B) = 0^\circ$. If $K_B < 0$ (an inverting amplifier or reversed actuator polarity), $\arg(K_B) = -180^\circ$ across all frequencies.
+- **Origin Poles/Zeros ($s^{-g}$):** Because $j\omega = \omega\,e^{j90^\circ}$, each integrator pole $1/(j\omega)$ contributes a constant $-90^\circ$ at every frequency, while each differentiator zero $j\omega$ contributes $+90^\circ$. Together, $1/(j\omega)^g$ shifts the entire phase diagram vertically by $-g \cdot 90^\circ$.
+
+### 3-Segment Phase Ramps
+
+Consider a single stable first-order real pole $(1 + s\tau_p)^{-1} = (1 + s/\omega_c)^{-1}$ with $\tau_p = 1/\omega_c > 0$. At $s = j\omega$, the denominator $1 + j(\omega/\omega_c)$ has real part $1 > 0$ and imaginary part $+\omega/\omega_c > 0$, so its exact phase contribution is:
+
+$$\varphi_p(\omega) = -\arg\!\left(1 + j\frac{\omega}{\omega_c}\right) = -\arctan\!\left(\frac{\omega}{\omega_c}\right)$$
+
+Unlike magnitude—which stays close to $0\text{ dB}$ all the way up to $\omega_c$ and then breaks sharply at a single point—the arctangent function transitions gradually over **two full decades** centered on $\omega_c$:
+- **One decade below the corner ($\omega = 0.1\omega_c$):** $\varphi_p(0.1\omega_c) = -\arctan(0.1) \approx -5.71^\circ$ (nearly $0^\circ$).
+- **At the corner frequency ($\omega = \omega_c$):** $\varphi_p(\omega_c) = -\arctan(1) = -45.00^\circ$ (exact midpoint of the transition).
+- **One decade above the corner ($\omega = 10\omega_c$):** $\varphi_p(10\omega_c) = -\arctan(10) \approx -84.29^\circ$ (within $5.71^\circ$ of its $-90^\circ$ limit).
+
+To draw this smooth S-curve with a ruler on semi-log paper, Bode replaced $-\arctan(\omega/\omega_c)$ with a **three-segment piecewise-linear approximation**:
+1. A flat horizontal line at **$0^\circ$** for all $\omega \le 0.1\omega_c$.
+2. A straight **inclined ramp of slope $-45^\circ/\text{decade}$** spanning the two decades $[0.1\omega_c,\, 10\omega_c]$, passing through $(\omega_c, -45^\circ)$ with **zero error** and dropping by $-45^\circ \times 2\text{ decades} = -90^\circ$ across the interval.
+3. A flat horizontal line at **$-90^\circ$** for all $\omega \ge 10\omega_c$.
+
+The maximum discrepancy between the 3-segment ramp and the exact $-\arctan(\omega/\omega_c)$ curve occurs right at the two ramp endpoints $0.1\omega_c$ and $10\omega_c$, where it equals $\arctan(0.1) \approx 5.71^\circ$. For a stable real LHP zero $(1 + s/\omega_c)$, the exact curve $+\arctan(\omega/\omega_c)$ and the 3-segment ramp simply flip sign to **$+45^\circ/\text{decade}$** across $[0.1\omega_c, 10\omega_c]$, rising from $0^\circ$ to $+90^\circ$.
+
+<figure id="fig-bode-phase" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/systems-theory/fig-bode-phase.svg" alt="Three-segment asymptotic phase approximation vs. exact -arctan(omega/omega_c) curve for a first-order stable real pole." />
+  <figcaption>Three-segment asymptotic phase ramp vs. exact $-\arctan(\omega/\omega_c)$ for a stable real pole: exact at $(\omega_c, -45^\circ)$ and within $5.71^\circ$ at $0.1\omega_c$ and $10\omega_c$.</figcaption>
+</figure>
+
+### Second-Order Phase Steepness
+
+For a stable complex conjugate pole pair $F_{p2}(s) = \left(1 + \frac{2\zeta}{\omega_n}s + \frac{s^2}{\omega_n^2}\right)^{-1}$ with $\zeta > 0$, substituting $s = j\omega$ gives denominator $\left(1 - \frac{\omega^2}{\omega_n^2}\right) + j\left(2\zeta\frac{\omega}{\omega_n}\right)$. Notice how the real part changes sign as $\omega$ crosses $\omega_n$:
+- For $\omega < \omega_n$, the real part $1 - (\omega/\omega_n)^2 > 0$ is positive (first quadrant), so the denominator angle lies between $0^\circ$ and $90^\circ$.
+- At $\omega = \omega_n$, the real part vanishes ($1 - 1 = 0$) and the denominator is purely imaginary $+j2\zeta$, so the exact phase is **always $-90^\circ$ regardless of $\zeta$**.
+- For $\omega > \omega_n$, the real part $1 - (\omega/\omega_n)^2 < 0$ becomes negative (second quadrant), so the phase continues dropping from $-90^\circ$ toward $-180^\circ$.
+
+Using the four-quadrant arctangent $\operatorname{atan2}(y, x)$, the exact phase across all frequencies is:
+
+$$\varphi_{p2}(\omega) = -\operatorname{atan2}\!\left(2\zeta\frac{\omega}{\omega_n},\; 1 - \frac{\omega^2}{\omega_n^2}\right)$$
+
+On an asymptotic sketch, because two poles break at $\omega_n$, the 3-segment ramp spans $[0.1\omega_n, 10\omega_n]$ with twice the first-order slope: **$-90^\circ/\text{decade}$**, dropping from $0^\circ$ to $-180^\circ$ and passing through $(\omega_n, -90^\circ)$. However, the *true* steepness of the S-curve at $\omega = \omega_n$ depends on $\zeta$. Differentiating $\varphi_{p2}$ with respect to normalized frequency $v = \omega/\omega_n$ via $\frac{d}{dv}\arctan\!\left(\frac{2\zeta v}{1 - v^2}\right)$ gives:
+
+$$\frac{d\varphi_{p2}}{dv} = -\frac{2\zeta(1 - v^2) - (2\zeta v)(-2v)}{(1 - v^2)^2 + (2\zeta v)^2} = -\frac{2\zeta(1 + v^2)}{(1 - v^2)^2 + 4\zeta^2 v^2}$$
+
+Evaluating at the corner $v = 1$ ($\omega = \omega_n$) yields:
+
+$$\left.\frac{d\varphi_{p2}}{d(\omega/\omega_n)}\right|_{\omega = \omega_n} = -\frac{2\zeta(2)}{0 + 4\zeta^2} = -\frac{1}{\zeta}\;\text{rad}$$
+
+As $\zeta \to 0^+$, the slope $-1/\zeta \to -\infty$: a lightly damped resonance flips almost discontinuously from $0^\circ$ to $-180^\circ$ right across $\omega_n$.
+
+### Low- and High-Frequency Phase Limits
+
+Before and after sketching any phase diagram, two exact horizontal boundary checks catch almost every arithmetic mistake:
+1. **Low-Frequency Limit ($\omega \to 0^+$):** Every factor $(1 + j\omega\tau)$ approaches $1 = 1\,e^{j0^\circ}$, leaving only the gain sign and origin integrators:
+   $$\boxed{\varphi(0^+) = \lim_{\omega \to 0^+} \arg W(j\omega) = \arg(K_B) - g \cdot 90^\circ}$$
+2. **High-Frequency Limit ($\omega \to \infty$):** As $\omega \to \infty$, every minimum-phase pole contributes $-90^\circ$ ($-180^\circ$ for a complex pole pair) and every minimum-phase zero contributes $+90^\circ$ ($+180^\circ$ for a complex zero pair). If $W(s)$ has $n$ total poles (including $g$ at the origin) and $m$ total finite zeros, the high-frequency phase settles onto the horizontal **pole-zero excess** asymptote:
+   $$\boxed{\varphi(\infty) = \lim_{\omega \to \infty} \arg W(j\omega) = \arg(K_B) - (n - m)\cdot 90^\circ}$$
+
+### Stability Margins on the Bode Plot
+
+In a unity negative-feedback loop $W_{\text{CL}}(s) = \frac{L(s)}{1 + L(s)}$ where the open-loop transfer function $L(s)$ has no RHP poles (and decreases monotonically in gain/phase near crossover), the closed loop is asymptotically stable if and only if at the frequency where $|L(j\omega)| = 1$ ($0\text{ dB}$), the open-loop phase $\arg L(j\omega)$ has not yet dropped to $-180^\circ$. We quantify the safety buffer against the critical point $L(j\omega) = -1$ ($0\text{ dB}, -180^\circ$) with two margins:
+
+1. **Gain Crossover Frequency ($\omega_{gc}$) & Phase Margin ($\varphi_m$):**
+   The **gain crossover frequency** $\omega_{gc}$ (also denoted $\omega_c$) is the frequency where open-loop magnitude crosses unity gain:
+   $$|L(j\omega_{gc})| = 1 \iff |L(j\omega_{gc})|_{\text{dB}} = 0\text{ dB}$$
+   The **phase margin** $\varphi_m$ is the angular distance in degrees from the open-loop phase $\arg L(j\omega_{gc})$ down to the $-180^\circ$ instability line:
+   $$\boxed{\varphi_m = 180^\circ + \arg L(j\omega_{gc})}$$
+   If $\varphi_m > 0^\circ$ (for instance $\arg L(j\omega_{gc}) = -125^\circ \implies \varphi_m = +55^\circ$), the closed loop is stable and can tolerate up to $\varphi_m$ degrees of additional phase lag at $\omega_{gc}$ before oscillating. In practical control design, engineers require $\varphi_m \ge 45^\circ\text{–}60^\circ$ to prevent lightly damped ringing in the closed-loop step response.
+2. **Phase Crossover Frequency ($\omega_\pi$) & Gain Margin ($K_{m,\text{dB}}$):**
+   The **phase crossover frequency** $\omega_\pi$ is the frequency where open-loop phase crosses $-180^\circ$:
+   $$\arg L(j\omega_\pi) = -180^\circ$$
+   The **gain margin** $K_m = \frac{1}{|L(j\omega_\pi)|}$ (or in decibels, $K_{m,\text{dB}}$) measures how many decibels below $0\text{ dB}$ the magnitude curve sits when phase hits $-180^\circ$:
+   $$\boxed{K_{m,\text{dB}} = 20\log_{10} K_m = -|L(j\omega_\pi)|_{\text{dB}}}$$
+   If $|L(j\omega_\pi)|_{\text{dB}} = -12\text{ dB}$, then $K_{m,\text{dB}} = +12\text{ dB} > 0\text{ dB}$ ($K_m \approx 4$), meaning loop gain $K$ can be multiplied by a factor of $4$ before the closed loop goes unstable.
+
+<StepCheck client:load
+  mode="choice"
+  prompt="For a minimum-phase transfer function with $K_B > 0$, $n = 4$ total poles (including $g = 1$ integrator at $s = 0$), and $m = 1$ finite zero, what are the exact low- and high-frequency phase limits $\varphi(0^+)$ and $\varphi(\infty)$?"
+  options={[
+    "$\varphi(0^+) = 0^\circ$ and $\varphi(\infty) = -270^\circ$",
+    "$\varphi(0^+) = -90^\circ$ and $\varphi(\infty) = -270^\circ$",
+    "$\varphi(0^+) = -90^\circ$ and $\varphi(\infty) = -360^\circ$"
+  ]}
+  correctIndex={1}
+  explanation="At $\omega \to 0^+$, only the $g = 1$ integrator contributes, giving $\varphi(0^+) = -1 \cdot 90^\circ = -90^\circ$. At $\omega \to \infty$, pole-zero excess $n - m = 4 - 1 = 3$ gives $\varphi(\infty) = -3 \cdot 90^\circ = -270^\circ$."
+/>
+
+<Divider label="3 · Summary" />
+
+| Factor in Bode Form | Exact Phase | Low-Freq | Asymptotic Ramp ($[0.1\omega_c, 10\omega_c]$) | High-Freq |
+| :--- | :--- | :--- | :--- | :--- |
+| Constant gain $K_B$ | $0^\circ$ ($K_B>0$), $-180^\circ$ ($K_B<0$) | Constant | None ($0^\circ/\text{dec}$) | Constant |
+| Origin poles/zeros $s^{-g}$ | $-g \cdot 90^\circ$ | Constant | None ($0^\circ/\text{dec}$) | Constant |
+| Real pole $(1 + s\tau_p)^{-1}$ | $-\arctan(\omega\tau_p)$ | $0^\circ$ | $-45^\circ/\text{dec}$ | $-90^\circ$ |
+| Real zero $(1 + s\tau_z)$ | $+\arctan(\omega\tau_z)$ | $0^\circ$ | $+45^\circ/\text{dec}$ | $+90^\circ$ |
+| Complex poles ($\omega_n, \zeta > 0$) | $-\operatorname{atan2}(2\zeta\frac{\omega}{\omega_n}, 1-\frac{\omega^2}{\omega_n^2})$ | $0^\circ$ | $-90^\circ/\text{dec}$ | $-180^\circ$ |
+| Complex zeros ($\omega_n, \zeta > 0$) | $+\operatorname{atan2}(2\zeta\frac{\omega}{\omega_n}, 1-\frac{\omega^2}{\omega_n^2})$ | $0^\circ$ | $+90^\circ/\text{dec}$ | $+180^\circ$ |
+
+### 4-Step Phase Procedure
+
+1. **Sort corners & choose window:** Order $\omega_{c,1} < \dots < \omega_{c,r}$ and set $\omega_{\text{start}} \le 0.1\omega_{c,1}$, $\omega_{\text{end}} \ge 10\omega_{c,r}$.
+2. **Low-frequency limit:** Start horizontally at $\varphi(0^+) = \arg(K_B) - g \cdot 90^\circ$.
+3. **Trace ramps or exact points:** Sum exact $\arctan$ contributions at key frequencies or walk ramp breakpoints $0.1\omega_{c,k}$ and $10\omega_{c,k}$ via:
+   $$\boxed{\varphi(\omega_{m+1}) = \varphi(\omega_m) + S_{\varphi,\text{current}}\log_{10}\!\left(\frac{\omega_{m+1}}{\omega_m}\right)}$$
+4. **Check high-frequency limit & margins:** Verify the plot ends at $\varphi(\infty) = \arg(K_B) - (n - m)\cdot 90^\circ$, then read $\varphi_m = 180^\circ + \arg L(j\omega_{gc})$ and $K_{m,\text{dB}} = -|L(j\omega_\pi)|_{\text{dB}}$.
+
+### Key Proofs
+
+- **3-segment ramp accuracy:** Show that $-\arctan(\omega/\omega_c)$ equals $-45^\circ$ at $\omega = \omega_c$ (zero error) and differs from the $[0.1\omega_c, 10\omega_c]$ linear ramp by at most $\arctan(0.1) \approx 5.71^\circ$ at the endpoints.
+- **Second-order corner slope:** Differentiate $-\arctan\!\left(\frac{2\zeta v}{1-v^2}\right)$ with respect to $v = \omega/\omega_n$ at $v = 1$ to show $\left.\frac{d\varphi}{dv}\right|_{v=1} = -\frac{1}{\zeta}$.
+
+<Callout type="warning" title="Common Mistakes">
+1. **Forgetting the $-90^\circ$ Integrator Offset:** When $g = 1$, the entire phase curve starts at $-90^\circ$, not $0^\circ$.
+2. **Reading Ramp Endpoints Wrong:** A real factor shifts phase across two full decades $[0.1\omega_c, 10\omega_c]$ (starting a decade *before* $\omega_c$), not from $\omega_c$ onward.
 </Callout>
 
-<Callout type="bridge" title="SDU Robotics Bridge: Phase Margin Erosion in Drone Attitude Loops">
-
-In PX4 autopilot firmware ($f = 1000\text{ Hz}$), computational transport delay $T_d = 2\text{ ms}$ adds linear phase lag $\Delta\varphi(\omega) = -\omega T_d \frac{180^\circ}{\pi}$. At $\omega_c = 250\text{ rad/s}$, this erodes $\varphi_m$ by $28.6^\circ$, turning a healthy $45^\circ$ margin into $16.4^\circ$ and causing high-frequency oscillations.
-
+<Callout type="bridge" title="Robotics Note: Phase Margin Erosion in Drone Loops">
+In $1000\text{ Hz}$ autopilot loops with $T_d = 2\text{ ms}$ computational delay, latency subtracts $\omega T_d (180^\circ/\pi)$; at $\omega_{gc} = 250\text{ rad/s}$, that costs $28.6^\circ$ of phase margin.
 </Callout>
 
-<Divider />
+<Divider label="4 · Exercises" />
 
+<Exercise client:load id="ex-18-1" title="Exercise 18.1 — First-Order Integrator Phase" level="Warm-Up">
 
-<Divider label="Interactive Lab" />
-
-<BodeExplorer client:load initialKb={10} initialType={1} initialPole={2} initialZero={5} />
-
-<Divider label="Interactive Practice & Exam Drills" />
-
-## Chapter Exercises
-
-<Exercise client:load id="ex-18-1" title="Exercise 18.1" level="LEVEL 1: WARM-UP DRILL">
-
-Given the first-order lag system with an integrator:
+Given the transfer function:
 $$W(s) = \frac{10}{s (1 + 0.1s)}$$
-1. Determine the low-frequency phase limit $\lim_{\omega \to 0^+} \arg(W(j\omega))$ and the high-frequency limit $\lim_{\omega \to \infty} \arg(W(j\omega))$.
-2. Formulate the exact analytical phase expression $\arg(W(j\omega))$ in degrees.
-3. Compute the exact phase angle at the corner frequency $\omega_p = 10\text{ rad/s}$, as well as at $\omega = 1\text{ rad/s}$ and $\omega = 100\text{ rad/s}$ (one decade below and above).
-4. Contrast the exact phase at $\omega = 10\text{ rad/s}$ with the piecewise linear asymptotic approximation.
+1. Find the limits $\lim_{\omega \to 0^+} \arg(W(j\omega))$ and $\lim_{\omega \to \infty} \arg(W(j\omega))$.
+2. Compute exact phase at $\omega = 1$, $10$, and $100\text{ rad/s}$, and compare $\omega = 10\text{ rad/s}$ with the asymptotic ramp.
+
+<StepCheck client:load prompt="Compute the exact phase $\arg W(j10)$ at the corner frequency $\omega_p = 10\;\mathrm{rad/s}$:" expected={-135} tolerance={0.5} unit="$\mathrm{deg}$" explanation="At $\omega = 10\;\mathrm{rad/s}$, $\arg W(j10) = -90^\circ - \arctan(0.1 \times 10) = -90^\circ - 45^\circ = -135^\circ$." />
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Show Step-by-Step Solution</summary>
 
-1. Frequency limits:
-   * Low-frequency limit:
-     $$\lim_{\omega \to 0^+} \arg(W(j\omega)) = -90^\circ$$
-     (established entirely by the type $g = 1$ pole at the origin).
-   * High-frequency limit:
-     Pole-zero excess is $n - m = 2 - 0 = 2$.
-     $$\lim_{\omega \to \infty} \arg(W(j\omega)) = -(n - m) \cdot 90^\circ = -2 \cdot 90^\circ = -180^\circ$$
-2. Analytical phase expression:
-   $$\arg(W(j\omega)) = -90^\circ - \arctan(0.1\omega)$$
-3. Numerical phase evaluation:
-   * $\omega = 1\text{ rad/s}$:
-     $$\arg(W(j1)) = -90^\circ - \arctan(0.1) = -90^\circ - 5.71^\circ = -95.71^\circ$$
-   * $\omega = 10\text{ rad/s}$ (corner frequency $\omega_p = 10$):
-     $$\arg(W(j10)) = -90^\circ - \arctan(1.0) = -90^\circ - 45.00^\circ = -135.00^\circ$$
-   * $\omega = 100\text{ rad/s}$:
-     $$\arg(W(j100)) = -90^\circ - \arctan(10.0) = -90^\circ - 84.29^\circ = -174.29^\circ$$
-4. Asymptotic comparison:
-   Under the standard 3-segment piecewise linear Bode phase rule, a real LHP pole contributes $0^\circ$ at $0.1\omega_p$, $-45^\circ$ at $\omega_p$, and $-90^\circ$ at $10\omega_p$.
-   At $\omega = 10\text{ rad/s}$, the asymptotic phase is $-90^\circ - 45^\circ = -135^\circ$, which matches the exact analytical phase $-135.00^\circ$ with zero error.
+1. **Asymptotic limits:** Because $g = 1$ and $K_B = 10 > 0$, $\varphi(0^+) = -1 \cdot 90^\circ = -90^\circ$. With $n = 2$ poles and $m = 0$ zeros, pole-zero excess $n - m = 2$ gives $\varphi(\infty) = -2 \cdot 90^\circ = -180^\circ$.
+2. **Exact angles:** From $\arg(W(j\omega)) = -90^\circ - \arctan(0.1\omega)$:
+   - $\omega = 1\text{ rad/s}$ ($0.1\omega_p$): $-90^\circ - \arctan(0.1) = -90^\circ - 5.71^\circ = -95.71^\circ$ (ramp gives $-90^\circ$, error $5.71^\circ$).
+   - $\omega = 10\text{ rad/s}$ ($\omega_p$): $-90^\circ - \arctan(1) = -90^\circ - 45^\circ = -135.00^\circ$ (matches the asymptotic ramp $-90^\circ - 45^\circ\log_{10}(10/1) = -135^\circ$ with zero error).
+   - $\omega = 100\text{ rad/s}$ ($10\omega_p$): $-90^\circ - \arctan(10) = -90^\circ - 84.29^\circ = -174.29^\circ$ (ramp reaches $-180^\circ$, error $5.71^\circ$).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-18-2" title="Exercise 18.2" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-18-2" title="Exercise 18.2 — Phase Margin at Crossover" level="Exam Standard">
 
-Consider the open-loop transfer function analyzed in [Bode Magnitude Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/):
+Consider the open-loop transfer function from [Bode Magnitude Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/):
 $$W(s) = \frac{10 (1 + 0.2s)}{s (1 + 0.5s)(1 + 0.02s)}$$
-1. Formulate the exact analytical phase function $\varphi(\omega) = \arg(W(j\omega))$ as a sum of four algebraic terms.
-2. Evaluate the theoretical asymptotic limits $\varphi(0^+)$ and $\varphi(\infty)$ using the pole-zero excess $n - m$.
-3. Compute the exact numerical phase in degrees at each of the system corner frequencies: $\omega = 2$, $5$, and $50\text{ rad/s}$.
-4. Using the gain crossover frequency from [Bode Magnitude Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/) ($\omega_c \approx 4.47\text{ rad/s}$), compute the exact phase $\varphi(\omega_c)$ and determine the phase margin $\varphi_m = 180^\circ + \varphi(\omega_c)$. Conclude whether unit negative feedback yields a stable closed loop.
+1. Find $\varphi(0^+)$ and $\varphi(\infty)$.
+2. Evaluate $\varphi(\omega)$ at $\omega = 2, 5, 50\text{ rad/s}$ and at $\omega_{gc} \approx 4.47\text{ rad/s}$ to find $\varphi_m$.
 
-<StepCheck client:load prompt="What is the low-frequency horizontal phase limit φ(0⁺) for W(s) = 10(1+0.2s)/[s(1+0.5s)(1+0.02s)]?" expected={-90} tolerance={0.5} unit="deg" explanation="Type g = 1, K_B > 0 ⇒ φ(0⁺) = −90°." />
+<StepCheck client:load prompt="What is the low-frequency limit $\varphi(0^+)$ for $W(s) = \frac{10(1+0.2s)}{s(1+0.5s)(1+0.02s)}$?" expected={-90} tolerance={0.5} unit="$\mathrm{deg}$" explanation="Type $g = 1$ with $K_B > 0 \implies \varphi(0^+) = -90^\circ$." />
 
-<StepCheck client:load prompt="What is the high-frequency horizontal phase limit φ(∞)?" expected={-180} tolerance={0.5} unit="deg" explanation="Pole-zero excess n − m = 3 − 1 = 2 ⇒ φ(∞) = −180°." />
+<StepCheck client:load prompt="What is the high-frequency limit $\varphi(\infty)$?" expected={-180} tolerance={0.5} unit="$\mathrm{deg}$" explanation="Pole-zero excess $n - m = 3 - 1 = 2 \implies \varphi(\infty) = -180^\circ$." />
 
-<StepCheck client:load prompt="Compute the phase margin φ_m = 180° + φ(4.47):" expected={60.8} tolerance={1.0} unit="deg" explanation="φ(4.47) ≈ −119.2° ⇒ φ_m ≈ +60.8°." />
-
+<StepCheck client:load prompt="Compute the phase margin $\varphi_m = 180^\circ + \varphi(4.47)$:" expected={60.8} tolerance={1.0} unit="$\mathrm{deg}$" explanation="$\varphi(4.47) \approx -119.2^\circ \implies \varphi_m \approx +60.8^\circ$." />
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Show Step-by-Step Solution</summary>
 
-1. Exact analytical phase expression:
-   $$\varphi(\omega) = \arg(W(j\omega)) = -90^\circ + \arctan(0.2\omega) - \arctan(0.5\omega) - \arctan(0.02\omega)$$
-2. Asymptotic limits:
-   * For $\omega \to 0^+$: $\varphi(0^+) = -90^\circ$ (due to the single integrator).
-   * For $\omega \to \infty$: with $n = 3$ poles and $m = 1$ zero, pole excess is $n - m = 2$.
-     $$\varphi(\infty) = -90^\circ + 90^\circ - 90^\circ - 90^\circ = -180^\circ$$
-3. Exact phase at corner frequencies:
-   * Corner frequency $\omega = 2\text{ rad/s}$ ($\tau = 0.5\text{ s}$ pole):
-     $$\begin{aligned}
-     \varphi(2) &= -90^\circ + \arctan(0.4) - \arctan(1.0) - \arctan(0.04) \\
-     &= -90^\circ + 21.80^\circ - 45.00^\circ - 2.29^\circ = -115.49^\circ
-     \end{aligned}$$
-   * Corner frequency $\omega = 5\text{ rad/s}$ ($\tau = 0.2\text{ s}$ zero):
-     $$\begin{aligned}
-     \varphi(5) &= -90^\circ + \arctan(1.0) - \arctan(2.5) - \arctan(0.1) \\
-     &= -90^\circ + 45.00^\circ - 68.20^\circ - 5.71^\circ = -118.91^\circ
-     \end{aligned}$$
-   * Corner frequency $\omega = 50\text{ rad/s}$ ($\tau = 0.02\text{ s}$ pole):
-     $$\begin{aligned}
-     \varphi(50) &= -90^\circ + \arctan(10.0) - \arctan(25.0) - \arctan(1.0) \\
-     &= -90^\circ + 84.29^\circ - 87.71^\circ - 45.00^\circ = -138.42^\circ
-     \end{aligned}$$
-4. Phase margin at gain crossover frequency $\omega_c \approx 4.47\text{ rad/s}$:
-   Evaluating the phase at $\omega_c = 4.47$:
-   $$\begin{aligned}
-   \varphi(4.47) &= -90^\circ + \arctan(0.2 \times 4.47) - \arctan(0.5 \times 4.47) - \arctan(0.02 \times 4.47) \\
-   &= -90^\circ + \arctan(0.894) - \arctan(2.235) - \arctan(0.0894) \\
-   &= -90^\circ + 41.80^\circ - 65.89^\circ - 5.11^\circ = -119.20^\circ
-   \end{aligned}$$
-   Phase margin:
-   $$\varphi_m = 180^\circ + \varphi(\omega_c) = 180^\circ - 119.20^\circ = +60.80^\circ$$
-   *Conclusion:* Since $\varphi_m = 60.80^\circ > 0^\circ$ (and comfortably exceeds the standard industrial robustness threshold of $45^\circ$), unit negative feedback produces a well-damped, asymptotically stable closed-loop system.
+1. **Formula & limits:** $\varphi(\omega) = -90^\circ + \arctan(0.2\omega) - \arctan(0.5\omega) - \arctan(0.02\omega)$, with $\varphi(0^+) = -90^\circ$ ($g = 1$) and $\varphi(\infty) = -(3 - 1)\cdot 90^\circ = -180^\circ$.
+2. **Key frequencies:**
+   - $\varphi(2) = -90^\circ + \arctan(0.4) - \arctan(1.0) - \arctan(0.04) = -90^\circ + 21.80^\circ - 45.00^\circ - 2.29^\circ = -115.49^\circ$.
+   - $\varphi(5) = -90^\circ + \arctan(1.0) - \arctan(2.5) - \arctan(0.1) = -90^\circ + 45.00^\circ - 68.20^\circ - 5.71^\circ = -118.91^\circ$.
+   - $\varphi(50) = -90^\circ + \arctan(10.0) - \arctan(25.0) - \arctan(1.0) = -90^\circ + 84.29^\circ - 87.71^\circ - 45.00^\circ = -138.42^\circ$.
+   - $\varphi(4.47) = -90^\circ + \arctan(0.894) - \arctan(2.235) - \arctan(0.0894) = -90^\circ + 41.80^\circ - 65.89^\circ - 5.11^\circ = -119.20^\circ \implies \varphi_m = 180^\circ - 119.20^\circ = +60.80^\circ > 0^\circ$ (**stable**).
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-18-3" title="Exercise 18.3 — Phase Crossover & Gain Margin" level="Intermediate">
+
+A unity-feedback loop has the third-order open-loop transfer function:
+$$L(s) = \frac{5}{s(1 + s/2)(1 + s/10)}$$
+1. Using $\arctan(a) + \arctan(b) = 90^\circ \iff a\,b = 1$, find the exact phase crossover frequency $\omega_\pi$ where $\angle L(j\omega_\pi) = -180^\circ$.
+2. Evaluate $|L(j\omega_\pi)|$ and compute the gain margin $K_{m,\text{dB}}$ in decibels.
+
+<StepCheck client:load prompt="Compute the gain margin $K_{m,\mathrm{dB}} = -20\log_{10}|L(j\omega_\pi)|$ in $\mathrm{dB}$ (round to 2 decimal places):" expected={7.60} tolerance={0.15} unit="$\mathrm{dB}$" explanation="At $\omega_\pi = \sqrt{20}\;\mathrm{rad/s}$, $|L(j\sqrt{20})| = \frac{5}{\sqrt{20 \cdot 6 \cdot 1.2}} = \frac{5}{12}$. Thus $K_m = \frac{12}{5} = 2.4 \implies K_{m,\mathrm{dB}} = 20\log_{10}(2.4) \approx +7.60\;\mathrm{dB}$." />
+
+<details className="dc-solution">
+<summary>Show Step-by-Step Solution</summary>
+
+1. **Phase crossover $\omega_\pi$:** Setting $\angle L(j\omega_\pi) = -90^\circ - \arctan(\omega_\pi/2) - \arctan(\omega_\pi/10) = -180^\circ$ requires:
+   $$\arctan\!\left(\frac{\omega_\pi}{2}\right) + \arctan\!\left(\frac{\omega_\pi}{10}\right) = 90^\circ \implies \frac{\omega_\pi}{2}\cdot\frac{\omega_\pi}{10} = 1 \implies \omega_\pi = \sqrt{20} \approx 4.472\text{ rad/s}$$
+2. **Gain margin:** At $\omega_\pi^2 = 20$:
+   $$|L(j\sqrt{20})| = \frac{5}{\sqrt{20}\sqrt{1 + 20/4}\sqrt{1 + 20/100}} = \frac{5}{\sqrt{20 \cdot 6 \cdot 1.2}} = \frac{5}{\sqrt{144}} = \frac{5}{12}$$
+   Therefore $K_m = \frac{1}{|L(j\omega_\pi)|} = \frac{12}{5} = 2.4$ ($K_{m,\text{dB}} = 20\log_{10}(2.4) \approx +7.60\text{ dB} > 0\text{ dB}$).
 
 </details>
 

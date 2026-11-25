@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "lint": "python scripts/lint_courses.py",
     "export-llm": "python scripts/export_llm.py",
-    "check": "astro check"
+    "check": "astro check",
+    "ship": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy.ps1"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.0.0",

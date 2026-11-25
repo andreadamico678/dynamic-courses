@@ -11,159 +11,289 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 2 Mental Model" markdown={`# Ch. 2: Coordinate Basis Similarity Transformations
-  - Algebraic Mechanics of Coordinate Transformations
-  - Geometric Interpretation in State Space
-  - Fundamental Systemic Invariants
-    - 1. Invariance of the Characteristic Polynomial and Eigenvalues
-    - 2. Invariance of the Input-Output Transfer Function
-  - Modal Diagonalization`} />
+<MindMap client:load defaultCollapsed title="Chapter 2 Outline" markdown={`# Ch. 2: Coordinate Basis Similarity Transformations
+  - Decoupling Example
+    - Modal basis matrix $\\mathbf{T}$
+    - Invariant eigenvalues and transfer function
+  - Transformation Mechanics
+    - Geometric change of basis
+    - Eigenvalue and polynomial invariance
+    - Transfer function invariance
+    - Modal diagonalization`} />
 
-## Algebraic Mechanics of Coordinate Transformations
+## Introduction
 
-The internal state vector $\mathbf{x}(t) \in \mathbb{R}^n$ of a physical system is an algebraic artifact of the chosen measurement coordinates (e.g., voltages across capacitors, positions in a specific Cartesian frame, or currents in motor windings). While physical reality is immutable, the mathematical representation of the state equations can be projected into an infinite family of equivalent coordinate frames.
+Describing a physical system in state space always involves an arbitrary choice of coordinates: you can track a pendulum's angle in radians or degrees, express a circuit via node voltages or mesh currents, or measure drone motion in body coordinates versus Earth coordinates. Changing coordinates scrambles the numbers inside the matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C})$, yet the physical machine has not changed at all.
 
-Let $\mathbf{T} \in \mathbb{R}^{n \times n}$ be an invertible linear operator ($\det(\mathbf{T}) \neq 0$), defining a bijective coordinate transformation between the original state vector $\mathbf{x}(t)$ and a new state vector $\mathbf{z}(t)$:
+This chapter introduces **similarity transformations** ($\mathbf{x} = \mathbf{T}\mathbf{z}$) so you can switch coordinate bases cleanly—most powerfully to **modal coordinates** where dynamic modes decouple into independent scalar equations—while proving that intrinsic physical signatures (eigenvalues, natural frequencies, and the input-output transfer function) remain strictly invariant.
 
-$$\mathbf{x}(t) = \mathbf{T} \mathbf{z}(t) \iff \mathbf{z}(t) = \mathbf{T}^{-1} \mathbf{x}(t)$$
+<Divider label="1 · Example" />
 
-Substituting the equation above into the fundamental continuous-time state equations $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$ and $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$ yields:
+### Coupled Two-State Basis Change
 
-$$\mathbf{T} \dot{\mathbf{z}}(t) = \mathbf{A} \mathbf{T} \mathbf{z}(t) + \mathbf{B} \mathbf{u}(t)$$
+In [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/), we saw that an invertible change of variables $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ rewrites the same physical system in a new coordinate frame. Why would an engineer deliberately change coordinates? Because in raw physical coordinates, state equations are almost always coupled—state $x_2$ drives $\dot{x}_1$ or vice versa—whereas in a well-chosen basis, the cross-coupling vanishes and every state evolves on its own.
 
-Premultiplying both sides by the matrix inverse $\mathbf{T}^{-1}$:
+Consider a second-order continuous-time system with upper-triangular dynamics:
 
-$$\dot{\mathbf{z}}(t) = \left( \mathbf{T}^{-1} \mathbf{A} \mathbf{T} \right) \mathbf{z}(t) + \left( \mathbf{T}^{-1} \mathbf{B} \right) \mathbf{u}(t)$$
+$$\mathbf{A} = \begin{bmatrix} -2 & 1 \\ 0 & -5 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 3 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}, \quad D = 0$$
 
-$$\mathbf{y}(t) = \left( \mathbf{C} \mathbf{T} \right) \mathbf{z}(t) + \mathbf{D} \mathbf{u}(t)$$
-
-<Callout type="note" title="Definition: Similar State Space Realizations">
-
-The dynamic systems $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ and $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}}, \tilde{\mathbf{D}})$ are said to be **algebraically similar** (or related by a similarity transformation $\mathbf{T}$) if and only if:
-$$\tilde{\mathbf{A}} = \mathbf{T}^{-1} \mathbf{A} \mathbf{T}, \quad \tilde{\mathbf{B}} = \mathbf{T}^{-1} \mathbf{B}, \quad \tilde{\mathbf{C}} = \mathbf{C} \mathbf{T}, \quad \tilde{\mathbf{D}} = \mathbf{D}$$
-
-</Callout>
-
-<Divider />
-
-## Geometric Interpretation in State Space
-
-A similarity transformation corresponds geometrically to an invertible change of basis in the $n$-dimensional state vector space $\mathcal{X} \cong \mathbb{R}^n$.
+Writing out the scalar equations shows that $\dot{x}_1(t) = -2x_1(t) + x_2(t) + u(t)$ is pulled by the cross-coupling term $+x_2(t)$, whereas $\dot{x}_2(t) = -5x_2(t) + 3u(t)$ evolves independently. Geometrically, as illustrated in [the figure](#fig-coordinate-similarity-basis), the physical state point $\mathbf{x}(t)$ stays fixed in the plane while we re-measure its coordinates along two new basis vectors $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$.
 
 <figure id="fig-coordinate-similarity-basis" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-coordinate-similarity-basis.svg" alt="Geometric state space coordinate basis transformation. The physical state point $\mathbf{x}(t)$ remains invariant; its coordinates are projected onto the column vectors $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$." />
   <figcaption>Geometric state space coordinate basis transformation. The physical state point $\mathbf{x}(t)$ remains invariant; its coordinates are projected onto the column vectors $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$.</figcaption>
 </figure>
 
-<Divider />
+To eliminate the off-diagonal coupling entry $A_{12} = 1$, we align our new coordinate axes $\mathbf{t}_1$ and $\mathbf{t}_2$ with the **eigenvectors** of $\mathbf{A}$. Because $\mathbf{A}$ is upper triangular, its characteristic polynomial is simply the product of its diagonal entries, $p(\lambda) = \det(\lambda\mathbf{I} - \mathbf{A}) = (\lambda + 2)(\lambda + 5) = 0$, giving eigenvalues $\lambda_1 = -2$ and $\lambda_2 = -5$. Let us solve $(\lambda_i\mathbf{I} - \mathbf{A})\mathbf{t}_i = \mathbf{0}$ for each eigenvector step by step:
 
-## Fundamental Systemic Invariants
+- For $\lambda_1 = -2$, substituting $\lambda = -2$ into $(\lambda\mathbf{I} - \mathbf{A})\mathbf{t}_1 = \mathbf{0}$ gives:
+  $$\begin{bmatrix} -2 - (-2) & -1 \\ 0 & -2 - (-5) \end{bmatrix} \begin{bmatrix} t_{11} \\ t_{21} \end{bmatrix} = \begin{bmatrix} 0 & -1 \\ 0 & 3 \end{bmatrix} \begin{bmatrix} t_{11} \\ t_{21} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies t_{21} = 0, \quad \mathbf{t}_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$$
+  Any non-zero multiple of $[1, 0]^T$ lies along the first eigenmode axis.
+- For $\lambda_2 = -5$, substituting $\lambda = -5$ into $(\lambda\mathbf{I} - \mathbf{A})\mathbf{t}_2 = \mathbf{0}$ gives:
+  $$\begin{bmatrix} -5 - (-2) & -1 \\ 0 & -5 - (-5) \end{bmatrix} \begin{bmatrix} t_{12} \\ t_{22} \end{bmatrix} = \begin{bmatrix} -3 & -1 \\ 0 & 0 \end{bmatrix} \begin{bmatrix} t_{12} \\ t_{22} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies -3t_{12} - t_{22} = 0 \implies \mathbf{t}_2 = \begin{bmatrix} 1 \\ -3 \end{bmatrix}$$
+  Choosing $t_{12} = 1$ forces $t_{22} = -3$, pointing along the second eigenmode direction in the state plane.
 
-Although the numerical values of the matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ change completely under $\mathbf{T}$, all intrinsic physical and qualitative dynamic properties remain strictly invariant.
+Packing $\mathbf{t}_1$ and $\mathbf{t}_2$ side by side as the columns of $\mathbf{T}$, we verify that $\det(\mathbf{T}) \neq 0$ and compute $\mathbf{T}^{-1}$ by swapping the diagonal elements, negating the off-diagonal elements, and dividing by $\det(\mathbf{T}) = -3$:
 
-### 1. Invariance of the Characteristic Polynomial and Eigenvalues
-The characteristic polynomial $\tilde{p}(\lambda)$ of the transformed matrix $\tilde{\mathbf{A}}$ is identical to $p(\lambda)$ of $\mathbf{A}$:
+$$
+\begin{aligned}
+\mathbf{T} &= \begin{bmatrix} \mathbf{t}_1 & \mathbf{t}_2 \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 0 & -3 \end{bmatrix}, \qquad \det(\mathbf{T}) = (1)(-3) - (1)(0) = -3 \neq 0 \\
+\mathbf{T}^{-1} &= \frac{1}{-3} \begin{bmatrix} -3 & -1 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 1 & \frac{1}{3} \\ 0 & -\frac{1}{3} \end{bmatrix}
+\end{aligned}
+$$
 
-$$\begin{aligned}
-\tilde{p}(\lambda) &= \det(\lambda \mathbf{I} - \tilde{\mathbf{A}}) = \det(\lambda \mathbf{I} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T}) \\
-&= \det(\mathbf{T}^{-1}(\lambda \mathbf{I} - \mathbf{A})\mathbf{T}) = \det(\mathbf{T}^{-1}) \det(\lambda \mathbf{I} - \mathbf{A}) \det(\mathbf{T}) \\
+Because $\det(\mathbf{T}) = -3 \neq 0$, the two eigenvectors span all of $\mathbb{R}^2$ and form a valid coordinate basis. Now we apply $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ to compute the transformed dynamic matrix $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ in two explicit matrix multiplications:
+
+$$
+\begin{aligned}
+\mathbf{A}\mathbf{T} &= \begin{bmatrix} -2 & 1 \\ 0 & -5 \end{bmatrix} \begin{bmatrix} 1 & 1 \\ 0 & -3 \end{bmatrix} = \begin{bmatrix} (-2)(1) + (1)(0) & (-2)(1) + (1)(-3) \\ (0)(1) + (-5)(0) & (0)(1) + (-5)(-3) \end{bmatrix} = \begin{bmatrix} -2 & -5 \\ 0 & 15 \end{bmatrix} \\
+\tilde{\mathbf{A}} &= \mathbf{T}^{-1}(\mathbf{A}\mathbf{T}) = \begin{bmatrix} 1 & \frac{1}{3} \\ 0 & -\frac{1}{3} \end{bmatrix} \begin{bmatrix} -2 & -5 \\ 0 & 15 \end{bmatrix} = \begin{bmatrix} -2 + 0 & -5 + 5 \\ 0 + 0 & 0 - 5 \end{bmatrix} = \begin{bmatrix} -2 & 0 \\ 0 & -5 \end{bmatrix}
+\end{aligned}
+$$
+
+Notice how the $(1,2)$ coupling entry cancels out via $-5 + \frac{1}{3}(15) = 0$, leaving the eigenvalues $\lambda_1 = -2$ and $\lambda_2 = -5$ sitting cleanly on the main diagonal of $\tilde{\mathbf{A}}$. Next, we transform the input vector $\mathbf{B}$ and sensor row $\mathbf{C}$ into the new $\mathbf{z}$-coordinates:
+
+$$
+\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 1 & \frac{1}{3} \\ 0 & -\frac{1}{3} \end{bmatrix} \begin{bmatrix} 1 \\ 3 \end{bmatrix} = \begin{bmatrix} (1)(1) + \frac{1}{3}(3) \\ (0)(1) - \frac{1}{3}(3) \end{bmatrix} = \begin{bmatrix} 2 \\ -1 \end{bmatrix}, \qquad
+\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} 1 & 1 \\ 0 & -3 \end{bmatrix} = \begin{bmatrix} 1 & 1 \end{bmatrix}
+$$
+
+In the new modal coordinates $\mathbf{z}(t)$, the system splits into two completely uncoupled first-order differential equations $\dot{z}_1(t) = -2z_1(t) + 2u(t)$ and $\dot{z}_2(t) = -5z_2(t) - u(t)$ with sensor readout $y(t) = z_1(t) + z_2(t)$. Even though every entry of $\tilde{\mathbf{B}}$ and $\tilde{\mathbf{C}}$ changed numerically, the eigenvalues $\{-2, -5\}$ and the external input-output transfer function (which we will study systematically in [Transfer Function Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/04-transfer-function-matrix-invariants/)) remain strictly identical in both coordinate systems:
+
+$$\tilde{W}(s) = \frac{\tilde{C}_1 \tilde{B}_1}{s - \lambda_1} + \frac{\tilde{C}_2 \tilde{B}_2}{s - \lambda_2} = \frac{1 \cdot 2}{s + 2} + \frac{1 \cdot (-1)}{s + 5} = \frac{2(s + 5) - (s + 2)}{(s + 2)(s + 5)} = \frac{s + 8}{(s + 2)(s + 5)} = W(s)$$
+
+Thus, changing coordinates alters how internal variables are labeled and scaled, but never alters how the physical machine responds at its external terminals.
+
+<StepCheck
+  client:load
+  prompt="In the transformed basis $\mathbf{z}(t)$, what is the new second input entry $\tilde{B}_2$?"
+  expected={-1}
+  tolerance={0.05}
+  unit=""
+  explanation="Multiplying $\mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 1 & 1/3 \\ 0 & -1/3 \end{bmatrix}\begin{bmatrix} 1 \\ 3 \end{bmatrix}$ gives $\tilde{B}_1 = 2$ and $\tilde{B}_2 = -1$."
+/>
+
+<Divider label="2 · Theory" />
+
+### Algebraic Coordinate Transformation
+
+Because an internal state vector $\mathbf{x}(t) \in \mathbb{R}^n$ is chosen by the modeler—such as node voltages versus mesh currents in an electrical filter, or body-frame versus Earth-frame axes on an aircraft—any single physical system admits infinitely many valid state-space realizations. We need an exact algebraic dictionary that translates the matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ from one coordinate basis to another without losing or distorting the underlying dynamics.
+
+Let $\mathbf{T} \in \mathbb{R}^{n \times n}$ be any constant non-singular matrix ($\det(\mathbf{T}) \neq 0$), defining a bijective linear mapping between the original state vector $\mathbf{x}(t)$ and a new state vector $\mathbf{z}(t)$:
+
+$$\mathbf{x}(t) = \mathbf{T} \mathbf{z}(t) \iff \mathbf{z}(t) = \mathbf{T}^{-1} \mathbf{x}(t)$$
+
+Geometrically, column $j$ of $\mathbf{T}$ represents the $j$-th new coordinate axis expressed in the old $\mathbf{x}$-coordinates. Because $\mathbf{T}$ is constant with respect to time, differentiating $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ yields $\dot{\mathbf{x}}(t) = \mathbf{T}\dot{\mathbf{z}}(t)$. Substituting both $\mathbf{x}(t)$ and $\dot{\mathbf{x}}(t)$ into the state-space equations $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$ and $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t)$ from [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/) gives:
+
+$$\mathbf{T} \dot{\mathbf{z}}(t) = \mathbf{A} \mathbf{T} \mathbf{z}(t) + \mathbf{B} \mathbf{u}(t), \qquad \mathbf{y}(t) = \mathbf{C} \mathbf{T} \mathbf{z}(t) + \mathbf{D} \mathbf{u}(t)$$
+
+Premultiplying the differential equation on the left by $\mathbf{T}^{-1}$ uses $\mathbf{T}^{-1}\mathbf{T} = \mathbf{I}$ to isolate the derivative vector $\dot{\mathbf{z}}(t)$:
+
+$$
+\begin{aligned}
+\dot{\mathbf{z}}(t) &= \left( \mathbf{T}^{-1} \mathbf{A} \mathbf{T} \right) \mathbf{z}(t) + \left( \mathbf{T}^{-1} \mathbf{B} \right) \mathbf{u}(t) \\
+\mathbf{y}(t) &= \left( \mathbf{C} \mathbf{T} \right) \mathbf{z}(t) + \mathbf{D} \mathbf{u}(t)
+\end{aligned}
+$$
+
+Two state-space realizations $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ and $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}}, \tilde{\mathbf{D}})$ are therefore called **algebraically similar** (or coordinate-equivalent) if and only if there exists an invertible matrix $\mathbf{T}$ such that:
+
+$$\tilde{\mathbf{A}} = \mathbf{T}^{-1} \mathbf{A} \mathbf{T}, \qquad \tilde{\mathbf{B}} = \mathbf{T}^{-1} \mathbf{B}, \qquad \tilde{\mathbf{C}} = \mathbf{C} \mathbf{T}, \qquad \tilde{\mathbf{D}} = \mathbf{D}$$
+
+In this dictionary, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$ projects the external input directions onto the new $\mathbf{z}$-basis, $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ updates $\mathbf{z}(t)$ inside the new basis, $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$ maps $\mathbf{z}(t)$ back into $\mathbf{x}(t)$ before reading out the sensors, and the direct bypass $\tilde{\mathbf{D}} = \mathbf{D}$ stays untouched because it never enters the state space.
+
+### Characteristic Polynomial Invariance
+
+When a coordinate change replaces $\mathbf{A}$ with $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, every individual entry of the matrix can change. If the system's natural decay rates and oscillation frequencies—its eigenvalues—depended on our arbitrary choice of coordinates, state-space stability analysis would be meaningless. We must prove that the characteristic polynomial and eigenvalue spectrum remain completely unchanged under any invertible coordinate transformation $\mathbf{T}$.
+
+Consider the characteristic polynomial $\tilde{p}(\lambda) = \det(\lambda \mathbf{I} - \tilde{\mathbf{A}})$ of the transformed matrix. Writing the identity matrix as $\mathbf{I} = \mathbf{T}^{-1}\mathbf{I}\mathbf{T}$ lets us factor $\mathbf{T}^{-1}$ on the left and $\mathbf{T}$ on the right inside the determinant, after which Binet's determinant product rule $\det(\mathbf{P}\mathbf{Q}\mathbf{R}) = \det(\mathbf{P})\det(\mathbf{Q})\det(\mathbf{R})$ separates the scalar determinants:
+
+$$
+\begin{aligned}
+\tilde{p}(\lambda) &= \det\left(\lambda \mathbf{I} - \tilde{\mathbf{A}}\right) = \det\left(\lambda \mathbf{T}^{-1}\mathbf{I}\mathbf{T} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T}\right) \\
+&= \det\left(\mathbf{T}^{-1}(\lambda \mathbf{I} - \mathbf{A})\mathbf{T}\right) = \det\left(\mathbf{T}^{-1}\right) \det(\lambda \mathbf{I} - \mathbf{A}) \det(\mathbf{T}) \\
 &= \frac{1}{\det(\mathbf{T})} \det(\lambda \mathbf{I} - \mathbf{A}) \det(\mathbf{T}) = \det(\lambda \mathbf{I} - \mathbf{A}) = p(\lambda)
-\end{aligned}$$
+\end{aligned}
+$$
 
-Consequently:
+Because the nonzero scalar factors $\det(\mathbf{T})^{-1}$ and $\det(\mathbf{T})$ cancel each other out, $\tilde{p}(\lambda)$ and $p(\lambda)$ have the exact same coefficients for every power of $\lambda$. In particular, the **trace** $\operatorname{Tr}(\tilde{\mathbf{A}}) = \operatorname{Tr}(\mathbf{A})$ (sum of eigenvalues), the **determinant** $\det(\tilde{\mathbf{A}}) = \det(\mathbf{A})$ (product of eigenvalues), and the entire **eigenvalue spectrum** are strictly invariant:
+
 $$\sigma(\tilde{\mathbf{A}}) = \sigma(\mathbf{A})$$
-The natural frequencies, damping ratios, time constants, and stability modes of the system are absolute physical invariants independent of coordinate choice.
 
-### 2. Invariance of the Input-Output Transfer Function
-Evaluating the transfer function $\tilde{\mathbf{W}}(s)$ in the transformed basis:
+Physically, this theorem confirms that natural time constants, damping ratios, and internal stability belong to the physical hardware itself, never to the coordinate system chosen on paper.
 
-$$\begin{aligned}
+### Transfer Function Invariance
+
+Just as internal natural frequencies must not depend on coordinate labels, the external relationship between actuator inputs $\mathbf{U}(s)$ and sensor outputs $\mathbf{Y}(s)$ measured at the system terminals cannot depend on internal coordinate axes. In [Transfer Function Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/04-transfer-function-matrix-invariants/), we will show from the Laplace transform that zero-initial-state inputs and outputs are linked by the transfer function matrix $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$. Let us verify right now that $\mathbf{W}(s)$ is invariant under $\mathbf{x} = \mathbf{T}\mathbf{z}$.
+
+Substituting $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}}, \tilde{\mathbf{D}}) = (\mathbf{T}^{-1}\mathbf{A}\mathbf{T}, \mathbf{T}^{-1}\mathbf{B}, \mathbf{C}\mathbf{T}, \mathbf{D})$ into $\tilde{\mathbf{W}}(s)$ and applying the three-matrix inverse rule $(\mathbf{P}\mathbf{Q}\mathbf{R})^{-1} = \mathbf{R}^{-1}\mathbf{Q}^{-1}\mathbf{P}^{-1}$ to $\left[\mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})\mathbf{T}\right]^{-1} = \mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{T}$ yields:
+
+$$
+\begin{aligned}
 \tilde{\mathbf{W}}(s) &= \tilde{\mathbf{C}} (s\mathbf{I} - \tilde{\mathbf{A}})^{-1} \tilde{\mathbf{B}} + \tilde{\mathbf{D}} \\
-&= (\mathbf{C}\mathbf{T}) \left[ s\mathbf{I} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T} \right]^{-1} (\mathbf{T}^{-1}\mathbf{B}) + \mathbf{D} \\
+&= (\mathbf{C}\mathbf{T}) \left[ s\mathbf{T}^{-1}\mathbf{I}\mathbf{T} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T} \right]^{-1} (\mathbf{T}^{-1}\mathbf{B}) + \mathbf{D} \\
 &= \mathbf{C}\mathbf{T} \left[ \mathbf{T}^{-1}(s\mathbf{I} - \mathbf{A})\mathbf{T} \right]^{-1} \mathbf{T}^{-1}\mathbf{B} + \mathbf{D} \\
-&= \mathbf{C}\mathbf{T} \mathbf{T}^{-1} (s\mathbf{I} - \mathbf{A})^{-1} \mathbf{T} \mathbf{T}^{-1}\mathbf{B} + \mathbf{D} \\
+&= \mathbf{C}\underbrace{(\mathbf{T} \mathbf{T}^{-1})}_{\mathbf{I}} (s\mathbf{I} - \mathbf{A})^{-1} \underbrace{(\mathbf{T} \mathbf{T}^{-1})}_{\mathbf{I}}\mathbf{B} + \mathbf{D} \\
 &= \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D} = \mathbf{W}(s)
-\end{aligned}$$
+\end{aligned}
+$$
 
-The external frequency response, step response, and impulse response observed by a user at the terminals are strictly unaffected by internal coordinate transformations.
+Notice how the right-multiplication by $\mathbf{T}$ in $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$ cancels against the $\mathbf{T}^{-1}$ emerging from the left of the inverted resolvent, while the $\mathbf{T}$ emerging from the right of the inverted resolvent cancels against $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$. Every external step response, impulse response, and frequency response is therefore completely blind to internal similarity transformations.
 
-<Divider />
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Under an invertible similarity transformation $\mathbf{x} = \mathbf{T}\mathbf{z}$, which quantity can change numerically?"
+  options={[
+    "The eigenvalues of the dynamic matrix $\\mathbf{A}$",
+    "The entries of the output matrix $\\mathbf{C}$",
+    "The input-output transfer function $\\mathbf{W}(s)$"
+  ]}
+  correctIndex={1}
+  explanation="Similarity transformations rewrite $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$, which changes the matrix entries, whereas $\sigma(\mathbf{A})$ and $\mathbf{W}(s)$ remain strictly invariant."
+/>
 
-## Modal Diagonalization
+### Modal Diagonalization
 
-When the dynamic matrix $\mathbf{A} \in \mathbb{R}^{n \times n}$ possesses $n$ linearly independent eigenvectors $\{\mathbf{v}_1, \mathbf{v}_2, \dots, \mathbf{v}_n\}$ associated with eigenvalues $\{\lambda_1, \lambda_2, \dots, \lambda_n\}$:
+Since we are free to pick any invertible matrix $\mathbf{T}$ without altering the physics, which coordinate basis makes the differential equations easiest to solve? If we can transform $\mathbf{A}$ into a **diagonal matrix** $\mathbf{\Lambda}$, all off-diagonal coupling disappears and the $n \times n$ coupled vector differential equation fractures into $n$ independent first-order scalar equations.
 
-$$\mathbf{A} \mathbf{v}_i = \lambda_i \mathbf{v}_i, \quad i = 1, 2, \dots, n$$
+Suppose $\mathbf{A} \in \mathbb{R}^{n \times n}$ has $n$ linearly independent right eigenvectors $\{\mathbf{v}_1, \mathbf{v}_2, \dots, \mathbf{v}_n\}$ associated with eigenvalues $\{\lambda_1, \lambda_2, \dots, \lambda_n\}$ (which is always guaranteed when all $n$ eigenvalues are distinct):
 
-we construct the **Modal Matrix**:
+$$\mathbf{A} \mathbf{v}_i = \lambda_i \mathbf{v}_i, \qquad i = 1, 2, \dots, n$$
+
+Each eigenvector $\mathbf{v}_i$ defines an invariant direction in state space along which the matrix $\mathbf{A}$ acts by pure scalar multiplication $\lambda_i$. Assembling these $n$ eigenvectors side by side as columns defines the **Modal Matrix** $\mathbf{M}$:
 
 $$\mathbf{T} = \mathbf{M} = \begin{bmatrix} \mathbf{v}_1 & \mathbf{v}_2 & \dots & \mathbf{v}_n \end{bmatrix}$$
 
-Under this modal transformation, the system matrix decouples into a diagonal matrix $\mathbf{\Lambda}$:
+Because the $n$ eigenvectors are linearly independent, $\det(\mathbf{M}) \neq 0$, so $\mathbf{M}^{-1}$ exists. Multiplying $\mathbf{A}\mathbf{M}$ scales each column $\mathbf{v}_i$ by its own eigenvalue $\lambda_i$, which we can factor on the right as $\mathbf{M}$ times the diagonal eigenvalue matrix $\mathbf{\Lambda} = \operatorname{diag}(\lambda_1, \dots, \lambda_n)$:
 
-$$\tilde{\mathbf{A}} = \mathbf{T}^{-1} \mathbf{A} \mathbf{T} = \mathbf{\Lambda} = \begin{bmatrix}
+$$\mathbf{A}\mathbf{M} = \begin{bmatrix} \mathbf{A}\mathbf{v}_1 & \mathbf{A}\mathbf{v}_2 & \dots & \mathbf{A}\mathbf{v}_n \end{bmatrix} = \begin{bmatrix} \lambda_1\mathbf{v}_1 & \lambda_2\mathbf{v}_2 & \dots & \lambda_n\mathbf{v}_n \end{bmatrix} = \mathbf{M} \mathbf{\Lambda}$$
+
+Premultiplying both sides of $\mathbf{A}\mathbf{M} = \mathbf{M}\mathbf{\Lambda}$ on the left by $\mathbf{M}^{-1}$ diagonalizes the dynamic matrix:
+
+$$
+\tilde{\mathbf{A}} = \mathbf{M}^{-1} \mathbf{A} \mathbf{M} = \mathbf{\Lambda} = \begin{bmatrix}
 \lambda_1 & 0 & \dots & 0 \\
 0 & \lambda_2 & \dots & 0 \\
 \vdots & \vdots & \ddots & \vdots \\
 0 & 0 & \dots & \lambda_n
-\end{bmatrix}$$
+\end{bmatrix}
+$$
 
-In these decoupled **modal coordinates** $\mathbf{z}(t)$, the $n$ coupled differential equations collapse into $n$ independent scalar equations:
+In these **modal coordinates** $\mathbf{z}(t) = \mathbf{M}^{-1}\mathbf{x}(t)$, every off-diagonal entry is zero, so the coupled state equation decouples into $n$ isolated scalar differential equations:
 
-$$\dot{z}_i(t) = \lambda_i z_i(t) + \tilde{b}_i u(t), \quad i = 1, \dots, n$$
+$$\dot{z}_i(t) = \lambda_i z_i(t) + \tilde{b}_i u(t), \qquad i = 1, \dots, n$$
 
-where $\tilde{b}_i$ is the $i$-th row of $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$. Each modal state $z_i(t)$ evolves completely autonomously without dynamic interference from other states.
+where $\tilde{b}_i$ is the $i$-th entry of $\tilde{\mathbf{B}} = \mathbf{M}^{-1}\mathbf{B}$. Physically, $\tilde{b}_i$ tells us how strongly the actuator excites mode $i$, $z_i(t)$ tracks the amplitude of mode $i$ evolving at natural rate $e^{\lambda_i t}$, and the $i$-th column of $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{M}$ tells us how strongly mode $i$ appears in the sensor measurements.
 
-<Callout type="bridge" title="SDU Robotics Bridge: Body-to-Inertial Drone Transformations">
+<Callout type="bridge" title="Robotics Bridge: Body-to-Inertial Transformations">
 
-In aerial robotics algorithms implemented in the SDU UAS laboratory, coordinate transformations occur continuously between the **Body-fixed frame** $\mathcal{F}_B$ (aligned with IMU accelerometer axes) and the **Inertial World frame** $\mathcal{F}_W$ (North-East-Down or ENU coordinates).
-For linear velocities $\mathbf{v}_B = \begin{bmatrix} u & v & w \end{bmatrix}^T$ and inertial positions $\mathbf{p}_W = \begin{bmatrix} x & y & z \end{bmatrix}^T$:
+In aerial robotics, coordinate transformations occur continuously between the **Body-fixed frame** $\mathcal{F}_B$ (aligned with IMU accelerometer axes) and the **Inertial World frame** $\mathcal{F}_W$ (North-East-Down or ENU coordinates). For body velocities $\mathbf{v}_B = \begin{bmatrix} u & v & w \end{bmatrix}^T$ and inertial positions $\mathbf{p}_W = \begin{bmatrix} x & y & z \end{bmatrix}^T$:
+
 $$\dot{\mathbf{p}}_W(t) = \mathbf{R}_{WB}(\mathbf{q}) \mathbf{v}_B(t)$$
-where $\mathbf{R}_{WB} \in SO(3)$ is the orthogonal direction cosine rotation matrix parameterized by unit quaternions $\mathbf{q}$.
-State estimation nodes in ROS 2 utilize similarity transformations to convert error covariance matrices $\mathbf{P}$ between sensor-aligned coordinates (e.g. LiDAR or camera frames) and robot-centric tracking states.
+
+where $\mathbf{R}_{WB} \in SO(3)$ is the orthogonal rotation matrix parameterized by unit quaternions $\mathbf{q}$. State estimation nodes in ROS 2 use similarity transformations to rotate error covariance matrices $\mathbf{P}$ between sensor frames and robot-centric tracking coordinates.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
+| Quantity | Transformation Rule ($\mathbf{x} = \mathbf{T}\mathbf{z}$) | Status |
+| :--- | :--- | :--- |
+| **Dynamic Matrix $\mathbf{A}$** | $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ | Matrix entries change |
+| **Input Matrix $\mathbf{B}$** | $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$ | Matrix entries change |
+| **Output Matrix $\mathbf{C}$** | $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$ | Matrix entries change |
+| **Feedthrough Matrix $\mathbf{D}$** | $\tilde{\mathbf{D}} = \mathbf{D}$ | Strictly invariant |
+| **Spectrum $\sigma(\mathbf{A})$ & $p(\lambda)$** | $\det(\lambda\mathbf{I} - \tilde{\mathbf{A}}) = \det(\lambda\mathbf{I} - \mathbf{A})$ | Strictly invariant |
+| **Transfer Matrix $\mathbf{W}(s)$** | $\tilde{\mathbf{C}}(s\mathbf{I}-\tilde{\mathbf{A}})^{-1}\tilde{\mathbf{B}} + \tilde{\mathbf{D}} = \mathbf{W}(s)$ | Strictly invariant |
 
-<Divider label="Interactive Practice & Exam Drills" />
+### Diagonalization Procedure
 
-## Chapter Exercises
+1. **Compute Characteristic Polynomial:** Solve $p(\lambda) = \det(\lambda\mathbf{I} - \mathbf{A}) = 0$ for eigenvalues $\lambda_1, \dots, \lambda_n$.
+2. **Find Eigenvectors:** For each $\lambda_i$, solve $(\lambda_i\mathbf{I} - \mathbf{A})\mathbf{v}_i = \mathbf{0}$ to obtain $n$ linearly independent eigenvectors.
+3. **Assemble & Invert $\mathbf{T}$:** Form $\mathbf{T} = [\mathbf{v}_1 \;\dots\; \mathbf{v}_n]$, confirm $\det(\mathbf{T}) \neq 0$, and compute $\mathbf{T}^{-1}$.
+4. **Transform Matrices:** Compute $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \mathbf{\Lambda}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$.
 
-<Exercise client:load id="ex-2-1" title="Exercise 2.1: Diagonal Scaling Coordinate Transformation" level="LEVEL 1: WARM-UP DRILL">
+### Key Proofs
+
+- **Spectrum Invariance:** $\det(\lambda\mathbf{I} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T}) = \det(\mathbf{T}^{-1})\det(\lambda\mathbf{I}-\mathbf{A})\det(\mathbf{T}) = \det(\lambda\mathbf{I}-\mathbf{A})$.
+- **Transfer Invariance:** Factoring $\mathbf{T}^{-1}$ and $\mathbf{T}$ out of $(s\mathbf{I} - \mathbf{T}^{-1}\mathbf{A}\mathbf{T})^{-1}$ cancels $\mathbf{T}\mathbf{T}^{-1} = \mathbf{I}$ against $\mathbf{C}\mathbf{T}$ and $\mathbf{T}^{-1}\mathbf{B}$.
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Swapping $\mathbf{T}$ and $\mathbf{T}^{-1}$:** Under $\mathbf{x} = \mathbf{T}\mathbf{z}$, always multiply $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$ on the left by $\mathbf{T}^{-1}$ and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$ on the right by $\mathbf{T}$.
+2. **Singular Transformation Matrices:** If two columns of $\mathbf{T}$ are collinear ($\det(\mathbf{T}) = 0$), $\mathbf{T}$ is not a valid coordinate change.
+3. **Defective Matrices:** If an eigenvalue with algebraic multiplicity $m_a > 1$ lacks $m_a$ independent eigenvectors ($m_g < m_a$), $\mathbf{A}$ cannot be diagonalized and requires a Jordan form.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise client:load id="ex-2-1" title="Exercise 2.1 — Diagonal Scaling Transformation" level="Warm-Up">
 
 Consider the decoupled continuous-time system:
+
 $$\mathbf{A} = \begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 1 \end{bmatrix}$$
+
 We apply a state coordinate scaling $\mathbf{x}(t) = \mathbf{T}\mathbf{z}(t)$ with the diagonal transformation matrix:
+
 $$\mathbf{T} = \begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix}$$
 
 1. Invert the diagonal matrix $\mathbf{T}$ by inspection.
 2. Calculate the transformed matrices $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$.
 3. Verify that the eigenvalues of $\tilde{\mathbf{A}}$ are identical to those of $\mathbf{A}$. Observe how coordinate scaling alters the internal state representation while preserving input-output behavior.
 
+<StepCheck
+  client:load
+  prompt="What is the first entry $\tilde{C}_1$ of the transformed output matrix $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$?"
+  expected={2}
+  tolerance={0.05}
+  unit=""
+  explanation="$\tilde{\mathbf{C}} = \begin{bmatrix} 1 & 1 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix} = \begin{bmatrix} 2 & 3 \end{bmatrix}$, so $\tilde{C}_1 = 2$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. For any diagonal matrix with non-zero diagonal entries, the inverse is formed by taking the reciprocal of each diagonal element:
+1. Because $\mathbf{T} = \operatorname{diag}(2, 3)$ is diagonal with $\det(\mathbf{T}) = (2)(3) = 6 \neq 0$, its inverse is obtained by taking the reciprocal of each diagonal entry:
    $$\mathbf{T}^{-1} = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}$$
-2. Computing the transformed state matrices:
-   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}\begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix} = \begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix} = \mathbf{A}$$
-   (Diagonal matrices commute under multiplication).
-   $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}\begin{bmatrix} 1 \\ 2 \end{bmatrix} = \begin{bmatrix} 1/2 \\ 2/3 \end{bmatrix}$$
-   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 1 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix} = \begin{bmatrix} 2 & 3 \end{bmatrix}$$
-3. The eigenvalues are read directly from $\tilde{\mathbf{A}}$: $\lambda_1 = -1$ and $\lambda_2 = -4$, confirming absolute spectral invariance.
-   Furthermore, evaluating the modal input-output transmission products reveals:
-   $$\tilde{c}_1 \tilde{b}_1 = 2 \cdot (1/2) = 1 = c_1 b_1, \quad \tilde{c}_2 \tilde{b}_2 = 3 \cdot (2/3) = 2 = c_2 b_2$$
-   Coordinate scaling rescales internal state magnitudes without altering the input-output transfer function $W(s) = \sum_{i} \frac{c_i b_i}{s - \lambda_i}$.
+2. Carrying out the similarity transformation multiplications step by step:
+   $$\mathbf{A}\mathbf{T} = \begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix} = \begin{bmatrix} -2 & 0 \\ 0 & -12 \end{bmatrix}$$
+   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}(\mathbf{A}\mathbf{T}) = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}\begin{bmatrix} -2 & 0 \\ 0 & -12 \end{bmatrix} = \begin{bmatrix} (1/2)(-2) & 0 \\ 0 & (1/3)(-12) \end{bmatrix} = \begin{bmatrix} -1 & 0 \\ 0 & -4 \end{bmatrix} = \mathbf{A}$$
+   $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 1/2 & 0 \\ 0 & 1/3 \end{bmatrix}\begin{bmatrix} 1 \\ 2 \end{bmatrix} = \begin{bmatrix} (1/2)(1) + (0)(2) \\ (0)(1) + (1/3)(2) \end{bmatrix} = \begin{bmatrix} 1/2 \\ 2/3 \end{bmatrix}$$
+   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 1 \end{bmatrix}\begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix} = \begin{bmatrix} (1)(2) + (1)(0) & (1)(0) + (1)(3) \end{bmatrix} = \begin{bmatrix} 2 & 3 \end{bmatrix}$$
+3. The diagonal entries of $\tilde{\mathbf{A}}$ give the eigenvalues $\lambda_1 = -1$ and $\lambda_2 = -4$, identical to those of $\mathbf{A}$. Furthermore, multiplying each modal input weight by its corresponding output weight shows that the mode-by-mode residues are completely unchanged:
+   $$\tilde{C}_1 \tilde{B}_1 = 2 \cdot \frac{1}{2} = 1 = C_1 B_1, \qquad \tilde{C}_2 \tilde{B}_2 = 3 \cdot \frac{2}{3} = 2 = C_2 B_2$$
+   Thus the transfer function $\tilde{W}(s) = \frac{1}{s+1} + \frac{2}{s+4} = W(s)$ is preserved.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-2-2" title="Exercise 2.2: Modal Matrix Diagonalization & Spectral Transformation" level="LEVEL 2: EXAM BENCHMARK">
+<Exercise client:load id="ex-2-2" title="Exercise 2.2 — Modal Matrix Diagonalization" level="Exam Standard">
 
 Consider the coupled symmetric second-order system:
+
 $$\mathbf{A} = \begin{bmatrix} -5 & 2 \\ 2 & -2 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 1 \end{bmatrix}$$
 
 1. Compute the eigenvalues $\lambda_1, \lambda_2$ by solving the characteristic equation $\det(\lambda\mathbf{I} - \mathbf{A}) = 0$.
@@ -171,25 +301,37 @@ $$\mathbf{A} = \begin{bmatrix} -5 & 2 \\ 2 & -2 \end{bmatrix}, \quad \mathbf{B} 
 3. Form the modal transformation matrix $\mathbf{T} = \begin{bmatrix} \mathbf{v}_1 & \mathbf{v}_2 \end{bmatrix}$ and compute its inverse $\mathbf{T}^{-1}$ using the adjugate matrix formula.
 4. Calculate the decoupled state matrices $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T}$, verifying that $\tilde{\mathbf{A}}$ is diagonal.
 
+<StepCheck
+  client:load
+  prompt="What is the determinant $\det(\mathbf{T})$ when using $\mathbf{v}_1 = [1, 2]^T$ and $\mathbf{v}_2 = [-2, 1]^T$?"
+  expected={5}
+  tolerance={0.05}
+  unit=""
+  explanation="For $\mathbf{T} = \begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix}$, $\det(\mathbf{T}) = (1)(1) - (-2)(2) = 5$."
+/>
+
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. Characteristic equation:
-   $$\det(\lambda \mathbf{I} - \mathbf{A}) = \det\begin{bmatrix} \lambda + 5 & -2 \\ -2 & \lambda + 2 \end{bmatrix} = (\lambda + 5)(\lambda + 2) - 4 = \lambda^2 + 7\lambda + 6 = (\lambda + 1)(\lambda + 6) = 0$$
-   The eigenvalues are $\lambda_1 = -1$ and $\lambda_2 = -6$.
-   * For $\lambda_1 = -1$:
-     $$(-1 \mathbf{I} - \mathbf{A})\mathbf{v}_1 = \begin{bmatrix} 4 & -2 \\ -2 & 1 \end{bmatrix}\begin{bmatrix} v_{11} \\ v_{12} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies 2v_{11} - v_{12} = 0 \implies \mathbf{v}_1 = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$$
-   * For $\lambda_2 = -6$:
-     $$(-6 \mathbf{I} - \mathbf{A})\mathbf{v}_2 = \begin{bmatrix} -1 & -2 \\ -2 & -4 \end{bmatrix}\begin{bmatrix} v_{21} \\ v_{22} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies v_{21} + 2v_{22} = 0 \implies \mathbf{v}_2 = \begin{bmatrix} -2 \\ 1 \end{bmatrix}$$
-2. The modal matrix $\mathbf{T}$ and its inverse are:
-   $$\mathbf{T} = \begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix}, \quad \det(\mathbf{T}) = 1(1) - (-2)(2) = 5$$
+1. Forming $\lambda\mathbf{I} - \mathbf{A}$ and expanding its determinant:
+   $$\det(\lambda \mathbf{I} - \mathbf{A}) = \det\begin{bmatrix} \lambda + 5 & -2 \\ -2 & \lambda + 2 \end{bmatrix} = (\lambda + 5)(\lambda + 2) - (-2)(-2) = \lambda^2 + 7\lambda + 10 - 4 = \lambda^2 + 7\lambda + 6$$
+   Factoring the quadratic gives $(\lambda + 1)(\lambda + 6) = 0$, so the eigenvalues are $\lambda_1 = -1$ and $\lambda_2 = -6$.
+2. Solving $(\lambda_i\mathbf{I} - \mathbf{A})\mathbf{v}_i = \mathbf{0}$ for each eigenvalue:
+   - For $\lambda_1 = -1$:
+     $$(-1 \mathbf{I} - \mathbf{A})\mathbf{v}_1 = \begin{bmatrix} -1 + 5 & -2 \\ -2 & -1 + 2 \end{bmatrix}\begin{bmatrix} v_{11} \\ v_{12} \end{bmatrix} = \begin{bmatrix} 4 & -2 \\ -2 & 1 \end{bmatrix}\begin{bmatrix} v_{11} \\ v_{12} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}$$
+     Both rows reduce to $2v_{11} - v_{12} = 0 \implies v_{12} = 2v_{11}$. Setting $v_{11} = 1$ gives $\mathbf{v}_1 = \begin{bmatrix} 1 \\ 2 \end{bmatrix}$.
+   - For $\lambda_2 = -6$:
+     $$(-6 \mathbf{I} - \mathbf{A})\mathbf{v}_2 = \begin{bmatrix} -6 + 5 & -2 \\ -2 & -6 + 2 \end{bmatrix}\begin{bmatrix} v_{21} \\ v_{22} \end{bmatrix} = \begin{bmatrix} -1 & -2 \\ -2 & -4 \end{bmatrix}\begin{bmatrix} v_{21} \\ v_{22} \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}$$
+     Both rows reduce to $v_{21} + 2v_{22} = 0 \implies v_{21} = -2v_{22}$. Setting $v_{22} = 1$ gives $\mathbf{v}_2 = \begin{bmatrix} -2 \\ 1 \end{bmatrix}$.
+3. Assembling the modal matrix $\mathbf{T} = \begin{bmatrix} \mathbf{v}_1 & \mathbf{v}_2 \end{bmatrix}$ and computing its $2\times 2$ adjugate inverse:
+   $$\mathbf{T} = \begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix}, \qquad \det(\mathbf{T}) = (1)(1) - (-2)(2) = 1 + 4 = 5 \neq 0$$
    $$\mathbf{T}^{-1} = \frac{1}{5}\begin{bmatrix} 1 & 2 \\ -2 & 1 \end{bmatrix}$$
-3. Computing the transformed matrices:
-   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T} = \mathbf{\Lambda} = \begin{bmatrix} -1 & 0 \\ 0 & -6 \end{bmatrix}$$
+4. Computing the transformed realization $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\mathbf{C}})$ explicitly:
+   $$\mathbf{A}\mathbf{T} = \begin{bmatrix} -5 & 2 \\ 2 & -2 \end{bmatrix}\begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix} = \begin{bmatrix} (-5)(1) + (2)(2) & (-5)(-2) + (2)(1) \\ (2)(1) + (-2)(2) & (2)(-2) + (-2)(1) \end{bmatrix} = \begin{bmatrix} -1 & 12 \\ -2 & -6 \end{bmatrix}$$
+   $$\tilde{\mathbf{A}} = \mathbf{T}^{-1}(\mathbf{A}\mathbf{T}) = \frac{1}{5}\begin{bmatrix} 1 & 2 \\ -2 & 1 \end{bmatrix}\begin{bmatrix} -1 & 12 \\ -2 & -6 \end{bmatrix} = \frac{1}{5}\begin{bmatrix} -1 - 4 & 12 - 12 \\ 2 - 2 & -24 - 6 \end{bmatrix} = \frac{1}{5}\begin{bmatrix} -5 & 0 \\ 0 & -30 \end{bmatrix} = \begin{bmatrix} -1 & 0 \\ 0 & -6 \end{bmatrix} = \mathbf{\Lambda}$$
    $$\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \frac{1}{5}\begin{bmatrix} 1 & 2 \\ -2 & 1 \end{bmatrix}\begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 1/5 \\ -2/5 \end{bmatrix}$$
-   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 1 \end{bmatrix}\begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix} = \begin{bmatrix} 3 & -1 \end{bmatrix}$$
-4. Verification:
-   $$\det(\lambda \mathbf{I} - \tilde{\mathbf{A}}) = (\lambda + 1)(\lambda + 6) = \lambda^2 + 7\lambda + 6 = \det(\lambda \mathbf{I} - \mathbf{A})$$
+   $$\tilde{\mathbf{C}} = \mathbf{C}\mathbf{T} = \begin{bmatrix} 1 & 1 \end{bmatrix}\begin{bmatrix} 1 & -2 \\ 2 & 1 \end{bmatrix} = \begin{bmatrix} 1 + 2 & -2 + 1 \end{bmatrix} = \begin{bmatrix} 3 & -1 \end{bmatrix}$$
+   Checking the characteristic polynomial confirms $\det(\lambda \mathbf{I} - \tilde{\mathbf{A}}) = (\lambda + 1)(\lambda + 6) = \lambda^2 + 7\lambda + 6 = \det(\lambda \mathbf{I} - \mathbf{A})$.
 
 </details>
 

@@ -1,0 +1,534 @@
+---
+title: "11. System Calls"
+description: "Computer Architecture — Chapter 11: System Calls"
+sidebar:
+  order: 1
+---
+
+import Divider from "@components/Divider.astro";
+import Callout from "@components/Callout.astro";
+import MindMap from "@components/MindMap.tsx";
+import Exercise from "@components/Exercise.tsx";
+import StepCheck from "@components/StepCheck.tsx";
+
+<MindMap client:load defaultCollapsed title="Chapter 11 Map" markdown={`# Ch. 11: System Calls
+  - Validated Console Loop Example
+    - Prompt, ReadInt, bounds branches, clean exit
+    - User-to-kernel ecall boundary
+  - Static Data Directives
+    - .asciz, .word, and .space allocations
+    - Load Address (la) vs. memory loads
+  - RARS Console Syscall ABI
+    - Service codes 1, 4, 5, 8, 10, 11 in a7
+    - Buffer bounds and trailing newline in ReadString`} />
+
+## Console System Calls
+
+Arithmetic instructions and branches ([Control Flow](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/)) transform registers internally, but an interactive C program must also print prompts, read numbers and strings from the keyboard, and return control cleanly to the host system when `main` finishes. Because user-mode code is barred from touching physical console hardware directly, RISC-V programs request input/output and termination services through the **`ecall`** (Environment Call) instruction after placing a standardized service number in register **`a7`**.
+
+<Divider label="1 · Example" />
+
+### Input Validation Walkthrough
+
+Let us translate a complete interactive C validation loop—the opening console pattern of Question 6—into a standalone RARS assembly program before cataloging every directive and service code:
+
+```c
+int main(void) {
+    int num;
+    do {
+        printf("Enter n (0..24): ");
+        scanf("%d", &num);
+    } while (num >= 25 || num < 0);
+
+    printf("Valid: %d\n", num);
+    return 0;
+}
+```
+
+To run this program in RARS, we place constant prompt strings in the **`.data`** segment as null-terminated ASCII sequences (`.asciz`), place executable instructions in **`.text`**, load string addresses into `a0` with **`la`**, select each console operation in **`a7`**, and trigger **`ecall`**:
+
+```asm
+.data
+str_prompt: .asciz "Enter n (0..24): "
+str_valid:  .asciz "Valid: "
+
+.text
+.globl main
+
+main:
+input_loop:
+    # 1. printf("Enter n (0..24): ") -> Service 4 (PrintString)
+    la   a0, str_prompt      # a0 = base address of null-terminated prompt
+    li   a7, 4               # a7 = 4 selects PrintString
+    ecall
+
+    # 2. scanf("%d", &num) -> Service 5 (ReadInt)
+    li   a7, 5               # a7 = 5 selects ReadInt
+    ecall                    # Console blocks until Enter; integer arrives in a0
+    mv   t0, a0              # Copy num into t0 before later syscalls overwrite a0!
+
+    # 3. while (num >= 25 || num < 0) -> repeat loop if out of range
+    li   t1, 25
+    bge  t0, t1, input_loop  # If num >= 25, re-prompt
+    blt  t0, zero, input_loop # If num < 0, re-prompt
+
+    # 4. printf("Valid: %d\n", num) -> PrintString (4) + PrintInt (1) + PrintChar (11)
+    la   a0, str_valid
+    li   a7, 4
+    ecall
+
+    mv   a0, t0              # Move validated integer back into a0
+    li   a7, 1               # a7 = 1 selects PrintInt
+    ecall
+
+    li   a0, 10              # ASCII 10 = '\n'
+    li   a7, 11              # a7 = 11 selects PrintChar
+    ecall
+
+    # 5. return 0 -> Service 10 (Exit)
+    li   a7, 10              # a7 = 10 halts program execution cleanly
+    ecall
+```
+
+Each time the processor reaches `ecall`, hardware execution crosses the privilege boundary illustrated in [the figure](#fig-syscall-boundary): the CPU saves the current Program Counter, elevates privilege from User mode to the OS/simulator trap handler, inspects **`a7`** to run the requested console driver using arguments in `a0`–`a1`, and returns to User mode at `PC + 4`. Notice line `mv t0, a0` right after Service `5`: because `a0` is reused immediately afterward to hold `str_valid`'s address for Service `4`, failing to copy the entered integer out of `a0` destroys user input.
+
+<figure id="fig-syscall-boundary" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/computer-architecture/fig-syscall-boundary.svg" alt="Privilege boundary transition during a RISC-V System Call (ecall). The processor traps into Supervisor/Machine mode, inspects a7 to dispatch the I/O handler, and resumes User mode." />
+  <figcaption>Privilege boundary transition during a RISC-V System Call (`ecall`). The processor traps into the privileged handler, inspects `a7` to dispatch the requested console service, and resumes User execution at the next instruction.</figcaption>
+</figure>
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="In the validation loop above, what happens if you delete `mv t0, a0` after `ReadInt` (`a7 = 5`) and try to print `a0` later after printing `str_valid`?"
+  options={[
+    "RARS raises an assembler syntax error on `ecall`",
+    "`la a0, str_valid` overwrites `a0` with the string pointer, losing the user's integer",
+    "`ReadInt` automatically backs up `a0` into `s0`"
+  ]}
+  correctIndex={1}
+  explanation="`ReadInt` places the parsed integer in `a0`. Loading the next string address via `la a0, str_valid` immediately clobbers `a0` unless you first copy the integer into another register (such as `t0` or `s0`)."
+/>
+
+<Divider label="2 · Theory" />
+
+### Static Data Directives
+
+A standalone RISC-V source file separates static memory allocations from machine instructions using two assembler section directives: **`.data`** for global constants and static buffers, and **`.text`** (paired with **`.globl main`**) for executable instructions starting at `main`. Inside `.data`, three directives cover all static storage requirements:
+
+- **`.asciz "text"`** (or the equivalent RARS alias **`.string "text"`**): encodes each character as 1 ASCII byte in contiguous memory and automatically appends a terminating null byte (`0x00`, `'\0'`). Every string passed to `PrintString` (`a7 = 4`) or `strlen` ([Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/)) must be null-terminated.
+- **`.word w1, w2, ...`**: allocates one or more 32-bit (4-byte) signed integers aligned on 4-byte word boundaries (for example, `weights: .word 10, 20, -5`).
+- **`.space N`**: reserves $N$ uninitialized (zero-filled) contiguous bytes in the static `.data` segment—used for global C arrays declared outside functions (whereas local C arrays declared *inside* `main` or helpers are allocated dynamically on the stack in [Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/)).
+
+To obtain the 32-bit memory address of any label in `.data`, use the **`la` (Load Address)** pseudo-instruction:
+
+```asm
+.data
+msg:    .asciz "Count = "
+counts: .word  42
+buf:    .space 32
+
+.text
+    la  a0, msg          # a0 = address of 'C' (pointer char *msg, NOT the character byte!)
+    la  t0, counts       # t0 = base address of counts
+    lw  t1, 0(t0)        # t1 = 42 (dereferences the 32-bit integer stored at counts)
+```
+
+Under the hood, the assembler expands `la rd, label` into a two-instruction PC-relative pair (`auipc` + `addi`). Never confuse `la a0, msg` (which loads the **pointer** `msg` needed by `PrintString`) with `lw a0, msg` (which loads the first 4 ASCII bytes of `"Coun"` as a raw integer).
+
+### Console Syscall Mechanics
+
+In RARS and Venus, every console operation sets the service code in **`a7`** (`x17`), passes arguments in **`a0`** and **`a1`**, and receives any return value in **`a0`**. Because `ecall` invokes external handler code, treat caller-saved registers as potentially volatile across system calls and keep long-lived C variables in `s0`–`s11` once subroutines enter play.
+
+#### Printing Output (`a7 = 1`, `4`, `11`)
+
+C `printf` format strings are decomposed into a sequence of elementary `ecall` operations—one per literal chunk or `%d` / `%s` / `%c` specifier:
+
+```asm
+# Equivalent to: printf("Sum = %d\n", s2);
+la   a0, str_sum         # str_sum: .asciz "Sum = "
+li   a7, 4               # Service 4: PrintString (a0 = char * address)
+ecall
+
+mv   a0, s2              # Pass 32-bit signed integer in a0
+li   a7, 1               # Service 1: PrintInt
+ecall
+
+li   a0, 10              # ASCII code 10 ('\n'); avoids needing a separate .asciz "\n"
+li   a7, 11              # Service 11: PrintChar (prints low 8 bits of a0)
+ecall
+```
+
+#### Reading Integers and Strings (`a7 = 5`, `8`)
+
+**`ReadInt` (`a7 = 5`)** parses a signed decimal integer from keyboard input, strips leading whitespace, and returns the 32-bit two's complement value in **`a0`** (matching `scanf("%d", &x)`). Move `a0` immediately into the variable's target register (`mv s0, a0`).
+
+**`ReadString` (`a7 = 8`)** reads characters from the console into a destination byte buffer whose base address is in **`a0`** and whose total byte capacity is in **`a1`**:
+
+```asm
+# Read into a 16-byte buffer pointed to by s1:
+mv   a0, s1              # a0 = destination buffer base address
+li   a1, 16              # a1 = maximum buffer capacity in bytes
+li   a7, 8               # Service 8: ReadString
+ecall
+```
+
+Service `8` stops reading as soon as the user presses Enter or **`a1 - 1`** characters have been stored, whichever comes first, and always writes a terminating null byte `'\0'` (`0x00`) at the end. Critically, if the user types fewer than `a1 - 1` characters and presses Enter (for example typing `"cat"` + Enter with `a1 = 16`), RARS stores **both** the newline `'\n'` (`0x0A`) and `'\0'` inside the buffer (`'c', 'a', 't', '\n', '\0'`). When translating C code that models `scanf("%s", buf)` followed by `strlen(buf)`, verify whether trailing `'\n'` should be stripped (replacing byte `10` with `0`) so `strlen` counts only visible characters:
+
+```asm
+# Optional newline strip on buffer at a0: replace first '\n' (10) with '\0' (0)
+    mv   t0, a0
+    li   t2, 10          # ASCII '\n'
+strip_nl:
+    lbu  t1, 0(t0)
+    beqz t1, strip_done
+    beq  t1, t2, zero_nl
+    addi t0, t0, 1
+    j    strip_nl
+zero_nl:
+    sb   zero, 0(t0)     # Overwrite '\n' with '\0'
+strip_done:
+```
+
+#### Clean Program Termination (`a7 = 10`)
+
+Unlike C, where reaching the closing brace `}` of `main` implicitly invokes `exit(0)`, a RISC-V CPU simply increments `PC` by `4` forever. If helper subroutines such as `strlen` are placed below `main` in `.text` and you omit `li a7, 10; ecall`, execution **falls straight through** into the first instruction of `strlen` with garbage arguments, causing infinite loops or illegal memory accesses. Every standalone `main` must end with:
+
+```asm
+li   a7, 10              # Service 10: Exit
+ecall
+```
+
+### User Mode Trap Intuition
+
+Why must console I/O go through `ecall` instead of reading keyboard registers directly? On multi-tasking processors (Linux on RV64/RV32), user applications run in unprivileged **User Mode (U-mode)** so a buggy program cannot corrupt another process's terminal or disk. Executing `ecall` raises a synchronous hardware exception: the CPU records the faulting PC in the exception program counter CSR (`sepc`), switches to privileged **Supervisor/Machine Mode**, jumps to the kernel trap vector, and dispatches the service requested in `a7` before returning via `sret`/`mret`.
+
+<Callout type="bridge" title="Embedded Firmware Bridge: Syscalls vs. Memory-Mapped UART">
+
+On bare-metal microcontrollers without an operating system (such as STM32 or ESP32-C3 RISC-V flight controllers), there is no POSIX kernel listening to `ecall` service codes. Instead, `printf` retargets `putchar` directly to **Memory-Mapped I/O (MMIO)** hardware registers—polling a UART transmit-ready status bit (`lbu` from `0x40001014`) and writing each ASCII byte (`sb` to `0x40001000`), or queuing packets via non-blocking DMA so high-rate control loops never stall on slow serial baud rates.
+
+</Callout>
+
+<StepCheck
+  client:load
+  prompt="When invoking `ReadString` (`a7 = 8`) with buffer capacity `a1 = 24`, what is the maximum number of user characters stored before the mandatory null terminator `'\0'`?"
+  expected={23}
+  tolerance={0}
+  unit="chars"
+  explanation="Service 8 reserves at least 1 byte for the terminating `'\0'` (`0x00`), so at most `a1 - 1 = 24 - 1 = 23` characters can be stored."
+/>
+
+<Divider label="3 · Summary" />
+
+| Item / Service | Register `a7` | Inputs (`a0`, `a1`) | Output (`a0`) | C / Assembler Equivalent |
+| :--- | :---: | :--- | :---: | :--- |
+| **`PrintInt`** | `1` | `a0` = 32-bit signed integer | — | `printf("%d", val)` |
+| **`PrintString`** | `4` | `a0` = address of `.asciz` / buffer | — | `printf("%s", str)` |
+| **`ReadInt`** | `5` | — | `a0` = parsed integer | `scanf("%d", &val)` |
+| **`ReadString`** | `8` | `a0` = buffer addr, `a1` = byte size | — | `fgets(buf, sz, stdin)` / `scanf("%s", buf)` |
+| **`Exit`** | `10` | — | Halts execution | `return 0;` / `exit(0)` |
+| **`PrintChar`** | `11` | `a0` = low 8-bit ASCII code | — | `putchar(ch)` |
+| **`.asciz "..."`** | — | `.data` directive | — | `const char s[] = "...";` (appends `'\0'`) |
+| **`.word v1, ...`** | — | `.data` directive | — | `int arr[] = {v1, ...};` (4-byte aligned) |
+| **`.space N`** | — | `.data` directive | — | `char global_buf[N];` ($N$ zeroed bytes) |
+| **`la rd, label`** | — | `.text` pseudo-instruction | `rd` = `&label` | Loads 32-bit address of `label` |
+
+### Console Translation Procedure
+
+1. **Declare Static Literals in `.data`:** Split every `printf` format string at its `%d` / `%s` placeholders into separate `.asciz` labels (and use `li a0, 10; li a7, 11; ecall` for standalone `'\n'`).
+2. **Open `.text` and `.globl main`:** Begin execution at `main:`.
+3. **Translate Prompts and Reads:** Pair `la a0, prompt; li a7, 4; ecall` with `li a7, 5; ecall` (immediately followed by `mv reg, a0`) for integers, or `li a1, size; li a7, 8; ecall` for string buffers.
+4. **Chain Composite `printf` Calls:** Emit one `ecall` per segment (`a7 = 4` for text, `a7 = 1` for integers, `a7 = 11` for single ASCII characters).
+5. **Terminate Explicitly:** End `main` with `li a7, 10; ecall` before defining any helper labels below `main`.
+
+### Key Rules
+
+- **Service Selector:** Register **`a7`** (`x17`) always specifies the `ecall` operation; `a0` carries both the first input argument and any integer return value.
+- **Buffer Capacity Bound:** `ReadString` (`a7 = 8`) writes at most `a1 - 1` characters plus `'\0'`, keeping `'\n'` (`0x0A`) if Enter was pressed before reaching `a1 - 1` characters.
+- **Address vs. Value:** Pass pointers to `PrintString` and `ReadString` (`la a0, label`), and pass integer values to `PrintInt` and `PrintChar` (`mv a0, reg` or `li a0, imm`).
+
+<Callout type="warning" title="Common Mistakes">
+
+1. **Forgetting `mv reg, a0` After `ReadInt`:** Leaving the read integer inside `a0` while setting up `la a0, next_str` overwrites user input immediately.
+2. **Using `lw` Instead of `la` for Strings:** Writing `lw a0, str_prompt` loads 4 ASCII characters as a bogus memory address, triggering an unaligned/invalid address trap inside `PrintString`.
+3. **Omitting `a1` Before `ReadString`:** Leaving garbage or zero in `a1` before `li a7, 8; ecall` either reads zero characters or overflows adjacent memory.
+4. **Falling Off the Bottom of `main`:** Omitting `li a7, 10; ecall` causes the CPU to execute whatever instructions or data follow `main` in memory.
+
+</Callout>
+
+<Divider label="4 · Exercises" />
+
+<Exercise
+  client:load
+  id="ex-11-1"
+  title="Exercise 11.1 — Interactive Age Converter"
+  level="Warm-Up"
+  hint="Reserve 32 bytes in `.data` with `.space 32`, read the name with `a7 = 8` (`a1 = 32`), read age with `a7 = 5`, move `a0` to `t0`, multiply by 12, and print each piece before exiting with `a7 = 10`."
+>
+
+Write a complete standalone RISC-V program using `.data` and `.text` that:
+1. Prompts `"Name: "` and reads a user string into a 32-byte static buffer `name_buf`.
+2. Prompts `"Age: "` and reads an integer `age`.
+3. Computes `months = age * 12` and prints `"Months = <months>\n"` followed by clean termination.
+
+<StepCheck
+  client:load
+  prompt="Which service code must be loaded into `a7` to print the single trailing newline character `'\n'` (`ASCII 10`) without declaring a `.asciz` newline string?"
+  expected={11}
+  tolerance={0}
+  unit=""
+  explanation="Service `11` (`PrintChar`) outputs the low 8-bit ASCII character stored in `a0` (`li a0, 10; li a7, 11; ecall`)."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+```asm
+.data
+prompt_name: .asciz "Name: "
+prompt_age:  .asciz "Age: "
+out_months:  .asciz "Months = "
+name_buf:    .space 32           # 32-byte static buffer in .data
+
+.text
+.globl main
+
+main:
+    # 1. Prompt and read name into static buffer
+    la   a0, prompt_name
+    li   a7, 4                   # PrintString
+    ecall
+
+    la   a0, name_buf            # a0 = base address of 32-byte buffer
+    li   a1, 32                  # a1 = max capacity (up to 31 chars + '\0')
+    li   a7, 8                   # ReadString
+    ecall
+
+    # 2. Prompt and read integer age
+    la   a0, prompt_age
+    li   a7, 4                   # PrintString
+    ecall
+
+    li   a7, 5                   # ReadInt -> returns age in a0
+    ecall
+    mv   t0, a0                  # Save age in t0 immediately
+
+    # 3. Compute months = age * 12
+    li   t1, 12
+    mul  t0, t0, t1              # t0 = age * 12
+
+    # 4. Print "Months = <months>\n"
+    la   a0, out_months
+    li   a7, 4                   # PrintString
+    ecall
+
+    mv   a0, t0
+    li   a7, 1                   # PrintInt
+    ecall
+
+    li   a0, 10                  # ASCII '\n'
+    li   a7, 11                  # PrintChar
+    ecall
+
+    # 5. Clean exit
+    li   a7, 10                  # Exit
+    ecall
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-11-2"
+  title="Exercise 11.2 — Validated Threshold Accumulator"
+  level="Intermediate"
+  hint="Invert `1 <= N && N <= 20` into two retry branches: `blt t0, t1, ask_n` (with `t1 = 1`) and `bgt t0, t2, ask_n` (with `t2 = 20`). Then read `N` integers inside a `for` loop accumulating into `t3`."
+>
+
+Translate the following C program into standalone RISC-V assembly. Complete the validation bounds check and the $N$-iteration console read loop:
+
+```c
+int main(void) {
+    int n, i, x, sum = 0;
+    do {
+        printf("Count (1..20): ");
+        scanf("%d", &n);
+    } while (n < 1 || n > 20);
+
+    for (i = 0; i < n; i++) {
+        scanf("%d", &x);
+        if (x > 0) sum += x;
+    }
+    printf("Positive sum = %d\n", sum);
+    return 0;
+}
+```
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="With `n` stored in `t0`, `t1 = 1`, and `t2 = 20`, which branch pair accurately re-runs `ask_n` whenever `n < 1 || n > 20`?"
+  options={[
+    "`blt t0, t1, ask_n` followed by `bge t0, t2, ask_n`",
+    "`blt t0, t1, ask_n` followed by `blt t2, t0, ask_n`",
+    "`bge t0, t1, ask_n` followed by `bge t2, t0, ask_n`"
+  ]}
+  correctIndex={1}
+  explanation="`n < 1` maps directly to `blt t0, t1, ask_n`, and `n > 20` is equivalent to `20 < n`, which maps to `blt t2, t0, ask_n` (or pseudo-instruction `bgt t0, t2, ask_n`) without rejecting `n = 20`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+```asm
+.data
+str_ask: .asciz "Count (1..20): "
+str_res: .asciz "Positive sum = "
+
+.text
+.globl main
+
+main:
+ask_n:
+    la   a0, str_ask
+    li   a7, 4                   # PrintString
+    ecall
+
+    li   a7, 5                   # ReadInt
+    ecall
+    mv   t0, a0                  # t0 = n
+
+    li   t1, 1
+    blt  t0, t1, ask_n           # Retry if n < 1
+    li   t2, 20
+    blt  t2, t0, ask_n           # Retry if n > 20 (20 < n)
+
+    li   t3, 0                   # t3 = sum = 0
+    li   t4, 0                   # t4 = i = 0
+
+read_loop:
+    bge  t4, t0, loop_done       # Exit loop when i >= n
+
+    li   a7, 5                   # scanf("%d", &x)
+    ecall                        # x arrives in a0
+
+    ble  a0, zero, skip_add      # Skip if x <= 0
+    add  t3, t3, a0              # sum += x
+
+skip_add:
+    addi t4, t4, 1               # i++
+    j    read_loop
+
+loop_done:
+    la   a0, str_res
+    li   a7, 4                   # PrintString
+    ecall
+
+    mv   a0, t3
+    li   a7, 1                   # PrintInt
+    ecall
+
+    li   a0, 10                  # '\n'
+    li   a7, 11                  # PrintChar
+    ecall
+
+    li   a7, 10                  # Exit
+    ecall
+```
+
+</details>
+
+</Exercise>
+
+<Exercise
+  client:load
+  id="ex-11-3"
+  title="Exercise 11.3 — String Digit Sum via Console Buffer"
+  level="Exam"
+  hint="Combine `ReadString` (`a7 = 8`) with unsigned byte loads (`lbu`) from Chapter 10. Stop scanning on either `'\0'` (`0`) or `'\n'` (`10`), check `'0' <= ch <= '9'` (`48..57`), and subtract `48` before adding."
+>
+
+Write a complete standalone RISC-V program that combines Part III byte-level string scanning ([Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/)) with RARS console I/O:
+1. Reserve a 24-byte static buffer `line_buf` in `.data`, print `"Input code: "`, and read a line via `ReadString` (`a7 = 8`).
+2. Scan `line_buf` byte-by-byte until encountering either `'\0'` (`0`) or `'\n'` (`10`).
+3. For every ASCII decimal digit (`'0'`–`'9'`, ASCII `48`–`57`), convert it to its numeric value `0`–`9` and accumulate `digit_sum`. Ignore all non-digit characters.
+4. Print `"Digit sum = <digit_sum>\n"` and exit cleanly.
+
+<StepCheck
+  client:load
+  prompt="If the user types `A7-39` and presses Enter, what numerical value does the program print for `digit_sum`?"
+  expected={19}
+  tolerance={0}
+  unit=""
+  explanation="`'A'` (`65`), `'-'` (`45`), and `'\n'` (`10`) fall outside `[48, 57]`; the digits `'7'`, `'3'`, and `'9'` convert to `7 + 3 + 9 = 19`."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+```asm
+.data
+str_in:   .asciz "Input code: "
+str_out:  .asciz "Digit sum = "
+line_buf: .space 24
+
+.text
+.globl main
+
+main:
+    # 1. Prompt and read up to 23 chars + '\0' into line_buf
+    la   a0, str_in
+    li   a7, 4                   # PrintString
+    ecall
+
+    la   a0, line_buf
+    li   a1, 24                  # Buffer capacity in bytes
+    li   a7, 8                   # ReadString
+    ecall
+
+    # 2. Scan bytes until '\0' (0) or '\n' (10)
+    la   t0, line_buf            # t0 = current char pointer
+    li   t1, 0                   # t1 = digit_sum = 0
+    li   t2, 10                  # ASCII '\n'
+    li   t3, 48                  # ASCII '0'
+    li   t4, 57                  # ASCII '9'
+
+scan_loop:
+    lbu  t5, 0(t0)               # Unsigned byte load: t5 = *t0
+    beqz t5, scan_done           # Stop at '\0'
+    beq  t5, t2, scan_done       # Stop at '\n'
+
+    # 3. Filter ASCII digits '0'..'9'
+    blt  t5, t3, next_char       # Skip if ch < '0' (48)
+    blt  t4, t5, next_char       # Skip if ch > '9' (57)
+
+    addi t5, t5, -48             # Convert ASCII numeral to integer 0..9
+    add  t1, t1, t5              # digit_sum += digit
+
+next_char:
+    addi t0, t0, 1               # Advance pointer by 1 byte
+    j    scan_loop
+
+scan_done:
+    # 4. Print "Digit sum = <digit_sum>\n" and exit
+    la   a0, str_out
+    li   a7, 4
+    ecall
+
+    mv   a0, t1
+    li   a7, 1                   # PrintInt
+    ecall
+
+    li   a0, 10                  # '\n'
+    li   a7, 11                  # PrintChar
+    ecall
+
+    li   a7, 10                  # Exit
+    ecall
+```
+
+</details>
+
+</Exercise>

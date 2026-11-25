@@ -11,300 +11,351 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load lang="it" title="Mappa del Capitolo 2" markdown={`# Cap. 2: Fisica dello Stato Solido
-  - 1 · Intuizione Fisica
-  - 2 · Definizione e Dimostrazione (Orale)
-    - Il Silicio: Dal Cristallo ai Portatori di Carica
-    - La Legge dell'Azione di Massa e il Drogaggio
-    - Meccanismi di Trasporto della Corrente
-    - Modello a Bande di Energia e Livello di Fermi
-  - 3 · Algoritmo Operativo (Esercizi)
-  - 4 · Archetipo Svolto ed Esercizi`} />
+<MindMap client:load lang="it" defaultCollapsed title="Mappa del Capitolo 2" markdown={`# Cap. 2: Fisica dello Stato Solido
+  - 1. Cristallo di Silicio, Drogaggio e Azione di Massa
+    - Esempio: Portatori Maggioritari e Minoritari nel Silicio P
+    - Teoria: Legami Covalenti, Silicio Intrinseco, Drogaggio N/P e Neutralità
+  - 2. Trasporto di Corrente: Deriva, Diffusione ed Einstein
+    - Esempio: Resistenza di Strato R_□, Velocità di Deriva e Diffusione
+    - Teoria: Mobilità, Saturazione v_sat, Legge di Fick e Relazione di Einstein
+  - 3. Modello a Bande di Energia e Livello di Fermi
+    - Esempio: Calcolo del Potenziale di Fermi φ_F e Spostamento di E_F
+    - Teoria: Bande E_c/E_v, Distribuzione di Fermi-Dirac e Potenziale di Fermi`} />
 
-<Divider label="1 · Intuizione Fisica" />
+## Introduzione
 
-Questo capitolo apre formalmente il programma d'esame orale. L'analisi si articola su due livelli complementari: da un lato l'intuizione fisica microscopica della conduzione nei solidi cristallini (generazione di coppie elettrone-lacuna, drogaggio chimico, modello a bande di energia), dall'altro la formulazione quantitativa delle equazioni di equilibrio (Legge dell'Azione di Massa e neutralità della carica) e dei meccanismi di trasporto per deriva e diffusione legati dalla Relazione di Einstein.
+Perché i processori e i sensori moderni sono fatti di **silicio** anziché di rame o vetro? Un filo di rame conduce sempre; il vetro blocca sempre la corrente; un **semiconduttore** invece sta a metà strada e ci permette di cambiare la sua conducibilità di oltre dieci ordini di grandezza aggiungendo pochissime impurità (drogaggio). In questo capitolo vediamo come nascono i portatori di carica, come si muovono per deriva e diffusione e cosa indica il livello di Fermi nelle bande di energia.
 
-<Divider label="2 · Definizione e Dimostrazione (Orale)" />
+<Divider label="1 · Cristallo di Silicio, Drogaggio e Azione di Massa" />
 
-## Il Silicio: Dal Cristallo ai Portatori di Carica
+### Esempio — Portatori all'Equilibrio in un Substrato di Silicio Drogato P
 
-Per comprendere come funziona un transistor o un circuito integrato dobbiamo prima rispondere a una domanda fondamentale: *come fa un materiale solido a condurre corrente elettrica in modo controllabile?*
+Prendiamo una fetta di silicio a temperatura ambiente ($T = 300\,\text{K}$), dove la concentrazione di portatori nel silicio puro vale $n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$, e droghiamola di tipo P aggiungendo atomi di boro in concentrazione $N_A = 5 \times 10^{16}\,\text{cm}^{-3}$:
 
-I materiali si dividono elettricamente in tre grandi famiglie in base alla loro resistività $\rho$:
-* **Conduttori** (come rame e alluminio, $\rho < 10^{-3}\,\Omega\cdot\text{cm}$): possiedono un mare di elettroni liberi già a temperatura ambiente. Conducono sempre e non possiamo modulare facilmente la loro corrente.
-* **Isolanti** (come l'ossido di silicio $\text{SiO}_2$, $\rho > 10^5\,\Omega\cdot\text{cm}$): tutti gli elettroni sono saldamente legati ai nuclei. Non conducono mai.
-* **Semiconduttori** ($10^{-3}\,\Omega\cdot\text{cm} < \rho < 10^5\,\Omega\cdot\text{cm}$): materiali la cui conducibilità è intermedia, ma soprattutto **può essere alterata di molti ordini di grandezza** tramite temperatura, campi elettrici o drogaggio chimico.
+1. **Lacune maggioritarie ($p_p$):**
+   Ogni atomo di boro cattura un elettrone dai legami vicini lasciando una lacuna libera di muoversi. A temperatura ambiente tutti gli atomi di boro sono ionizzati e superano di oltre sei ordini di grandezza i portatori generati dal calore ($N_A \gg n_i$). Quindi la concentrazione delle lacune maggioritarie coincide praticamente con il drogaggio:
 
-Il protagonista assoluto della microelettronica è il **Silicio (Si)**. Appartiene al IV gruppo della tavola periodica ($Z=14$) e possiede **4 elettroni di valenza** nello strato più esterno. Nel reticolo cristallino (struttura a diamante), ogni atomo di silicio condivide ciascuno dei suoi 4 elettroni con i 4 atomi adiacenti, formando **legami covalenti** estremamente stabili ad assetto tetraedrico.
+$$
+p_p \approx N_A = 5 \times 10^{16}\,\text{cm}^{-3}
+$$
 
-### Generazione Termica: Elettroni e Lacune
+2. **Elettroni minoritari ($n_p$):**
+   Essendoci così tante lacune in giro, qualsiasi elettrone libero generato dal calore ne incontra subito una e si ricombina. Per la **Legge dell'Azione di Massa** ($n_p \cdot p_p = n_i^2$), gli elettroni minoritari crollano a:
 
-Cosa succede a questo reticolo al variare della temperatura?
+$$
+n_p = \frac{n_i^2}{N_A} = \frac{(1.5 \times 10^{10})^2}{5 \times 10^{16}} = 4.5 \times 10^3\,\text{cm}^{-3}
+$$
 
-1. **Allo zero assoluto ($T = 0\,\text{K}$):** Non c'è energia termica. Tutti gli elettroni sono rigidamente intrappolati nei legami covalenti. Non esiste alcuna carica libera di muoversi: a $0\,\text{K}$ il silicio è un **isolante perfetto**.
-2. **A temperatura ambiente ($T = 300\,\text{K}$):** Le vibrazioni termiche del reticolo forniscono energia agli atomi. Quando l'energia termica scambiata supera l'energia del legame (pari al bandgap $E_g \approx 1.12\,\text{eV}$), il legame covalente si spezza:
-   * L'elettrone liberato acquista libertà di movimento nel cristallo: diventa un **elettrone di conduzione** (carica negativa $-q$).
-   * Nel legame rotto rimane un posto vacante con carica netta positiva: la **lacuna (hole)** (carica $+q$). Se un elettrone di un legame vicino salta per colmare il vuoto, la vacanza si sposta in senso opposto: la lacuna si comporta a tutti gli effetti come una particella carica positiva libera di muoversi.
+   Le lacune maggioritarie superano gli elettroni minoritari di oltre tredici ordini di grandezza! Nonostante questo enorme squilibrio, il cristallo resta elettricamente neutro perché la carica positiva delle lacune mobili è bilanciata dalla carica negativa degli ioni boro fissi nel reticolo.
 
-Questo fenomeno si chiama **generazione termica di coppie elettrone-lacuna ($e^--h^+$)**. Il processo opposto — in cui un elettrone libero incontra una lacuna e si ricombina ripristinando il legame — prende il nome di **ricombinazione**. All'equilibrio termico, il tasso di generazione $G_{th}$ e il tasso di ricombinazione $R$ si eguagliano esattamente.
+<StepCheck client:load lang="it" prompt="Se nella stessa regione di silicio P ($N_A = 5 \times 10^{16}\,\text{cm}^{-3}$) venissero introdotti anche donori di fosforo in concentrazione $N_D = 3 \times 10^{16}\,\text{cm}^{-3}$ (semiconduttore compensato), quale sarebbe la nuova concentrazione netta di lacune maggioritarie $p_p$ (in unità di $10^{16}\,\text{cm}^{-3}$)?" expected={2.0} tolerance={0.05} unit="$\times 10^{16}\,\text{cm}^{-3}$" explanation="In un semiconduttore compensato con $N_A > N_D$, gli elettroni donori riempiono gli stati accettori e resta il drogaggio netto $p_p \approx N_A - N_D = (5 - 3)\times 10^{16} = 2.0\times 10^{16}\,\text{cm}^{-3}$." />
 
-## La Legge dell'Azione di Massa e il Drogaggio
+### Teoria — Legami Covalenti, Silicio Intrinseco, Drogaggio e Azione di Massa
 
-### 1. La Legge dell'Azione di Massa nel Silicio Intrinseco
-In un cristallo di silicio puro (detto **intrinseco**), ogni rottura termica genera contemporaneamente un elettrone e una lacuna. Non essendovi impurità esterne, la densità volumetrica di elettroni liberi $n$ deve necessariamente essere identica a quella delle lacune $p$:
-$$ n = p = n_i(T) \implies n \cdot p = n_i^2(T) $$
-dove $n_i(T)$ è la **concentrazione intrinseca dei portatori**.
+In base alla facilità con cui lasciano passare la corrente (misurata dalla resistività $\rho$), i materiali si dividono in tre famiglie:
+* **Conduttori** (rame, alluminio): hanno già tantissimi elettroni liberi, ma non possiamo regolarne la quantità.
+* **Isolanti** (vetro, quarzo $\text{SiO}_2$): tutti gli elettroni sono bloccati in legami chimici fortissimi.
+* **Semiconduttori** (silicio, germanio): hanno una resistività intermedia che possiamo però modulare a piacere di oltre dieci ordini di grandezza tramite drogaggio, temperatura o campi elettrici.
 
-La meccanica statistica dimostra che $n_i$ dipende in modo esponenziale dalla temperatura:
-$$ n_i(T) = B \cdot T^{3/2} \cdot \exp\left( -\frac{E_g}{2 k_B T} \right) $$
-dove $k_B \approx 8.62 \times 10^{-5}\,\text{eV/K}$ è la costante di Boltzmann ed $E_g \approx 1.12\,\text{eV}$ è il bandgap del silicio. All'orale non serve ricordare costanti di proporzionalità: ciò che conta è che **$n_i(T)$ cresce esponenzialmente con la temperatura**, guidata dal termine di Boltzmann $\exp(-E_g / 2k_BT)$.
+Il protagonista della microelettronica è il **Silicio (Si)**, che ha $4$ elettroni di valenza. Nel cristallo, ogni atomo si lega ai suoi $4$ vicini condividendo un elettrone per lato e formando quattro **legami covalenti**.
 
-A temperatura ambiente ($300\,\text{K}$):
-$$ n_i \approx 1.5 \times 10^{10}\,\text{cm}^{-3} \quad (\text{negli esercizi orali si approssima spesso con } 10^{10}\,\text{cm}^{-3}) $$
+#### Generazione Termica e Ricombinazione
 
-Questo numero sembra grande, ma confrontato con i circa $5 \times 10^{22}\,\text{atomi/cm}^3$ del cristallo di silicio, significa che **solo un atomo su mille miliardi** ha un legame rotto. Il silicio puro conduce quindi pochissimo ed è inutilizzabile per realizzare componenti attivi senza drogaggio.
+Allo zero assoluto ($T = 0\,\text{K}$), tutti gli elettroni sono fermi nei legami e il silicio è un isolante perfetto. A temperatura ambiente ($T = 300\,\text{K}$), invece, le vibrazioni termiche del reticolo riescono a spezzare qualche legame (serve un'energia minima detta *bandgap*, $E_g \approx 1.12\,\text{eV}$), creando due portatori mobili:
+* L'**elettrone libero** (carica $-q$), che si muove nel cristallo.
+* La **lacuna** (*hole*, carica $+q$), ovvero il posto vuoto lasciato nel legame spezzato: quando un elettrone vicino salta a riempire il buco, il buco sembra spostarsi nel verso opposto come una carica positiva libera.
+
+Questo fenomeno è la **generazione termica**. Allo stesso tempo avviene il processo inverso, la **ricombinazione**, quando un elettrone libero cade in una lacuna ricostruendo il legame. All'equilibrio termico i due ritmi si bilanciano esattamente.
+
+#### Silicio Intrinseco
+
+Nel silicio purissimo (**intrinseco**), ogni legame rotto produce un elettrone e una lacuna: le due concentrazioni sono quindi uguali e valgono $n = p = n_i(T)$, dove $n_i$ è la **concentrazione intrinseca**. Questa cresce molto rapidamente con la temperatura secondo:
+
+$$
+n_i(T) = B \cdot T^{3/2} \cdot \exp\left( -\frac{E_g}{2 k_B T} \right)
+$$
+
+dove $k_B \approx 8.62 \times 10^{-5}\,\text{eV/K}$ è la costante di Boltzmann. A temperatura ambiente ($300\,\text{K}$) si ha:
+
+$$
+n_i \approx 1.5 \times 10^{10}\,\text{cm}^{-3}
+$$
+
+Su circa $5 \times 10^{22}$ atomi in un centimetro cubo, solo uno su mille miliardi ha un legame spezzato: il silicio puro conduce pochissimo e da solo non basta per fare dispositivi.
 
 <Callout type="tip" title="Realtà Industriale: Perché usiamo il Silicio e non il Germanio?">
 
 I primi transistori storici erano realizzati in Germanio (Ge), ma l'industria microelettronica (inclusi i poli produttivi come STMicroelectronics a Catania) lo ha rapidamente abbandonato a favore del Silicio per due motivi pratici decisivi:
 
 1. **Stabilità in temperatura:** Il Germanio ha un bandgap stretto ($E_g \approx 0.66\,\text{eV}$ contro $1.12\,\text{eV}$ del Silicio), che comporta una concentrazione intrinseca $n_i$ mille volte più alta a temperatura ambiente; già a $60\text{--}70^\circ\text{C}$ un componente al Germanio impazzisce per eccesso di portatori termici, mentre il Silicio lavora tranquillamente oltre i $125\text{--}150^\circ\text{C}$.
-2. **L'ossido nativo $\text{SiO}_2$:** Basta scaldare una fetta di silicio in presenza di ossigeno per far crescere direttamente sulla superficie il biossido di silicio ($\text{SiO}_2$, quarzo), un isolante chimicamente perfetto, compatto e ad altissima rigidità dielettrica, che permette di fabbricare il Gate dei transistori MOS con estrema semplicità ed economicità.
+2. **Ossido nativo $\text{SiO}_2$:** Basta scaldare una fetta di silicio in presenza di ossigeno per far crescere direttamente sulla superficie il biossido di silicio ($\text{SiO}_2$, quarzo), un isolante chimicamente perfetto, compatto e ad altissima rigidità dielettrica, che permette di fabbricare il Gate dei transistori MOS con estrema semplicità ed economicità.
 
 </Callout>
 
-### Il Drogaggio: Controllo dei Portatori
+#### Drogaggio Tipo N e P
 
-Per rendere il silicio un conduttore utile, introduciamo deliberatamente nel reticolo minuscole percentuali di atomi estranei: questo processo si chiama **drogaggio (doping)**.
+Per aumentare e controllare i portatori, sostituiamo una piccola frazione di atomi di silicio con impurità mirate (**drogaggio**):
 
-* **Drogaggio di Tipo N (Donori):**
-  Sostituiamo atomi di silicio con atomi pentavalenti del V gruppo (Fosforo P, Arsenico As, Antimonio Sb). L'atomo ha 5 elettroni di valenza: 4 formano i legami covalenti, mentre il quinto rimane debolmente legato. Bastano i $25\,\text{meV}$ dell'energia termica a temperatura ambiente per staccarlo completamente (**ionizzazione completa**).
-  L'atomo donore diventa uno **ione positivo fisso** nel reticolo ($N_D^+$) e libera un elettrone nella banda di conduzione.
-  * *Maggioritari:* Elettroni ($n$).
-  * *Minoritari:* Lacune ($p$).
+* **Tipo N (Donori):** Inseriamo atomi con $5$ elettroni di valenza (Fosforo, Arsenico) in concentrazione $N_D$. Quattro elettroni formano i legami, il quinto si libera subito a temperatura ambiente lasciando uno **ione positivo fisso** ($N_D^+$). Gli elettroni diventano i portatori **maggioritari** e le lacune i **minoritari**.
+* **Tipo P (Accettori):** Inseriamo atomi con $3$ elettroni di valenza (Boro) in concentrazione $N_A$. Per completare i quattro legami, ogni atomo cattura un elettrone dai vicini diventando uno **ione negativo fisso** ($N_A^-$) e creando una lacuna libera. Le lacune diventano i portatori **maggioritari** e gli elettroni i **minoritari**.
 
-* **Drogaggio di Tipo P (Accettori):**
-  Sostituiamo atomi di silicio con atomi trivalenti del III gruppo (Boro B). L'atomo ha solo 3 elettroni di valenza: per completare il tetraedro cattura un elettrone da un legame adiacente, diventando uno **ione negativo fisso** ($N_A^-$) e lasciando libera una lacuna mobile.
-  * *Maggioritari:* Lacune ($p$).
-  * *Minoritari:* Elettroni ($n$).
+#### Equazioni all'Equilibrio
 
-### Le Due Equazioni Fondamentali all'Equilibrio
+All'equilibrio termodinamico valgono sempre due regole semplici:
+1. **Legge dell'Azione di Massa:** Il prodotto tra elettroni e lacune resta costante e uguale a $n_i^2$, qualunque sia il drogaggio (attenzione: vale solo all'equilibrio, non quando applichiamo tensioni o luce!):
+   $$
+   n \cdot p = n_i^2
+   $$
+2. **Neutralità Elettrica:** La carica positiva totale (lacune $p$ + ioni donori $N_D$) deve bilanciare quella negativa (elettroni $n$ + ioni accettori $N_A$), cioè $p - n + N_D - N_A = 0$.
 
-Per determinare analiticamente la densità di elettroni e lacune in un semiconduttore drogato all'equilibrio termico, si mettono a sistema due equazioni fondamentali:
+Poiché nei dispositivi reali il drogaggio è enormemente maggiore di $n_i$ ($N_D, N_A \gg n_i$), i calcoli si riducono subito alle due formule pratiche fondamentali:
 
-#### 1. La Legge dell'Azione di Massa (Mass Action Law)
-Indipendentemente dalla quantità di drogaggio $N_D$ o $N_A$, all'**equilibrio termodinamico** il prodotto delle concentrazioni dei portatori liberi è costante a temperatura fissata ed eguaglia $n_i^2$:
-$$ n \cdot p = n_i^2(T) $$
+$$
+\text{Tipo N } (N_A = 0): \quad n \approx N_D \;\; (\text{maggioritari}), \qquad p = \frac{n_i^2}{N_D} \;\; (\text{minoritari})
+$$
 
-Fisicamente, se introduciamo un numero elevato di elettroni tramite gli atomi donori $N_D$, aumenta proporzionalmente la probabilità che una lacuna incontri un elettrone libero e si ricombini. Il tasso di ricombinazione cresce finché la popolazione dei portatori minoritari non scende esattamente al valore di equilibrio $p = n_i^2 / n$. Occorre sottolineare che la legge dell'azione di massa vale **esclusivamente all'equilibrio termodinamico**: se il semiconduttore viene illuminato o sottoposto a una tensione esterna che inietta portatori (come accade in una giunzione $pn$ polarizzata), il sistema esce dall'equilibrio e $n \cdot p \neq n_i^2$.
+$$
+\text{Tipo P } (N_D = 0): \quad p \approx N_A \;\; (\text{maggioritari}), \qquad n = \frac{n_i^2}{N_A} \;\; (\text{minoritari})
+$$
 
-#### 2. Il Bilancio di Carica (Neutralità Elettrostatica Locale)
-Il cristallo drogato rimane complessivamente neutro. La densità totale di cariche positive (lacune libere $p$ + ioni donori fissi $N_D^+$) deve bilanciare la densità totale di cariche negative (elettroni liberi $n$ + ioni accettori fissi $N_A^-$):
-$$ q \left( p - n + N_D^+ - N_A^- \right) = 0 \implies p - n + N_D - N_A = 0 $$
-(assumendo ionizzazione termica completa a temperatura ambiente: $N_D^+ \approx N_D$, $N_A^- \approx N_A$).
+<Divider label="2 · Trasporto di Corrente: Deriva, Diffusione ed Einstein" />
 
-### Calcolo dei Portatori nei Semiconduttori Drogati
+### Esempio — Resistenza Integrata, Saturazione di Velocità e Diffusione
 
-Nei casi pratici il drogaggio è sempre enormemente superiore alla concentrazione intrinseca ($N_D \ge 10^{15}\div 10^{17}\,\text{cm}^{-3} \gg n_i \approx 10^{10}\,\text{cm}^{-3}$). Per un semiconduttore drogato di **Tipo N** ($N_A = 0$) e dualmente per il **Tipo P** ($N_D = 0$), le concentrazioni all'equilibrio valgono:
-$$ \text{Tipo N:} \quad n \approx N_D \;\; (\text{maggioritari}), \qquad p = \frac{n_i^2}{N_D} \;\; (\text{minoritari}) $$
-$$ \text{Tipo P:} \quad p \approx N_A \;\; (\text{maggioritari}), \qquad n = \frac{n_i^2}{N_A} \;\; (\text{minoritari}) $$
-
-### Dimostrazione Matematica: Sistema tra Legge dell'Azione di Massa e Neutralità
-
-Mettiamo a sistema le due equazioni fondamentali per un silicio drogato tipo N ($N_A = 0$):
-
-1. Dalla Legge dell'Azione di Massa: $p = \frac{n_i^2}{n}$.
-2. Sostituiamo nel Bilancio di Carica: $\frac{n_i^2}{n} - n + N_D = 0 \implies n^2 - N_D n - n_i^2 = 0$.
-3. La soluzione algebrica esatta di secondo grado è:
-   $$ n = \frac{N_D + \sqrt{N_D^2 + 4n_i^2}}{2} $$
-4. Poiché $N_D \gg n_i$, il termine $4n_i^2$ sotto radice è totalmente trascurabile rispetto a $N_D^2$, da cui $n \approx N_D$ e $p = n_i^2 / N_D$.
-
-*Esempio numerico:* Con $N_D = 10^{16}\,\text{cm}^{-3}$ e $n_i = 10^{10}\,\text{cm}^{-3}$:
-$$ n \approx 10^{16}\,\text{cm}^{-3}, \qquad p = \frac{(10^{10})^2}{10^{16}} = \frac{10^{20}}{10^{16}} = 10^4\,\text{cm}^{-3} $$
-Ci sono mille miliardi di elettroni per ogni singola lacuna.
-
-## Meccanismi di Trasporto della Corrente
-
-Nei metalli la corrente è dovuta esclusivamente al moto degli elettroni sotto l'azione di un campo elettrico. Nei semiconduttori, invece, la corrente è trasportata sia da elettroni che da lacune, e può essere innescata da **due meccanismi fisici completamente distinti**:
-1. Il trasporto per **Deriva (Drift)**.
-2. Il trasporto per **Diffusione (Diffusion)**.
-
-### 1. Trasporto per Deriva (Drift) e Mobilità
-
-A temperatura ambiente, i portatori di carica si muovono all'interno del reticolo con un moto caotico continuo ad altissima velocità (detta *velocità termica*, $v_{th} \approx 10^7\,\text{cm/s}$). Collidono continuamente contro le vibrazioni del reticolo (fononi) e contro gli ioni droganti, cambiando traiettoria ogni $10^{-13}\,\text{s}$. Senza forze esterne, la media vettoriale della loro velocità è rigorosamente nulla: non scorre alcuna corrente netta.
-
-Se applichiamo un **campo elettrico $\vec{\mathcal{E}}$**, esso esercita una forza costante $F = q\mathcal{E}$ che imprime una lenta deriva ordinata sovrapposta al moto disordinato termico. A campi elettrici moderati, questa **velocità di deriva ($v_d$)** è direttamente proporzionale al campo applicato:
-$$ \vec{v}_{d,n} = -\mu_n \vec{\mathcal{E}}, \qquad \vec{v}_{d,p} = +\mu_p \vec{\mathcal{E}} $$
-dove $\mu$ è la **mobilità** del portatore, espressa in $\text{cm}^2/(\text{V}\cdot\text{s})$.
-
-Nel silicio poco drogato a $300\,\text{K}$:
-* $\mu_n \approx 1350\,\text{cm}^2/(\text{V}\cdot\text{s})$ per gli elettroni.
-* $\mu_p \approx 480\,\text{cm}^2/(\text{V}\cdot\text{s})$ per le lacune.
-
-Gli elettroni sono circa **2.5–3 volte più veloci** delle lacune. Fisicamente, gli elettroni viaggiano liberi negli stati energetici della banda di conduzione con massa efficace minore ($m_n^* \approx 0.26 m_0$), mentre le lacune richiedono il salto coordinato di elettroni tra i legami covalenti nella banda di valenza, corrispondente a una massa efficace maggiore ($m_p^* \approx 0.39 m_0$).
-
-<Callout type="tip" title="Impatto Pratico sulla Progettazione: Perché i circuiti NMOS sono più compatti">
-
-Il fatto che gli elettroni abbiano una mobilità $\mu_n$ quasi tripla rispetto alle lacune ($\mu_p$) ha una conseguenza pratica enorme in tutta l'elettronica integrata: a parità di corrente da far circolare, un transistore a canale N (che usa elettroni) può essere realizzato **molto più stretto e compatto** rispetto a un transistore a canale P (che usa lacune). Avere componenti più piccoli significa occupare meno area sul wafer di silicio, ridurre le capacità parassite e integrare molti più dispositivi nello stesso millimetro quadrato.
-
-</Callout>
+Riprendiamo la barretta di silicio P di prima ($N_A = 5 \times 10^{16}\,\text{cm}^{-3}$, $q = 1.602 \times 10^{-19}\,\text{C}$, $V_T = 25.85\,\text{mV}$ a $300\,\text{K}$), con mobilità delle lacune $\mu_p = 480\,\text{cm}^2/(\text{V}\cdot\text{s})$, lunghezza $L = 20\,\mu\text{m}$, larghezza $W = 5\,\mu\text{m}$ e spessore $t = 1\,\mu\text{m} = 10^{-4}\,\text{cm}$ ([la figura](#fig-velocity-saturation)):
 
 <figure id="fig-velocity-saturation" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-velocity-saturation.svg" alt="Andamento della velocità di deriva dei portatori nel silicio all'aumentare del campo elettrico: transizione dal regime ohmico lineare alla saturazione a v_sat approx 10^7 cm/s." />
   <figcaption>Andamento della velocità di deriva dei portatori nel silicio all'aumentare del campo elettrico: transizione dal regime ohmico lineare alla saturazione a $v_{sat} \approx 10^7\text{ cm/s}$.</figcaption>
 </figure>
 
-#### Saturazione della Velocità di Deriva
-Se il campo elettrico supera una soglia critica $\mathcal{E}_{sat} \approx 10^4\,\text{V/cm}$ ([la figura](#fig-velocity-saturation)), i portatori guadagnano così tanta energia cinetica da dissiparla istantaneamente urlando contro il reticolo. La velocità smette di crescere e satura a un valore limite massimo:
-$$ v_{sat} \approx 10^7\,\text{cm/s} $$
-Questo limite è cruciale nei moderni transistori integrati nanometrici, dove canali cortissimi sottoposti a $1\text{ V}$ operano costantemente in piena saturazione di velocità.
+1. **Conducibilità, Resistività e Resistenza di Strato ($R_\Box$):**
+   Nella conducibilità $\sigma = q(n_p \mu_n + p_p \mu_p)$ contano solo le lacune maggioritarie:
 
-### Conducibilità e Resistività Elettrica
+$$
+\sigma_p \approx q N_A \mu_p = (1.602 \times 10^{-19})(5 \times 10^{16})(480) \approx 3.845\,\text{S/cm}
+$$
 
-La densità di corrente di deriva totale $J_{drift}$ è la somma delle cariche trasportate da elettroni e lacune nell'unità di tempo:
-$$ J_{drift} = (-q n v_{d,n}) + (+q p v_{d,p}) = q(n\mu_n + p\mu_p)\mathcal{E} $$
+$$
+\rho_p = \frac{1}{\sigma_p} \approx 0.260\,\Omega\cdot\text{cm} \implies R_\Box = \frac{\rho_p}{t} = \frac{0.260}{10^{-4}} = 2.60\,\text{k}\Omega/\Box
+$$
 
-Confrontando questa espressione microscopica con la **Legge di Ohm puntuale** ($J = \sigma \mathcal{E}$), ricaviamo la **conducibilità elettrica** $\sigma$:
-$$ \sigma = q (n \mu_n + p \mu_p) \quad [\Omega^{-1}\text{cm}^{-1}] $$
+   Siccome la barretta è lunga $L/W = 20/5 = 4$ quadrati in serie, la sua resistenza vale $R = R_\Box (L/W) = 2.60 \cdot 4 = 10.40\,\text{k}\Omega$.
 
-La **resistività** $\rho$ è semplicemente l'inverso della conducibilità:
-$$ \rho = \frac{1}{\sigma} = \frac{1}{q (n \mu_n + p \mu_p)} \quad [\Omega\cdot\text{cm}] $$
+2. **Velocità di deriva: basso campo vs alto campo ([la figura](#fig-velocity-saturation)):**
+   Con $1\,\text{V}$ ai capi della barretta ($L = 20\,\mu\text{m}$), il campo elettrico è moderato ($\mathcal{E} = V/L = 500\,\text{V/cm}$): le lacune si muovono in regime lineare con $v_{d,p} = \mu_p \mathcal{E} = 2.4 \times 10^5\,\text{cm/s}$. Se invece applichiamo $1\,\text{V}$ su un canale MOSFET cortissimo ($L = 50\,\text{nm}$), il campo sale a $2 \times 10^5\,\text{V/cm}$ e la velocità si blocca al limite fisico $v_{sat} \approx 10^7\,\text{cm/s}$.
 
-* **Nel silicio drogato Tipo N ($N_D \gg n_i$):** $n \approx N_D$ e le lacune sono trascurabili:
-  $$ \rho_n \approx \frac{1}{q N_D \mu_n} $$
-* **Nel silicio drogato Tipo P ($N_A \gg n_i$):** $p \approx N_A$ e gli elettroni sono trascurabili:
-  $$ \rho_p \approx \frac{1}{q N_A \mu_p} $$
+3. **Diffusione tramite relazione di Einstein:**
+   Il coefficiente di diffusione delle lacune vale $D_p = \mu_p V_T = 480 \cdot 0.02585 \approx 12.41\,\text{cm}^2/\text{s}$. Anche senza campo elettrico, un gradiente di concentrazione $\frac{dp}{dx} = -10^{20}\,\text{cm}^{-4}$ genera una corrente di diffusione $J_{p,diff} = -q D_p \frac{dp}{dx} \approx +199\,\text{A/cm}^2$.
 
-Dato un blocco rettangolare integrato di lunghezza $L$, larghezza $W$ e spessore $t$, la resistenza elettrica vale:
-$$ R = \rho \frac{L}{W \cdot t} = R_\Box \frac{L}{W} $$
-dove $R_\Box = \rho / t$ è la **resistenza di strato (sheet resistance)** espressa in $\Omega/\Box$ (ohm su quadro), usata per dimensionare i resistori integrati nel silicio.
+<StepCheck client:load lang="it" prompt="Calcola la resistenza elettrica $R$ della barretta integrata dell'esempio (in $\text{k}\Omega$):" expected={10.40} tolerance={0.15} unit="$\text{k}\Omega$" explanation="$R_\Box = \rho_p / t = 0.260 / 10^{-4} = 2.60\,\text{k}\Omega/\Box$, quindi $R = 2.60 \cdot (20/5) = 10.40\,\text{k}\Omega$." />
 
-### 2. Trasporto per Diffusione (Diffusion)
+### Teoria — Deriva, Saturazione di Velocità, Diffusione e Relazione di Einstein
 
-La corrente in un semiconduttore può scorrere anche **senza alcun campo elettrico applicato** ($\mathcal{E} = 0$).
+Nei semiconduttori partecipano alla corrente sia gli elettroni sia le lacune, attraverso due meccanismi: la **deriva** (spinta da un campo elettrico) e la **diffusione** (spinta da una differenza di concentrazione).
 
-La **diffusione** è la migrazione naturale e statistica di particelle dovuta alla presenza di un **gradiente spaziale di concentrazione** ($dn/dx$ o $dp/dx$). A causa dell'agitazione termica browniana, le particelle tendono spontaneamente a distribuirsi in modo uniforme, spostandosi dalle zone più affollate verso quelle meno affollate:
-* **Flusso di particelle elettroniche:** È proporzionale a $-\frac{dn}{dx}$. Poiché ogni elettrone trasporta carica $-q$, la densità di corrente di diffusione degli elettroni è concorde con la derivata:
-  $$ J_{n,diff} = (-q) \left( -D_n \frac{dn}{dx} \right) = +q D_n \frac{dn}{dx} $$
-* **Flusso di lacune:** È proporzionale a $-\frac{dp}{dx}$. Poiché ogni lacuna ha carica $+q$, la densità di corrente di diffusione delle lacune è discorde con la derivata:
-  $$ J_{p,diff} = (+q) \left( -D_p \frac{dp}{dx} \right) = -q D_p \frac{dp}{dx} $$
+#### Deriva e Mobilità
 
-I parametri $D_n$ e $D_p$ sono i **coefficienti di diffusione** (espressi in $\text{cm}^2/\text{s}$).
+Senza campi elettrici, i portatori sbattono continuamente contro gli atomi del reticolo in tutte le direzioni e in media stanno fermi. Applicando un campo elettrico $\vec{\mathcal{E}}$, acquistano una piccola **velocità di deriva** proporzionale al campo:
 
-### La Relazione di Einstein
+$$
+\vec{v}_{d,n} = -\mu_n \vec{\mathcal{E}}, \qquad \vec{v}_{d,p} = +\mu_p \vec{\mathcal{E}}
+$$
 
-Mobilità $\mu$ (risposta a un campo elettrico) e coefficiente di diffusione $D$ (migrazione per agitazione termica) sembrano fenomeni scorrelati. In realtà derivano entrambi dallo stesso meccanismo microscopico: le collisioni dei portatori nel reticolo.
+I parametri $\mu_n$ e $\mu_p$ sono le **mobilità**: misurano quanto facilmente si muovono i portatori prima di urtare. Gli elettroni (negativi) vanno contro il campo, le lacune (positive) lo seguono. Nel silicio poco drogato a $300\,\text{K}$ si ha $\mu_n \approx 1350\,\text{cm}^2/(\text{V}\cdot\text{s})$ e $\mu_p \approx 480\,\text{cm}^2/(\text{V}\cdot\text{s})$: gli elettroni sono quasi tre volte più agili delle lacune perché si muovono liberi in banda di conduzione, mentre il moto delle lacune richiede salti coordinati tra legami vicini.
 
-Esiste una relazione fondamentale, detta **Relazione di Einstein**, che lega indissolubilmente i due parametri:
-$$ \frac{D_n}{\mu_n} = \frac{D_p}{\mu_p} = \frac{k_B T}{q} = V_T $$
-dove $V_T = \frac{k_B T}{q}$ è la **tensione termica** (o equivalente in tensione della temperatura), che a $300\,\text{K}$ vale:
-$$ V_T \approx 25.86\,\text{mV} \approx 26\,\text{mV} $$
+<Callout type="tip" title="Impatto Pratico sulla Progettazione: Perché i circuiti NMOS sono più compatti">
 
-### Dimostrazione Matematica: La Relazione di Einstein ($D/\mu = V_T$)
+Il fatto che gli elettroni abbiano una mobilità $\mu_n$ quasi tripla rispetto alle lacune ($\mu_p$) ha una conseguenza pratica enorme in tutta l'elettronica integrata: a parità di corrente da far circolare, un transistore a canale N (che usa elettroni) può essere realizzato molto più stretto e compatto rispetto a un transistore a canale P (che usa lacune). Avere componenti più piccoli significa occupare meno area sul wafer di silicio, ridurre le capacità parassite e integrare molti più dispositivi nello stesso millimetro quadrato.
 
-1. Si considera una barretta di semiconduttore con drogaggio non uniforme $N_D(x)$ lasciata a circuito aperto all'equilibrio termodinamico.
-2. Poiché la barretta è a circuito aperto all'equilibrio, la corrente netta di elettroni è identicamente nulla in ogni punto:
-   $$ J_n(x) = J_{n,drift}(x) + J_{n,diff}(x) = 0 $$
-3. Esplicitando i contributi di deriva e diffusione:
-   $$ q n(x) \mu_n \mathcal{E}(x) + q D_n \frac{dn(x)}{dx} = 0 \implies \mathcal{E}(x) = -\frac{D_n}{\mu_n} \frac{1}{n(x)} \frac{dn(x)}{dx} $$
-4. Dalla fisica statistica, all'equilibrio la concentrazione di elettroni segue la distribuzione di Boltzmann in funzione del potenziale elettrostatico $\phi(x)$ (con $\mathcal{E}(x) = -d\phi/dx$):
-   $$ n(x) = n_0 \exp\left( \frac{q \phi(x)}{k_B T} \right) \implies \frac{dn}{dx} = n(x) \frac{q}{k_B T} \left( \frac{d\phi}{dx} \right) = -n(x) \frac{q}{k_B T} \mathcal{E}(x) $$
-5. Sostituendo questa derivata nell'equazione di annullamento della corrente:
-   $$ q n(x) \mu_n \mathcal{E}(x) - q D_n n(x) \frac{q}{k_B T} \mathcal{E}(x) = 0 \implies \mu_n = D_n \frac{q}{k_B T} \implies \frac{D_n}{\mu_n} = \frac{k_B T}{q} = V_T $$
+</Callout>
 
-### Densità di Corrente Totale
-Sommando tutti e quattro i contributi (deriva e diffusione per entrambe le tipologie di portatori), otteniamo l'equazione generale di trasporto:
-$$ J_{tot} = \underbrace{q n \mu_n \mathcal{E} + q D_n \frac{dn}{dx}}_{J_n} + \underbrace{q p \mu_p \mathcal{E} - q D_p \frac{dp}{dx}}_{J_p} $$
+#### Saturazione di Velocità
 
-## Modello a Bande di Energia e Livello di Fermi
+La legge lineare $v_d = \mu \mathcal{E}$ non regge a campi molto forti ($\mathcal{E} > 10^4\,\text{V/cm}$, [la figura](#fig-velocity-saturation)): oltre questa soglia i portatori urtano così violentemente il reticolo da dissipare subito tutta l'energia extra e la loro velocità satura al limite massimo:
 
-Un modello complementare a quello dei legami covalenti è il **modello a bande di energia**. Mentre un atomo isolato presenta livelli energetici discreti per i suoi elettroni, in un reticolo cristallino periodico l'interazione tra gli atomi vicini trasforma i livelli discreti in bande continue di stati energetici permessi separate da intervalli di energia proibiti:
+$$
+v_{sat} \approx 10^7\,\text{cm/s}
+$$
 
-* **Banda di Conduzione ($E_c$):** Costituita dai livelli energetici superiori in cui gli elettroni, svincolati dai legami atomici, sono liberi di muoversi nel cristallo e trasportare corrente elettrica; $E_c$ indica il bordo inferiore della banda di conduzione.
-* **Banda di Valenza ($E_v$):** Costituita dai livelli energetici inferiori occupati dagli elettroni vincolati nei legami covalenti; $E_v$ indica il bordo superiore della banda di valenza.
-* **Bandgap ($E_g = E_c - E_v$):** L'intervallo di energia proibita (*energy bandgap*) tra $E_v$ ed $E_c$ in cui, in un cristallo puro, non esistono stati quantistici permessi ($E_g \approx 1.12\,\text{eV}$ nel silicio). Allo zero assoluto ($T = 0\,\text{K}$) la banda di valenza è completamente piena e la banda di conduzione è completamente vuota; per $T > 0\,\text{K}$, l'eccitazione termica promuove alcuni elettroni da $E_v$ oltre $E_c$, creando coppie elettrone-lacuna.
+#### Conducibilità, Resistività e Resistenza di Strato
 
-### Livelli Energetici dei Droganti e Semiconduttori Compensati
+Sommando la corrente di deriva di elettroni e lacune (entrambi i contributi hanno segno positivo!), otteniamo la legge di Ohm locale $J_{drift} = \sigma \mathcal{E}$, dove **conducibilità** $\sigma$ e **resistività** $\rho$ valgono:
 
-Nel modello a bande, l'introduzione di impurità droganti crea stati energetici localizzati all'interno del bandgap, immediatamente a ridosso delle bande permesse ([la figura](#fig-energy-bands)):
-* **Livello Donore ($E_D$):** Gli atomi donori (es. fosforo) introducono livelli energetici localizzati a una distanza $E_c - E_D \approx 0.045\,\text{eV}$ appena sotto il bordo della banda di conduzione. Poiché questa differenza energetica è paragonabile all'energia termica a temperatura ambiente ($k_B T \approx 0.025\,\text{eV}$), una minima eccitazione termica è sufficiente a promuovere tutti gli elettroni dai siti donori nella banda di conduzione.
-* **Livello Accettore ($E_A$):** Gli atomi accettori (es. boro) introducono livelli energetici vuoti a una distanza $E_A - E_v \approx 0.044\,\text{eV}$ appena sopra il bordo della banda di valenza; gli elettroni della banda di valenza saltano facilmente nei livelli $E_A$, lasciando lacune libere nella banda di valenza.
-* **Semiconduttori Compensati:** Quando un semiconduttore contiene simultaneamente sia atomi donori ($N_D$) sia atomi accettori ($N_A$), gli elettroni cercano sempre gli stati energetici liberi più bassi: se $N_D > N_A$, gli elettroni provenienti dai livelli donori $E_D$ cadono dapprima a saturare tutti i siti accettori $E_A$ disponibili, lasciando una popolazione netta di elettroni liberi in banda di conduzione pari a $n = N_D - N_A$ (e viceversa $p = N_A - N_D$ se $N_A > N_D$).
+$$
+\sigma = q (n \mu_n + p \mu_p), \qquad \rho = \frac{1}{\sigma}
+$$
 
-### Il Livello di Fermi ($E_F$)
-La probabilità che uno stato energetico $E$ sia occupato da un elettrone all'equilibrio termico è data dalla statistica di **Fermi-Dirac**:
-$$ f(E) = \frac{1}{1 + \exp\left( \frac{E - E_F}{k_B T} \right)} $$
+In un semiconduttore drogato contano solo i maggioritari ($\rho_n \approx \frac{1}{q N_D \mu_n}$ per N, $\rho_p \approx \frac{1}{q N_A \mu_p}$ per P). Per una pista integrata lunga $L$, larga $W$ e spessa $t$, conviene definire la **resistenza di strato** $R_\Box = \rho / t$ ($\Omega/\Box$), così la resistenza totale è semplicemente:
 
-Il **Livello di Fermi ($E_F$)** rappresenta il livello energetico la cui probabilità di occupazione vale esattamente il $50\%$ ($f(E_F) = 1/2$).
+$$
+R = R_\Box \frac{L}{W}
+$$
+
+#### Trasporto per Diffusione e Relazione di Einstein
+
+Anche a campo elettrico nullo, se c'è un accumulo di portatori in una zona, questi si sparpagliano spontaneamente verso le zone meno affollate (legge di Fick):
+* **Elettroni:** $J_{n,diff} = +q D_n \frac{dn}{dx}$
+* **Lacune:** $J_{p,diff} = -q D_p \frac{dp}{dx}$
+
+I **coefficienti di diffusione** $D_n, D_p$ ($\text{cm}^2/\text{s}$) sono legati alle mobilità dalla **Relazione di Einstein**:
+
+$$
+\frac{D_n}{\mu_n} = \frac{D_p}{\mu_p} = \frac{k_B T}{q} = V_T \approx 26\,\text{mV} \quad (\text{a } 300\,\text{K})
+$$
+
+Questa relazione nasce dal fatto che all'equilibrio in un cristallo a drogaggio variabile la corrente netta è nulla ($J_{drift} + J_{diff} = 0$): usando la distribuzione statistica di Boltzmann $n \propto \exp(q\phi / k_B T)$, il bilancio tra spinta del campo e spinta della diffusione fissa proprio $D/\mu = k_B T / q = V_T$.
+
+Sommando deriva e diffusione per entrambi i portatori si ottiene l'equazione generale del trasporto:
+
+$$
+J_{tot} = \underbrace{q n \mu_n \mathcal{E} + q D_n \frac{dn}{dx}}_{J_n} + \underbrace{q p \mu_p \mathcal{E} - q D_p \frac{dp}{dx}}_{J_p}
+$$
+
+<StepCheck client:load lang="it" mode="choice" prompt="In un semiconduttore drogato di tipo P in cui $\frac{dp}{dx} > 0$ (la concentrazione delle lacune cresce lungo $+x$), in quale verso scorre la corrente di diffusione delle lacune $J_{p,diff}$?" options={["Lungo $+x$ (concorde con il gradiente)", "Lungo $-x$ (verso la regione meno concentrata)", "È sempre nulla perché le lacune non diffondono", "Dipende dal valore della mobilità $\\mu_n$"]} correctIndex={1} explanation="Le lacune (+q) migrano dalle zone più affollate verso quelle meno affollate (lungo $-x$ se $\frac{dp}{dx} > 0$), quindi $J_{p,diff} = -q D_p \frac{dp}{dx} < 0$." />
+
+<Divider label="3 · Modello a Bande di Energia e Livello di Fermi" />
+
+### Esempio — Posizione del Livello di Fermi e Potenziale $\phi_F$ nel Silicio
+
+Vediamo quanto si sposta il **Livello di Fermi ($E_F$)** rispetto al centro banda intrinseco $E_i$ ([la figura](#fig-energy-bands)) a $T = 300\,\text{K}$ ($k_B T \approx 0.0259\,\text{eV}$, $V_T = 25.85\,\text{mV}$, $n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$):
 
 <figure id="fig-energy-bands" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-energy-bands.svg" alt="Diagramma a bande di energia, livelli donori/accettori (E_D, E_A) e posizione del livello di Fermi E_F rispetto al livello intrinseco E_i nei tre regimi: intrinseco, drogato Tipo N e drogato Tipo P." />
   <figcaption>Diagramma a bande di energia, livelli donori/accettori ($E_D, E_A$) e posizione del livello di Fermi $E_F$ rispetto al livello intrinseco $E_i$ nei tre regimi: intrinseco, drogato Tipo N e drogato Tipo P.</figcaption>
 </figure>
 
-### Spostamento di $E_F$ con il Drogaggio ([la figura](#fig-energy-bands))
+1. **Substrato di tipo P ($N_A = 5 \times 10^{16}\,\text{cm}^{-3}$):**
+   Le molte lacune abbassano $E_F$ sotto $E_i$ ([la figura](#fig-energy-bands), destra). Il **potenziale di Fermi** $\phi_{Fp}$ vale:
 
-1. **Nel silicio puro (intrinseco):** Poiché gli elettroni e le lacune sono in egual numero, il livello di Fermi giace quasi esattamente a metà del bandgap: si indica con **$E_i$ (livello intrinseco o midgap)**.
-2. **Nel silicio drogato Tipo N:** L'enorme abbondanza di elettroni sposta la probabilità di occupazione verso l'alto: **$E_F$ si avvicina alla banda di conduzione $E_c$**:
-   $$ E_F - E_i = k_B T \ln\left( \frac{N_D}{n_i} \right) > 0 $$
-3. **Nel silicio drogato Tipo P:** L'abbondanza di lacune (e la carenza di elettroni) sposta il livello verso il basso: **$E_F$ si avvicina alla banda di valenza $E_v$**:
-   $$ E_i - E_F = k_B T \ln\left( \frac{N_A}{n_i} \right) > 0 \implies \phi_F = \frac{E_i - E_F}{q} = V_T \ln\left( \frac{N_A}{n_i} \right) $$
+$$
+\phi_{Fp} = \frac{E_i - E_F}{q} = V_T \ln\left(\frac{N_A}{n_i}\right) = 0.02585 \cdot \ln\left(\frac{5 \times 10^{16}}{1.5 \times 10^{10}}\right) \approx 0.39\,\text{V}
+$$
 
-Questo potenziale $\phi_F$ è il celebre **potenziale di Fermi**, ed è il parametro cardine che useremo per calcolare sia la tensione di contatto del diodo sia la tensione di soglia $V_{th}$ del transistore MOS.
+   Quindi $E_F$ si trova $0.39\,\text{eV}$ sotto il centro della banda proibita.
 
-<Divider label="3 · Algoritmo Operativo (Esercizi)" />
+2. **Regione di tipo N ($N_D = 10^{17}\,\text{cm}^{-3}$):**
+   I molti elettroni alzano invece $E_F$ sopra $E_i$ ([la figura](#fig-energy-bands), centro):
 
-### Tabella di Riferimento Rapido — Trasporto nei Semiconduttori (Silicio a $300\,\text{K}$)
+$$
+\phi_{Fn} = \frac{E_F - E_i}{q} = V_T \ln\left(\frac{N_D}{n_i}\right) = 0.02585 \cdot \ln\left(\frac{10^{17}}{1.5 \times 10^{10}}\right) \approx 0.41\,\text{V}
+$$
 
-| Grandezza | Formula canonica | Valore tipico nel Si ($300\,\text{K}$) |
+   La somma dei due spostamenti ($\phi_{Fp} + \phi_{Fn} \approx 0.80\,\text{V}$) è proprio la barriera di potenziale $V_0$ che troveremo nella giunzione p-n al Capitolo 3!
+
+<StepCheck client:load lang="it" prompt="Calcola il potenziale di Fermi $\phi_F = V_T \ln(N_A / n_i)$ per un substrato di silicio P con $N_A = 1.5 \times 10^{16}\,\text{cm}^{-3}$ a $T = 300\,\text{K}$ ($n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$, $V_T = 25.85\,\text{mV}$) in $\text{V}$:" expected={0.357} tolerance={0.01} unit="V" explanation="$N_A / n_i = 10^6$, quindi $\phi_F = 0.02585 \cdot \ln(10^6) = 0.02585 \cdot 13.8155 \approx 0.357\,\text{V}$." />
+
+### Teoria — Bande di Energia, Fermi-Dirac e Potenziale di Fermi
+
+In un cristallo di silicio, gli elettroni non possono avere qualsiasi energia, ma si distribuiscono in **bande** ([la figura](#fig-energy-bands)):
+* **Banda di Valenza ($E_v$):** gli stati occupati dagli elettroni bloccati nei legami covalenti.
+* **Banda di Conduzione ($E_c$):** gli stati superiori dove gli elettroni sono liberi di muoversi e condurre corrente.
+* **Bandgap ($E_g = E_c - E_v \approx 1.12\,\text{eV}$):** la fascia energetica proibita che li separa.
+
+Il drogaggio aggiunge livelli permessi dentro il bandgap: i **donori ($E_D$)** stanno appena sotto $E_c$ e cedono subito elettroni; gli **accettori ($E_A$)** stanno appena sopra $E_v$ e catturano elettroni creando lacune. Se in un cristallo ci sono sia donori sia accettori (**compensazione**), prevale il più abbondante con concentrazione netta $|N_D - N_A|$.
+
+#### Il Livello di Fermi e il Potenziale $\phi_F$
+
+La probabilità che uno stato a energia $E$ sia occupato da un elettrone è data dalla funzione di **Fermi-Dirac**:
+
+$$
+f(E) = \frac{1}{1 + \exp\left( \frac{E - E_F}{k_B T} \right)}
+$$
+
+Il **Livello di Fermi ($E_F$)** è l'energia in cui la probabilità di occupazione vale esattamente il $50\%$. Nei semiconduttori ordinari (non troppo drogati), la posizione di $E_F$ rispetto al livello intrinseco $E_i$ (a metà del bandgap) ci dice subito chi domina:
+1. **Intrinseco ($n = p = n_i$):** $E_F$ coincide con $E_i$ a metà banda.
+2. **Tipo N ($n \approx N_D$):** $E_F$ sale verso $E_c$ di $E_F - E_i = k_B T \ln\left(\frac{N_D}{n_i}\right)$.
+3. **Tipo P ($p \approx N_A$):** $E_F$ scende verso $E_v$ di $E_i - E_F = k_B T \ln\left(\frac{N_A}{n_i}\right)$.
+
+Dividendo questo scostamento per $q$ si ottiene il **potenziale di Fermi** (in Volt):
+
+$$
+\phi_F = \frac{E_i - E_F}{q} = V_T \ln\left( \frac{N_A}{n_i} \right)
+$$
+
+Questo parametro tornerà spesso: misura quanto il silicio è drogato ed è alla base sia del potenziale di contatto $V_0$ della giunzione p-n sia della tensione di soglia $V_{th}$ del MOSFET.
+
+<Divider label="4 · Sintesi" />
+
+### Tabella di Riferimento Rapido
+
+| Grandezza | Formula Canonica | Valore Tipico nel Si ($300\,\text{K}$) |
 | :--- | :--- | :--- |
 | Concentrazione intrinseca | $n \cdot p = n_i^2$ | $n_i \approx 1.5 \times 10^{10}\,\text{cm}^{-3}$ |
 | Drogaggio tipo N ($N_D \gg n_i$) | $n_n \approx N_D,\; p_n = n_i^2 / N_D$ | $\mu_n \approx 1350\,\text{cm}^2/(\text{V}\cdot\text{s})$ |
 | Drogaggio tipo P ($N_A \gg n_i$) | $p_p \approx N_A,\; n_p = n_i^2 / N_A$ | $\mu_p \approx 480\,\text{cm}^2/(\text{V}\cdot\text{s})$ |
 | Conducibilità e Resistività | $\sigma = q(n\mu_n + p\mu_p),\; \rho = 1/\sigma$ | $q = 1.602 \times 10^{-19}\,\text{C}$ |
-| Relazione di Einstein | $D_n/\mu_n = D_p/\mu_p = V_T = kT/q$ | $V_T \approx 25.85\,\text{mV}$ |
+| Relazione di Einstein | $D_n/\mu_n = D_p/\mu_p = V_T = k_BT/q$ | $V_T \approx 25.85\,\text{mV}$ |
+| Potenziale di Fermi (tipo P) | $\phi_F = V_T \ln(N_A / n_i)$ | $\approx 0.35\text{--}0.45\,\text{V}$ |
 
-<Divider label="4 · Archetipo Svolto ed Esercizi" />
+### Procedura di Analisi
 
-<Callout type="warning" title="Trappola d'Esame: Unità di Misura cm vs m in Conducibilità e Diffusione">
+1. **Drogaggio netto:** se ci sono sia donori sia accettori, calcolare la differenza netta ($N_D - N_A$ o $N_A - N_D$).
+2. **Portatori all'equilibrio:** i maggioritari uguagliano il drogaggio netto; i minoritari si trovano con l'azione di massa ($n \cdot p = n_i^2$).
+3. **Resistenza integrata:** calcolare $\sigma$ coi soli maggioritari, invertire per $\rho = 1/\sigma$, e poi $R_\Box = \rho / t$ ed $R = R_\Box (L/W)$.
+4. **Diffusione:** ricavare $D$ dalla mobilità con la relazione di Einstein $D = \mu V_T$.
 
-Le concentrazioni droganti $N_D, N_A$ e le mobilità $\mu_n, \mu_p$ sono espresse quasi sempre in $\text{cm}^{-3}$ e $\text{cm}^2/(\text{V}\cdot\text{s})$. Verificare sempre che tutte le lunghezze siano coerenti (tutto in $\text{cm}$ oppure tutto in $\text{m}$) prima di invertire $\sigma$ per trovare $\rho$.
+### Dimostrazioni Chiave
+
+* **Concentrazioni all'equilibrio:** uso combinato della legge dell'azione di massa ($n \cdot p = n_i^2$) e della neutralità elettrica nel limite $N_D, N_A \gg n_i$.
+* **Relazione di Einstein ($D/\mu = V_T$):** annullamento della corrente totale $J_n = 0$ all'equilibrio termico con distribuzione di Boltzmann.
+* **Potenziale di Fermi ($\phi_F$):** legame logaritmico tra spostamento $|E_F - E_i|$ e rapporto $N_A/n_i$.
+
+<Callout type="warning" title="Errori Comuni">
+
+Le concentrazioni droganti $N_D, N_A$ e le mobilità $\mu_n, \mu_p$ sono espresse quasi sempre in $\text{cm}^{-3}$ e $\text{cm}^2/(\text{V}\cdot\text{s})$: verificare sempre che tutte le lunghezze siano coerenti (tutto in $\text{cm}$ oppure tutto in $\text{m}$) prima di invertire $\sigma$ per trovare $\rho$ o calcolare $R_\Box$. Ricorda inoltre che la legge dell'azione di massa $n \cdot p = n_i^2$ è valida **solo all'equilibrio termodinamico**, e mai sotto iniezione di portatori o illuminazione.
 
 </Callout>
 
-<Exercise client:load lang="it" id="ex-2-1" title="Esercizio 2.1: Portatori Minoritari e Resistività del Silicio Drogato N" level="Livello 1 · Base" hint="Con N_D >> n_i si ha n ≈ N_D e p = n_i^2 / N_D; per la conducibilità domina il termine maggioritario q * N_D * mu_n.">
+<Divider label="5 · Esercizi" />
+
+<Exercise client:load lang="it" id="ex-2-1" title="Esercizio 2.1 — Portatori Minoritari e Resistività del Silicio Drogato N" level="Base" hint="Con $N_D \gg n_i$ si ha $n \approx N_D$ e $p = n_i^2 / N_D$; per la conducibilità domina il termine maggioritario $q N_D \mu_n$.">
 
 Un cristallo di silicio a $T = 300\,\text{K}$ ($n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$, $\mu_n = 1350\,\text{cm}^2/(\text{V}\cdot\text{s})$) è drogato con donori $N_D = 10^{16}\,\text{cm}^{-3}$.
 
-<StepCheck client:load lang="it" prompt="Calcola la concentrazione delle lacune minoritarie p_n (in cm⁻³):" expected={22500} tolerance={50} unit="cm⁻³" explanation="p_n = n_i^2 / N_D = (1.5e10)^2 / 1e16 = 2.25e4 cm⁻³." />
+<StepCheck client:load lang="it" prompt="Calcola la concentrazione delle lacune minoritarie $p_n$ (in $\text{cm}^{-3}$):" expected={22500} tolerance={50} unit="$\text{cm}^{-3}$" explanation="$p_n = \frac{n_i^2}{N_D} = \frac{(1.5\times 10^{10})^2}{10^{16}} = 2.25\times 10^4\,\text{cm}^{-3}$." />
 
-<StepCheck client:load lang="it" prompt="Calcola la resistività elettrica ρ del silicio drogato (in Ω·cm):" expected={0.4624} tolerance={0.01} unit="Ω·cm" explanation="σ ≈ q·N_D·μ_n = 1.602e-19 * 1e16 * 1350 ≈ 2.163 S/cm ⇒ ρ = 1/σ ≈ 0.462 Ω·cm." />
+<StepCheck client:load lang="it" prompt="Calcola la resistività elettrica $\rho$ del silicio drogato (in $\Omega\cdot\text{cm}$):" expected={0.4624} tolerance={0.01} unit="$\Omega\cdot\text{cm}$" explanation="$\sigma \approx q N_D \mu_n = 1.602\times 10^{-19} \cdot 10^{16} \cdot 1350 \approx 2.163\,\text{S/cm} \implies \rho = 1/\sigma \approx 0.462\,\Omega\cdot\text{cm}$." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-1. **Portatori:** $n_n \approx N_D = 10^{16}\,\text{cm}^{-3}$; per la legge dell'azione di massa:
-   $$ p_n = \frac{n_i^2}{N_D} = \frac{(1.5 \times 10^{10})^2}{10^{16}} = 2.25 \times 10^4\,\text{cm}^{-3} $$
-2. **Conducibilità e resistività:** poiché $n_n \gg p_n$, $\sigma \approx q N_D \mu_n = (1.602 \times 10^{-19})(10^{16})(1350) \approx 2.163\,\text{S/cm}$, da cui $\rho = 1/\sigma \approx 0.462\,\Omega\cdot\text{cm}$.
+1. **Calcolo delle concentrazioni di portatori:** Poiché $N_D = 10^{16}\,\text{cm}^{-3} \gg n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$, gli elettroni maggioritari valgono $n_n \approx N_D = 10^{16}\,\text{cm}^{-3}$. Applicando la legge dell'azione di massa $n_n \cdot p_n = n_i^2$:
+   $$
+   p_n = \frac{n_i^2}{N_D} = \frac{(1.5 \times 10^{10})^2}{10^{16}} = \frac{2.25 \times 10^{20}}{10^{16}} = 2.25 \times 10^4\,\text{cm}^{-3}
+   $$
+2. **Conducibilità e resistività:** Poiché $n_n \gg p_n$ di dodici ordini di grandezza, trascuriamo il contributo delle lacune nella conducibilità totale:
+   $$
+   \sigma \approx q N_D \mu_n = (1.602 \times 10^{-19})(10^{16})(1350) \approx 2.1627\,\text{S/cm}
+   $$
+   Invertendo la conducibilità otteniamo la resistività:
+   $$
+   \rho = \frac{1}{\sigma} = \frac{1}{2.1627} \approx 0.4624\,\Omega\cdot\text{cm}
+   $$
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-2-2" title="Esercizio 2.2: Coefficienti di Diffusione tramite Relazione di Einstein" level="Livello 2 · Esame" hint="D = mu * V_T con V_T = 0.02585 V a 300 K.">
+<Exercise client:load lang="it" id="ex-2-2" title="Esercizio 2.2 — Coefficienti di Diffusione tramite Relazione di Einstein" level="Livello Esame" hint="Applica $D = \mu V_T$ con $V_T = 0.02585\,\text{V}$ a $300\,\text{K}$.">
 
 Utilizzando le mobilità $\mu_n = 1350\,\text{cm}^2/(\text{V}\cdot\text{s})$ e $\mu_p = 480\,\text{cm}^2/(\text{V}\cdot\text{s})$ a $T = 300\,\text{K}$ ($V_T = 25.85\,\text{mV}$), determinare $D_n$ e $D_p$.
 
-<StepCheck client:load lang="it" prompt="Calcola il coefficiente di diffusione degli elettroni D_n (in cm²/s):" expected={34.90} tolerance={0.2} unit="cm²/s" explanation="D_n = 1350 * 0.02585 ≈ 34.90 cm²/s." />
+<StepCheck client:load lang="it" prompt="Calcola il coefficiente di diffusione degli elettroni $D_n$ (in $\text{cm}^2/\text{s}$):" expected={34.90} tolerance={0.2} unit="$\text{cm}^2/\text{s}$" explanation="$D_n = 1350 \cdot 0.02585 \approx 34.90\,\text{cm}^2/\text{s}$." />
 
-<StepCheck client:load lang="it" prompt="Calcola il coefficiente di diffusione delle lacune D_p (in cm²/s):" expected={12.41} tolerance={0.2} unit="cm²/s" explanation="D_p = 480 * 0.02585 ≈ 12.41 cm²/s." />
+<StepCheck client:load lang="it" prompt="Calcola il coefficiente di diffusione delle lacune $D_p$ (in $\text{cm}^2/\text{s}$):" expected={12.41} tolerance={0.2} unit="$\text{cm}^2/\text{s}$" explanation="$D_p = 480 \cdot 0.02585 \approx 12.41\,\text{cm}^2/\text{s}$." />
 
 <details className="dc-solution">
 <summary>Mostra Soluzione Passo-Passo</summary>
 
-Dalla relazione di Einstein $D / \mu = V_T = 0.02585\,\text{V}$:
-$$ D_n = \mu_n V_T = 1350 \times 0.02585 \approx 34.90\,\text{cm}^2/\text{s}, \qquad D_p = \mu_p V_T = 480 \times 0.02585 \approx 12.41\,\text{cm}^2/\text{s} $$
+1. **Conversione della tensione termica in Volt:** $V_T = 25.85\,\text{mV} = 0.02585\,\text{V}$.
+2. **Applicazione della relazione di Einstein ($D/\mu = V_T$):**
+   $$
+   D_n = \mu_n V_T = 1350\,\frac{\text{cm}^2}{\text{V}\cdot\text{s}} \times 0.02585\,\text{V} \approx 34.90\,\text{cm}^2/\text{s}
+   $$
+   $$
+   D_p = \mu_p V_T = 480\,\frac{\text{cm}^2}{\text{V}\cdot\text{s}} \times 0.02585\,\text{V} \approx 12.41\,\text{cm}^2/\text{s}
+   $$
 
 </details>
 

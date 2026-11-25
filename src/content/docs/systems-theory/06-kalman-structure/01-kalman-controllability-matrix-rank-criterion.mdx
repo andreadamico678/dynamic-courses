@@ -11,144 +11,463 @@ import MindMap from "@components/MindMap.tsx";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-<MindMap client:load title="Chapter 20 Mental Model" markdown={`# Ch. 20: Kalman Controllability Criterion
-  - Reachability and Controllability in Continuous State Space
-  - Cayley-Hamilton Derivation of the Kalman Matrix
-  - The Kalman Controllability Rank Criterion
-    - The Controllability Subspace Invariant
-  - The Popov-Belevitch-Hautus (PBH) Controllability Eigenvector Test
-    - Left Eigenvector Modal Test
-  - SDU Robotics Bridge: Multi-Rotor Actuator Allocation`} />
+<MindMap client:load defaultCollapsed title="Chapter 20 Outline" markdown={`# Ch. 20: Kalman Controllability Criterion
+  - Reachability and Controllability
+    - Continuous-time equivalence
+  - Cayley-Hamilton Reduction
+    - Kalman controllability matrix $\\mathcal{R}$
+  - Rank and Subspace Invariants
+    - SISO vs. MIMO rank conditions
+    - Controllable subspace $\\mathcal{X}_r$
+  - PBH Eigenvector Test
+    - Left eigenvector orthogonality`} />
 
-## Reachability and Controllability in Continuous State Space
+## Introduction
 
-Before synthesizing feedback control laws, an engineer must answer a foundational structural question: **can the available actuators steer the internal state of the system to any desired destination in state space?**
+Imagine trying to steer a car whose steering column snapped or flying a quadrotor whose rear-left motor burned out: no matter how clever your control software is, certain physical motions are permanently unreachable because the actuators simply cannot push those directions of state space. Before we ever design a state-feedback controller $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t)$ to shift closed-loop poles ([Chapter 24](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/)), we must verify whether the actuators attached through the input matrix $\mathbf{B}$ actually couple into every internal dynamic mode of the state matrix $\mathbf{A}$.
 
-Consider the continuous-time linear time-invariant state equation:
-$$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t), \quad \mathbf{x}(t) \in \mathbb{R}^n, \; \mathbf{u}(t) \in \mathbb{R}^m$$
+**Controllability** turns that physical intuition into an exact algebraic rank test before any controller is synthesized. By evaluating the **Kalman controllability matrix** $\mathcal{R}$ (denoted $\mathbf{P}$ or $\mathcal{M}_c$ in classical texts) or the modal **Popov-Belevitch-Hautus (PBH) test**, you determine immediately whether your actuators span all $n$ dimensions of the state space $\mathbb{R}^n$—or which exact coordinate subspace and eigenvalue modes remain completely deaf to control inputs.
 
-<Callout type="note" title="Definition: Reachability vs. Controllability">
+<Divider label="1 · Example" />
 
-1. **Reachability:** A state $\mathbf{x}^* \in \mathbb{R}^n$ is **reachable from the origin** if there exists a finite time $t_f < \infty$ and a piecewise continuous control input $\mathbf{u}(t)$ on $[0, t_f]$ that transfers the state from $\mathbf{x}(0) = \mathbf{0}$ to $\mathbf{x}(t_f) = \mathbf{x}^*$.
-2. **Controllability:** An initial state $\mathbf{x}_0 \in \mathbb{R}^n$ is **controllable to the origin** if there exists a finite time $t_f < \infty$ and an input $\mathbf{u}(t)$ on $[0, t_f]$ that transfers the state from $\mathbf{x}(0) = \mathbf{x}_0$ to $\mathbf{x}(t_f) = \mathbf{0}$.
-3. **Equivalence in Continuous-Time:**
-   Because the continuous-time state transition matrix $e^{\mathbf{A}t}$ is **strictly non-singular and invertible for all $t$** ($\det(e^{\mathbf{A}t}) = e^{\operatorname{Tr}(\mathbf{A})t} \neq 0$), **reachability and controllability are mathematically equivalent**:
-   $$\boxed{\text{Reachability} \equiv \text{Controllability} \quad \text{for all continuous LTI systems}}$$
+### A Partially Reachable System
 
-</Callout>
+Consider a continuous-time LTI system in $\mathbb{R}^3$ driven by a single scalar actuator ($n = 3$, $m = 1$):
 
-The set of all reachable states forms a linear vector subspace of $\mathbb{R}^n$, denoted as the **controllability subspace** $\mathcal{X}_r \subseteq \mathbb{R}^n$. The pair $(\mathbf{A}, \mathbf{B})$ is **completely controllable** if $\mathcal{X}_r = \mathbb{R}^n$.
+$$
+\dot{\mathbf{x}}(t) = \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 1 \\ 0 & 0 & -1 \end{bmatrix} \mathbf{x}(t) + \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix} u(t)
+$$
 
-<Divider />
+This matrix equation governs how three internal state variables $x_1(t), x_2(t), x_3(t)$ evolve over time when pushed by a single control input $u(t)$. Writing out the three scalar differential equations row by row reveals the physical signal flow between the states and the actuator:
 
-## Cayley-Hamilton Derivation of the Kalman Matrix
+$$
+\begin{cases}
+\dot{x}_1(t) = x_2(t) \\
+\dot{x}_2(t) = -2x_1(t) - 3x_2(t) + x_3(t) + u(t) \\
+\dot{x}_3(t) = -x_3(t)
+\end{cases}
+$$
 
-By Lagrange's forced response formula, the state reached at time $t_f$ starting from $\mathbf{x}(0) = \mathbf{0}$ is:
-$$\mathbf{x}(t_f) = \int_0^{t_f} e^{\mathbf{A}(t_f - \tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau$$
+Trace how the actuator signal $u(t)$ propagates through this chain of derivatives starting from rest at $\mathbf{x}(0) = \mathbf{0}$:
+- **Direct acceleration ($\mathbf{B}$):** At the instant $t = 0^+$, the input $u(t)$ enters only the second equation $\dot{x}_2 = -2x_1 - 3x_2 + x_3 + u(t)$. Thus, an impulse or step in $u(t)$ immediately changes the velocity $\dot{x}_2$ along the direction $\mathbf{B} = [0, 1, 0]^T$.
+- **One integration step later ($\mathbf{A}\mathbf{B}$):** Because $\dot{x}_1(t) = x_2(t)$, any change created in $x_2(t)$ immediately integrates into $x_1(t)$, meaning the actuator indirectly steers $x_1(t)$ through the coupling matrix $\mathbf{A}$.
+- **Isolated third state:** Look at the third differential equation, $\dot{x}_3(t) = -x_3(t)$. Neither the input $u(t)$ nor the controllable states $x_1(t)$ and $x_2(t)$ appear anywhere on its right-hand side! Regardless of how violently we vary $u(t)$, the third state obeys the autonomous scalar solution $x_3(t) = x_3(0)e^{-t}$. Although $x_3(t)$ leaks *downward* into $\dot{x}_2(t)$ as a disturbance term $+x_3(t)$, no signal ever flows *upward* from $u(t)$, $x_1(t)$, or $x_2(t)$ into $\dot{x}_3(t)$.
 
-Using the Taylor power series expansion of the matrix exponential:
-$$e^{\mathbf{A}(t_f - \tau)} = \sum_{k=0}^\infty \frac{\mathbf{A}^k (t_f - \tau)^k}{k!}$$
-It appears that computing reachable states requires evaluating an infinite sequence of matrix powers $\mathbf{A}^k \mathbf{B}$.
+To capture this propagation of actuator authority algebraically, we compute the sequence of vectors $\mathbf{B}$, $\mathbf{A}\mathbf{B}$, and $\mathbf{A}^2\mathbf{B}$ step by step. First, write the direct input column $\mathbf{B}$ and multiply it by $\mathbf{A}$ to find $\mathbf{A}\mathbf{B}$:
 
-However, the **Cayley-Hamilton Theorem** establishes that every square matrix $\mathbf{A} \in \mathbb{R}^{n \times n}$ satisfies its own characteristic equation:
-$$p(\mathbf{A}) = \mathbf{A}^n + a_{n-1}\mathbf{A}^{n-1} + \dots + a_1 \mathbf{A} + a_0 \mathbf{I} = \mathbf{0}$$
-Consequently, every matrix power $\mathbf{A}^k$ for $k \ge n$ can be expressed as a linear combination of the first $n$ powers $\{\mathbf{I}, \mathbf{A}, \mathbf{A}^2, \dots, \mathbf{A}^{n-1}\}$:
-$$\mathbf{A}^k = \sum_{j=0}^{n-1} \alpha_{k,j} \mathbf{A}^j \quad \forall k \ge n$$
+$$
+\mathbf{B} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}, \qquad
+\mathbf{A}\mathbf{B} = \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 1 \\ 0 & 0 & -1 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 0(0) + 1(1) + 0(0) \\ -2(0) - 3(1) + 1(0) \\ 0(0) + 0(1) - 1(0) \end{bmatrix} = \begin{bmatrix} 1 \\ -3 \\ 0 \end{bmatrix}
+$$
 
-Substituting this reduction into the convolution integral demonstrates that any state $\mathbf{x}(t_f)$ reachable by any control signal is strictly constrained to the linear column space of the finite matrix:
+The vector $\mathbf{B}$ shows that $u(t)$ directly drives $x_2$, while $\mathbf{A}\mathbf{B}$ shows that after one step through the system dynamics $\mathbf{A}$, the input excites $x_1$ (first component $+1$) and dampens $x_2$ (second component $-3$), while leaving $x_3$ untouched (third component $0$). Next, multiply $\mathbf{A}\mathbf{B}$ by $\mathbf{A}$ once more to obtain the second-order propagation direction $\mathbf{A}^2\mathbf{B}$:
 
-$$\boxed{\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} \in \mathbb{R}^{n \times (n \cdot m)}}$$
+$$
+\mathbf{A}^2\mathbf{B} = \mathbf{A}(\mathbf{A}\mathbf{B}) = \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 1 \\ 0 & 0 & -1 \end{bmatrix} \begin{bmatrix} 1 \\ -3 \\ 0 \end{bmatrix} = \begin{bmatrix} 0(1) + 1(-3) + 0(0) \\ -2(1) - 3(-3) + 1(0) \\ 0(1) + 0(-3) - 1(0) \end{bmatrix} = \begin{bmatrix} -3 \\ -2 + 9 \\ 0 \end{bmatrix} = \begin{bmatrix} -3 \\ 7 \\ 0 \end{bmatrix}
+$$
 
-This matrix $\mathcal{R}$ (often designated as $\mathcal{M}_c$ or $\mathcal{C}$) is the **Kalman Controllability Matrix**.
+Even after two passes through the plant dynamics $\mathbf{A}$, the third coordinate of $\mathbf{A}^2\mathbf{B}$ remains strictly zero. Stacking these three $3 \times 1$ column vectors side by side forms the $3 \times 3$ **Kalman controllability matrix** $\mathcal{R}$:
 
-<Divider />
+$$
+\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} \end{bmatrix} = \begin{bmatrix} 0 & 1 & -3 \\ 1 & -3 & 7 \\ 0 & 0 & 0 \end{bmatrix}
+$$
 
-## The Kalman Controllability Rank Criterion
+Because the entire third row of $\mathcal{R}$ is zero, $\det(\mathcal{R}) = 0$, and no linear combination of the columns of $\mathcal{R}$ can ever produce a non-zero $x_3$ component. In fact, the third column $\mathbf{A}^2\mathbf{B}$ is already a linear combination of the first two columns:
 
-<Callout type="tip" title="Kalman Rank Criterion">
+$$
+-2\mathbf{B} - 3\mathbf{A}\mathbf{B} = -2\begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix} - 3\begin{bmatrix} 1 \\ -3 \\ 0 \end{bmatrix} = \begin{bmatrix} 0 - 3 \\ -2 + 9 \\ 0 - 0 \end{bmatrix} = \begin{bmatrix} -3 \\ 7 \\ 0 \end{bmatrix} = \mathbf{A}^2\mathbf{B}
+$$
 
-The continuous-time linear system $(\mathbf{A}, \mathbf{B})$ is completely controllable if and only if the Kalman controllability matrix has full row rank:
-$$\boxed{\operatorname{rank}(\mathcal{R}) = \operatorname{rank} \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} = n}$$
-* **SISO Systems ($m = 1$):** $\mathcal{R}$ is an $n \times n$ square matrix. Complete controllability is equivalent to:
-  $$\det(\mathcal{R}) \neq 0$$
-* **MIMO Systems ($m > 1$):** $\mathcal{R}$ is an $n \times (nm)$ wide rectangular matrix. Complete controllability requires finding at least one non-zero $n \times n$ minor determinant.
+Meanwhile, the top-left $2 \times 2$ minor formed by the first two rows and columns has determinant:
 
-</Callout>
+$$
+\det\begin{bmatrix} 0 & 1 \\ 1 & -3 \end{bmatrix} = (0)(-3) - (1)(1) = -1 \neq 0
+$$
 
-### The Controllability Subspace Invariant
-The column space of $\mathcal{R}$ defines the reachable subspace:
-$$\mathcal{X}_r = \operatorname{Im}(\mathcal{R}) = \operatorname{span}\{\text{columns of } \mathcal{R}\}$$
-The dimension of the reachable subspace is:
-$$\operatorname{dim}(\mathcal{X}_r) = \operatorname{rank}(\mathcal{R}) = r_c \le n$$
-
-Furthermore, $\mathcal{X}_r$ is an **$\mathbf{A}$-invariant subspace**:
-$$\mathbf{A} \mathcal{X}_r \subseteq \mathcal{X}_r$$
-If a trajectory is initialized in $\mathcal{X}_r$, the matrix dynamics $\mathbf{A}$ can never transport it outside $\mathcal{X}_r$. Conversely, if $r_c < n$, there exists an $(n - r_c)$-dimensional subspace of state space that **no control input $u(t)$ can ever reach or influence**.
+The first two columns $\mathbf{B} = [0, 1, 0]^T$ and $\mathbf{A}\mathbf{B} = [1, -3, 0]^T$ are therefore linearly independent, giving $\operatorname{rank}(\mathcal{R}) = 2 < 3$.
 
 <figure id="fig-controllability-subspace" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-controllability-subspace.svg" alt="Geometric representation of a non-controllable system in $\mathbb{R}^3$ with $\operatorname{rank}(\mathcal{R}) = 2$. Control inputs can steer the state to any coordinate on the 2D plane $\operatorname{Im}(\mathcal{R})$, but can never produce motion along the orthogonal $x_3$ direction." />
   <figcaption>Geometric representation of a non-controllable system in $\mathbb{R}^3$ with $\operatorname{rank}(\mathcal{R}) = 2$. Control inputs can steer the state to any coordinate on the 2D plane $\operatorname{Im}(\mathcal{R})$, but can never produce motion along the orthogonal $x_3$ direction.</figcaption>
 </figure>
 
-<Divider />
+Geometrically, starting from the origin $\mathbf{x}(0) = \mathbf{0}$, the actuator $u(t)$ can steer the state vector $\mathbf{x}(t)$ to any target coordinate $(x_1, x_2, 0)^T$ lying on the two-dimensional horizontal plane $\mathcal{X}_r = \operatorname{Im}(\mathcal{R}) = \operatorname{span}\{[0, 1, 0]^T, [1, -3, 0]^T\}$, which is simply the $x_1 x_2$-plane. However, $x_3(t)$ remains pinned at $0$ forever. Equivalently, from a modal viewpoint, the row vector $\mathbf{v}^T = [0, \; 0, \; 1]$ is a **left eigenvector** of $\mathbf{A}$ associated with the eigenvalue $\lambda_3 = -1$:
 
-## The Popov-Belevitch-Hautus (PBH) Controllability Eigenvector Test
+$$
+\mathbf{v}^T \mathbf{A} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 1 \\ 0 & 0 & -1 \end{bmatrix} = \begin{bmatrix} 0 & 0 & -1 \end{bmatrix} = (-1)\begin{bmatrix} 0 & 0 & 1 \end{bmatrix} = \lambda_3 \mathbf{v}^T
+$$
 
-While Kalman's matrix test determines the total rank of $\mathcal{R}$, it does not directly identify **which specific dynamic modes are uncontrollable**. The PBH test provides an eigenvalue-by-eigenvalue algebraic diagnosis:
+Taking the inner product of this left eigenvector with the actuator column $\mathbf{B}$ yields $\mathbf{v}^T \mathbf{B} = [0, 0, 1][0, 1, 0]^T = 0$. The actuator force is completely orthogonal to the normal vector $\mathbf{v}$ of the reachable plane, confirming that the mode $\lambda_3 = -1$ is uncontrollable.
 
-<Callout type="tip" title="PBH Controllability Criterion">
+<StepCheck client:load
+  prompt="For the system above with $\mathbf{B} = [0, 1, 0]^T$ and $\operatorname{rank}(\mathcal{R}) = 2$, what is the dimension of the uncontrollable subspace?"
+  expected={1}
+  tolerance={0.01}
+  unit=""
+  explanation="Since $n = 3$ and $\operatorname{rank}(\mathcal{R}) = 2$, the unreachable/uncontrollable complement has dimension $n - r_c = 3 - 2 = 1$ (along the $x_3$-axis)."
+/>
 
-The pair $(\mathbf{A}, \mathbf{B})$ is completely controllable if and only if the partitioned matrix has full row rank for **every eigenvalue** $\lambda \in \sigma(\mathbf{A})$:
-$$\boxed{\operatorname{rank} \begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} & \mathbf{B} \end{bmatrix} = n \quad \forall \lambda \in \mathbb{C}}$$
+<Divider label="2 · Theory" />
 
-### Left Eigenvector Modal Test
-An eigenvalue $\lambda$ of $\mathbf{A}$ is **uncontrollable** if and only if there exists a non-zero left eigenvector $\mathbf{v}^T \neq \mathbf{0}^T$ satisfying:
-$$\mathbf{v}^T \mathbf{A} = \lambda \mathbf{v}^T \quad \text{and} \quad \boxed{\mathbf{v}^T \mathbf{B} = \mathbf{0}^T}$$
-Physical meaning: If the input matrix $\mathbf{B}$ is orthogonal to a left eigenvector $\mathbf{v}$, the control input $u(t)$ has zero projection onto that modal coordinate; the mode evolves purely autonomously and cannot be influenced by any actuator signal.
+### Reachability and Controllability
+
+Consider the general continuous-time LTI state differential equation:
+
+$$
+\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t), \qquad \mathbf{x}(t) \in \mathbb{R}^n, \quad \mathbf{u}(t) \in \mathbb{R}^m
+$$
+
+Here $\mathbf{A} \in \mathbb{R}^{n \times n}$ is the state dynamics matrix and $\mathbf{B} \in \mathbb{R}^{n \times m}$ is the input matrix distributing $m$ actuator channels across the $n$ state derivatives. When analyzing whether the actuators have full authority over the state vector $\mathbf{x}(t)$, two distinct steering questions arise:
+- **Reachability (from the origin):** A target state $\mathbf{x}^* \in \mathbb{R}^n$ is **reachable** if there exists a finite terminal time $t_f > 0$ and a piecewise continuous input signal $\mathbf{u}(t)$ defined on $t \in [0, t_f]$ that drives the system from rest at $\mathbf{x}(0) = \mathbf{0}$ to $\mathbf{x}(t_f) = \mathbf{x}^*$.
+- **Controllability (to the origin):** An initial state $\mathbf{x}_0 \in \mathbb{R}^n$ is **controllable** if there exists a finite terminal time $t_f > 0$ and a piecewise continuous input signal $\mathbf{u}(t)$ defined on $t \in [0, t_f]$ that drives the system from $\mathbf{x}(0) = \mathbf{x}_0$ back to rest at $\mathbf{x}(t_f) = \mathbf{0}$.
+
+In discrete-time systems $\mathbf{x}(k+1) = \mathbf{A}_d\mathbf{x}(k) + \mathbf{B}_d\mathbf{u}(k)$ where $\mathbf{A}_d$ can be singular ($\det(\mathbf{A}_d) = 0$), controllability to the origin is weaker than reachability from the origin because a nilpotent matrix $\mathbf{A}_d$ can crush states into the origin naturally even with $\mathbf{B}_d = \mathbf{0}$. Why do these two concepts coincide identically in continuous time?
+
+Recall Lagrange's forced state solution from [Chapter 10](/dynamic-courses/systems-theory/03-time-response/03-lagrange-convolution-forced-response/), which expresses the state at time $t_f$ as the superposition of the free evolution from $\mathbf{x}_0$ and the convolution integral of the control input $\mathbf{u}(\tau)$:
+
+$$
+\mathbf{x}(t_f) = e^{\mathbf{A}t_f}\mathbf{x}_0 + \int_0^{t_f} e^{\mathbf{A}(t_f - \tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau
+$$
+
+In this equation, $e^{\mathbf{A}t_f}$ is the state transition matrix $\boldsymbol{\Phi}(t_f)$ from [Chapter 8](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/). By Liouville's determinant identity, $\det(e^{\mathbf{A}t_f}) = e^{\operatorname{Tr}(\mathbf{A})t_f} > 0$, which means $e^{\mathbf{A}t_f}$ is **strictly invertible** for every finite time $t_f \in \mathbb{R}$, with explicit inverse $(e^{\mathbf{A}t_f})^{-1} = e^{-\mathbf{A}t_f}$. Consequently, driving an arbitrary initial state $\mathbf{x}_0$ to the origin $\mathbf{x}(t_f) = \mathbf{0}$ requires finding an input $\mathbf{u}(\tau)$ satisfying:
+
+$$
+\mathbf{0} = e^{\mathbf{A}t_f}\mathbf{x}_0 + \int_0^{t_f} e^{\mathbf{A}(t_f - \tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau \iff \int_0^{t_f} e^{\mathbf{A}(t_f - \tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau = -e^{\mathbf{A}t_f}\mathbf{x}_0
+$$
+
+The integral on the left is the exact state reached at time $t_f$ when starting from the origin $\mathbf{x}(0) = \mathbf{0}$. Because $-e^{\mathbf{A}t_f}$ is a nonsingular $n \times n$ matrix, as $\mathbf{x}_0$ ranges over all of $\mathbb{R}^n$, the target vector $\mathbf{x}^* = -e^{\mathbf{A}t_f}\mathbf{x}_0$ also ranges bijectively over all of $\mathbb{R}^n$. Therefore, the convolution integral can reach every target state $\mathbf{x}^* \in \mathbb{R}^n$ from the origin if and only if it can cancel every propagated initial state $-e^{\mathbf{A}t_f}\mathbf{x}_0$:
+
+$$
+\boxed{\text{Reachability} \equiv \text{Controllability} \quad \text{for all continuous-time LTI systems}}
+$$
+
+The set of all states reachable from the origin in finite time forms a linear subspace $\mathcal{X}_r \subseteq \mathbb{R}^n$ called the **controllability (or reachability) subspace**. The pair $(\mathbf{A}, \mathbf{B})$ is called **completely controllable** (or completely reachable) when $\mathcal{X}_r = \mathbb{R}^n$.
+
+### Cayley-Hamilton Reduction
+
+Checking controllability directly from the convolution integral appears daunting because we would have to test every possible piecewise continuous function $\mathbf{u}(\tau)$ over $[0, t_f]$. Rudolf Kalman showed in 1960 that the **Cayley-Hamilton Theorem** ([Chapter 8](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/)) collapses this infinite-dimensional functional integral into a finite algebraic matrix rank test.
+
+Start from the zero initial state $\mathbf{x}(0) = \mathbf{0}$ and substitute the convergent Taylor power series of the matrix exponential $e^{\mathbf{A}(t_f - \tau)} = \sum_{k=0}^\infty \frac{(t_f - \tau)^k}{k!} \mathbf{A}^k$ into the reachability integral:
+
+$$
+\mathbf{x}(t_f) = \int_0^{t_f} \left( \sum_{k=0}^\infty \frac{(t_f - \tau)^k}{k!} \mathbf{A}^k \right) \mathbf{B} \mathbf{u}(\tau) \, d\tau = \sum_{k=0}^\infty \mathbf{A}^k \mathbf{B} \int_0^{t_f} \frac{(t_f - \tau)^k}{k!} \mathbf{u}(\tau) \, d\tau
+$$
+
+Each integral $\int_0^{t_f} \frac{(t_f - \tau)^k}{k!} \mathbf{u}(\tau) \, d\tau$ is simply a constant $m \times 1$ real vector of moments of the input waveform $\mathbf{u}(\tau)$ on $[0, t_f]$. At first glance, this series sums over infinitely many matrix products $\mathbf{B}, \mathbf{A}\mathbf{B}, \mathbf{A}^2\mathbf{B}, \dots, \mathbf{A}^k\mathbf{B}, \dots$. However, recall that $\mathbf{A} \in \mathbb{R}^{n \times n}$ has characteristic polynomial:
+
+$$
+p(s) = \det(s\mathbf{I} - \mathbf{A}) = s^n + a_1 s^{n-1} + \dots + a_{n-1}s + a_n
+$$
+
+By the Cayley-Hamilton Theorem, every square matrix satisfies its own characteristic equation $p(\mathbf{A}) = \mathbf{0}$:
+
+$$
+\mathbf{A}^n + a_1\mathbf{A}^{n-1} + \dots + a_{n-1} \mathbf{A} + a_n \mathbf{I} = \mathbf{0}
+$$
+
+Moving the lower powers to the right-hand side expresses $\mathbf{A}^n$ as a linear combination of the first $n$ matrix powers $\{\mathbf{I}, \mathbf{A}, \mathbf{A}^2, \dots, \mathbf{A}^{n-1}\}$:
+
+$$
+\mathbf{A}^n = -a_1\mathbf{A}^{n-1} - \dots - a_{n-1}\mathbf{A} - a_n\mathbf{I}
+$$
+
+What happens for $\mathbf{A}^{n+1}$? Multiply the equation above by $\mathbf{A}$ and substitute the expression for $\mathbf{A}^n$ again:
+
+$$
+\mathbf{A}^{n+1} = -a_1\mathbf{A}^n - a_2\mathbf{A}^{n-1} - \dots - a_n\mathbf{A} = -a_1(-a_1\mathbf{A}^{n-1} - \dots - a_n\mathbf{I}) - a_2\mathbf{A}^{n-1} - \dots - a_n\mathbf{A}
+$$
+
+Continuing by induction proves that **every** power $\mathbf{A}^k$ for $k \ge n$ can be written as a scalar linear combination of the first $n$ powers $\{\mathbf{I}, \mathbf{A}, \dots, \mathbf{A}^{n-1}\}$:
+
+$$
+\mathbf{A}^k = \sum_{j=0}^{n-1} \alpha_{k,j} \mathbf{A}^j \qquad \forall k \ge n
+$$
+
+Substituting this finite basis expansion back into the infinite power series for $\mathbf{x}(t_f)$ allows us to regroup all terms into just the first $n$ matrix products $\mathbf{B}, \mathbf{A}\mathbf{B}, \dots, \mathbf{A}^{n-1}\mathbf{B}$:
+
+$$
+\mathbf{x}(t_f) = \sum_{j=0}^{n-1} \mathbf{A}^j \mathbf{B} \, \mathbf{w}_j(t_f), \qquad \text{where } \mathbf{w}_j(t_f) = \int_0^{t_f} \psi_j(t_f - \tau) \mathbf{u}(\tau) \, d\tau \in \mathbb{R}^m
+$$
+
+Writing this finite sum of $n$ block products in partitioned matrix-vector form yields:
+
+$$
+\mathbf{x}(t_f) = \underbrace{\begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}}_{\mathcal{R}} \begin{bmatrix} \mathbf{w}_0(t_f) \\ \mathbf{w}_1(t_f) \\ \mathbf{w}_2(t_f) \\ \vdots \\ \mathbf{w}_{n-1}(t_f) \end{bmatrix}
+$$
+
+No matter what input signal $\mathbf{u}(t)$ you apply or how long you wait, the resulting state vector $\mathbf{x}(t_f)$ is a linear combination of the columns of the finite **Kalman controllability matrix** $\mathcal{R}$ (also denoted $\mathbf{P}$ or $\mathcal{M}_c$):
+
+$$
+\boxed{\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} \in \mathbb{R}^{n \times (n \cdot m)}}
+$$
+
+This proves that every reachable state must lie inside the column space $\operatorname{Im}(\mathcal{R})$, so $\mathcal{X}_r \subseteq \operatorname{Im}(\mathcal{R})$. Conversely, to verify that *every* vector inside $\operatorname{Im}(\mathcal{R})$ is actually reachable ($\mathcal{X}_r = \operatorname{Im}(\mathcal{R})$), define the symmetric positive semi-definite **controllability Gramian** matrix over $[0, t_f]$:
+
+$$
+\mathbf{W}_c(t_f) = \int_0^{t_f} e^{\mathbf{A}\tau}\mathbf{B}\mathbf{B}^T e^{\mathbf{A}^T\tau} \, d\tau \in \mathbb{R}^{n \times n}
+$$
+
+A constant row vector $\mathbf{v}^T \in \mathbb{R}^{1 \times n}$ lies in the left null space of $\mathbf{W}_c(t_f)$ if and only if:
+
+$$
+\mathbf{v}^T \mathbf{W}_c(t_f) \mathbf{v} = \int_0^{t_f} \left\| \mathbf{v}^T e^{\mathbf{A}\tau}\mathbf{B} \right\|_2^2 d\tau = 0 \iff \mathbf{v}^T e^{\mathbf{A}\tau}\mathbf{B} = \mathbf{0}^T \;\; \forall \tau \in [0, t_f]
+$$
+
+Differentiating $\mathbf{v}^T e^{\mathbf{A}\tau}\mathbf{B} = \mathbf{0}^T$ repeatedly with respect to $\tau$ ($k = 0, 1, \dots, n-1$) and evaluating at $\tau = 0$ gives $\mathbf{v}^T \mathbf{A}^k \mathbf{B} = \mathbf{0}^T$ for $k = 0, \dots, n-1$, which is equivalent to $\mathbf{v}^T \mathcal{R} = \mathbf{0}^T$. Thus $\mathbf{W}_c(t_f)$ and $\mathcal{R}$ have the exact same left null space and therefore the exact same column space: $\operatorname{Im}(\mathbf{W}_c(t_f)) = \operatorname{Im}(\mathcal{R})$. In particular, when $\operatorname{rank}(\mathcal{R}) = n$, the Gramian $\mathbf{W}_c(t_f)$ is strictly invertible for every $t_f > 0$, and the explicit minimum-energy control law:
+
+$$
+\mathbf{u}^*(t) = \mathbf{B}^T e^{\mathbf{A}^T(t_f - t)} \mathbf{W}_c(t_f)^{-1} \left( \mathbf{x}^* - e^{\mathbf{A}t_f}\mathbf{x}_0 \right), \qquad t \in [0, t_f]
+$$
+
+drives any initial state $\mathbf{x}_0$ to any target state $\mathbf{x}^*$ at time $t_f$, as confirmed directly by substituting $\mathbf{u}^*(t)$ into Lagrange's convolution integral.
+
+### Kalman Rank Criterion
+
+Combining the Cayley-Hamilton inclusion $\mathcal{X}_r \subseteq \operatorname{Im}(\mathcal{R})$ with the Gramian steering construction establishes the **Kalman Controllability Criterion**: a continuous-time LTI pair $(\mathbf{A}, \mathbf{B})$ is **completely controllable** if and only if the $n \times (nm)$ controllability matrix $\mathcal{R}$ has full row rank $n$:
+
+$$
+\boxed{\operatorname{rank}(\mathcal{R}) = \operatorname{rank} \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix} = n}
+$$
+
+Depending on the number of actuator channels $m$, we check this rank condition in two ways:
+- **Single-Input Systems (SISO, $m = 1$):** Here $\mathbf{B} \in \mathbb{R}^{n \times 1}$ is a single column vector, so $\mathcal{R}$ is an $n \times n$ **square** matrix. Complete controllability holds if and only if its determinant is non-zero: $\det(\mathcal{R}) \neq 0$.
+- **Multi-Input Systems (MIMO, $m > 1$):** Here $\mathbf{B} \in \mathbb{R}^{n \times m}$ has $m$ columns, so $\mathcal{R}$ is a wide $n \times (nm)$ **rectangular** matrix. Because the determinant of a non-square matrix is undefined, you must determine $\operatorname{rank}(\mathcal{R})$ by Gaussian row reduction (counting $n$ non-zero pivots) or by finding at least one $n \times n$ square submatrix of $\mathcal{R}$ whose determinant is non-zero.
+
+When $\operatorname{rank}(\mathcal{R}) = r_c < n$, the column space $\mathcal{X}_r = \operatorname{Im}(\mathcal{R})$ is an $r_c$-dimensional proper subspace of $\mathbb{R}^n$ with two decisive geometric properties:
+1. **$\mathbf{A}$-Invariance ($\mathbf{A}\mathcal{X}_r \subseteq \mathcal{X}_r$):** Take any basis column $\mathbf{A}^k\mathbf{B}$ of $\mathcal{R}$ and multiply it by $\mathbf{A}$ to get $\mathbf{A}^{k+1}\mathbf{B}$. For $0 \le k \le n - 2$, $\mathbf{A}^{k+1}\mathbf{B}$ is already the next column block inside $\mathcal{R}$; for $k = n - 1$, Cayley-Hamilton expands $\mathbf{A}^n\mathbf{B} = -\sum_{j=1}^n a_j \mathbf{A}^{n-j}\mathbf{B}$ as a linear combination of the existing columns of $\mathcal{R}$. Thus, multiplying any vector in $\mathcal{X}_r$ by $\mathbf{A}$ keeps it inside $\mathcal{X}_r$.
+2. **Input Containment ($\operatorname{Im}(\mathbf{B}) \subseteq \mathcal{X}_r$):** Because the first block of $\mathcal{R}$ is $\mathbf{B} = \mathbf{A}^0\mathbf{B}$, every actuator column already lies inside $\mathcal{X}_r$.
+
+Physically, because both $\mathbf{A}\mathbf{x}$ and $\mathbf{B}\mathbf{u}$ remain trapped inside $\mathcal{X}_r$ whenever $\mathbf{x} \in \mathcal{X}_r$, any state trajectory starting inside the controllable subspace $\mathcal{X}_r$ can **never escape** $\mathcal{X}_r$ under any input signal $\mathbf{u}(t)$. The remaining $n - r_c$ dimensions of $\mathbb{R}^n$ remain permanently beyond the reach of the actuators.
+
+### PBH Eigenvector Test
+
+While $\operatorname{rank}(\mathcal{R})$ gives the total number of controllable dimensions $r_c$, it does not directly tell you *which specific eigenvalues* $\lambda_i \in \sigma(\mathbf{A})$ are controllable and which are uncontrollable. The **Popov-Belevitch-Hautus (PBH) Controllability Test** provides an eigenvalue-by-eigenvalue modal diagnosis.
+
+A pair $(\mathbf{A}, \mathbf{B})$ is completely controllable if and only if the $n \times (n + m)$ horizontally concatenated matrix $[\lambda\mathbf{I} - \mathbf{A} \;\; \mathbf{B}]$ has full row rank $n$ for every complex scalar $\lambda \in \mathbb{C}$:
+
+$$
+\boxed{\operatorname{rank} \begin{bmatrix} \lambda \mathbf{I} - \mathbf{A} & \mathbf{B} \end{bmatrix} = n \qquad \forall \lambda \in \sigma(\mathbf{A})}
+$$
+
+Why do we only need to check the finite list of eigenvalues $\lambda \in \sigma(\mathbf{A})$ instead of all complex numbers $\lambda \in \mathbb{C}$? For any $\lambda \notin \sigma(\mathbf{A})$, the $n \times n$ matrix $\lambda\mathbf{I} - \mathbf{A}$ is invertible ($\det(\lambda\mathbf{I} - \mathbf{A}) \neq 0$), so its $n$ columns already have rank $n$ before we even append $\mathbf{B}$. Only when $\lambda$ is an eigenvalue of $\mathbf{A}$ does $\operatorname{rank}(\lambda\mathbf{I} - \mathbf{A})$ drop below $n$, requiring the columns of $\mathbf{B}$ to supply the missing rank!
+
+To understand the physical meaning of the PBH rank condition, ask when $\operatorname{rank}[\lambda\mathbf{I} - \mathbf{A} \;\; \mathbf{B}] < n$ happens at an eigenvalue $\lambda \in \sigma(\mathbf{A})$. A matrix with $n$ rows has rank strictly less than $n$ if and only if its rows are linearly dependent—meaning there exists a non-zero row vector $\mathbf{v}^T \in \mathbb{C}^{1 \times n}$ ($\mathbf{v}^T \neq \mathbf{0}^T$) in its left null space:
+
+$$
+\mathbf{v}^T \begin{bmatrix} \lambda\mathbf{I} - \mathbf{A} & \mathbf{B} \end{bmatrix} = \begin{bmatrix} \mathbf{0}^T & \mathbf{0}^T \end{bmatrix}
+$$
+
+Splitting this partitioned product into its two block components yields two simultaneous equations:
+
+$$
+\begin{cases}
+\mathbf{v}^T (\lambda\mathbf{I} - \mathbf{A}) = \mathbf{0}^T \iff \mathbf{v}^T \mathbf{A} = \lambda \mathbf{v}^T \\
+\mathbf{v}^T \mathbf{B} = \mathbf{0}^T
+\end{cases}
+$$
+
+The first condition $\mathbf{v}^T \mathbf{A} = \lambda \mathbf{v}^T$ states that $\mathbf{v}^T$ is a **left eigenvector** of $\mathbf{A}$ corresponding to the eigenvalue $\lambda$. The second condition $\mathbf{v}^T \mathbf{B} = \mathbf{0}^T$ states that this left eigenvector is **orthogonal to every column of the input matrix** $\mathbf{B}$.
+
+To see what happens physically when such a left eigenvector exists, project the state vector $\mathbf{x}(t)$ onto $\mathbf{v}^T$ by defining the scalar modal coordinate $q(t) = \mathbf{v}^T \mathbf{x}(t)$. Differentiating $q(t)$ along any trajectory of $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$ gives:
+
+$$
+\dot{q}(t) = \mathbf{v}^T \dot{\mathbf{x}}(t) = \mathbf{v}^T \mathbf{A}\mathbf{x}(t) + \mathbf{v}^T \mathbf{B}\mathbf{u}(t) = \lambda \underbrace{(\mathbf{v}^T \mathbf{x}(t))}_{q(t)} + \underbrace{(\mathbf{v}^T \mathbf{B})}_{\mathbf{0}^T}\mathbf{u}(t) = \lambda q(t)
+$$
+
+Solving this first-order scalar differential equation gives $q(t) = e^{\lambda t}q(0) = e^{\lambda t}\mathbf{v}^T\mathbf{x}(0)$, completely independent of $\mathbf{u}(t)$! In particular, if the system starts at the origin $\mathbf{x}(0) = \mathbf{0}$, then $q(t) = \mathbf{v}^T\mathbf{x}(t) \equiv 0$ for all $t \ge 0$, proving that $\mathbf{v}^T \mathcal{R} = \mathbf{0}^T$ and that the entire reachable trajectory remains confined to the hyperplane orthogonal to $\mathbf{v}$. Thus, an eigenvalue $\lambda \in \sigma(\mathbf{A})$ is **uncontrollable** if and only if it possesses a left eigenvector $\mathbf{v}^T \neq \mathbf{0}^T$ satisfying $\mathbf{v}^T\mathbf{B} = \mathbf{0}^T$.
+
+<StepCheck client:load
+  mode="choice"
+  prompt="In the PBH modal test for controllability, which condition proves that an eigenvalue $\lambda$ of $\mathbf{A}$ is uncontrollable?"
+  options={[
+    "There exists a right eigenvector $\\mathbf{v} \\neq \\mathbf{0}$ with $\\mathbf{A}\\mathbf{v} = \\lambda\\mathbf{v}$ and $\\mathbf{B}^T\\mathbf{v} = \\mathbf{0}$",
+    "There exists a left eigenvector $\\mathbf{v}^T \\neq \\mathbf{0}^T$ with $\\mathbf{v}^T\\mathbf{A} = \\lambda\\mathbf{v}^T$ and $\\mathbf{v}^T\\mathbf{B} = \\mathbf{0}^T$",
+    "The matrix $\\lambda\\mathbf{I} - \\mathbf{A}$ has full rank $n$"
+  ]}
+  correctIndex={1}
+  explanation="Full row rank of $[\\lambda\\mathbf{I} - \\mathbf{A} \\; \\mathbf{B}]$ fails iff some non-zero row vector $\\mathbf{v}^T$ annihilates all columns: $\\mathbf{v}^T(\\lambda\\mathbf{I}-\\mathbf{A}) = \\mathbf{0}^T$ (left eigenvector) and $\\mathbf{v}^T\\mathbf{B} = \\mathbf{0}^T$."
+/>
+
+<Callout type="bridge" title="Robotics Bridge: Multi-Rotor Actuator Allocation">
+
+Consider an autonomous hexacopter (6 rotors) versus a quadcopter (4 rotors) in PX4 autopilot firmware. The linearized attitude and altitude dynamics have state $\mathbf{x} = [\phi, \theta, \psi, z, \dot{\phi}, \dot{\theta}, \dot{\psi}, \dot{z}]^T \in \mathbb{R}^8$ with motor thrust vector $\mathbf{u} = [f_1, \dots, f_m]^T \in \mathbb{R}^m$ and input matrix $\mathbf{B} = \begin{bmatrix} \mathbf{0}_{4 \times m} \\ \mathbf{J}^{-1} \mathbf{M}_{\text{alloc}} \end{bmatrix}$:
+
+1. **Quadcopter ($m = 4$):** $\operatorname{rank}(\mathcal{R}) = 8$ when all 4 motors operate. If Rotor 1 fails ($f_1 = 0$), $\mathbf{B}_{\text{fail}}$ drops to $m = 3$ actuators and $\operatorname{rank}(\mathcal{R}_{\text{fail}}) = 6 < 8$; yaw rotation $\psi$ and vertical thrust couple and the aircraft loses full controllability.
+2. **Hexacopter ($m = 6$):** Under one rotor failure ($m = 5$), $\operatorname{rank}(\mathcal{R}_{\text{fail}}) = 8$ remains full rank, so the PX4 control allocator can re-weight motor mixing gains and land safely.
 
 </Callout>
 
-<Divider />
+<Divider label="3 · Summary" />
 
-## SDU Robotics Bridge: Multi-Rotor Actuator Allocation
+| Test Method | Algebraic Condition | Scope | Output Diagnosis |
+| :--- | :--- | :--- | :--- |
+| **Kalman Rank (SISO)** | $\det(\mathcal{R}) \neq 0$ | $m = 1$ | Global yes/no check |
+| **Kalman Rank (MIMO)** | $\operatorname{rank}[\mathbf{B} \; \mathbf{A}\mathbf{B} \dots \mathbf{A}^{n-1}\mathbf{B}] = n$ | Any $m \ge 1$ | Reachable dimension $r_c = \operatorname{rank}(\mathcal{R})$ |
+| **PBH Rank Test** | $\operatorname{rank}[\lambda\mathbf{I} - \mathbf{A} \; \mathbf{B}] = n \;\; \forall \lambda \in \sigma(\mathbf{A})$ | Any $m \ge 1$ | Identifies exact uncontrollable $\lambda$ |
+| **Left-Eigenvector Test** | No $\mathbf{v}^T \neq \mathbf{0}^T$: $\mathbf{v}^T\mathbf{A} = \lambda\mathbf{v}^T,\; \mathbf{v}^T\mathbf{B} = \mathbf{0}^T$ | Any $m \ge 1$ | Identifies unsteerable modal direction |
 
-<Callout type="bridge" title="SDU Robotics Bridge: Controllability Loss Under Rotor Failure">
+### Verification Procedure
 
-Consider an autonomous hexacopter (6 rotors) versus a quadcopter (4 rotors) in PX4 autopilot firmware.
-The linearized attitude and altitude dynamics have state $\mathbf{x} = [\phi, \theta, \psi, z, \dot{\phi}, \dot{\theta}, \dot{\psi}, \dot{z}]^T \in \mathbb{R}^8$ with motor thrust vector $\mathbf{u} = [f_1, \dots, f_m]^T \in \mathbb{R}^m$:
-$$\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$$
-The input matrix $\mathbf{B}$ is determined by the geometric rotor allocation matrix $\mathbf{B} = \begin{bmatrix} \mathbf{0}_{4 \times m} \\ \mathbf{J}^{-1} \mathbf{M}_{\text{alloc}} \end{bmatrix}$.
-1. **Quadcopter ($m = 4$):**
-   $\operatorname{rank}(\mathcal{R}) = 8$ under all 4 motors operational.
-   If Rotor 1 fails ($f_1 = 0$), the effective input matrix $\mathbf{B}_{\text{fail}}$ drops to $m = 3$ actuators for 4 physical degrees of freedom.
-   Recomputing Kalman rank: $\operatorname{rank}(\mathcal{R}_{\text{fail}}) = 6 < 8$. The yaw rotation mode $\psi$ and vertical thrust become linearly coupled; the quadcopter loses independent controllability and tumbles from the sky.
-2. **Hexacopter ($m = 6$):**
-   Under 1 rotor failure ($m = 5$), $\operatorname{rank}(\mathcal{R}_{\text{fail}}) = 8$ remains full rank!
-   Because $\operatorname{rank}(\mathcal{R}) = 8$, the remaining 5 rotors span the entire 8-dimensional state space. The PX4 control allocator automatically re-weights motor mixing gains to retain complete controllability, enabling safe emergency landing.
+1. Assemble $\mathcal{R} = [\mathbf{B} \; \mathbf{A}\mathbf{B} \; \dots \; \mathbf{A}^{n-1}\mathbf{B}]$ recursively via $\mathbf{A}^k\mathbf{B} = \mathbf{A}(\mathbf{A}^{k-1}\mathbf{B})$, stopping at power $\mathbf{A}^{n-1}$.
+2. For SISO ($m=1$), compute $\det(\mathcal{R})$; for MIMO ($m>1$), row-reduce $\mathcal{R}$ to find $\operatorname{rank}(\mathcal{R})$.
+3. If $\operatorname{rank}(\mathcal{R}) < n$, extract a basis for $\mathcal{X}_r = \operatorname{Im}(\mathcal{R})$ from the pivot columns of $\mathcal{R}$ or run the PBH test at each $\lambda \in \sigma(\mathbf{A})$ to pinpoint which modes are uncontrollable.
 
+### Key Proofs
+
+- **Finite Matrix Reduction:** Cayley-Hamilton expresses $\mathbf{A}^k$ ($k \ge n$) as a linear combination of $\{\mathbf{I}, \mathbf{A}, \dots, \mathbf{A}^{n-1}\}$, confining Lagrange's integral $\int_0^{t_f} e^{\mathbf{A}(t_f-\tau)}\mathbf{B}\mathbf{u}(\tau)\,d\tau$ to $\operatorname{Im}(\mathcal{R})$.
+- **Reachability-Controllability Equivalence:** Because $\det(e^{\mathbf{A}t}) = e^{\operatorname{Tr}(\mathbf{A})t} \neq 0$, steering $\mathbf{0} \to \mathbf{x}^*$ and steering $\mathbf{x}_0 \to \mathbf{0}$ are algebraically identical in continuous time.
+- **PBH Modal Invariance:** If $\mathbf{v}^T\mathbf{A} = \lambda\mathbf{v}^T$ and $\mathbf{v}^T\mathbf{B} = \mathbf{0}^T$, then $q(t) = \mathbf{v}^T\mathbf{x}(t)$ obeys $\dot{q} = \lambda q$, making that mode unsteerable by $\mathbf{u}(t)$.
+
+<Callout type="warning" title="Common Mistakes">
+1. **Wrong Column Count:** Stopping at $\mathbf{A}^{n-2}\mathbf{B}$ or omitting $\mathbf{B} = \mathbf{A}^0\mathbf{B}$ drops reachable directions; an $n$-state matrix always requires powers $0$ through $n - 1$.
+2. **Taking $\det(\mathcal{R})$ for MIMO Systems:** When $m > 1$, $\mathcal{R}$ is $n \times (nm)$ (non-square), so $\det(\mathcal{R})$ is undefined; use row reduction or check $n \times n$ minors.
+3. **Testing Right Instead of Left Eigenvectors:** PBH controllability requires $\mathbf{v}^T \mathbf{A} = \lambda \mathbf{v}^T$ and $\mathbf{v}^T \mathbf{B} = \mathbf{0}^T$ (left eigenvectors), not $\mathbf{A}\mathbf{v} = \lambda\mathbf{v}$.
 </Callout>
 
-<Divider />
+<Divider label="4 · Exercises" />
 
+<Exercise client:load id="ex-20-1" title="Exercise 20.1 — Kalman Controllability Matrix" level="Warm-Up" hint="Compute $\mathbf{A}\mathbf{B}$ and $\mathbf{A}^2\mathbf{B}$ sequentially, assemble the $3 \times 3$ matrix $\mathcal{M}_c$, and expand $\det(\mathcal{M}_c)$ along column 1.">
 
-<Divider label="Interactive Practice & Exam Drills" />
-
-## Chapter Exercises
-
-### Exercise 20.1: Kalman Controllability Matrix Computation [LEVEL 1: WARM-UP DRILL]
 Given the continuous-time LTI state-space system:
-$$\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
+$$
 
 1. State the state dimension $n$ and the structure of the Kalman controllability matrix $\mathcal{M}_c$.
 2. Compute the matrix-vector products $\mathbf{A}\mathbf{B}$ and $\mathbf{A}^2\mathbf{B}$.
 3. Construct the controllability matrix $\mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} \end{bmatrix}$.
 4. Compute the determinant $\det(\mathcal{M}_c)$ and conclude whether the pair $(\mathbf{A}, \mathbf{B})$ is completely controllable.
 
-### Exercise 20.2: Parametric Controllability Analysis and Controllable Subspace [LEVEL 2: EXAM BENCHMARK]
+<StepCheck client:load
+  prompt="Compute $\det(\mathcal{M}_c)$ for the companion system above:"
+  expected={-1}
+  tolerance={0.01}
+  unit=""
+  explanation="$\mathcal{M}_c = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}$ has anti-diagonal $1 \cdot 1 \cdot 1$ with an odd permutation sign, giving $\det(\mathcal{M}_c) = -1 \neq 0$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **State dimension and Kalman matrix definition:**
+   The system matrix $\mathbf{A} \in \mathbb{R}^{3 \times 3}$ has dimension $n = 3$.
+   For a single-input system ($m = 1$), the Kalman controllability matrix has size $3 \times 3$ and is defined as:
+   $$
+   \mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \mathbf{A}^2\mathbf{B} \end{bmatrix}
+   $$
+
+2. **Matrix-vector products:**
+   $$
+   \mathbf{A}\mathbf{B} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix} \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ -6 \end{bmatrix}
+   $$
+   $$
+   \mathbf{A}^2\mathbf{B} = \mathbf{A}(\mathbf{A}\mathbf{B}) = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ -6 & -11 & -6 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \\ -6 \end{bmatrix} = \begin{bmatrix} 1 \\ -6 \\ -6(0) - 11(1) - 6(-6) \end{bmatrix} = \begin{bmatrix} 1 \\ -6 \\ -11 + 36 \end{bmatrix} = \begin{bmatrix} 1 \\ -6 \\ 25 \end{bmatrix}
+   $$
+
+3. **Assembly of the controllability matrix:**
+   $$
+   \mathcal{M}_c = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}
+   $$
+
+4. **Determinant and controllability conclusion:**
+   Expanding $\det(\mathcal{M}_c)$ along the first column:
+   $$
+   \det(\mathcal{M}_c) = +1 \cdot \det\begin{bmatrix} 0 & 1 \\ 1 & -6 \end{bmatrix} = 1 \cdot (0 \cdot (-6) - 1 \cdot 1) = -1
+   $$
+   Since $\det(\mathcal{M}_c) = -1 \neq 0$, the matrix has full rank:
+   $$
+   \operatorname{rank}(\mathcal{M}_c) = 3 = n
+   $$
+   By the Kalman rank condition, the pair $(\mathbf{A}, \mathbf{B})$ is **completely controllable**.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-20-2" title="Exercise 20.2 — Parametric Controllability Subspace" level="Exam Standard" hint="Subtract column 1 of $\mathcal{M}_c(\alpha)$ from columns 2 and 3 before taking the determinant to isolate $\alpha$ cleanly.">
+
 A third-order system depends on an unknown real design parameter $\alpha \in \mathbb{R}$:
-$$\mathbf{A} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & -2 & 1 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ \alpha \\ 2 \end{bmatrix}$$
+
+$$
+\mathbf{A} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & -2 & 1 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ \alpha \\ 2 \end{bmatrix}
+$$
 
 1. Compute the Kalman controllability matrix $\mathcal{M}_c(\alpha)$.
 2. Calculate the determinant $\det(\mathcal{M}_c(\alpha))$ as an explicit function of $\alpha$.
 3. Determine the critical value(s) of $\alpha$ for which complete controllability is lost.
 4. For the critical value of $\alpha$, determine the rank of $\mathcal{M}_c$ and provide an explicit basis for the controllable subspace $\mathcal{X}_c = \operatorname{Im}(\mathcal{M}_c)$.
+
+<StepCheck client:load
+  prompt="Find the critical value of $\alpha$ (as a decimal) at which complete controllability is lost:"
+  expected={0.4}
+  tolerance={0.01}
+  unit=""
+  explanation="$\det(\mathcal{M}_c(\alpha)) = -60\alpha + 24 = 0 \implies \alpha = 24/60 = 2/5 = 0.4$."
+/>
+
+<details className="dc-solution">
+<summary>Reveal Worked Solution</summary>
+
+1. **Computing matrix products for $\mathcal{M}_c(\alpha)$:**
+   Given $\mathbf{A} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & -2 & 1 \\ 0 & 0 & 3 \end{bmatrix}$ and $\mathbf{B} = \begin{bmatrix} 1 \\ \alpha \\ 2 \end{bmatrix}$:
+   $$
+   \mathbf{A}\mathbf{B} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & -2 & 1 \\ 0 & 0 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ \alpha \\ 2 \end{bmatrix} = \begin{bmatrix} 1 \\ -2\alpha + 2 \\ 6 \end{bmatrix}
+   $$
+   $$
+   \mathbf{A}^2\mathbf{B} = \mathbf{A}(\mathbf{A}\mathbf{B}) = \begin{bmatrix} 1 & 0 & 0 \\ 0 & -2 & 1 \\ 0 & 0 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ -2\alpha + 2 \\ 6 \end{bmatrix} = \begin{bmatrix} 1 \\ -2(-2\alpha + 2) + 6 \\ 3(6) \end{bmatrix} = \begin{bmatrix} 1 \\ 4\alpha + 2 \\ 18 \end{bmatrix}
+   $$
+   Thus:
+   $$
+   \mathcal{M}_c(\alpha) = \begin{bmatrix} 1 & 1 & 1 \\ \alpha & -2\alpha + 2 & 4\alpha + 2 \\ 2 & 6 & 18 \end{bmatrix}
+   $$
+
+2. **Determinant calculation:**
+   Subtract column 1 from column 2 and column 3 (column operations preserve the determinant):
+   $$
+   \mathcal{M}_c \sim \begin{bmatrix} 1 & 0 & 0 \\ \alpha & (-2\alpha + 2) - \alpha & (4\alpha + 2) - \alpha \\ 2 & 6 - 2 & 18 - 2 \end{bmatrix} = \begin{bmatrix} 1 & 0 & 0 \\ \alpha & -3\alpha + 2 & 3\alpha + 2 \\ 2 & 4 & 16 \end{bmatrix}
+   $$
+   Expanding along the first row:
+   $$
+   \det(\mathcal{M}_c(\alpha)) = \det\begin{bmatrix} -3\alpha + 2 & 3\alpha + 2 \\ 4 & 16 \end{bmatrix} = 16(-3\alpha + 2) - 4(3\alpha + 2)
+   $$
+   $$
+   \det(\mathcal{M}_c(\alpha)) = -48\alpha + 32 - 12\alpha - 8 = -60\alpha + 24
+   $$
+
+3. **Controllability loss:**
+   The system loses full controllability when $\det(\mathcal{M}_c(\alpha)) = 0$:
+   $$
+   -60\alpha + 24 = 0 \iff 60\alpha = 24 \iff \alpha = \frac{24}{60} = \frac{2}{5} = 0.4
+   $$
+   * For all $\alpha \neq \frac{2}{5}$, $\det(\mathcal{M}_c(\alpha)) \neq 0$, so $\operatorname{rank}(\mathcal{M}_c) = 3$ and the system is completely controllable.
+   * For $\alpha = \frac{2}{5}$, the system is **not completely controllable**.
+
+4. **Controllable subspace for $\alpha = \frac{2}{5}$:**
+   Substituting $\alpha = \frac{2}{5} = 0.4$ into $\mathcal{M}_c$:
+   $$
+   \mathcal{M}_c\left(\frac{2}{5}\right) = \begin{bmatrix} 1 & 1 & 1 \\ 2/5 & 6/5 & 18/5 \\ 2 & 6 & 18 \end{bmatrix}
+   $$
+   Notice that row 3 is exactly $5 \times$ row 2 ($[2, 6, 18] = 5 \times [2/5, 6/5, 18/5]$).
+   The first two columns:
+   $$
+   \mathbf{c}_1 = \begin{bmatrix} 1 \\ 2/5 \\ 2 \end{bmatrix}, \quad \mathbf{c}_2 = \begin{bmatrix} 1 \\ 6/5 \\ 6 \end{bmatrix}
+   $$
+   are linearly independent (since their element ratios are not constant: $1/1 \neq (6/5)/(2/5)$).
+   Therefore:
+   $$
+   \operatorname{rank}\left(\mathcal{M}_c\left(\frac{2}{5}\right)\right) = 2
+   $$
+   A basis for the controllable subspace $\mathcal{X}_c = \operatorname{Im}(\mathcal{M}_c)$ is:
+   $$
+   \mathcal{B}_c = \left\{ \begin{bmatrix} 1 \\ 2/5 \\ 2 \end{bmatrix}, \; \begin{bmatrix} 1 \\ 6/5 \\ 6 \end{bmatrix} \right\} \quad \text{or equivalently (clearing fractions)} \quad \left\{ \begin{bmatrix} 5 \\ 2 \\ 10 \end{bmatrix}, \; \begin{bmatrix} 5 \\ 6 \\ 30 \end{bmatrix} \right\}
+   $$
+   Furthermore, we can verify which mode is lost at $\alpha = 2/5$ via the PBH left-eigenvector test. The eigenvalues of the upper-triangular matrix $\mathbf{A}$ are $\lambda_1 = 1, \lambda_2 = -2, \lambda_3 = 3$. For $\lambda_2 = -2$, solve $\mathbf{v}^T(\mathbf{A} - (-2)\mathbf{I}) = \mathbf{0}^T$:
+   $$
+   \begin{bmatrix} v_1 & v_2 & v_3 \end{bmatrix} \begin{bmatrix} 3 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 5 \end{bmatrix} = \begin{bmatrix} 3v_1 & 0 & v_2 + 5v_3 \end{bmatrix} = \begin{bmatrix} 0 & 0 & 0 \end{bmatrix} \implies v_1 = 0, \; v_2 = -5v_3
+   $$
+   Choosing $v_3 = -1$ gives the left eigenvector $\mathbf{v}^T = [0, \; 5, \; -1]$. Checking $\mathbf{v}^T\mathbf{B} = 0(1) + 5\alpha - 1(2) = 5\alpha - 2 = 0 \iff \alpha = 2/5$ confirms that mode $\lambda_2 = -2$ becomes orthogonal to $\mathbf{B}$ at $\alpha = 2/5$.
+
+</details>
+
+</Exercise>

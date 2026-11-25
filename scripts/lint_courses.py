@@ -81,6 +81,25 @@ def main() -> int:
             if "<Divider" not in txt:
                 warnings.append(f"[{rel}] No <Divider /> breaks found")
 
+        # Markdown table raw pipe inside inline math check (causes MDX/Acorn parse errors)
+        for line_no, line in enumerate(txt.splitlines(), start=1):
+            if line.lstrip().startswith("|"):
+                in_math = False
+                i = 0
+                while i < len(line):
+                    ch = line[i]
+                    if ch == "\\" and i + 1 < len(line):
+                        i += 2
+                        continue
+                    if ch == "$":
+                        in_math = not in_math
+                    elif ch == "|" and in_math:
+                        errors.append(
+                            f"[{rel}:{line_no}] Raw '|' inside inline math in Markdown table row (use \\lvert / \\rvert or \\mid)"
+                        )
+                        break
+                    i += 1
+
     for w in warnings:
         print(f"WARNING: {w}")
     for e in errors:

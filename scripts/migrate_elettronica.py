@@ -134,6 +134,10 @@ def compile_tikz_to_svgs(tikz_jobs: list[tuple[str, str]]) -> set[str]:
                     text=True,
                 )
                 if sv.returncode == 0 and out_svg.exists():
+                    svg_txt = out_svg.read_text(encoding="utf-8")
+                    svg_txt = re.sub(r"\bfill-opacity=(['\"])0(?:\.0+)?\1", "", svg_txt)
+                    svg_txt = re.sub(r"\bstroke-opacity=(['\"])0(?:\.0+)?\1", "", svg_txt)
+                    out_svg.write_text(svg_txt, encoding="utf-8")
                     created.add(fig_id)
                 else:
                     print(f"WARNING: dvisvgm failed for {fig_id}: {sv.stderr}")
@@ -174,6 +178,10 @@ def compile_tikz_to_svgs(tikz_jobs: list[tuple[str, str]]) -> set[str]:
                     text=True,
                 )
                 if sv.returncode == 0 and out_svg.exists():
+                    svg_txt = out_svg.read_text(encoding="utf-8")
+                    svg_txt = re.sub(r"\bfill-opacity=(['\"])0(?:\.0+)?\1", "", svg_txt)
+                    svg_txt = re.sub(r"\bstroke-opacity=(['\"])0(?:\.0+)?\1", "", svg_txt)
+                    out_svg.write_text(svg_txt, encoding="utf-8")
                     created.add(fig_id)
                     continue
             print(f"ERROR compiling {fig_id}: {sr.stdout[-600:]}")
