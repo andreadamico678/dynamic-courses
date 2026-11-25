@@ -110,6 +110,46 @@
   --dc-err: #b91c1c;
 }
 
+/* Per-Course Accents (Dark & Light) */
+:root[data-dc-course='systems-theory'] {
+  --sl-color-accent-low: rgba(79, 143, 247, 0.14);
+  --sl-color-accent: #4f8ff7;
+  --sl-color-accent-high: #84b6ff;
+  --sl-color-text-accent: var(--sl-color-accent-high);
+}
+:root[data-theme='light'][data-dc-course='systems-theory'] {
+  --sl-color-accent-low: rgba(29, 78, 216, 0.08);
+  --sl-color-accent: #1d4ed8;
+  --sl-color-accent-high: #1e40af;
+  --sl-color-text-accent: var(--sl-color-accent);
+}
+
+:root[data-dc-course='elettronica'] {
+  --sl-color-accent-low: rgba(242, 85, 90, 0.14);
+  --sl-color-accent: #f2555a;
+  --sl-color-accent-high: #ff9498;
+  --sl-color-text-accent: var(--sl-color-accent-high);
+}
+:root[data-theme='light'][data-dc-course='elettronica'] {
+  --sl-color-accent-low: rgba(200, 30, 43, 0.08);
+  --sl-color-accent: #c81e2b;
+  --sl-color-accent-high: #9f1220;
+  --sl-color-text-accent: var(--sl-color-accent);
+}
+
+:root[data-dc-course='computer-architecture'] {
+  --sl-color-accent-low: rgba(245, 138, 43, 0.14);
+  --sl-color-accent: #f58a2b;
+  --sl-color-accent-high: #ffb36b;
+  --sl-color-text-accent: var(--sl-color-accent-high);
+}
+:root[data-theme='light'][data-dc-course='computer-architecture'] {
+  --sl-color-accent-low: rgba(194, 65, 12, 0.08);
+  --sl-color-accent: #c2410c;
+  --sl-color-accent-high: #9a3412;
+  --sl-color-text-accent: var(--sl-color-accent);
+}
+
 /* ============================================================
    FLEXIBLE WIDE-FORMAT LAYOUT
    ============================================================ */
@@ -1056,4 +1096,37 @@ mark.dc-hl-green {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--sl-color-text-accent);
+}
+
+.dc-course-card[data-course='systems-theory'] {
+  --sl-color-accent: #4f8ff7;
+  --sl-color-accent-low: rgba(79, 143, 247, 0.12);
+  --sl-color-text-accent: #84b6ff;
+}
+:root[data-theme='light'] .dc-course-card[data-course='systems-theory'] {
+  --sl-color-accent: #1d4ed8;
+  --sl-color-accent-low: rgba(29, 78, 216, 0.08);
+  --sl-color-text-accent: #1d4ed8;
+}
+
+.dc-course-card[data-course='elettronica'] {
+  --sl-color-accent: #f2555a;
+  --sl-color-accent-low: rgba(242, 85, 90, 0.12);
+  --sl-color-text-accent: #ff9498;
+}
+:root[data-theme='light'] .dc-course-card[data-course='elettronica'] {
+  --sl-color-accent: #c81e2b;
+  --sl-color-accent-low: rgba(200, 30, 43, 0.08);
+  --sl-color-text-accent: #c81e2b;
+}
+
+.dc-course-card[data-course='computer-architecture'] {
+  --sl-color-accent: #f58a2b;
+  --sl-color-accent-low: rgba(245, 138, 43, 0.12);
+  --sl-color-text-accent: #ffb36b;
+}
+:root[data-theme='light'] .dc-course-card[data-course='computer-architecture'] {
+  --sl-color-accent: #c2410c;
+  --sl-color-accent-low: rgba(194, 65, 12, 0.08);
+  --sl-color-text-accent: #c2410c;
 }

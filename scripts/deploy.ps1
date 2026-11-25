@@ -13,7 +13,7 @@ pnpm lint
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "==> [2/5] Building Astro site..." -ForegroundColor Cyan
-$env:NODE_OPTIONS = "--max-old-space-size=8192"
+$env:NODE_OPTIONS = "--max-old-space-size=4096"
 pnpm build
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

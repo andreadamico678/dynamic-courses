@@ -45,7 +45,7 @@ jobs:
 
       - name: Build Astro Starlight Site
         env:
-          NODE_OPTIONS: "--max-old-space-size=6144"
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: pnpm build
 
       - name: Export LLM Markdown Edition

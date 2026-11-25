@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/build_courses.mjs",
+    "build:single": "astro build",
     "preview": "astro preview",
     "lint": "python scripts/lint_courses.py",
     "export-llm": "python scripts/export_llm.py",

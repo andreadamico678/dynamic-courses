@@ -1,0 +1,72 @@
+---
+const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+const scope = process.env.COURSE_SCOPE || 'all';
+const pathname = Astro.url.pathname;
+
+const COURSE_LABELS: Record<string, string> = {
+  'systems-theory': 'Linear Systems Theory',
+  elettronica: 'Elettronica',
+  'computer-architecture': 'Computer Architecture',
+};
+
+let activeCourse = scope !== 'all' && scope !== 'hub' ? scope : '';
+if (!activeCourse) {
+  const m = pathname.match(/\/dynamic-courses\/(systems-theory|elettronica|computer-architecture)(?:\/|$)/);
+  if (m) activeCourse = m[1];
+}
+
+const courseHref = activeCourse ? `/dynamic-courses/${activeCourse}/` : siteTitleHref;
+const courseLabel = activeCourse ? COURSE_LABELS[activeCourse] || siteTitle : '';
+---
+
+<div class="dc-site-brand sl-flex">
+  <a href="/dynamic-courses/" class="site-title sl-flex">
+    <span translate="no">Dynamic Courses</span>
+  </a>
+  {courseLabel && (
+    <>
+      <span class="dc-brand-sep" aria-hidden="true">/</span>
+      <a href={courseHref} class="dc-brand-course">{courseLabel}</a>
+    </>
+  )}
+</div>
+
+<style>
+  .dc-site-brand {
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+  .site-title {
+    align-items: center;
+    gap: var(--sl-nav-gap);
+    font-size: var(--sl-text-h4);
+    font-weight: 600;
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .dc-brand-sep {
+    color: var(--sl-color-gray-4);
+    font-weight: 400;
+    user-select: none;
+  }
+  .dc-brand-course {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--dc-ink);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dc-brand-course:hover {
+    color: var(--sl-color-text-accent);
+  }
+  @media (max-width: 36rem) {
+    .dc-brand-sep,
+    .dc-brand-course {
+      display: none;
+    }
+  }
+</style>
