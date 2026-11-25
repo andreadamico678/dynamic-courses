@@ -12,14 +12,16 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 15 Outline" markdown={`# Ch. 15: Structural Hazards
-  - Unified Memory Example
-    - Cycle 4 IF vs. MEM port collision
+  - 1 · Example: Unified Memory Port Collision
+    - Cycle 4 IF vs. MEM conflict
     - $+1 \\times (f_{\\text{load}} + f_{\\text{store}})$ stall formula
-  - Structural Solutions in Hardware
-    - The 3 physical pipeline resource conflicts
-    - Split Harvard I-Cache and D-Cache
-    - Register File split-cycle double-pumping
-    - Dedicated PC and branch adders`} />
+  - 2 · Theory: Causes and Hardware Fixes
+    - Fix 1: Split I-Cache and D-Cache (IF vs. MEM)
+    - Fix 2: Register File Double-Pumping (ID vs. WB)
+    - Fix 3: Dedicated PC and Branch Adders (IF / Branch vs. EX)
+  - 3 · Summary
+    - Resource collision lookup table and exam procedure
+  - 4 · Exercises`} />
 
 ## Hardware Resource Contention
 
@@ -64,26 +66,20 @@ Raising the ideal baseline $\text{CPI}_{\text{base}} = 1.00$ by $+0.35$ yields $
 
 <Divider label="2 · Theory" />
 
-### The Three Structural Conflicts
+### Causes and Hardware Fixes
 
-A **structural hazard** occurs when two instructions in different pipeline stages require the same physical hardware circuit in the same clock cycle. In the 5-stage RISC-V datapath, overlapping five instructions creates three potential hardware bottlenecks—each resolved permanently in standard hardware by duplicating the resource or time-splitting it:
+A **structural hazard** occurs when two instructions in different stages try to use the same physical hardware circuit during the same clock cycle. Across the 5-stage RISC-V datapath (`IF`, `ID`, `EX`, `MEM`, `WB`), overlapping five instructions can cause a hardware collision in three places: **memory access**, **register file access**, and **integer addition**. Standard pipelined processors eliminate all three in hardware—either by duplicating the hardware unit or splitting one clock cycle into two phases—so structural stalls only appear on exams when a problem explicitly removes one of those fixes (almost always single-port unified memory).
 
-1. **Memory Port (`IF` vs. `MEM`):** Instruction fetch and `lw`/`sw` data access compete if they share one memory array.
-2. **Register File (`ID` vs. `WB`):** Reading `rs1`/`rs2` and writing `rd` happen in the same cycle whenever an instruction in `WB` overlaps a reader in `ID`.
-3. **Arithmetic Logic (`IF`, Branch, `EX`):** Incrementing `PC + 4`, computing branch targets, and running ALU ops happen concurrently every cycle.
+### Fix 1: Split Instruction and Data Caches
 
-### Unified Versus Split Harvard Memory
-
-Whether memory accesses cause structural stalls depends entirely on the L1 memory port topology:
-
-- **Unified Memory (Single-Port Von Neumann Topology):** Instructions and data share a single-ported memory array (*una sola memoria per dati e istruzioni*). Every `lw` and `sw` entering stage `MEM` blocks stage `IF` for $1$ cycle:
+- **The hazard:** Stage `IF` fetches an instruction every cycle, while `lw` and `sw` instructions access data in stage `MEM`. With a **unified single-port memory** (*una sola memoria per dati e istruzioni*), those two requests collide on the same memory port, forcing `IF` to stall for $1$ cycle on every load and store:
   $$\text{Stalls}_{\text{struct}} = f_{\text{mem}} \times 1 = (f_{\text{load}} + f_{\text{store}}) \times 1$$
-- **Split Caches (Harvard L1 Topology):** Virtually all pipelined CPUs retain a unified main DRAM address space at lower levels while splitting the L1 interface into two physically independent caches (*due memorie distinte per istruzioni e dati*): a read-only **L1 Instruction Cache (`I-Cache`)** wired exclusively to `IF` and a dual-access **L1 Data Cache (`D-Cache`)** wired exclusively to `MEM`. Because both ports operate on separate address and data buses simultaneously:
+- **The hardware fix:** Keep unified main DRAM at lower memory levels, but split the L1 interface into two separate caches (*due memorie distinte per istruzioni e dati*): an **L1 Instruction Cache (`I-Cache`)** wired only to `IF` and an **L1 Data Cache (`D-Cache`)** wired only to `MEM`. Because they have independent address and data buses, `IF` and `MEM` run concurrently:
   $$\text{Split I/D Memories (Harvard L1)} \implies \text{Stalls}_{\text{struct}} = 0$$
 
-### Register File Double-Pumping
+### Fix 2: Register File Double-Pumping
 
-Look closely at Clock Cycle 5 when an instruction $i$ writing a register (`RegWrite = 1`) is separated by **distance $k = 3$** from a younger instruction $i + 3$ reading registers:
+- **The hazard:** Whenever an older instruction $i$ writes back to a register in `WB` during the exact same clock cycle (Cycle 5) that instruction $i + 3$ decodes and reads registers in `ID` (distance $k = 3$), both stages access the Register File simultaneously:
 
 | Instruction | C1 | C2 | C3 | C4 | C5 | C6 | C7 |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -92,21 +88,18 @@ Look closely at Clock Cycle 5 when an instruction $i$ writing a register (`RegWr
 | `i+2: addi t5, t5, 1` | | | `IF` | `ID` | `EX` | `MEM` | `WB` |
 | `i+3: sub x4, x1, x5` | | | | `IF` | **`ID`** | `EX` | `MEM` |
 
-In Cycle 5, `add` is in `WB` writing `x1` while `sub` is in `ID` reading `rs1 = x1` and `rs2 = x5`. The RISC-V Register File eliminates both port contention and stale-read errors with **zero stall cycles** using two hardware rules:
-
-1. **Dedicated Read/Write Ports:** The small $32 \times 32$-bit SRAM/register array provides two independent combinational read ports (`rs1`, `rs2`) and one synchronous write port (`rd`).
-2. **Split-Cycle Double-Pumping:** As illustrated in [the figure](#fig-double-pumping), stage `WB` commits its write during the **first half of the clock cycle** (on the falling mid-cycle edge or high phase), while stage `ID` samples the read ports during the **second half of the clock cycle** (latched into `ID/EX` on the next rising edge).
+- **The hardware fix:** Build the Register File with dedicated read ports (`rs1`, `rs2`) and write port (`rd`), and use **split-cycle double-pumping** ([the figure below](#fig-double-pumping)): `WB` commits its write in the **first half** of the clock cycle, and `ID` reads in the **second half**.
 
 <figure id="fig-double-pumping" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/computer-architecture/fig-double-pumping.svg" alt="Register File double-pumping: writing in the first half of the clock cycle and reading in the second half allows an instruction at distance 3 to read freshly written data in the same clock cycle with zero stalls." />
   <figcaption>Register File split-cycle double-pumping: writing in the first half of Cycle 5 and reading in the second half lets an instruction at distance $k = 3$ capture the updated register value with zero stall cycles.</figcaption>
 </figure>
 
-Because the write finishes before the read settles within the same clock period, any dependency at **distance $k \ge 3$ incurs $0$ stall cycles**—even on a pipeline with no forwarding buses!
+Because the write finishes in the first half before `ID` latches operands in the second half, any dependency at **distance $k \ge 3$ costs $0$ stall cycles**—both as a structural conflict and as a data hazard, even when forwarding hardware is disabled (you will reuse this rule in Chapter 16).
 
-### Dedicated Stage Adders (Conceptual)
+### Fix 3: Dedicated Adders for PC and Branches
 
-To prevent `IF` (`PC + 4`) and branch-target computation (`PC + Imm`) from fighting the main `EX` ALU, pipelines include two small dedicated 32-bit adders alongside the Main ALU—so arithmetic never causes a structural stall.
+- **The hazard and hardware fix:** Every clock cycle, the pipeline may need three additions at the same time: computing `PC + 4` in `IF`, calculating a branch target `PC + Imm`, and running an ALU operation or address calculation in `EX`. Rather than sharing one ALU and stalling every cycle, the datapath duplicates the simple hardware: it adds two small dedicated 32-bit adders (`PC + 4` and branch target) alongside the Main ALU in `EX`, permanently eliminating arithmetic structural stalls.
 
 <Callout type="bridge" title="DMA Bus Contention in Microcontroller SRAM">
 

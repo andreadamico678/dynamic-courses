@@ -12,14 +12,15 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 18 Outline" markdown={`# Ch. 18: Pipeline Performance
-  - Full CPI Audit Example
-    - Unified memory + Load-Use + EX branch
-    - Additive stall stack
-  - General CPI Accounting
-    - Master $\\text{CPI}_{\\text{pipe}}$ expansion
-    - Producer vs. consumer percentages
-    - No-forwarding and solo-stalli cases
-    - Decoy dependency filtering`} />
+  - 1 · Example: Multi-Hazard Pipeline CPI Audit
+    - Unified memory + Load-Use + EX branch stack
+  - 2 · Theory
+    - Master Pipeline CPI Equation
+    - Producer vs. Consumer Percentages
+    - Worked Configuration Patterns (No-Forwarding & Decoys)
+  - 3 · Summary
+    - Hazard stall lookup table and 5-step procedure
+  - 4 · Exercises`} />
 
 ## Additive Cycle Penalty Accounting
 
@@ -97,9 +98,9 @@ The single most frequent numerical error in pipeline evaluations is multiplying 
    $$f_{\text{load-use}} = f_{\text{Load}} \times 0.30$$
 3. **Global-Stream Phrasing:** *"5% of **all executed instructions** stall on a Load-Use hazard."* The fraction is already normalized to $\text{IC}$ ($f_{\text{load-use}} = 0.05$)—never multiply by $f_{\text{Load}}$ or $f_{\text{ALU}}$ a second time!
 
-### No-Forwarding and Decoy Benchmarks
+### Worked Configuration Patterns
 
-Two contrasting architectural configurations illustrate every remaining rule you will encounter in written evaluations:
+Once you know the master equation and conditional percentage anchoring, every written CPI problem is simply a combination of hardware switches (memory topology, forwarding on/off, branch stage, and branch policy). The two patterns below show the exact switches that flip terms on exams:
 
 - **Case 1 — Split Memories, Forwarding Disabled, Stall-Always (*Solo Stalli*) in `ID`:**
   Suppose a workload has `Load` $18\%$, `Store` $12\%$, `Branch` $15\%$ ($40\%$ taken), and `ALU` $55\%$. Without forwarding, $30\%$ of `ALU` depend on a preceding instruction at distance $k = 1$ ($2\text{ stalls}$), $15\%$ of `ALU` depend at distance $k = 2$ ($1\text{ stall}$), and $30\%$ of `Load` depend on an `ALU` address producer at distance $k = 1$ ($2\text{ stalls}$).

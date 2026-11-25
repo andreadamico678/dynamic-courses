@@ -12,14 +12,17 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 17 Outline" markdown={`# Ch. 17: Control Hazards and Branching
-  - Loop Branch Penalty Example
-    - ID (1), EX (2), MEM (3) stage penalties
-    - Predict-Untaken vs. stall-always
-  - Branch Resolution and Flushing
-    - Stage resolution hardware
-    - Five mitigation strategies
-    - Synchronous control flush to NOP
-    - ALU-to-Branch in ID vs. EX/MEM decoy`} />
+  - 1 · Example: Loop Branch Penalty Comparison
+    - ID (1), EX (2), MEM (3) with Predict-Untaken
+    - Predict-Untaken vs. Stall-Always
+  - 2 · Theory
+    - Resolution Stage Penalties (s - 1 flushes)
+    - Synchronous Pipeline Flush (NOP conversion)
+    - Branch Policies and Predictors
+    - ALU-to-Branch Interaction Rules (ID vs. EX/MEM)
+  - 3 · Summary
+    - Resolution table, control penalty steps, decoys
+  - 4 · Exercises`} />
 
 ## Branch Target Uncertainty
 
@@ -66,30 +69,27 @@ Why does resolving a branch at pipeline stage index $s \in \{2, 3, 4\}$ (`ID = 2
 - **Stage `MEM` Resolution ($s = 4 \implies P_{\text{MEM}} = 3$ cycles):** Microarchitectures that latch the ALU comparison flag into `EX/MEM` before routing `PCSrc` during Cycle 4 (`MEM`). Taken branches flush `IF`, `ID`, and `EX` ($3$ bubbles).
 - **Early Stage `ID` Resolution ($s = 2 \implies P_{\text{ID}} = 1$ cycle):** Hardware moves both the 32-bit target adder ($\text{PC} + \text{Imm}$) and a dedicated fast comparator (`rs1 == rs2` XOR-tree for `beq`/`bne`) directly into stage `ID`. Taken branches flush only the single instruction in `IF` ($1$ bubble), cutting branch penalty in half compared to `EX`—at the cost of a dedicated comparator and an extra RAW hazard check in `ID`.
 
-### Five Mitigation Strategies
-
-Architectural and compiler defenses against control hazards fall into five standard techniques:
-
-1. **Stall / Freeze Pipeline (*Solo Stalli*):** Freeze `IF` immediately upon detecting a branch until its outcome and target resolve. Simple hardware, but penalizes **every** branch taken or untaken:
-   $$\text{Stalls}_{\text{ctrl,stall}} = f_{\text{branch}} \times 1.0 \times P_{\text{stage}}$$
-2. **Early Branch Resolution:** Add a dedicated branch target adder and comparator in stage `ID` to reduce $P_{\text{stage}}$ down to $1\text{ cycle}$.
-3. **Static Branch Prediction:** Hardware applies a fixed compile-time rule with zero runtime history tables:
-   - **Predict-Untaken:** Fetch $\text{PC} + 4$ speculatively; pay $0$ stalls when untaken and $P_{\text{stage}}$ flushes when taken:
-     $$\text{Stalls}_{\text{ctrl,untaken}} = f_{\text{branch}} \times p_{\text{taken}} \times P_{\text{stage}}$$
-   - **Predict-Taken:** Useful only when the target address $\text{PC} + \text{Imm}$ is computed *earlier* than the branch condition; in a basic 5-stage pipeline without a target cache, `IF` still does not know $\text{PC} + \text{Imm}$ during Cycle 1, leaving at least a 1-cycle stall.
-4. **Dynamic Branch Prediction:** Hardware tracks per-branch runtime behavior in small SRAM tables indexed by lower `PC` bits during stage `IF`:
-   - **2-Bit Saturating Counter:** A 4-state finite state machine (*Strongly Taken*, *Weakly Taken*, *Weakly Untaken*, *Strongly Untaken*) that requires **two consecutive mispredictions** to flip its prediction—preventing a loop branch from mispredicting twice per loop execution (once on exit and again on re-entry).
-   - **Branch Target Buffer (BTB):** A small cache in `IF` storing `(Tag = Branch PC, Predicted Target PC, Prediction State)`. On a predicted-taken BTB hit in Cycle 1, `IF` fetches the target address immediately in Cycle 2 with **0 stall cycles**.
-5. **Delayed Branching (Software Scheduling):** The ISA defines $1$ **branch delay slot** immediately after every branch whose instruction executes *unconditionally* whether the branch is taken or not. The compiler fills this slot with an independent instruction from before the branch (similar to Load-Use scheduling, though abandoned in modern RISC-V because delay slots complicate wide superscalar pipelines).
-
 ### Synchronous Pipeline Flush
 
-When Predict-Untaken speculates along $\text{PC} + 4$ and a branch later evaluates as **taken**, the speculative instructions already inside `IF/ID` (and `ID/EX`, `EX/MEM` for later resolution) must be neutralized before they reach `MEM` or `WB`. As shown in [the figure](#fig-pipeline-flush), the Branch Unit asserts synchronous clear lines (`IF.Flush`, `ID.Flush`) that zero the instruction / control fields (`RegWrite = 0`, `MemWrite = 0`), converting wrong-path instructions into `NOP` bubbles while multiplexing `Target` into `PC`.
+When the pipeline predicts untaken along $\text{PC} + 4$ and a branch later evaluates as **taken**, those $s - 1$ speculative instructions already sitting inside `IF/ID` (and `ID/EX`, `EX/MEM` for later resolution) must be neutralized before they modify registers or memory. As shown in [the figure](#fig-pipeline-flush), the Branch Unit asserts synchronous clear lines (`IF.Flush`, `ID.Flush`) that zero the instruction / control fields (`RegWrite = 0`, `MemWrite = 0`), turning wrong-path instructions into `NOP` bubbles while multiplexing `Target` into `PC`.
 
 <figure id="fig-pipeline-flush" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/computer-architecture/fig-pipeline-flush.svg" alt="Pipeline flush mechanics: on a taken branch misprediction, the Branch Unit asserts synchronous clear signals to force control bits in IF/ID and ID/EX to zero, turning speculative instructions into harmless NOPs." />
   <figcaption>Synchronous pipeline flush: asserting flush lines forces `RegWrite = 0` and `MemWrite = 0` inside wrong-path interstage registers while loading the resolved branch target into `PC`.</figcaption>
 </figure>
+
+### Branch Policies and Predictors
+
+Besides resolving branches earlier in `ID`, four prediction or scheduling strategies reduce how often flushes happen (the first two are directly tested in exam CPI calculations; dynamic predictors and delay slots explain how real CPUs push penalties toward zero):
+
+1. **Stall-Always (*Solo Stalli*):** Freeze `IF` immediately upon detecting a branch until its outcome and target resolve. Simple to build, but penalizes **every** branch whether taken or untaken:
+   $$\text{Stalls}_{\text{ctrl,stall}} = f_{\text{branch}} \times 1.0 \times P_{\text{stage}}$$
+2. **Static Prediction (Predict-Untaken vs. Predict-Taken):**
+   - **Predict-Untaken:** Speculate along $\text{PC} + 4$, paying $0$ stalls when untaken and $P_{\text{stage}}$ flushes when taken:
+     $$\text{Stalls}_{\text{ctrl,untaken}} = f_{\text{branch}} \times p_{\text{taken}} \times P_{\text{stage}}$$
+   - **Predict-Taken:** Only helps if the target $\text{PC} + \text{Imm}$ is known before the condition; without a target cache in `IF`, Cycle 1 still does not know where to jump.
+3. **Dynamic Branch Prediction (2-Bit Counter + BTB):** Real CPUs use small `PC`-indexed tables in `IF`—a **2-bit saturating counter** (*Strongly/Weakly Taken vs. Untaken*, needing two consecutive mispredictions to flip, so nested loops only mispredict on exit rather than exit + re-entry) paired with a **Branch Target Buffer (BTB)** caching the target address so predicted-taken branches jump with **0 stalls**.
+4. **Delayed Branching (Historical / Compiler):** Older ISAs forced $1$ **branch delay slot** after every branch that executes unconditionally while the branch resolves (filled by compiler scheduling; omitted from modern RISC-V because it complicates wide superscalar cores).
 
 ### ALU-to-Branch Interaction Rules
 

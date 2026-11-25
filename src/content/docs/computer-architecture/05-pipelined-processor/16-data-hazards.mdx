@@ -13,15 +13,17 @@ import StepCheck from "@components/StepCheck.tsx";
 import PipelineExplorer from "@components/PipelineExplorer.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 16 Outline" markdown={`# Ch. 16: Data Hazards and Forwarding
-  - Load-Use and Bypass Trace
-    - Distance 1 and 3 dependencies
-    - Interactive 5-stage simulator
-  - Forwarding and Hazard Logic
-    - RAW stalls without forwarding: 2, 1, 0
-    - ForwardA and ForwardB Boolean logic
-    - EX/MEM priority and x0 zero guard
-    - Load-Use ID/EX.MemRead interlock
-    - Zero-cost compiler scheduling`} />
+  - 1 · Example: Load-Use and ALU Chain Trace
+    - Forwarding OFF vs. ON across 4 instructions
+    - Interactive 5-stage pipeline simulator
+  - 2 · Theory
+    - RAW Distance Without Forwarding (2, 1, 0 stalls)
+    - Forwarding Unit Boolean Logic (ForwardA / ForwardB)
+    - Load-Use Hazard Interlock (ID/EX.MemRead)
+    - Zero-Cost Compiler Scheduling
+  - 3 · Summary
+    - Forwarding rules, hazards table, common traps
+  - 4 · Exercises`} />
 
 ## Read-After-Write Dependencies
 
@@ -70,6 +72,8 @@ Select each preset trace in the simulator below and toggle between **Full Forwar
 />
 
 <Divider label="2 · Theory" />
+
+Read-After-Write (`RAW`) hazards can be handled at three increasing levels of sophistication: stalling without bypass hardware, routing results early via hardware forwarding, and—for the single Load-Use case forwarding cannot bridge—freezing 1 cycle in hardware or reordering instructions in the compiler.
 
 ### RAW Distance Without Forwarding
 

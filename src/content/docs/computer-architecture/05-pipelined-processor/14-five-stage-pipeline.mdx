@@ -12,15 +12,17 @@ import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
 <MindMap client:load defaultCollapsed title="Chapter 14 Outline" markdown={`# Ch. 14: Five-Stage Pipeline
-  - Timing Benchmark Example
-    - Single-cycle critical path sum
-    - Slowest-stage pipelined $T_{\\text{clk}}$
-    - Fill-and-drain speedup
-  - Datapath Stage Mechanics
-    - IF, ID, EX, MEM, WB operations
-    - Interstage registers IF/ID to MEM/WB
-    - Lockstep control signal propagation
-    - Register setup and clock-to-Q overhead`} />
+  - 1 · Example: Five-Stage Timing Benchmark
+    - Single-cycle sum vs. slowest-stage $T_{\\text{clk,pipe}}$
+    - Latency vs. steady-state speedup
+  - 2 · Theory
+    - Throughput Versus Latency
+    - Stage Hardware Mechanics (IF, ID, EX, MEM, WB)
+    - Lockstep Control Pipelining
+    - Clock Period Bound ($t_{\\text{setup}} + t_{\\text{cq}}$)
+  - 3 · Summary
+    - Pipeline stage table and timing steps
+  - 4 · Exercises`} />
 
 ## Assembly-Line Instruction Execution
 
@@ -112,7 +114,7 @@ Why are `MemRead`, `MemWrite`, `RegWrite`, and `MemtoReg` generated inside stage
 
 ### Clock Period Bound
 
-Because every interstage register consists of edge-triggered D flip-flops ([Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/)), data launched from one pipeline register after clock-to-Q delay $t_{\text{cq}}$ must propagate through the stage's combinational logic ($t_{\text{stage},i}$) and stabilize at least $t_{\text{setup}}$ before the next rising clock edge. Satisfying timing across all five stages simultaneously imposes the strict lower bound:
+Adding those four interstage barrier registers (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) to hold both data and control signals introduces a small flip-flop timing cost at every stage boundary. Because every interstage register consists of edge-triggered D flip-flops ([Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/)), data launched from one pipeline register after clock-to-Q delay $t_{\text{cq}}$ must propagate through the stage's combinational logic ($t_{\text{stage},i}$) and stabilize at least $t_{\text{setup}}$ before the next rising clock edge. Satisfying timing across all five stages simultaneously imposes the strict lower bound:
 
 $$T_{\text{clk,pipe}} = \max_{i \in \{\text{IF},\text{ID},\text{EX},\text{MEM},\text{WB}\}}\!\left(t_{\text{stage},i}\right) + t_{\text{setup}} + t_{\text{cq}}$$
 
