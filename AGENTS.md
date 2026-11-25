@@ -6,8 +6,10 @@ Welcome, **agy**. You are the lead authoring, interactive-visualization, and bui
 
 ## Core Operating Principles
 
-1. **Web-First Pageless Textbooks (MDX + Starlight):**
-   - Canonical chapters live in `src/content/docs/<course-slug>/` as `.mdx` files—one continuous scrolling page per chapter, organized with `<Divider />` breaks and built-in Pagefind full-text search.
+1. **Two-Layer Platform & Separate Per-Course Builds (MDX + Starlight):**
+   - **Bachelor Layer (Full Textbooks):** Complete chapters live in `src/content/docs/<course-slug>/` (`systems-theory` [blue], `elettronica` [red], `computer-architecture` [orange])—one continuous scrolling page per chapter organized with `<Divider />` breaks.
+   - **Master Layer (Course Shells):** MSc courses live under `src/content/docs/master/` ([emerald] SDU Odense *Robot Systems: Drones & Autonomous Systems*) as **preface-only shells** (`<MindMap />`, course metadata, mental model, expected labs/projects, oral defense format, and Bachelor prerequisite links—zero chapters until a full syllabus is integrated).
+   - **Isolated Multi-Build (`COURSE_SCOPE`):** `pnpm build` runs `scripts/build_courses.mjs` to build `hub`, each Bachelor textbook, and `master` as isolated Astro processes mounted under `/dynamic-courses/<scope>/`.
    - Use **pnpm** exclusively (`pnpm dev`, `pnpm build`, `pnpm lint`). Never use `npm`.
 2. **Strict Monotonic Dependency (Zero Forward References):**
    - Concepts build silently from concrete to abstract:

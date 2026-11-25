@@ -1,0 +1,59 @@
+---
+title: "Control of Autonomous Systems"
+description: "SDU MSc DAS Shell — Semester 1 (5 ECTS): Motion models, PID, state-space & MPC control, sensor fusion, and SITL simulation."
+sidebar:
+  order: 2
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Control of Autonomous Systems (5 ECTS)
+  - Role in Semester 1
+    - Mathematical control backbone before Sem 2 GNC
+  - Core Control & Estimation Modules
+    - Autonomous vehicle motion & kinematic models
+    - LTI-SISO, PID, state-space & MPC control
+    - Sensor fusion & feedback loops
+  - Simulation Labs & Oral Exam
+    - MATLAB/Simulink & ROS simulation-in-the-loop
+    - Mandatory exercises, project report & oral exam`} />
+
+## Course Preface & Mental Model
+
+**Control of Autonomous Systems** (**5 ECTS**, Semester 1) bridges Bachelor control theory directly into autonomous vehicles and mobile/aerial robots. In your Bachelor's linear systems class, transfer functions and state matrices $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$ lived cleanly on paper. Here, those exact equations govern vehicles whose actuators saturate, whose sensors carry noise and latency, and whose control loops run digitally inside simulation and autopilot code.
+
+It serves as the analytical prerequisite for Semester 2's **Guidance, Navigation and Control (`GNC`)** course—teaching you how to turn physical motion models into stable, tuned feedback controllers (`PID`, state feedback, and `Model Predictive Control`) tested against noisy sensor streams.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 1 (Fall) · Core DAS |
+| **Credits & Format** | **5 ECTS** · Lectures, tutorials, and hybrid simulation labs |
+| **Primary Tools** | `MATLAB / Simulink`, `ROS / ROS 2` virtual environments, `Python / C++` |
+| **Exam Prerequisites** | On-time approval of mandatory exercises and project reports |
+| **Exam Format** | **Individual oral examination** based on project work and control theory (7-point scale) |
+
+<Divider label="Core Modules & Expected Labs" />
+
+### Modeling, Control & Sensor Fusion Scope
+- **Vehicle Motion Modeling:** Deriving kinematic and dynamic state-space descriptions of autonomous platforms, operating-point linearization, and actuator limits.
+- **Feedback Control Architectures:** Connecting classical `LTI-SISO` / `PID` loop shaping with modern state-space pole placement/observers and optimization-based **Model Predictive Control (MPC)**.
+- **Sensor Fusion & State Estimation:** Combining noisy multi-rate measurements (IMU, wheel/visual/GNSS cues) to reconstruct clean state feedback signals.
+
+### What You Actually Do in the Lab
+You implement controllers in **software-in-the-loop virtual environments** (MATLAB/Simulink coupled with simulated vehicles and ROS topics), design experiments showing tracking performance vs. disturbance rejection, and compile results into mandatory project reports—then defend why your gains, discretization, or MPC horizon behave the way they do in an **individual oral exam**.
+
+### Bachelor Bridges & Preparation
+- Almost all foundational math comes straight from **[Linear Systems Theory](/dynamic-courses/systems-theory/)**:
+  - State models & linearization ([Part I](/dynamic-courses/systems-theory/01-state-models/00-introduction/))
+  - Routh stability & Bode margins ([Part IV](/dynamic-courses/systems-theory/04-stability-routh/00-introduction/), [Part V](/dynamic-courses/systems-theory/05-frequency-bode/00-introduction/))
+  - Kalman controllability, state feedback, and Luenberger observers ([Part VI](/dynamic-courses/systems-theory/06-kalman-structure/00-introduction/)–[Part VIII](/dynamic-courses/systems-theory/08-observers-compensation/00-introduction/)).
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Full mathematical derivations and MATLAB/ROS lab playbooks will live here once cohort materials are added.
+
+</Callout>

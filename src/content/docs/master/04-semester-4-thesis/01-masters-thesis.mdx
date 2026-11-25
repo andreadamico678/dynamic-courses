@@ -1,0 +1,53 @@
+---
+title: "Master's Thesis"
+description: "SDU MSc DAS Shell — Semester 4 (30 or 40 ECTS): Experimental UAS research inside SDU Drone Center, OptiTrack cages, and HCA Airport."
+sidebar:
+  order: 1
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Thesis Shell Outline" markdown={`# Master's Thesis (30 or 40 ECTS)
+  - Scope & Credit Tracks
+    - 30 ECTS standard (Semester 4, ~5 months)
+    - 40 ECTS experimental (+10 ECTS from Semester 3)
+  - SDU Research Infrastructure
+    - SDU UAS Centre & Drone Mechatronics labs
+    - Indoor OptiTrack motion-capture & Crazyflie swarms
+    - Outdoor UAS Denmark Test Center (HCA Airport)
+  - Active Research Themes & Defense
+    - Inspection, aerial manipulation, swarms, FPGA+ROS2+PX4
+    - Thesis monograph + demo + external oral defense`} />
+
+## Course Preface & Mental Model
+
+The **Master's Thesis** (**30 ECTS** standard full-time in Semester 4, or **40 ECTS** experimental starting with 10 ECTS in Semester 3) is the culmination of the MSc Robot Systems degree. Rather than a purely theoretical literature survey, SDU Robotics and the **SDU UAS Centre (Drone Center)** treat the thesis as an engineering research contribution grounded in simulation, custom hardware/software integration, and experimental validation.
+
+Depending on your career goal, you can execute your thesis directly inside one of SDU's drone research groups (a strong launchpad toward R&D roles or a PhD—SDU also supports 45 ECTS thesis tracks for 4+4 PhD students) or as an **industry-hosted thesis** with Danish drone/robotics companies in the Odense robotics cluster (*Odense Robotics*).
+
+<Divider label="Thesis Tracks & Infrastructure" />
+
+| Track | Timing | Total ECTS | Best For |
+| :--- | :--- | :---: | :--- |
+| **Standard Thesis** | Full-time Semester 4 (~5 months) | **30 ECTS** | Pairs cleanly with **Study Abroad** or a **15 ECTS In-Company Project** in Semester 3 |
+| **Extended Experimental Thesis** | 10 ECTS in Sem 3 + 30 ECTS in Sem 4 | **40 ECTS** | Complex physical builds requiring wind-tunnel, custom PCB/FPGA, or multi-month outdoor HCA Airport flight campaigns |
+
+### Facilities & Active Research Directions at SDU UAS Centre
+- **Test Facilities:** Indoor **OptiTrack** motion-capture flight arenas (including micro-quadcopter swarms such as **Crazyflie**), electronics/composite workshops, and outdoor BVLOS/test ranges at **UAS Denmark Test Center (HCA Airport, Odense)**.
+- **Representative SDU Thesis Topics:**
+  - **Autonomous Infrastructure Inspection:** Power-line tracking and wind-turbine inspection combining mmWave radar, computer vision, and onboard ROS 2 perception.
+  - **Aerial Manipulation:** Unmanned aerial vehicles equipped with lightweight robotic arms or compliant grippers for physical contact tasks.
+  - **Hardware-Accelerated Onboard Autonomy:** Power-efficient deep vision/control running on custom **MPSoC / FPGA + Ubuntu + ROS 2 + PX4** (*MPSoC4Drones*-style co-design).
+  - **Heterogeneous Swarms & Counter-UAS (`C-UAS`):** Multi-agent coordination, autonomous **AED emergency delivery**, and wildlife/environmental conservation monitoring.
+
+### Final Assessment
+- **Deliverables:** Formal written thesis monograph adhering to *Scientific Method* experimental standards + reproducible code/hardware/simulation artifacts.
+- **Exam:** **Individual oral defense** with an external examiner (*censor*) on the 7-point Danish scale.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Thesis proposal templates, Odense company contacts, and supervisor/lab notes will be added when planning Semester 3–4.
+
+</Callout>

@@ -1,0 +1,53 @@
+---
+title: "Tools of Artificial Intelligence"
+description: "SDU MSc DAS Shell — Semester 2 (5 ECTS): Neural networks, genetic algorithms, reinforcement learning, and experimental ML methodology."
+sidebar:
+  order: 5
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Tools of Artificial Intelligence (5 ECTS)
+  - Role in Semester 2
+    - Core ML/RL toolkit for robotic perception & control
+  - Core ML Topics
+    - Neural networks & representation learning
+    - Genetic & evolutionary algorithms
+    - Reinforcement learning (RL)
+    - Experimental challenges & benchmarking
+  - Project & Exam Format
+    - End-of-semester individual written project report`} />
+
+## Course Preface & Mental Model
+
+**Tools of Artificial Intelligence** (**5 ECTS**, Semester 2) supplies the learning-based half of modern autonomy—covering **neural networks**, **evolutionary/genetic optimization**, and **reinforcement learning (RL)** alongside the gritty experimental challenges of getting ML to actually generalize in engineering systems.
+
+Notice the deliberate split across the year: *Introduction to Embodied AI* (Semester 1) gave you state-space planning and embodied agent loops; *Tools of AI* gives you statistical/neural/RL function approximators and rigorous experimental validation (overfitting diagnostics, hyperparameter sensitivity, reward-shaping pitfalls) so you don't fool yourself with brittle models in Semester 3 or Thesis projects.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 2 (Spring) · Core DAS |
+| **Credits & Format** | **5 ECTS** · Lectures + hands-on coding exercises + ML project |
+| **Primary Stack** | `Python`, `PyTorch` / ML libraries, RL / simulation environments |
+| **Exam Format** | **Individual written project report** on semester-end compulsory assignment *(some cohorts pair exercise portfolio + individual oral; external examiner, 7-point scale)* |
+
+<Divider label="Core Modules & Expected Labs" />
+
+### Learning & Optimization Scope
+- **Neural Networks & Representation Techniques:** Multi-layer architectures, gradient-based optimization, regularization, and feature/state representations suitable for sensor/control data.
+- **Genetic & Evolutionary Algorithms:** Population-based black-box search for morphologies, controller gains, or non-differentiable robotics objectives.
+- **Reinforcement Learning (`RL`):** MDPs, value/policy methods, exploration vs. exploitation, and training agents inside simulated control tasks.
+- **Experimental ML Methodology:** Train/validation/test leakage prevention, cross-validation, seed variance, and statistical reporting of learning curves.
+
+### What You Actually Do
+You implement, tune, and systematically benchmark ML/RL algorithms on engineering tasks—paying close attention to ablation studies and experimental methodology—and deliver a thorough **individual written project report** at the end of the semester.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Full math derivations, Python/PyTorch notebooks, and project rubrics will be populated once the semester syllabus is integrated.
+
+</Callout>

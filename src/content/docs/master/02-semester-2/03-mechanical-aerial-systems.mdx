@@ -1,0 +1,54 @@
+---
+title: "Mechanical Aerial Systems"
+description: "SDU MSc DAS Shell — Semester 2 (T550076101, 5 ECTS): Aerodynamics, rotor stability, CAD simulation, 3D printing, and physical flight prototyping."
+sidebar:
+  order: 3
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Mechanical Aerial Systems (T550076101 · 5 ECTS)
+  - Role in Semester 2
+    - Hardware airframe design from CAD to actual flight
+  - Core Mechanics Modules
+    - Aerodynamics, propellers & rotor mechanics
+    - Aircraft configurations & flight stability
+    - Structural materials & rapid prototyping
+  - Prototyping & Oral Exam
+    - CAD model, structural simulation & 3D print build
+    - Physical flight test + compulsory reports
+    - Oral exam on design assignments & theory`} />
+
+## Course Preface & Mental Model
+
+**Mechanical Aerial Systems** (`T550076101` / `T550064101`, **5 ECTS**, Semester 2) is where software-heavy engineers get their hands dirty with aerodynamics, airframe mechanics, and physical fabrication. Autonomy algorithms only perform as well as the physical airframe carrying them: an under-stiff arm excites structural resonance inside your IMU, poorly matched propeller/motor geometry slashes hover endurance, and shifting center of gravity destabilizes pitch authority.
+
+Instead of treating drones as off-the-shelf black boxes, this course takes you end-to-end from aerodynamic calculation and CAD modeling straight to **3D printing, assembling, and flight-testing a physical prototype**.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 2 (Spring) · Core DAS |
+| **Course Code & Credits** | `T550076101` / `T550076102` (also `T550064101`) · **5 ECTS** |
+| **Primary Stack** | `CAD`, structural/mechanical simulation, rapid prototyping (`3D printing`, workshop), flight testing |
+| **Exam Prerequisites** | Satisfactory completion of **compulsory group/individual design assignments and reports** |
+| **Exam Format** | **Oral examination** grounded in practical design assignments, reports, and flight-mechanics theory |
+
+<Divider label="Core Modules & Expected Labs" />
+
+### Aerodynamics & Airframe Engineering Scope
+- **Aerodynamics & Rotor Physics:** Airfoil lift/drag polars, blade-element / momentum intuition for propellers and rotors, thrust, torque, and hover/forward-flight power draw.
+- **Configurations & Stability:** Multirotor vs. fixed-wing vs. VTOL hybrid trade-offs, center-of-gravity placement, static/dynamic stability margins, and actuator sizing.
+- **Materials & Rapid Prototyping:** Selecting lightweight structural composites/polymers, designing printable load-bearing parts for fatigue/vibration resilience, and workshop integration.
+
+### What You Actually Do in the Lab
+Teams go through the full physical product cycle: build a virtual **CAD model**, run mechanical/structural simulations to verify stiffness and weight targets, fabricate parts via **3D printing** and lab workshops, integrate avionics/propulsion, **flight-test your prototype**, and defend all engineering trade-offs in your reports and oral exam.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Full aerodynamic formulas, CAD design guidelines, and lab checklists will be added once the SDU course syllabus is integrated.
+
+</Callout>

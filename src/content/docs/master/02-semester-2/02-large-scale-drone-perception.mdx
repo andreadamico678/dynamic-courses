@@ -1,0 +1,54 @@
+---
+title: "Large-scale Drone Perception"
+description: "SDU MSc DAS Shell — Semester 2 (T550060101, 5 ECTS): 2D-to-3D aerial reconstruction, orthomosaics, optical flow, fiducial tracking, and SLAM."
+sidebar:
+  order: 2
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Large-scale Drone Perception (T550060101 · 5 ECTS)
+  - Role in Semester 2
+    - Turning raw UAV camera streams into 3D geometry & pose
+  - Core Computer Vision Modules
+    - 2D images to 3D models & large orthomosaics
+    - Optical flow & background estimation
+    - Fiducial marker tracking
+    - Aerial SLAM
+  - Portfolio, Reports & Oral Exam
+    - Mandatory exercises & project reports
+    - Individual oral defense`} />
+
+## Course Preface & Mental Model
+
+**Large-scale Drone Perception** (`T550060101`, **5 ECTS**, Semester 2) focuses on extracting metric geometry, motion, and environmental understanding from cameras mounted on flying platforms. Aerial perception brings unique headaches compared to stationary or ground cameras: wide baselines, altitude-induced scale changes, motion blur from vibrations, massive multi-gigapixel stitching datasets (*orthomosaics*), and strict onboard compute ceilings when tracking landing targets in real time.
+
+Working alongside *GNC*, perception supplies the visual velocity, marker pose, and 3D map measurements that let a drone navigate precisely even when GNSS is unreliable or denied.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 2 (Spring) · Core DAS |
+| **Course Code & Credits** | `T550060101` / `T550060102` · **5 ECTS** |
+| **Primary Stack** | `Python / C++`, `OpenCV`, `ROS / ROS 2`, 3D reconstruction / photogrammetry tools |
+| **Exam Prerequisites** | **Mandatory project reports and lab exercises** approved on time |
+| **Exam Format** | **Individual oral examination** anchored around your portfolio, group project reports, and vision theory |
+
+<Divider label="Core Modules & Expected Labs" />
+
+### Aerial Vision & Mapping Scope
+- **2D-to-3D Reconstruction & Orthomosaics:** Camera calibration, feature extraction/matching, epipolar geometry, Structure-from-Motion (`SfM`), bundle adjustment, and georeferenced large-scale orthomosaic generation from UAV surveys.
+- **Motion & Dynamic Scene Cues:** Computing dense/sparse **optical flow** (for velocity estimation and obstacle avoidance) and **background estimation / moving-target segmentation** from a moving aerial camera.
+- **Fiducial Tracking & UAV SLAM:** Real-time detection of fiducial markers (`ArUco` / `AprilTag`) for autonomous precision landing, and **Simultaneous Localization and Mapping (SLAM)** pipelines under aerial motion.
+
+### What You Actually Do in the Lab
+Expect progressive coding lab exercises processing real UAV flight imagery into 3D maps and tracking outputs, plus a group perception project compiled into a portfolio/report that drives the questioning in your **individual oral exam**.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Full projective geometry formulas and OpenCV/SLAM lab walkthroughs will be added when the semester syllabus is integrated.
+
+</Callout>

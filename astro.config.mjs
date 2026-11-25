@@ -47,15 +47,36 @@ const COURSES = {
       { label: 'Part VI — Cache Memory Systems', collapsed: true, dir: '06-cache-memory' },
     ],
   },
+  master: {
+    label: 'MSc Robot Systems — Drones & Autonomous Systems (SDU)',
+    prefaceLabel: 'Program Overview & SDU Guide',
+    parts: [
+      { label: 'Semester 1 — Foundations (30 ECTS)', collapsed: false, dir: '01-semester-1' },
+      { label: 'Semester 2 — Drone Systems (30 ECTS)', collapsed: false, dir: '02-semester-2' },
+      { label: 'Semester 3 — Projects & Electives (30 ECTS)', collapsed: false, dir: '03-semester-3-and-electives' },
+      { label: 'Semester 4 — Master Thesis (30–40 ECTS)', collapsed: false, dir: '04-semester-4-thesis' },
+    ],
+  },
 };
 
 function buildSidebar() {
   if (scope === 'hub') {
     return [
       { label: 'Platform Home', link: '/' },
-      { label: 'Linear Systems Theory', link: '/systems-theory/' },
-      { label: 'Elettronica (Microelettronica)', link: '/elettronica/' },
-      { label: 'Computer Architecture', link: '/computer-architecture/' },
+      {
+        label: 'Bachelor (UniCT L-8)',
+        items: [
+          { label: 'Linear Systems Theory', link: '/systems-theory/' },
+          { label: 'Elettronica (Microelettronica)', link: '/elettronica/' },
+          { label: 'Computer Architecture', link: '/computer-architecture/' },
+        ],
+      },
+      {
+        label: 'Master (SDU Odense)',
+        items: [
+          { label: 'Robot Systems: Drones & Autonomous Systems', link: '/master/' },
+        ],
+      },
     ];
   }
 
@@ -90,7 +111,7 @@ function buildSidebar() {
 const courseThemeScript = `
 (function () {
   var fixed = ${JSON.stringify(isSubCourse ? scope : '')};
-  var m = window.location.pathname.match(/\\/dynamic-courses\\/(systems-theory|elettronica|computer-architecture)(?:\\/|$)/);
+  var m = window.location.pathname.match(/\\/dynamic-courses\\/(systems-theory|elettronica|computer-architecture|master)(?:\\/|$)/);
   var course = fixed || (m ? m[1] : '');
   if (course) document.documentElement.dataset.dcCourse = course;
   else delete document.documentElement.dataset.dcCourse;
@@ -106,7 +127,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: isSubCourse && COURSES[scope] ? COURSES[scope].label : 'Dynamic Courses',
-      description: 'Interactive, pageless engineering textbooks with Matryoshka mind maps and live math simulators.',
+      description: 'Interactive, pageless engineering textbooks and MSc course shells with Matryoshka mind maps.',
       head: [
         {
           tag: 'script',

@@ -7,11 +7,12 @@ const COURSE_LABELS: Record<string, string> = {
   'systems-theory': 'Linear Systems Theory',
   elettronica: 'Elettronica',
   'computer-architecture': 'Computer Architecture',
+  master: 'MSc Robot Systems (SDU)',
 };
 
 let activeCourse = scope !== 'all' && scope !== 'hub' ? scope : '';
 if (!activeCourse) {
-  const m = pathname.match(/\/dynamic-courses\/(systems-theory|elettronica|computer-architecture)(?:\/|$)/);
+  const m = pathname.match(/\/dynamic-courses\/(systems-theory|elettronica|computer-architecture|master)(?:\/|$)/);
   if (m) activeCourse = m[1];
 }
 

@@ -1,0 +1,79 @@
+---
+title: "SDU MSc Robot Systems — Drones & Autonomous Systems"
+description: "Master's layer overview, semester map, Problem-Based Learning lab expectations, and Bachelor-to-Master transition guide."
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load title="MSc Robot Systems (DAS) Roadmap" markdown={`# SDU Odense: Drones & Autonomous Systems (120 ECTS)
+  - Program Model & Grading
+    - Problem-Based Learning (PBL)
+    - 7-point Danish grading scale
+    - Lab reports + individual oral defense
+  - Semester 1: Foundations (30 ECTS)
+    - Intro to Drone Tech (T550063101)
+    - Control of Autonomous Systems
+    - Embedded Systems
+    - Embodied AI, Multivariate Statistics, Scientific Method
+  - Semester 2: Drone Engineering (30 ECTS)
+    - GNC (T550012101) & Drone Perception (T550060101)
+    - Mechanical Aerial Systems (T550076101)
+    - Bio-Inspired Systems, Tools of AI, 5 ECTS Elective
+  - Semester 3: Integration & Mobility (30 ECTS)
+    - Innovative Robotic Tech (15 ECTS) or Project in Robotics (10 ECTS)
+    - Study Abroad / In-Company (15 ECTS) / Electives / +10 Thesis
+  - Semester 4: Master Thesis (30 or 40 ECTS)
+    - SDU UAS Centre & HCA Airport flight tests`} />
+
+## Program Overview & How It Differs From a Bachelor's
+
+This Master layer houses **course shells** (rich Preambles and Introductions with zero chapter pages yet) for the **MSc in Engineering in Robot Systems — Drones and Autonomous Systems (DAS)** at the **University of Southern Denmark (SDU), Odense**, hosted by the Mærsk Mc-Kinney Møller Institute and the SDU UAS Centre.
+
+Unlike an Italian Bachelor's curriculum centered on individual closed-book written algebra exams, SDU runs on **Problem-Based Learning (PBL)**:
+
+- **Team Build + Individual Oral Defense:** In nearly every technical course, teams of 3–4 build and validate a working simulation or physical hardware pipeline, submit mandatory lab/project reports by strict semester deadlines, and then face an **individual oral exam** (Danish **7-point scale**: `-3, 00, 02, 4, 7, 10, 12`, pass $\ge 02$) defending both the team's design decisions and the underlying theory.
+- **No Waiting Until Exam Week:** Missing mandatory lab report deadlines usually disqualifies you from sitting the oral exam—work is paced continuously across the semester.
+- **Shell Purpose:** Each course page here gives you the concrete mental model, expected software/hardware deliverables, exam structure, and links back to your UniCT Bachelor textbooks so you arrive prepared—and acts as a ready container when full syllabi from `odin.sdu.dk` and `itslearning` are integrated later.
+
+<Callout type="tip" title="Curriculum Source Note">
+
+Official cohort-specific codes and exam schedules on `odin.sdu.dk/sitecore/index.php?a=sto&id=77432&listid=5888&lang=en` sit behind SDU's WAF verification. These shells consolidate publicly indexed SDU TEK curriculum pages and course sheets—verify exact cohort codes and exam regulations on MitSDU once enrolled.
+
+</Callout>
+
+<Divider label="Semester Structure (120 ECTS)" />
+
+| Semester | Shell Course | Code | ECTS | Primary Assessment |
+| :--- | :--- | :--- | :---: | :--- |
+| **1 · Fall** | [Introduction to Drone Technology](/dynamic-courses/master/01-semester-1/01-introduction-to-drone-technology/) | `T550063101` | 5 | Mandatory lab reports + individual oral |
+| **1 · Fall** | [Control of Autonomous Systems](/dynamic-courses/master/01-semester-1/02-control-of-autonomous-systems/) | — | 5 | Mandatory exercises/report + individual oral |
+| **1 · Fall** | [Embedded Systems](/dynamic-courses/master/01-semester-1/03-embedded-systems/) | — | 5 | Assignments + lab group project / oral |
+| **1 · Fall** | [Introduction to Embodied AI](/dynamic-courses/master/01-semester-1/04-introduction-to-embodied-ai/) | — | 5 | Group report + individual oral |
+| **1 · Fall** | [Multivariate Statistics](/dynamic-courses/master/01-semester-1/05-multivariate-statistics/) | — | 5 | Individual oral (data exercises) |
+| **1 · Fall** | [Scientific Method](/dynamic-courses/master/01-semester-1/06-scientific-method/) | — | 5 | Portfolio (50%) + written/MCQ (50%) |
+| **2 · Spring** | [Guidance, Navigation and Control](/dynamic-courses/master/02-semester-2/01-guidance-navigation-and-control/) | `T550012101` | 5 | Group GNC project + individual oral |
+| **2 · Spring** | [Large-scale Drone Perception](/dynamic-courses/master/02-semester-2/02-large-scale-drone-perception/) | `T550060101` | 5 | Exercises/project reports + individual oral |
+| **2 · Spring** | [Mechanical Aerial Systems](/dynamic-courses/master/02-semester-2/03-mechanical-aerial-systems/) | `T550076101` | 5 | Compulsory design/prototype reports + oral |
+| **2 · Spring** | [Bio-Inspired Autonomous Systems](/dynamic-courses/master/02-semester-2/04-bio-inspired-autonomous-systems/) | — | 5 | Group project report + individual oral |
+| **2 · Spring** | [Tools of Artificial Intelligence](/dynamic-courses/master/02-semester-2/05-tools-of-artificial-intelligence/) | — | 5 | Individual written report (or portfolio + oral) |
+| **2 · Spring** | *Elective Course* ([Catalog](/dynamic-courses/master/03-semester-3-and-electives/02-electives-and-in-company-track/)) | — | 5 | Varies (lab/project + oral) |
+| **3 · Fall** | [Engineering of Innovative Robotic Technologies](/dynamic-courses/master/03-semester-3-and-electives/01-engineering-of-innovative-robotic-technologies/) | — | 15 | Group prototype + report + pitch + oral |
+| **3 · Fall** | [Electives / Mobility / In-Company Track](/dynamic-courses/master/03-semester-3-and-electives/02-electives-and-in-company-track/) | — | 15 | Abroad, In-Company (15), Electives, or +10 Thesis |
+| **4 · Spring** | [Master's Thesis](/dynamic-courses/master/04-semester-4-thesis/01-masters-thesis/) | — | 30 / 40 | Written thesis + demo + oral defense |
+
+<Divider label="Labs & Engineering Stack" />
+
+To feel comfortable from Week 1 in Odense, focus less on memorizing isolated theorems and more on how **hardware, middleware, estimation, and flight control connect end-to-end**:
+
+1. **Autopilot & Flight Stack:** **PX4 Autopilot** on **Pixhawk** controllers handling inner attitude/rate loops, actuator mixing, safety failsafes, and telemetry (**MAVLink** / **QGroundControl**).
+2. **Companion Middleware:** **ROS / ROS 2** running on **Linux** companion computers (**Raspberry Pi**, **NVIDIA Jetson**, or **MPSoC FPGA** boards) communicating with PX4 over **Micro XRCE-DDS / micro-ROS** or **MAVROS**.
+3. **Simulation-First Gate:** **Gazebo + PX4 SITL** (Software-In-The-Loop) and **MATLAB/Simulink**—every GNC and perception algorithm proves itself safely in simulation before physical flight.
+4. **Physical Prototyping & Flight Arenas:** Indoor **OptiTrack** motion-capture cages (micro-quadrotors / Crazyflie swarms), CAD + 3D printing / composite workshops, and outdoor flight ranges at **UAS Denmark Test Center (HCA Airport)**.
+
+<Divider label="Bachelor Prerequisites Map" />
+
+- **[Linear Systems Theory](/dynamic-courses/systems-theory/)** directly underpins *Control of Autonomous Systems* and *Guidance, Navigation and Control* (state-space representation, Lyapunov/eigenvalue stability, observers, loop shaping).
+- **[Computer Architecture](/dynamic-courses/computer-architecture/)** directly underpins *Embedded Systems* and *Embedded Linux* (digital FSMs, hardware-software interfaces, memory hierarchies, low-level C execution).
+- **[Elettronica](/dynamic-courses/elettronica/)** supports sensor interfacing, power electronics, analog conditioning, and digital CMOS logic across drone hardware labs.

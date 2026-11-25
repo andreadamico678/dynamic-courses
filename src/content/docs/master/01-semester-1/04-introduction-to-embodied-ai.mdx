@@ -1,0 +1,52 @@
+---
+title: "Introduction to Embodied Artificial Intelligence"
+description: "SDU MSc DAS Shell — Semester 1 (5 ECTS): Embodied & behavior-based AI, sensorimotor coupling, state representation, and autonomous action planning."
+sidebar:
+  order: 4
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Intro to Embodied AI (5 ECTS)
+  - Core Philosophy
+    - Intelligence grounded in physical sensorimotor loops
+  - Foundational Topics
+    - Classical & behavior-based robotics AI
+    - State-space representation & search
+    - Autonomous action & task planning
+  - Team Project & Oral Exam
+    - Mandatory group project report
+    - Individual oral defense`} />
+
+## Course Preface & Mental Model
+
+**Introduction to Embodied Artificial Intelligence** (**5 ECTS**, Semester 1) challenges the pure software view of AI (static datasets in, predictions out) and reframes intelligence through a physical body acting inside an uncertain environment. For an autonomous drone, "thinking" is inseparable from **morphology, noisy sensors, energy budgets, and continuous closed-loop interaction** with physics.
+
+Rather than jumping straight to deep neural nets (covered later in *Tools of AI* and perception courses), this course establishes the **behavior-based, representational, and deliberative planning foundations** that tell an autonomous agent *what sequence of actions achieves a goal safely* in real time.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 1 (Fall) · Core DAS |
+| **Credits & Format** | **5 ECTS** · Lectures + team experimental AI project |
+| **Exam Prerequisites** | On-time submission of the mandatory group project report |
+| **Exam Format** | Overall assessment of **group report** + **individual oral examination** (7-point scale) |
+
+<Divider label="Core Modules & Expected Labs" />
+
+### Embodied & Planning Scope
+- **Embodied & Behavior-Based Architectures:** Reactive vs. deliberative control loops, subsumption/behavior arbitration, and real-time physical constraints.
+- **State-Space Representations & Search:** Formulating world models, discrete/continuous transition states, heuristic search, and decision under uncertainty.
+- **Autonomous Action Planning:** Goal-directed task planning and integrating perception outputs with low-level execution modules.
+
+### What You Actually Do in the Lab
+Teams implement and benchmark an embodied decision/planning agent in simulated or physical robotic testbeds, analyze failure modes in a structured **group report**, and defend both the algorithmic foundations and implementation trade-offs in an **individual oral exam**.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Reading lists, project specifications, and oral exam topics will be filled in when the SDU course syllabus is imported.
+
+</Callout>

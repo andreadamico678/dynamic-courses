@@ -83,8 +83,8 @@ def main() -> int:
         rel = mdx.relative_to(ROOT).as_posix()
         txt = mdx.read_text(encoding="utf-8")
 
-        # Verify internal /dynamic-courses/ links (exclude /diagrams/ assets)
-        for lm in re.finditer(r"(?:\(|link:\s*)(/dynamic-courses/(?!diagrams/)[^)\s#]+)", txt):
+        # Verify internal /dynamic-courses/ links in Markdown and HTML href attributes (exclude /diagrams/ assets)
+        for lm in re.finditer(r'(?:\(|link:\s*|href=["\'])(/dynamic-courses/(?!diagrams/)[^)\s#"\']+)', txt):
             route = lm.group(1)
             if not route.endswith("/"):
                 route += "/"
@@ -92,8 +92,10 @@ def main() -> int:
                 errors.append(f"[{rel}] Broken internal route: {lm.group(1)}")
 
         # Skip platform root index.mdx and part introductions for chapter-only checks
+        rel_parts = mdx.relative_to(DOCS_ROOT).parts
+        is_master_shell = len(rel_parts) >= 2 and rel_parts[0] == "master"
         is_part_intro = mdx.name in ("00-introduction.mdx", "00-introduzione.mdx")
-        is_course_chapter = mdx.parent.parent != DOCS_ROOT and mdx.name != "index.mdx" and not is_part_intro
+        is_course_chapter = mdx.parent.parent != DOCS_ROOT and mdx.name != "index.mdx" and not is_part_intro and not is_master_shell
 
         # Unresolved Quarto tokens
         for m in re.finditer(r"\?@[A-Za-z0-9_-]+|(?<![A-Za-z0-9_])@(sec|fig|tbl|eq|exr)-[A-Za-z0-9_-]+", txt):
@@ -117,8 +119,8 @@ def main() -> int:
             if not asset.exists():
                 errors.append(f"[{rel}] Missing public asset: {m.group(1)}")
 
-        # Chapter structure checks
-        if is_course_chapter:
+        # Chapter and Master-shell structure checks
+        if is_course_chapter or is_master_shell:
             if "<MindMap" not in txt:
                 errors.append(f"[{rel}] Missing <MindMap /> component")
             if "<Divider" not in txt:

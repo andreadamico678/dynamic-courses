@@ -1,0 +1,59 @@
+---
+title: "Introduction to Drone Technology"
+description: "SDU MSc DAS Shell — Semester 1 (T550063101, 5 ECTS): Multirotor UAS hardware, flight controllers, GNSS, telemetry, and lab workflow."
+sidebar:
+  order: 1
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Intro to Drone Technology (T550063101 · 5 ECTS)
+  - Role in Semester 1
+    - First hands-on UAS systems integration anchor
+  - Core Hardware & Subsystem Modules
+    - Airframe, propulsion, power distribution
+    - Flight controllers (PX4 / Pixhawk) & IMU
+    - GNSS positioning & wireless telemetry
+    - UAS safety & operational risk assessment
+  - Labs & Oral Exam Structure
+    - 3-4 student lab teams & mandatory reports
+    - Individual oral defense`} />
+
+## Course Preface & Mental Model
+
+**Introduction to Drone Technology** (`T550063101`, **5 ECTS**, Semester 1) is SDU's practical onboarding into multirotor **Unmanned Aerial Systems (UAS)** specifically framed for robotics engineers rather than pure aerospace students. While traditional robotics courses teach manipulator kinematics or wheeled odometry, a drone adds hard constraints that fail catastrophically if wired or configured wrong: thrust-to-weight margins, high-frequency IMU vibration, magnetic interference on compasses, GNSS dropouts, RC/telemetry link budgets, and operational air-risk assessment.
+
+Think of this course as learning how every physical and software subsystem inside a real quadrotor connects—from battery/ESC power and Pixhawk autopilot loops up to companion-computer messaging (`Python`, `C`, `ROS`)—so that in Semester 2 you are ready to build full autonomous GNC and perception stacks on top of reliable hardware.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 1 (Fall) · Core DAS |
+| **Course Code & Credits** | `T550063101` / `T550063102` · **5 ECTS** |
+| **Format** | Short theory lectures + heavy **laboratory exercises** (teams of 3–4) |
+| **Expected Prerequisites** | Programming (`Python`, `C`), basic **ROS**, electronics & embedded basics |
+| **Exam Format** | **Individual oral exam** starting from approved **mandatory lab reports** (7-point scale) |
+
+<Divider label="Core Modules & Expected Labs" />
+
+### Subsystem Architecture Taught
+- **UAV Platforms & Actuation:** Frame geometries, brushless motors, ESCs, propellers, power distribution, and basic flight-time/payload trade-offs.
+- **Flight Controllers & Attitude Estimation:** Role of the real-time flight management unit (e.g., Pixhawk/PX4), IMU gyro/accelerometer/magnetometer integration, and inner attitude stabilization.
+- **Navigation & Wireless Links:** GNSS positioning principles/limitations, telemetry & command links (`MAVLink` / `QGroundControl` workflows), and RF/link considerations.
+- **UAS Safety & Risk Assessment:** Pre-flight checklists, failsafes, operational risk frameworks (essential for flying at SDU/HCA Airport test ranges).
+
+### What You Actually Do in the Lab
+Rather than abstract derivations, sessions follow brief theory briefings immediately into **team bench and testbed exercises**: wiring/configuring multirotor subsystems, verifying sensor/communication streams cleanly in software, and documenting experiments rigorously in **mandatory team lab reports**. Those reports are not busywork—your final **individual oral exam** uses your own submitted lab data and system behavior as the starting point for theoretical questioning.
+
+### Bachelor Bridges & Preparation
+- Review hardware interfaces, microcontrollers, and timing concepts in **[Computer Architecture](/dynamic-courses/computer-architecture/)** and power/analog fundamentals in **[Elettronica](/dynamic-courses/elettronica/)**.
+- Before arriving in Odense, getting comfortable with basic Linux terminal workflows, Git, and simple `ROS 2` + `Python`/`C++` node messaging pays massive dividends during Semester 1 labs.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Full module breakdowns, lab templates, and oral-exam checklists will be added here once cohort slides and `itslearning` manuals are integrated.
+
+</Callout>

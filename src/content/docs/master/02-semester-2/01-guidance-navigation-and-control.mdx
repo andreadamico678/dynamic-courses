@@ -1,0 +1,57 @@
+---
+title: "Guidance, Navigation and Control"
+description: "SDU MSc DAS Shell — Semester 2 (T550012101, 5 ECTS): UAV guidance trajectories, state estimation, and live PX4 autopilot deployment."
+sidebar:
+  order: 1
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Guidance, Navigation & Control (T550012101 · 5 ECTS)
+  - The Core GNC Loop
+    - Guidance: reference trajectories
+    - Navigation: state estimation & localization
+    - Control: actuator tracking
+  - Three-Stage Group Project
+    - 1. Mathematical formalization
+    - 2. Gazebo + PX4 SITL validation
+    - 3. Real autopilot deployment
+  - Oral Exam Structure
+    - Individual oral defense on project & theory`} />
+
+## Course Preface & Mental Model
+
+**Guidance, Navigation, and Control (`GNC`)** (`T550012101`, **5 ECTS**, Semester 2) is the flagship control core of the Drones & Autonomous Systems specialization. Everything from *Control of Autonomous Systems* (Semester 1) and *Introduction to Drone Technology* converges here into the classic three-part aerospace loop:
+
+1. **Guidance** decides *where the drone should go*—generating collision-free reference paths and smooth time-parameterized trajectories ($\mathbf{p}_{\text{ref}}(t), \mathbf{v}_{\text{ref}}(t), \psi_{\text{ref}}(t)$).
+2. **Navigation** estimates *where the drone actually is*—fusing IMU kinematics, GNSS, barometer, or visual measurements into full 6-DOF pose/velocity states despite noise and drift.
+3. **Control** computes *motor thrusts and attitude commands*—driving actuators accurately to track guidance references under wind gusts and coupled nonlinear quadrotor dynamics.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 2 (Spring) · Core DAS |
+| **Course Code & Credits** | `T550012101` / `T550012102` · **5 ECTS** |
+| **Primary Stack** | `PX4 Autopilot` / `Pixhawk`, `ROS 2`, `Gazebo SITL`, `Micro XRCE-DDS / MAVLink`, `MATLAB` |
+| **Project Requirement** | Semester-long group GNC project deployed onto an **actual autopilot system** |
+| **Exam Format** | **Individual oral examination** covering both the group project and lecture theory (7-point scale) |
+
+<Divider label="Expected Project & Lab Pipeline" />
+
+### From Equations to Real Autopilot Flight
+Unlike pure paper-control courses, SDU's GNC project forces you through the full verification chain:
+1. **Mathematical Formalization:** Derive coordinate frames (`NED` vs. `ENU`), rigid-body 6-DOF UAV dynamics, and prove estimator/controller equations cleanly.
+2. **Simulation-In-The-Loop (`SITL`):** Run your GNC nodes against **Gazebo + PX4 SITL** (matching the exact `Micro XRCE-DDS` / `MAVLink` topics used on hardware) to verify trajectory tracking and failsafe edge cases safely.
+3. **Live Autopilot Implementation:** Deploy your validated algorithms onto an actual **Pixhawk/PX4** hardware testbed or indoor flight platform, log real telemetry, and inspect tracking errors vs. simulation.
+
+### Bachelor Bridges
+- Direct application of **[Linear Systems Theory](/dynamic-courses/systems-theory/)**: state-space models ([Part I](/dynamic-courses/systems-theory/01-state-models/00-introduction/)), matrix exponential response ([Part III](/dynamic-courses/systems-theory/03-time-response/00-introduction/)), pole placement ([Part VII](/dynamic-courses/systems-theory/07-state-feedback/00-introduction/)), and observers ([Part VIII](/dynamic-courses/systems-theory/08-observers-compensation/00-introduction/)).
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Exact 6-DOF quadrotor equations, PX4 offboard API patterns, and GNC lab guides will be populated once the semester syllabus is integrated.
+
+</Callout>

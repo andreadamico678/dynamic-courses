@@ -1,0 +1,61 @@
+---
+title: "Embedded Systems"
+description: "SDU MSc DAS Shell — Semester 1 (5 ECTS): Digital co-design, FPGA/CPU interfaces, UART/SPI/I2C buses, real-time constraints, and Edge AI."
+sidebar:
+  order: 3
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Embedded Systems (5 ECTS)
+  - Role in Semester 1
+    - Real-time compute & hardware-software bridge
+  - Core Architecture Modules
+    - Digital logic & HDL (VHDL / Verilog)
+    - Bus interfaces (UART, SPI, I2C) & shared memory
+    - CPU-FPGA co-design & ROS 2 integration
+    - Real-time deadlines & Edge AI acceleration
+  - Labs & Assessment
+    - Individual hardware assignments
+    - Lab group project & oral defense`} />
+
+## Course Preface & Mental Model
+
+**Embedded Systems** (**5 ECTS**, Semester 1) sits at the exact boundary between digital hardware and onboard robotics software. Drones carry tight Size, Weight, and Power (SWaP) limits: high-bandwidth sensors (stereo cameras, IMUs, LiDAR, mmWave radar) need deterministic interfaces and fast preprocessing without burning through battery life.
+
+SDU's robotics hardware groups are particularly strong in **FPGA / SoC co-design** (for example, SDU's *MPSoC4Drones* stack pairing Ubuntu + ROS 2 + PX4 with hardware accelerators on programmable logic). This course equips you to write both the low-level hardware/bus interfaces and the C/C++ / ROS 2 drivers above them.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 1 (Fall) · Core DAS |
+| **Credits & Format** | **5 ECTS** (some curriculum variants 10 ECTS) · Lectures + hardware lab project |
+| **Primary Stack** | `C / C++`, `HDL` (`VHDL / Verilog`), `FPGA / SoC` dev boards, `UART / SPI / I2C`, `ROS 2` |
+| **Exam Prerequisites** | Approved individual lab assignments and group project report |
+| **Exam Format** | Group project report + individual assignments/mini-project and/or **oral defense** (7-point scale) |
+
+<Divider label="Core Modules & Expected Labs" />
+
+### Hardware–Software Co-Design Scope
+- **Digital Systems & Programmable Logic:** Synthesizing sequential/combinational hardware modules in HDL alongside soft or hard processor cores.
+- **Peripheral Buses & Memory Sharing:** Deterministic timing and protocol design over `UART`, `SPI`, `I2C`, memory-mapped I/O, and shared memory buffers between logic fabric and CPU.
+- **Real-Time Robotics Integration:** Meeting deterministic loop deadlines and offloading compute-heavy tasks (Edge AI / perception kernels) while interfacing cleanly with `ROS 2`.
+
+### What You Actually Do in the Lab
+Expect individual starter assignments on digital design and C/peripheral drivers, escalating into a **team hardware-software lab project** on physical boards—building, timing, and verifying a complete embedded robotic subsystem under real latency and resource budgets.
+
+### Bachelor Bridges & Preparation
+- Direct continuation of **[Computer Architecture](/dynamic-courses/computer-architecture/)**:
+  - Sequential Mealy/Moore synthesis ([Part I](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/00-introduction/))
+  - Low-level C-to-assembly mapping & stack/ABI discipline ([Part III](/dynamic-courses/computer-architecture/03-riscv-instructions/00-introduction/)–[Part IV](/dynamic-courses/computer-architecture/04-riscv-subroutines/00-introduction/))
+  - Pipelines & cache-hierarchy bottlenecks ([Part V](/dynamic-courses/computer-architecture/05-pipelined-processor/00-introduction/)–[Part VI](/dynamic-courses/computer-architecture/06-cache-memory/00-introduction/)).
+- Also pairs directly with CMOS digital circuits in **[Elettronica](/dynamic-courses/elettronica/05-logica-cmos/00-introduzione/)**.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Exact FPGA board toolchains and lab specs will be added from the semester syllabus.
+
+</Callout>

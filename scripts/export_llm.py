@@ -49,7 +49,10 @@ def strip_jsx_for_llm(mdx: str) -> str:
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for course_dir in sorted(p for p in DOCS_ROOT.iterdir() if p.is_dir()):
-        chapters = sorted(p for p in course_dir.rglob("*.mdx") if p.name != "index.mdx")
+        chapters = sorted(
+            p for p in course_dir.rglob("*.mdx")
+            if course_dir.name == "master" or p.name != "index.mdx"
+        )
         full_md: list[str] = []
         chunks: list[dict] = []
 

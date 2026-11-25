@@ -1,0 +1,54 @@
+---
+title: "Electives, Study Abroad & In-Company Track"
+description: "SDU MSc DAS Shell — Semesters 2 & 3 Elective Pool: Embedded Linux (T550077101), Vision, Soft Robotics, Study Abroad, and 15 ECTS In-Company Project."
+sidebar:
+  order: 2
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Electives & Mobility Outline" markdown={`# Electives & Flexibility (Sem 2: 5 ECTS · Sem 3: 15 ECTS)
+  - Four Semester 3 Pathway Choices
+    - Study Abroad exchange (15-30 ECTS)
+    - In-Company Project (15 ECTS)
+    - +10 ECTS Experimental Thesis head-start + 5 ECTS
+    - Three 5-ECTS technical electives
+  - High-Yield Technical Electives (SDU Odense)
+    - Embedded Linux (T550077101)
+    - Robotics & Computer Vision / 3D Vision
+    - Introduction to Soft Robotics & Interactive Robots
+    - ART crossover & Drone Ethics`} />
+
+## Overview of Elective & Mobility Slots
+
+Across the 120 ECTS DAS curriculum, you have **20 ECTS of built-in flexibility**: **5 ECTS** in Semester 2 and **15 ECTS** in Semester 3 *(plus an extra 5 ECTS if substituting 15 ECTS Innovative Robotic Technologies with 10 ECTS Project in Robotics)*.
+
+How you spend Semester 3 shapes your thesis and job entry in Denmark:
+
+1. **In-Company Project (`15 ECTS`):** Spend half the Fall semester embedded directly inside a Danish or international robotics/drone company on an applied engineering project. *(Important trade-off: choosing the 15 ECTS In-Company Project uses the elective credits otherwise available to expand your thesis from 30 to 40 ECTS.)*
+2. **Study Abroad (`15–30 ECTS`):** Take an exchange semester at an approved partner university (requires Study Board approval).
+3. **Experimental Thesis Head-Start (`10 ECTS`) + `5 ECTS` Elective:** Dedicate 10 ECTS in Fall to experimental hardware/flight preparation, turning Semester 4 into a continuous **40 ECTS Master's Thesis**.
+4. **Curated Technical Electives (`5–10 ECTS` each):** Pick specialized robotics/software modules at SDU Odense below.
+
+<Divider label="High-Relevance SDU Electives" />
+
+| Course | Code | ECTS | Core Topics & Expected Labs |
+| :--- | :--- | :---: | :--- |
+| **Embedded Linux** | `T550077101` / `T550005101` | 5 | Cross-compilation, Yocto/custom Linux images, kernel/device drivers, real-time capabilities, and distributed `ROS 2` on companion computers (`RPi` / `Jetson` / `MPSoC`). Heavily lab-driven. |
+| **Robotics & Computer Vision / Image Processing** | — | 5–10 | 3D vision, object recognition, deep visual pipelines, and spatial perception transferable directly to UAV payloads. |
+| **Introduction to Soft Robotics** | — | 5 | Compliant materials, soft actuators/sensors, fabrication labs, and bio-inspired control (relevant for drone perching & compliant aerial grippers). |
+| **Physically Interactive Robots** | — | 5 | Force/impedance control and physical contact dynamics (bridges directly into **aerial manipulation** research at SDU). |
+| **Project in Robotics** | — | 10 | Research-group hands-on robotics project inside SDU Robotics / UAS labs *(mandatory swap + 5 ECTS elective for Bachelor Experts-in-Teams holders)*. |
+| **ART Track Crossover Courses** | — | 5 each | Kinematics, motion & task planning, industrial manipulation, or deep neural networks from the sibling *Advanced Robotics Technology* profile. |
+| **Ethics in Drone, Robotic & Software Systems Design** | — | 5 | Safety engineering, EU drone privacy/regulation, and societal risk analysis. |
+
+### Bachelor Bridge for *Embedded Linux*
+- Pair memory management, hardware registers, and stack/syscall execution from **[Computer Architecture](/dynamic-courses/computer-architecture/)** directly with Embedded Linux device drivers and companion-computer deployment.
+
+<Callout type="tip" title="Shell Placeholder">
+
+Exact Fall/Spring elective codes and schedules rotate yearly—verify the live catalog on `odin.sdu.dk` / MitSDU before course registration.
+
+</Callout>

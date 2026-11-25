@@ -1,0 +1,55 @@
+---
+title: "Multivariate Statistics"
+description: "SDU MSc DAS Shell — Semester 1 (5 ECTS): Multivariate distributions, covariance, dimensionality reduction, and quantitative data analysis."
+sidebar:
+  order: 5
+---
+
+import Callout from "@components/Callout.astro";
+import Divider from "@components/Divider.astro";
+import MindMap from "@components/MindMap.tsx";
+
+<MindMap client:load defaultCollapsed title="Course Shell Outline" markdown={`# Multivariate Statistics (5 ECTS)
+  - Role in Autonomous Robotics
+    - Math backbone for Kalman/sensor fusion & evaluation
+  - Core Statistical Topics
+    - Random vectors & covariance matrices
+    - Multivariate distributions & estimation
+    - Hypothesis testing & PCA / regression
+  - Quantitative Exercises & Oral Exam
+    - MATLAB / quantitative workflows
+    - Internal individual oral exam`} />
+
+## Course Preface & Mental Model
+
+**Multivariate Statistics** (**5 ECTS**, Semester 1) gives you the mathematical machinery behind multi-sensor state estimation, perception benchmarks, and rigorous experimental claims. Real drone pipelines almost never handle a single scalar variable: an IMU outputs 6–9 correlated axes, a Kalman state vector tracks position, velocity, orientation, and biases together via a **covariance matrix $\Sigma$**, and perception models operate over high-dimensional feature vectors.
+
+Together with *Scientific Method*, this course stops you from misreading noisy flight-test plots and equips you with the exact Gaussian/covariance language needed in Semester 2's *GNC* and *Drone Perception*.
+
+<Divider label="Course Profile" />
+
+| Attribute | Details |
+| :--- | :--- |
+| **Semester & Track** | Semester 1 (Fall) · Core DAS |
+| **Credits & Format** | **5 ECTS** · Lectures + quantitative data-analysis exercises |
+| **Primary Tools** | Quantitative computing platforms (commonly `MATLAB` / `Python`) |
+| **Exam Format** | **Individual oral examination** (internal second examiner, 7-point scale) |
+
+<Divider label="Core Modules & Expected Exercises" />
+
+### Statistical & Matrix Foundations
+- **Random Vectors & Covariance Structure:** Joint distributions, mean vectors, covariance/correlation matrices, linear transformations of Gaussian vectors, and quadratic forms.
+- **Estimation & Inference:** Maximum likelihood estimation, confidence regions (ellipsoids), and multivariate hypothesis testing (`Hotelling's T²`, `MANOVA`).
+- **Dimensionality & Regression:** Principal Component Analysis (`PCA`), multivariate linear modeling, and variance decomposition on experimental datasets.
+
+### What You Actually Do
+You work through quantitative problem sets analyzing multi-dimensional engineering data (typically in MATLAB) and explain the statistical assumptions, matrix derivations, and dataset interpretations directly during your **individual oral exam**.
+
+### Bachelor Bridges
+- Vector/matrix algebra and eigendecomposition concepts from **[Linear Systems Theory](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/)** carry directly over to covariance diagonalization and PCA.
+
+<Callout type="tip" title="Shell Placeholder">
+
+No chapters yet. Full formula sheets and MATLAB exercise templates will be added once the SDU course syllabus is integrated.
+
+</Callout>

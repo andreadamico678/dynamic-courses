@@ -6,7 +6,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const emptyPublic = path.join(root, '.astro', 'empty-public');
 const distDir = path.join(root, 'dist');
 
-const ALL_SCOPES = ['hub', 'systems-theory', 'elettronica', 'computer-architecture'];
+const ALL_SCOPES = ['hub', 'systems-theory', 'elettronica', 'computer-architecture', 'master'];
 
 const argCourse = process.argv.find((a) => a.startsWith('--course='));
 const targetScopes = argCourse ? [argCourse.split('=')[1]] : ALL_SCOPES;

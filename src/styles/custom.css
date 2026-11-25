@@ -150,6 +150,19 @@
   --sl-color-text-accent: var(--sl-color-accent);
 }
 
+:root[data-dc-course='master'] {
+  --sl-color-accent-low: rgba(43, 182, 134, 0.14);
+  --sl-color-accent: #2bb686;
+  --sl-color-accent-high: #6ee7b7;
+  --sl-color-text-accent: var(--sl-color-accent-high);
+}
+:root[data-theme='light'][data-dc-course='master'] {
+  --sl-color-accent-low: rgba(4, 120, 87, 0.08);
+  --sl-color-accent: #047857;
+  --sl-color-accent-high: #065f46;
+  --sl-color-text-accent: var(--sl-color-accent);
+}
+
 /* ============================================================
    FLEXIBLE WIDE-FORMAT LAYOUT
    ============================================================ */
@@ -1129,4 +1142,76 @@ mark.dc-hl-green {
   --sl-color-accent: #c2410c;
   --sl-color-accent-low: rgba(194, 65, 12, 0.08);
   --sl-color-text-accent: #c2410c;
+}
+
+.dc-course-card[data-course='master'] {
+  --sl-color-accent: #2bb686;
+  --sl-color-accent-low: rgba(43, 182, 134, 0.12);
+  --sl-color-text-accent: #6ee7b7;
+}
+:root[data-theme='light'] .dc-course-card[data-course='master'] {
+  --sl-color-accent: #047857;
+  --sl-color-accent-low: rgba(4, 120, 87, 0.08);
+  --sl-color-text-accent: #047857;
+}
+
+.dc-layer-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--sl-color-hairline-light);
+}
+.dc-layer-header:first-child {
+  margin-top: 0.25rem;
+}
+.dc-layer-header h2 {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 1.35rem;
+}
+.dc-layer-tag {
+  font-family: var(--sl-font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--dc-radius-sm);
+  border: 1px solid var(--sl-color-hairline-light);
+  color: var(--dc-muted);
+}
+.dc-layer-desc {
+  margin: 0.55rem 0 0.9rem 0 !important;
+  font-size: 0.94rem;
+  color: var(--dc-muted);
+}
+.dc-shell-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+  gap: 0.95rem;
+  margin-top: 0.9rem;
+}
+.dc-shell-grid .dc-course-card {
+  padding: 1rem 1.15rem;
+}
+.dc-shell-grid .dc-course-card h3 {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: 1.03rem;
+  color: var(--dc-ink);
+}
+.dc-semester-label {
+  margin: 1.25rem 0 0.25rem 0 !important;
+  font-family: var(--sl-font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dc-muted);
 }
