@@ -66,7 +66,7 @@ function buildSidebar() {
       ...course.parts.map((part) => ({
         label: part.label,
         collapsed: part.collapsed,
-        autogenerate: { directory: part.dir },
+        autogenerate: { directory: `${scope}/${part.dir}` },
       })),
     ];
   }

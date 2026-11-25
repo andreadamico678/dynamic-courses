@@ -41,3 +41,11 @@ for (const scope of targetScopes) {
   const secs = ((Date.now() - start) / 1000).toFixed(1);
   console.log(`<== Finished ${scope} in ${secs}s`);
 }
+
+if (!process.env.CI) {
+  console.log('\n==> Restoring full content store for pnpm dev (astro sync)...');
+  execSync('pnpm exec astro sync', {
+    cwd: root,
+    stdio: 'inherit',
+  });
+}
