@@ -16,13 +16,11 @@ I fili di rame conducono sempre allo stesso modo e il vetro blocca sempre la cor
 
 <Divider label="1 · Cristallo di Silicio, Drogaggio e Azione di Massa" />
 
-Nel silicio purissimo quasi tutti gli elettroni sono bloccati nei legami chimici e solo pochissimi si liberano grazie all'agitazione termica. Aggiungendo una quantità controllata di atomi estranei (**drogaggio**), possiamo scegliere a piacere se rendere maggioritari gli elettroni negativi (**tipo N**) oppure le lacune positive (**tipo P**), mantenendo il cristallo complessivamente neutro.
+### Legami Covalenti, Drogaggio ed Equilibrio dei Portatori
 
-### Esempio — Il Reticolo e gli Ospiti Mirati
+Nel silicio puro ogni atomo tetravalente forma quattro legami covalenti completi: a temperatura ambiente la sola agitazione termica rompe una frazione minima di legami, generando poche coppie **elettrone libero–lacuna** ($n = p = n_i \approx 1.5 \times 10^{10}\,\text{cm}^{-3}$).
 
-Immaginiamo un grande reticolo ordinato in cui ogni partecipante tiene per mano quattro vicini. A temperatura bassissima tutte le prese sono salde e nessuno può muoversi; aumentando il calore, ogni tanto una stretta di mano si spezza liberando chi si stacca e lasciando dietro di sé un posto vuoto che può spostarsi ogni volta che un vicino cambia presa.
-
-Per rendere il sistema molto più attivo senza stravolgerne la struttura, sostituiamo una minima frazione dei partecipanti con ospiti scelti apposta. Un ospite con cinque mani impegna quattro prese coi vicini e lascia subito libera una mano in più pronta a viaggiare nel reticolo, restando però fisso al proprio posto con una carica positiva residua. Un ospite con tre sole mani ruba invece una presa a un vicino per completare i legami, creando un posto vuoto mobile mentre rimane fisso con una carica negativa residua. L'intero reticolo conserva così un bilancio elettrico neutro, ma la popolazione di portatori liberi cambia radicalmente.
+Per controllare la conducibilità su oltre dieci ordini di grandezza si ricorre al **drogaggio**: sostituendo pochi atomi del reticolo con elementi del gruppo V (**donori**, tipo N) si introduce un elettrone libero per ogni atomo lasciando uno ione positivo fisso $N_D^+$; sostituendoli con elementi del gruppo III (**accettori**, tipo P) si genera una lacuna mobile lasciando uno ione negativo fisso $N_A^-$. L'aumento dei portatori maggioritari accelera la ricombinazione dei minoritari mantenendo costante il prodotto $np = n_i^2$, mentre il cristallo resta globalmente neutro.
 
 ### Teoria — Legami Covalenti, Drogaggio ed Equilibrio
 
@@ -100,13 +98,11 @@ Per esempio, in un substrato drogato P con $N_A = 5 \times 10^{16}\,\text{cm}^{-
 
 <Divider label="2 · Trasporto di Corrente: Deriva, Diffusione ed Einstein" />
 
-I portatori di carica generano corrente elettrica attraverso due meccanismi fisici indipendenti: la **deriva** (*drift*), causata dalla forza di un campo elettrico, e la **diffusione**, causata dal moto termico casuale in presenza di un gradiente di concentrazione.
+### Meccanismi di Deriva e Diffusione
 
-### Esempio — Vento Elettrico e Folla in Piazza
+La corrente elettrica in un semiconduttore nasce da due meccanismi fisici distinti. La **deriva** (*drift*) è il trascinamento ordinato dei portatori sottoposti a un campo elettrico $\vec{\mathcal{E}}$: a campi moderati la velocità media cresce linearmente con la mobilità ($\mu_n$ per gli elettroni, $\mu_p$ per le lacune), mentre a campi elevati gli urti frequenti con i fononi del reticolo limitano la velocità al valore di saturazione $v_{sat} \approx 10^7\,\text{cm/s}$.
 
-Immaginiamo una folla distribuita dentro una piazza. Se tutte le persone entrano da un solo lato creando un forte addensamento lungo quel bordo, anche in assenza totale di vento la folla tende spontaneamente a spargersi verso le zone più libere finché la densità non si uniforma: questo spostamento netto dalla zona più concentrata a quella meno concentrata è esattamente la **diffusione**.
-
-Se invece sulla piazza soffia un vento costante, ogni persona viene spinta in una direzione privilegiata pur continuando a urtare continuamente chi le sta attorno: questo trascinamento ordinato sovrapposto all'agitazione casuale è la **deriva**. All'inizio un vento più forte produce un passo medio più veloce; tuttavia, oltre una certa intensità gli urti diventano talmente violenti e frequenti da dissipare ogni energia extra, impedendo alla velocità media di crescere oltre un tetto fisico massimo.
+La **diffusione** è invece un flusso statistico puramente termico, presente anche a campo nullo ogni volta che esiste un gradiente spaziale di concentrazione: i portatori migrano dalle regioni ad alta densità verso quelle a bassa densità. Poiché entrambi i processi dipendono dallo stesso cammino libero medio tra gli urti reticolari, mobilità e coefficiente di diffusione sono legati dalla relazione di Einstein ($D/\mu = V_T$).
 
 ### Teoria — Deriva, Diffusione e Relazione di Einstein
 
@@ -177,13 +173,11 @@ $$
 
 <Divider label="3 · Modello a Bande di Energia e Livello di Fermi" />
 
-Per descrivere in modo compatto l'effetto congiunto di legami, temperatura e drogaggio senza seguire i singoli atomi, rappresentiamo gli elettroni tramite le **bande di energia** permesse e utilizziamo il **livello di Fermi** come indicatore statistico del riempimento elettronico del cristallo.
+### Bande Permesse e Potenziale di Fermi
 
-### Esempio — Scaffali Energetici e Livello di Riempimento
+In un cristallo periodico gli stati energetici accessibili agli elettroni si organizzano in due bande separate da un intervallo proibito (*bandgap* $E_g \approx 1.12\,\text{eV}$ nel silicio): la **banda di valenza** ($E_v$), quasi satura di elettroni legati, e la **banda di conduzione** ($E_c$), quasi vuota, nella quale gli elettroni possono accelerare liberamente. Solo i portatori eccitati oltre $E_g$ o gli stati vuoti lasciati in valenza contribuiscono alla conduzione.
 
-Immaginiamo due lunghi scaffali sovrapposti, separati da uno spazio vuoto in cui non è possibile appoggiare nulla. Lo scaffale inferiore è quasi completamente pieno di libri bloccati al loro posto: nessuno riesce a spostarsi finché tutto è pieno. Lo scaffale superiore è invece quasi vuoto: se qualche libro riesce a saltare fin lassù, può scorrere liberamente da un capo all'altro.
-
-Nel cristallo puro, l'agitazione termica riesce a far saltare solo pochissimi libri dal ripiano basso a quello alto, e l'indicatore statistico che separa gli stati pieni da quelli vuoti si trova esattamente a metà dello spazio proibito. Se aggiungiamo impurezze donatrici, introduciamo piccoli pioli appena sotto lo scaffale superiore, da cui i libri saltano subito sullo scaffale libero spostando verso l'alto l'indicatore statistico; con impurezze accettrici introduciamo invece pioli appena sopra lo scaffale inferiore, creando posti vuoti tra i libri legati e abbassando l'indicatore verso il basso.
+Il **livello di Fermi** ($E_F$) sintetizza lo stato statistico del cristallo individuando l'energia con probabilità di occupazione pari al $50\%$: nel silicio intrinseco giace presso il centro del gap ($E_i$); il drogaggio N introduce livelli donori prossimi a $E_c$ spostando $E_F$ verso la banda di conduzione, mentre il drogaggio P introduce livelli accettori prossimi a $E_v$ avvicinando $E_F$ alla banda di valenza.
 
 ### Teoria — Bande, Fermi-Dirac e Potenziale di Fermi
 

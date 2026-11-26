@@ -18,11 +18,11 @@ In questo capitolo analizziamo quattro famiglie computazionali distinte in base 
 
 <Divider label="1 · Sommatore Invertente Pesato" />
 
-### Esempio Concettuale — Il Miscelatore Senza Interferenze
+### Somma di Correnti senza Diafonia
 
-Immaginiamo di voler sommare le voci di due microfoni in un mixer. Se collegassimo i due segnali semplicemente insieme tramite due resistori passivi, alzando il volume del primo microfono una parte della corrente refluirebbe verso il secondo microfono, alterandone il segnale (**diafonia**).
+In una rete sommatrice puramente passiva a resistori, variare la tensione su un ingresso modifica il potenziale del nodo comune e altera la corrente erogata dagli altri ingressi (**diafonia**). Collegando invece i resistori d'ingresso al nodo di **massa virtuale** di un Op-Amp invertente, il potenziale comune resta fissato a $0\,\text{V}$ indipendentemente dai segnali applicati.
 
-Collegando invece entrambi i resistori al nodo di **massa virtuale** di un Op-Amp invertente, il punto d'incontro rimane sempre bloccato a $0\,\text{V}$. Ciascun microfono "vede" un percorso fisso verso zero volt e non si accorge minimamente delle variazioni dell'altro canale: le correnti si sommano in un unico punto senza influenzarsi a vicenda.
+Di conseguenza, ogni sorgente vede verso massa solo il proprio resistore $R_k$ senza accorgersi degli altri canali, e le correnti di ramo si sommano linearmente su $R_f$ ciascuna con il proprio peso indipendente $-R_f / R_k$.
 
 ### Teoria — Combinazione Lineare e Assenza di Diafonia
 
@@ -58,11 +58,11 @@ Il vantaggio decisivo di questa topologia è l'**assenza di diafonia** tra i can
 
 <Divider label="2 · Convertitori Digitale-Analogico" />
 
-### Esempio Concettuale — Pesi Geometrici contro Divisione Ripetuta
+### Pesi Binari contro Scala $R\text{-}2R$
 
-Un convertitore digitale-analogico (DAC) deve assegnare a ogni bit di una parola binaria un peso dimezzato rispetto al precedente: metà del valore al primo bit, un quarto al secondo, un ottavo al terzo e così via.
+Un convertitore digitale-analogico (DAC) a $N$ bit deve assegnare a ciascun bit una corrente o tensione proporzionale alle potenze decrescenti di $2$ ($2^{-1}, 2^{-2}, \dots, 2^{-N}$).
 
-Esistono due strategie costruttive opposte. La prima usa resistori sempre più grandi che raddoppiano a ogni bit: funziona bene per 3 o 4 bit, ma a 12 bit richiede componenti migliaia di volte diversi tra loro, impossibili da fabbricare con precisione su un chip. La seconda strategia costruisce invece una catena modulare formata da soli due valori uguali ($R$ e $2R$): a ogni giunzione la rete dimezza naturalmente il segnale sfruttando la propria simmetria, evitando resistori giganteschi.
+La realizzazione diretta a **pesi binari** raddoppia il valore dei resistori a ogni bit, ma a $10\text{--}12$ bit richiede rapporti estremi ($2^{N-1}$) impossibili da integrare con tolleranze uniformi su silicio. La **scala $R\text{-}2R$** risolve il problema sfruttando l'invarianza di impedenza di una rete modulare composta esclusivamente da due valori uguali ($R$ e $2R$): a ogni nodo della scala la corrente si divide esattamente a metà, garantendo elevata precisione di rapporto con componenti identici.
 
 ### Teoria — DAC a Pesi Binari e Scala R-2R
 
@@ -112,11 +112,11 @@ $$
 
 <Divider label="3 · Amplificatore Differenziale" />
 
-### Esempio Concettuale — Estrarre la Differenza dal Rumore Comune
+### Estrazione del Segnale Differenziale dal Modo Comune
 
-Quando un sensore a ponte invia un segnale debole lungo due fili paralleli, i disturbi elettromagnetici esterni (come il ronzio di rete a $50\,\text{Hz}$) si inducono in modo pressoché identico su entrambi i conduttori. Il segnale utile è invece presente solo come piccola differenza di potenziale tra i due fili.
+Quando un sensore a ponte o differenziale trasmette un segnale debole lungo due conduttori paralleli, eventuali interferenze elettromagnetiche esterne (come il disturbo di rete a $50\,\text{Hz}$) si accoppiano in modo pressoché identico su entrambi i fili (**modo comune**), mentre il segnale utile risiede nella differenza tra i due potenziali (**modo differenziale**).
 
-Un amplificatore collegato a un solo filo amplificherebbe sia il segnale sia il disturbo. Un **amplificatore differenziale** misura invece lo scarto tra i due ingressi: la quota uguale presente su entrambi i fili produce spinte uguali e opposte sull'uscita e si cancella, lasciando passare soltanto la differenza utile.
+Combinando una rete partitrice sul morsetto $+$ e uno stadio invertente sul morsetto $-$ con rapporti resistivi bilanciati ($R_2/R_1 = R_4/R_3$), l'amplificatore differenziale applica guadagni uguali e di segno opposto ai due ingressi, cancellando la componente comune e amplificando la sola differenza utile.
 
 ### Teoria — Sovrapposizione degli Effetti e Bilanciamento
 
@@ -169,11 +169,11 @@ $$
 
 <Divider label="4 · Integratore e Derivatore" />
 
-### Esempio Concettuale — Accumulatore contro Rivelatore di Variazioni
+### Operatori Temporali e Compromessi Pratici
 
-Un **integratore** si comporta come un serbatoio d'acqua: la tensione d'ingresso regola la portata del rubinetto e la tensione d'uscita misura il livello accumulato nel tempo. C'è però un rischio nascosto: se il rubinetto perde anche una goccia invisibile a ingresso spento (l'offset reale dell'Op-Amp), il serbatoio prima o poi trabocca (l'uscita satura). Praticando un piccolo foro di scarico controllato (un resistore $R_f$ in parallelo al condensatore), il livello di perdita resta limitato senza disturbare le misure rapide.
+Sostituendo uno dei resistori dello stadio invertente con un condensatore, la relazione lineare $i_C = C\,\frac{dv_C}{dt}$ trasforma il circuito in un operatore differenziale nel tempo. Nell'**integratore**, la corrente d'ingresso proporzionale a $v_{in}$ carica il condensatore di retroazione rendendo l'uscita proporzionale all'integrale temporale del segnale; tuttavia, in continua il condensatore è aperto e qualunque tensione di offset reale satura l'uscita, problema risolto ponendo un resistore di smorzamento $R_f$ in parallelo a $C$.
 
-Un **derivatore**, al contrario, funziona come un tachimetro: resta a zero quando l'ingresso è fermo e reagisce solo alla rapidità con cui l'ingresso cambia. Proprio per questa sensibilità alle variazioni brusche, però, tende ad amplificare violentemente ogni piccolo tremolio ad alta frequenza (rumore elettrico).
+Nel **derivatore** (condensatore in ingresso, resistore in retroazione), l'uscita risponde invece alla derivata temporale $dv_{in}/dt$: poiché la reattanza di ingresso cala con la frequenza, il guadagno cresce linearmente alle alte frequenze amplificando il rumore e rischiando l'instabilità, motivo per cui si aggiunge un piccolo resistore serie limitatore in ingresso.
 
 ### Teoria — Integratore di Miller, Smorzamento DC e Derivatore
 

@@ -16,13 +16,9 @@ Nel [Capitolo 7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-picc
 
 <Divider label="1 · Capacità di Ossido, Sovrapposizione e Giunzioni" />
 
-### Concetto
+### Concetto — Ripartizione delle Capacità nei Tre Regimi
 
-Le cinque capacità parassite di un MOSFET appartengono a due famiglie fisiche ben distinte. Le prime tre ($C_{gs}, C_{gd}, C_{gb}$) derivano dall'accoppiamento elettrostatico attraverso l'ossido di Gate e sommano un termine geometrico fisso ai bordi (**sovrapposizione**) a una quota variabile legata alla forma del canale nei tre regimi operativi. Le ultime due ($C_{sb}, C_{db}$) nascono invece dalle **giunzioni p-n polarizzate inversamente** tra i pozzetti di Source/Drain e il substrato di Body.
-
-### Esempio Concettuale
-
-Immagina un tubo flessibile collegato tra due serbatoi e comandato da una membrana superiore. Finché il tubo è completamente pieno, premere la membrana sposta acqua in modo simmetrico verso entrambi i serbatoi. Se invece un'estremità viene strozzata, muovere il serbatoio strozzato non riesce più a spostare massa d'acqua dentro il tubo principale: rimane soltanto la piccola elasticità meccanica del raccordo di bordo. Allo stesso modo, quando il canale si strozza in saturazione, il terminale di Drain perde l'accoppiamento capacitivo con il canale e conserva solo la piccola sovrapposizione geometrica sotto il bordo del Gate.
+Le cinque capacità parassite di un MOSFET appartengono a due famiglie fisiche: le capacità di ossido ($C_{gs}, C_{gd}, C_{gb}$) e le capacità di giunzione inversa verso il substrato ($C_{sb}, C_{db}$). Mentre la sovrapposizione laterale ai bordi del Gate ($C_{ov}$) e le giunzioni di substrato sono sempre presenti, la capacità intrinseca di canale $W L C_{ox}''$ cambia allocazione con il regime operativo: in interdizione accoppia Gate e Body; in triodo profondo si ripartisce simmetricamente ($50\% / 50\%$) tra Source e Drain; in saturazione lo strozzamento al Drain isola il canale dal Drain, riducendo $C_{gd}$ al solo overlap $C_{ov}$ e concentrando la quota di canale ($\frac{2}{3} W L C_{ox}''$) su $C_{gs}$.
 
 ### Teoria — Origine Fisica, Overlap, Ripartizione nel Canale e Giunzioni PN
 
@@ -89,13 +85,9 @@ dove $V_0$ è il potenziale di contatto della giunzione, $C_{j0}$ e $C_{jsw0}$ s
 
 <Divider label="2 · Frequenza di Transizione f_T" />
 
-### Concetto
+### Concetto — Limite Intrinseco di Velocità ($f_T$)
 
-Per confrontare la rapidità intrinseca di diverse tecnologie CMOS si misura a quale frequenza la corrente alternata necessaria per caricare e scaricare le capacità d'ingresso del Gate diventa grande quanto la corrente di segnale che il transistore riesce a generare sul Drain. Questa soglia limite è la **frequenza di transizione** $f_T$, e dipende in modo inversamente quadratico dalla lunghezza di canale ($f_T \propto 1/L^2$).
-
-### Esempio Concettuale
-
-Immagina di dover aprire e chiudere molto rapidamente una valvola pesante per pompare acqua in uscita: più alzi la frequenza con cui muovi la leva, più energia devi spendere solo per vincere l'inerzia della leva stessa. Arriverà una frequenza critica oltre la quale la corrente spesa per muovere il comando eguaglia esattamente la corrente utile prodotta in uscita: da quel punto in poi il dispositivo non riesce più ad amplificare in corrente.
+A bassa frequenza il Gate a circuito aperto garantisce un guadagno di corrente praticamente infinito; all'aumentare della frequenza, tuttavia, la reattanza di $C_{gs} + C_{gd}$ diminuisce ($\propto 1/\omega$) e assorbe una corrente reattiva d'ingresso sempre maggiore solo per caricare e scaricare l'ossido di Gate. La **frequenza di transizione** $f_T$ è la soglia limite alla quale questa corrente d'ingresso eguaglia la corrente di segnale $g_m v_{gs}$ generata sul Drain (guadagno di corrente unitario in cortocircuito), e scala come $1/L^2$ perché ridurre la lunghezza di canale $L$ accorcia i tempi di transito e abbatte le capacità di Gate.
 
 ### Teoria — Guadagno di Corrente in Cortocircuito e Legge Quadratica $1/L^2$
 

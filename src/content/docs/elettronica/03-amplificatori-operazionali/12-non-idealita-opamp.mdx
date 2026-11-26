@@ -19,11 +19,11 @@ Il modello ideale del [Capitolo 10](/dynamic-courses/elettronica/03-amplificator
 
 <Divider label="1 · Guadagno Finito e Prodotto Guadagno-Banda" />
 
-### Esempio Concettuale — Il Budget Fisso di Guadagno e Banda
+### Compromesso tra Guadagno e Larghezza di Banda
 
-Immaginiamo che un amplificatore possieda un "budget complessivo" fisso pari all'area di un rettangolo: la base rappresenta la banda di frequenza utilizzabile e l'altezza rappresenta il guadagno ad anello chiuso.
+In un Op-Amp reale il guadagno ad anello aperto $A_0$ è finito e un condensatore interno di compensazione introduce un **polo dominante** a bassa frequenza oltre il quale il guadagno scende a $-20\,\text{dB/decade}$.
 
-Quando rinunciamo a una parte dell'enorme guadagno ad anello aperto tramite la retroazione negativa, non sprechiamo quel margine: lo convertiamo esattamente in precisione statica e in larghezza di banda. Se chiediamo allo stadio un guadagno molto alto, la banda utile resta stretta; se ci accontentiamo di un guadagno modesto, la banda piatta si estende in proporzione fino a incontrare il limite naturale del silicio.
+Quando si chiude l'amplificatore in retroazione negativa, il **guadagno d'anello** $T = A_0 \beta$ riduce l'errore statico e sposta in avanti la frequenza di taglio ad anello chiuso esattamente dello stesso fattore con cui riduce il guadagno. Ne risulta un vincolo invariante espresso dal **prodotto guadagno-banda ($\text{GBW}$)**: aumentare il guadagno ad anello chiuso ($1/\beta$) riduce proporzionalmente la banda piatta utilizzabile, mentre ridurlo fino al buffer unitario estende la banda fino all'intero $\text{GBW}$.
 
 ### Teoria — Guadagno Finito Open-Loop e Compromesso GBW
 
@@ -84,11 +84,11 @@ Poiché la banda è governata dal guadagno d'anello $T(jf) = A(jf)\beta$, il lim
 
 <Divider label="2 · Errori Statici DC e Modo Comune" />
 
-### Esempio Concettuale — Bilanciare Due Ingressi Quasi Identici
+### Asimmetrie dello Stadio Differenziale d'Ingresso
 
-All'interno di un Op-Amp, lo stadio d'ingresso confronta due transistori progettati per essere identici. Nella fabbricazione reale, tuttavia, due componenti adiacenti non sono mai gemelli perfetti: è come usare una bilancia a due piatti in cui un braccio è impercettibilmente più pesante dell'altro e ogni piatto trattiene una piccola goccia d'olio.
+Le tolleranze di fabbricazione tra i due rami dello stadio differenziale d'ingresso producono tre errori in continua: la **tensione di offset** $V_{OS}$ (lo sbilanciamento equivalente necessario ad azzerare l'uscita), le **correnti di polarizzazione** $I_{B1}, I_{B2}$ assorbite dai morsetti d'ingresso e una reiezione finita del modo comune ($\text{CMRR}$).
 
-Anche con gli ingressi cortocircuitati a zero, lo squilibrio iniziale ($V_{OS}$) spinge l'uscita lontano da zero, mentre le correnti di alimentazione interne richieste dai due morsetti ($I_B$) creano cadute di tensione indesiderate sui resistori esterni. Se facciamo in modo che entrambi i morsetti vedano esattamente la stessa resistenza equivalente verso massa, le due cadute medie uguali si bilanciano e si annullano reciprocamente.
+Mentre l'errore dovuto a $V_{OS}$ viene sempre moltiplicato per il guadagno di rumore $(1 + R_2/R_1)$, l'errore prodotto dalla componente media $I_B$ può essere cancellato inserendo sul morsetto non invertente un resistore $R_3 = R_1 \parallel R_2$, così che entrambi gli ingressi vedano la stessa resistenza equivalente in continua verso massa e il residuo dipenda dalla sola corrente di offset $I_{OS}$.
 
 ### Teoria — Tensione di Offset, Correnti di Bias e CMRR
 
@@ -173,11 +173,11 @@ Una conseguenza progettuale importante distingue le due topologie base: nello st
 
 <Divider label="3 · Slew-Rate e Limiti di Grande Segnale" />
 
-### Esempio Concettuale — Il Rubinetto al Massimo Durante un Riempimento Rapido
+### Limitazione di Corrente nella Risposta a Grande Segnale
 
-Per piccoli segnali, la velocità di risposta di un Op-Amp è lineare e dipende solo dalla banda $f_{3\text{dB}}$. Immaginiamo però di richiedere all'uscita un salto molto ampio e brusco, come svuotare o riempire una vasca di colpo: la valvola interna che fornisce corrente si apre al massimo possibile e oltre quel tetto non può andare.
+La banda $f_{3\text{dB}}$ descrive il comportamento lineare di piccolo segnale. Quando però si applica un gradino ampio o una sinusoide ad alta ampiezza e frequenza, l'errore differenziale istantaneo satura lo stadio d'ingresso, che riesce a erogare soltanto la propria corrente massima costante $I_{\max}$ sul condensatore di compensazione interno $C_c$.
 
-Anche se continuiamo a comandare variazioni rapide, l'uscita può salire o scendere soltanto lungo una rampa dritta alla propria velocità limite costante. Una sinusoide ampia e veloce non si limita più a diventare più piccola: viene "limata" nei tratti più ripidi e si deforma in un'onda triangolare.
+Di conseguenza la derivata temporale dell'uscita non può superare un tetto fisico lineare detto **Slew-Rate** ($SR = I_{\max}/C_c$): invece di attenuarsi linearmente mantenendo la forma d'onda, i segnali sinusoidali troppo ampi e veloci vengono distorti in rampe triangolari a pendenza costante $\pm SR$.
 
 ### Teoria — Origine Fisica dello Slew-Rate e Banda a Piena Potenza
 

@@ -17,13 +17,9 @@ Nel [Capitolo 5](/dynamic-courses/elettronica/02-transistori-mos/05-struttura-fi
 
 <Divider label="1 · Conduzione in Regione di Triodo" />
 
-### Concetto
+### Concetto — Profilo a Cuneo e Regione di Triodo
 
-Quando il MOSFET è acceso ($V_{GS} > V_{th}$) e la tensione $V_{DS}$ è ancora inferiore all'overdrive $V_{OV}$, la carica mobile rimane presente lungo tutta la lunghezza del canale. Tuttavia, poiché il potenziale cresce dal Source verso il Drain, la tensione verticale disponibile sull'ossido diminuisce progressivamente verso il Drain, conferendo al canale una **forma a cuneo**: è proprio questo assottigliamento progressivo che curva la caratteristica $I_D$–$V_{DS}$ da retta iniziale (**triodo profondo**) a parabola.
-
-### Esempio Concettuale
-
-Immagina un canale d'irrigazione largo e aperto da una paratoia superiore (il Gate): finché la pendenza tra ingresso e uscita ($V_{DS}$) è molto lieve, il livello dell'acqua resta quasi uniforme lungo tutto il percorso e la portata cresce in modo lineare con la spinta, come attraverso una semplice condotta resistiva. Se però abbassi l'uscita aumentando la pendenza, il pelo dell'acqua scende via via verso lo sbocco assottigliando la sezione utile al fondo del canale: la portata continua a salire, ma sempre meno rapidamente rispetto alla spinta applicata.
+Quando il MOSFET è acceso ($V_{GS} > V_{th}$) e la tensione $V_{DS}$ è inferiore all'overdrive $V_{OV}$, la carica mobile rimane presente lungo tutta la lunghezza del canale. Tuttavia, poiché il potenziale locale lungo il canale cresce da $0$ al Source fino a $V_{DS}$ al Drain, la tensione verticale disponibile sull'ossido ($V_{GS} - V(x)$) diminuisce progressivamente verso il Drain, conferendo al canale una **forma a cuneo**: per $V_{DS} \ll 2 V_{OV}$ il canale è pressoché uniforme e si comporta come un resistore lineare $R_{on}$ (**triodo profondo**), mentre all'aumentare di $V_{DS}$ l'assottigliamento verso il Drain incurva la caratteristica $I_D$–$V_{DS}$ verso una parabola.
 
 ### Teoria — Canale a Cuneo, Equazione del Triodo e Resistenza $R_{on}$
 
@@ -76,13 +72,9 @@ Nei circuiti integrati un resistore passivo tradizionale in polisilicio occupa m
 
 <Divider label="2 · Pinch-Off, Saturazione e Modulazione di Canale" />
 
-### Concetto
+### Concetto — Pinch-Off e Saturazione della Corrente
 
-Se continuiamo ad aumentare $V_{DS}$ tenendo fissa $V_{GS}$, arriva un punto preciso in cui l'estremità del canale al Drain si annulla (*pinch-off*). Oltre questa soglia, la tensione che accelera le cariche lungo il tratto conduttivo del canale resta bloccata al valore di overdrive $V_{OV}$: nel modello ideale il transistore diventa quindi un **generatore di corrente indipendente da $V_{DS}$** (**regione di saturazione**), mentre nei dispositivi reali compare una lieve pendenza residua legata all'arretramento del punto di strozzamento.
-
-### Esempio Concettuale
-
-Pensa a uno sfioratore a cascata lungo un canale: finché l'acqua a valle è alta, alzare o abbassare il bacino inferiore cambia la portata; ma quando il livello a valle scende sotto il ciglio della cascata, sul bordo si forma un salto libero la cui portata dipende ormai solo dall'altezza dell'acqua a monte. Abbassare ancora di più il bacino inferiore fa solo cadere l'acqua più in basso nello strapiombo, senza poter richiamare più acqua dalla paratoia a monte—salvo un lievissimo arretramento del bordo di caduta.
+Aumentando $V_{DS}$ a $V_{GS}$ fissata, quando $V_{DS}$ eguaglia $V_{OV}$ la caduta verticale all'estremità di Drain scende a $V_{th}$ e la carica mobile in quel punto si annulla (*pinch-off*). Per $V_{DS} \ge V_{OV}$, la caduta di tensione lungo il tratto conduttivo del canale resta bloccata a $V_{OV}$ mentre l'eccesso $(V_{DS} - V_{OV})$ cade nella breve zona svuotata davanti al Drain: nel modello ideale il transistore diventa quindi un **generatore di corrente controllato in tensione** indipendente da $V_{DS}$ (**regione di saturazione**), mentre nei dispositivi reali l'arretramento del punto di strozzamento introduce una lieve pendenza finita ($r_o$).
 
 ### Teoria — Strozzamento del Canale, Modulazione $\lambda$ e Resistenza $r_o$
 
@@ -135,13 +127,9 @@ Varia i cursori di $V_{GS}$, $V_{th}$ e $\lambda$ nel simulatore interattivo qui
 
 <Divider label="3 · Il Transistore PMOS e Dualità" />
 
-### Concetto
+### Concetto — Dualità Complementare nel PMOS
 
-Il **transistore PMOS** funziona con lo stesso identico principio fisico dell'NMOS, ma scambia i drogaggi e il segno dei portatori: il canale è formato da **lacune** positive che viaggiano dal Source (al potenziale più alto) verso il Drain (al potenziale più basso). Per applicare senza errori di segno tutte le equazioni viste per l'NMOS, basta invertire i pedici delle tensioni riferendole al Source ($V_{SG}$ e $V_{SD}$) e sostituire $V_{th}$ con il modulo $|V_{TP}|$.
-
-### Esempio Concettuale
-
-Immagina l'NMOS e il PMOS come due speculari valvole idrauliche poste ai lati opposti dell'alimentazione: l'NMOS appoggia i piedi a massa e lascia scendere elettroni verso il basso man mano che alzi il Gate; il PMOS è invece appeso in alto verso $V_{DD}$ e lascia scorrere corrente verso il basso quando tiri il Gate verso il basso rispetto al Source. Basta misurare tutte le tensioni "dall'alto verso il basso" ($V_{SG} = V_S - V_G$ e $V_{SD} = V_S - V_D$) per ottenere numeri positivi e regole identiche.
+Il **transistore PMOS** opera con lo stesso meccanismo elettrostatico dell'NMOS, ma inverte drogaggi e polarità dei portatori: il canale è costituito da **lacune** positive che scorrono dal Source (al potenziale più alto) verso il Drain (al potenziale più basso), e si forma quando il Gate è sufficientemente negativo rispetto al Source ($V_{TP} < 0$). Riferendo le tensioni al Source ($V_{SG} = V_S - V_G$, $V_{SD} = V_S - V_D$) e utilizzando il modulo $\lvert V_{TP}\rvert$, tutte le disuguaglianze di soglia e le equazioni di corrente risultano formalmente identiche a quelle dell'NMOS.
 
 ### Teoria — Tensioni Invertite e Regioni Operative Duali
 

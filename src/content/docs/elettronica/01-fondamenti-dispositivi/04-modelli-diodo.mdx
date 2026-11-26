@@ -17,13 +17,11 @@ L'equazione esponenziale di Shockley ricavata nel [Capitolo 3](/dynamic-courses/
 
 <Divider label="1 · Modelli in Grande Segnale: Retta di Carico, CVD e Ideale" />
 
-Quando la tensione applicata al circuito varia ampiamente tra conduzione e interdizione, non serve inseguire ogni millivolt della curva esponenziale. Poiché in diretta la corrente del diodo cresce di dieci volte ogni $60\,\text{mV}$, la sua caduta di tensione in conduzione resta quasi bloccata attorno a un valore caratteristico: possiamo quindi rappresentare il diodo acceso come un interruttore chiuso (eventualmente in serie a una piccola batteria fissa) e il diodo spento come un circuito aperto.
+### Linearizzazione a Tratti e Metodo delle Ipotesi
 
-### Esempio — La Valvola a Soglia Fissa
+La caratteristica esponenziale di Shockley genera equazioni trascendenti non risolvibili in forma chiusa nella maggior parte delle reti. Tuttavia, poiché la corrente diretta cresce di un fattore $10$ ogni $\sim 60\,\text{mV}$, in conduzione la caduta ai capi di un diodo al silicio resta confinata attorno a $0.7\,\text{V}$ su molti ordini di grandezza di corrente.
 
-Immaginiamo una valvola di non ritorno tenuta chiusa da una molla tarata su una piccola pressione di apertura. Finché la pressione a monte non raggiunge quella soglia, la valvola resta sigillata e non lascia passare nulla; appena la pressione supera la soglia, la valvola si apre e la caduta di pressione attraverso di essa rimane praticamente fissa qualunque sia la portata.
-
-Se la pompa a monte lavora a pressioni molto più elevate rispetto alla forza della molla, possiamo persino ignorare quella piccola soglia iniziale e considerare la valvola come un passaggio perfetto senza caduta. Quando in un impianto compaiono più valvole insieme, prima si ipotizza quali siano aperte e quali chiuse, poi si verifica che il flusso calcolato spinga davvero nel verso consentito attraverso quelle supposte aperte.
+Questo permette di sostituire la curva esponenziale con due modelli lineari a tratti: il **modello a caduta costante (CVD)**, che approssima il diodo acceso con una batteria fissa $V_{on} \approx 0.7\,\text{V}$ e il diodo spento con un circuito aperto, e il **diodo ideale** ($V_{on} = 0\,\text{V}$), valido quando le tensioni di rete superano ampiamente $0.7\,\text{V}$. Nei circuiti con più diodi si ipotizza lo stato ON/OFF di ciascun ramo, si risolve la rete lineare risultante e si verifica la coerenza di segno di correnti ($i_D > 0$ in ON) e tensioni ($v_D < V_{on}$ in OFF).
 
 ### Teoria — Retta di Carico, Modello CVD e Metodo delle Ipotesi
 
@@ -70,11 +68,11 @@ Nei circuiti lineari a tratti con $N$ diodi (ciascuno in grado di assumere $2$ s
 
 <Divider label="2 · Modello Differenziale di Piccolo Segnale (r_d)" />
 
-Quando una piccola oscillazione AC si sovrappone a un punto di lavoro continuo stazionario $Q$, il diodo esplora un arco talmente corto della curva esponenziale da comportarsi esattamente come una normale resistenza lineare, il cui valore dipende dalla corrente DC di polarizzazione.
+### Linearizzazione Locale attorno al Punto $Q$
 
-### Esempio — La Pendenza nel Punto di Lavoro
+Quando una piccola perturbazione AC $v_d(t)$ ($\lvert v_d \rvert \ll \eta V_T$) si sovrappone a una polarizzazione statica $Q(V_{DQ}, I_{DQ})$, l'escursione sulla caratteristica esponenziale è sufficientemente ridotta da confondersi con la retta tangente in $Q$.
 
-Osservando al microscopio un tratto minuscolo di una curva liscia, l'arco appare praticamente indistinguibile da un segmento rettilineo tangente alla curva stessa. Se abbiamo già fissato il diodo in un punto di lavoro stazionario, una piccola vibrazione di tensione attorno a quel punto produce una variazione proporzionale di corrente proprio come in un resistore. Più alta è la corrente continua che scorre nel diodo, più ripida diventa la curva in quel punto e quindi più piccola appare questa resistenza equivalente per il segnale alternato.
+In questo regime il diodo si comporta rispetto alle variazioni di segnale come un resistore lineare avente **resistenza differenziale** $r_d = \eta V_T / I_{DQ}$: poiché la pendenza della curva esponenziale è proporzionale alla corrente stessa, aumentare la corrente continua $I_{DQ}$ riduce proporzionalmente $r_d$.
 
 ### Teoria — Conduttanza Differenziale e Linearizzazione
 
@@ -109,13 +107,11 @@ La dipendenza inversa dalla corrente continua è immediata: a $I_{DQ} = 1\,\text
 
 <Divider label="3 · Circuiti Raddrizzatori e Filtro Capacitivo" />
 
-I **raddrizzatori** convertono una tensione alternata sinusoidale $v_s(t) = V_p \sin(\omega t)$ in una tensione di segno costante sfruttando la conduzione unidirezionale del diodo. Aggiungendo un condensatore in parallelo al carico, il circuito accumula energia sui picchi della sinusoide e mantiene l'uscita quasi continua tra una ricarica e l'altra.
+### Raddrizzamento Unidirezionale e Filtraggio Capacitivo
 
-### Esempio — Riempire un Serbatoio a Impulsi
+I **raddrizzatori** convertono una tensione alternata sinusoidale in una grandezza unipolare sfruttando la conduzione unidirezionale dei diodi. Collegando un condensatore $C$ in parallelo al carico $R_L$ (con $R_L C \gg T$), il condensatore si carica fino al picco della sinusoide e sostiene la corrente sul carico durante il resto del periodo mentre i diodi rimangono interdetti, limitando l'ondulazione residua (**ripple** $V_r$).
 
-Immaginiamo una pompa alternativa che spinge l'acqua avanti e indietro collegata a un serbatoio con un foro sul fondo da cui esce un flusso continuo verso il carico. Se mettiamo una sola valvola di non ritorno lungo il tubo, l'acqua entra soltanto nella fase di spinta in avanti; senza serbatoio, sul carico il flusso si azzera per metà del tempo.
-
-Con un grande serbatoio di accumulo, il livello dell'acqua sale fino al picco della pompata e poi, mentre la valvola si richiude durante la fase di ritorno, il serbatoio continua a rifornire il carico scendendo pochissimo. Poco prima del picco successivo la valvola si apre per un breve istante giusto per rabboccare quanto si è svuotato: per compensare in un attimo tutta l'acqua uscita durante l'intero ciclo, in quell'istante la valvola deve sopportare una portata di picco molto più grande del flusso medio. Se invece usiamo quattro valvole disposte a ponte per sfruttare sia l'andata sia il ritorno della pompa, rabbocchiamo il serbatoio con frequenza doppia dimezzando l'oscillazione del livello.
+Poiché i diodi conducono soltanto in un breve intervallo angolare prossimo al picco per reintegrare l'intera carica ceduta nel ciclo, la loro corrente di picco supera ampiamente la corrente media $I_{dc}$. Rispetto al raddrizzatore a singola semionda, l'architettura a **ponte di Graetz** ricarica $C$ a frequenza doppia ($2f$), dimezzando il ripple e riducendo la tensione inversa massima sui diodi spenti ($\text{PIV} \approx V_p$).
 
 ### Teoria — Raddrizzatori, Filtro Capacitivo e PIV
 
@@ -172,13 +168,11 @@ Seleziona qui sotto la topologia del raddrizzatore (singola semionda o ponte di 
 
 <Divider label="4 · Regolatore di Tensione Shunt a Diodo Zener" />
 
-Anche dopo il filtro capacitivo resta un ripple residuo e la tensione di rete può oscillare. Per ottenere una tensione continua stabile ai capi di un carico si utilizza un **regolatore shunt a diodo Zener**, che sfrutta la pendenza quasi verticale della regione di breakdown (Capitolo 3) insieme a un resistore serie $R_{\text{serie}}$ per assorbire le variazioni della sorgente e del carico.
+### Stabilizzazione in Parallelo al Carico
 
-### Esempio — Lo Sfioratore di Sicurezza
+Per eliminare il ripple residuo a valle del filtro capacitivo e compensare le variazioni della tensione d'ingresso, il **regolatore shunt** pone un diodo Zener polarizzato in breakdown in parallelo al carico e un resistore $R_{\text{serie}}$ a monte. Finché la corrente nello Zener resta positiva ($I_Z > I_{Z,\min}$), la bassa resistenza incrementale $r_z$ in breakdown ancora la tensione d'uscita attorno a $V_Z$, mentre $R_{\text{serie}}$ assorbe le fluttuazioni di ingresso.
 
-Immaginiamo un canale d'acqua dotato di una strozzatura all'ingresso e di uno sfioratore laterale tarato a un livello fisso, posto subito prima del campo da irrigare. Finché attraverso la strozzatura arriva abbastanza acqua da soddisfare il campo e far traboccare almeno un filo d'acqua nello sfioratore, il livello disponibile per il campo resta inchiodato all'altezza dello sfioratore.
-
-Il dimensionamento della strozzatura è però vincolato da due estremi opposti. Se la strozzatura è troppo stretta, quando la pressione a monte è al minimo e il campo assorbe la massima portata lo sfioratore resta a secco e il livello crolla; se invece la strozzatura è troppo larga, quando la pressione a monte è al massimo e il campo chiude il prelievo tutta l'acqua si riversa nello sfioratore rischiando di farlo straripare.
+Il dimensionamento di $R_{\text{serie}}$ è vincolato da due condizioni estreme opposte: un valore troppo alto spegne lo Zener nelle condizioni di ingresso minimo e carico massimo ($V_{S,\min}, I_{L,\max}$), facendo perdere la regolazione; un valore troppo basso provoca una corrente eccessiva nello Zener a ingresso massimo e carico minimo ($V_{S,\max}, I_{L,\min}$), superandone la potenza massima dissipabile.
 
 ### Teoria — Regolatore Shunt Zener
 

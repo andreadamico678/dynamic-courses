@@ -19,13 +19,11 @@ In tutte le varianti Common Source l'ingresso è applicato al Gate e l'uscita è
 
 <Divider label="1 · Common Source Base" />
 
-Nella configurazione base, l'intera tensione di segnale applicata al Gate cade direttamente tra Gate e Source perché quest'ultimo è mantenuto fermo a potenziale di riferimento AC.
+### Principio dell'Amplificazione Invertente
 
-### Esempio Concettuale — La Valvola Comandata a Pressione
+Nella configurazione Common Source base, un condensatore di bypass $C_S$ mantiene il Source fermo a massa AC, cosicché l'intera tensione di segnale applicata al Gate cade direttamente su $v_{gs}$ senza assorbire corrente statica o di centro banda ($i_g = 0$).
 
-Immagina un rubinetto idraulico collegato a un serbatoio in pressione attraverso un tubo con una strozzatura. La manopola del rubinetto ruota senza opporre attrito e senza consumare acqua dal comando: basta una pressione minima della mano (il segnale sul Gate) per aprire o chiudere il passaggio.
-
-Quando apri leggermente la manopola, il flusso d'acqua verso lo scarico aumenta; poiché l'acqua deve prima attraversare la strozzatura a monte (il resistore di Drain), una portata maggiore provoca una caduta di pressione più forte lungo la strozzatura e quindi fa **scendere** la pressione misurata subito sotto di essa (la tensione di Drain). Una piccolissima variazione sul comando produce così una variazione molto più ampia, e di segno opposto, all'uscita.
+Il transistore in saturazione converte la variazione di tensione $v_{gs}$ in una variazione di corrente di Drain $i_d = g_m v_{gs}$: quando $v_{gs}$ aumenta, la corrente richiamata verso massa cresce e produce una caduta maggiore sul carico equivalente al Drain $R_L'$, facendo scendere il potenziale di uscita $v_{out} = -g_m v_{gs} R_L'$. Questo meccanismo genera un elevato guadagno di tensione invertente, limitato però dall'elevata resistenza d'uscita $R_{out} = R_D \parallel r_o$.
 
 ### Teoria — Modello, Impedenze e Guadagno
 
@@ -108,13 +106,11 @@ A titolo di verifica numerica immediata, con $g_m = 2.5\,\text{mA/V}$, $R_D = 10
 
 <Divider label="2 · Common Source con Degenerazione di Source" />
 
-Rimuovendo il condensatore di bypass $C_S$, il resistore $R_S$ resta inserito nel percorso del segnale alternato e trasforma profondamente le prestazioni dello stadio.
+### Retroazione Locale su $R_S$ e Linearizzazione
 
-### Esempio Concettuale — Retroazione sul Punto d'Appoggio
+Rimuovendo il condensatore di bypass $C_S$, il resistore $R_S$ rimane nel percorso del segnale AC introducendo una **retroazione negativa locale** in corrente: quando la corrente di Drain cresce, la caduta $v_s = R_S i_d$ solleva il potenziale del Source e sottrae frazione della tensione di ingresso al comando effettivo $v_{gs} = v_i - v_s$.
 
-Immagina ora che il pavimento su cui poggia chi aziona una leva sia montato su una molla. Quando spingi la leva verso il basso per amplificare un movimento, una parte della tua spinta comprime la molla facendo abbassare il pavimento sotto i tuoi piedi: la corsa effettiva tra la tua mano e il fulcro si riduce.
-
-Anche se ottieni uno spostamento finale minore rispetto al caso con pavimento rigido, questo meccanismo automatico ha due conseguenze preziose: l'azione diventa molto più dolce e proporzionale alla spinta (si riduce la distorsione), e dall'uscita il meccanismo appare molto più rigido e difficile da perturbare dall'esterno.
+Pur riducendo il guadagno del fattore $(1 + g_m R_S)$, la degenerazione di Source apporta due vantaggi decisivi: linearizza la transconduttanza effettiva rendendo il guadagno meno dipendente dalla legge quadratica e da $V_{th}$, e moltiplica fortemente la resistenza differenziale vista dal Drain verso il Source.
 
 ### Teoria — Transconduttanza Equivalente e Moltiplicazione di Resistenza
 

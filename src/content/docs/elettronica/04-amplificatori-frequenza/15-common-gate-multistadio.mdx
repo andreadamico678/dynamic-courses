@@ -19,13 +19,11 @@ Poiché nessun singolo stadio soddisfa contemporaneamente tutte le specifiche di
 
 <Divider label="1 · Amplificatore Common Gate" />
 
-Nello stadio Common Gate la barriera isolata del Gate funge da riferimento fisso in alternata, mentre il segnale pilota direttamente la corrente del canale attraverso il Source.
+### Adattamento d'Impedenza al Source e Buffer di Corrente
 
-### Esempio Concettuale — Adattare un Cavo Coassiale senza Sprecare Segnale
+Nello stadio Common Gate il Gate è ancorato a massa AC, il segnale entra sul terminale di Source ed esce dal Drain in fase ($A_v > 0$). A differenza di CS e CD, la sorgente pilota direttamente il canale attraverso il Source vedendo una bassa resistenza d'ingresso ($\approx 1/g_m$), proprietà sfruttata nei front-end a radiofrequenza per adattare cavi coassiali da $50\,\Omega$ senza introdurre resistori passivi che dissiperebbero segnale e aggiungerebbero rumore termico.
 
-Un'antenna e il suo cavo coassiale a radiofrequenza trasferiscono tutta la potenza ricevuta senza riflessioni soltanto se vedono all'ingresso dell'amplificatore una resistenza di terminazione esattamente uguale alla propria impedenza caratteristica (tipicamente $50\,\Omega$).
-
-Se provassi a collegare il cavo a uno stadio con ingresso sul Gate mettendo semplicemente un resistore da $50\,\Omega$ verso massa, tutta la corrente del segnale si disperderebbe inutilmente in calore e rumore nel resistore. Entrando invece nel terminale di Source con il Gate tenuto fermo, la corrente di segnale entra direttamente nel canale del transistore—che oppone naturalmente una resistenza regolabile di poche decine di ohm—e viene trasferita quasi intatta verso il carico di uscita sul Drain.
+Poiché quasi tutta la corrente entrante nel Source fluisce verso il nodo di Drain ad alta impedenza ($A_i \approx 1$), lo stadio agisce come un **buffer di corrente** e, grazie allo schermo elettrostatico del Gate a massa AC tra ingresso e uscita, elimina l'effetto Miller ampliando notevolmente la banda superiore.
 
 ### Teoria — Impedenza al Source, Guadagno e Schermo Elettrostatico
 
@@ -95,11 +93,11 @@ Seleziona **Common Gate** nel simulatore interattivo qui sotto e regola $g_m$ e 
 
 <Divider label="2 · Amplificatori Multistadio" />
 
-Un amplificatore completo combina più stadi elementari affinché ciascuno svolga il ruolo per cui è più adatto. In base al modo in cui gli stadi si collegano tra loro, distinguiamo due architetture fondamentali: la **cascata orizzontale CS–CD** (disaccoppiata in tensione tramite condensatori o accoppiamento diretto) e la **struttura verticale Cascode CS–CG** (dove lo stesso flusso di corrente attraversa due transistori impilati).
+### Combinazione di Topologie: Cascata CS–CD e Cascode CS–CG
 
-### Esempio Concettuale — Una Squadra di Specialisti
-
-Nessuno strumento da solo eccelle in tutto: un microfono sensibilissimo capta voci debolissime senza disturbarle ma non riesce a far vibrare un grosso altoparlante; al contrario, un amplificatore di potenza muove l'altoparlante con facilità ma non è fatto per leggere segnali microscopici. Mettendo i due specialisti in fila, il primo ascolta con delicatezza e amplifica la tensione, mentre il secondo riceve il segnale già amplificato e fornisce tutta la corrente richiesta dal carico finale.
+Nessuno stadio a singolo transistore soddisfa contemporaneamente alta resistenza d'ingresso, elevato guadagno di tensione, larga banda e bassa resistenza d'uscita. Le architetture multistadio combinano le tre celle elementari in base all'obiettivo progettuale:
+* **Cascata orizzontale CS–CD:** un primo stadio Common Source fornisce alto $R_{in}$ e guadagno di tensione, mentre un buffer Common Drain a valle abbassa $R_{out}$ per pilotare carichi resistivi bassi senza attenuazione.
+* **Struttura impilata Cascode (CS–CG):** due transistori condividono la stessa corrente DC in serie verticale; il CS d'ingresso converte la tensione in corrente su un nodo intermedio a bassa impedenza ($\approx 1/g_{m2}$), mentre il CG superiore isola il nodo di uscita aumentando la resistenza d'uscita fino a $\sim g_m r_o^2$ ed eliminando l'effetto Miller sul transistore d'ingresso.
 
 ### Teoria — Cascata CS–CD e Architettura Cascode
 

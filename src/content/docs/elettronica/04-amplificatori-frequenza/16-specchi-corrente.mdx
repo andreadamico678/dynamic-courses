@@ -18,13 +18,11 @@ Il principio è semplice: un MOSFET di riferimento connesso a diodo trasforma un
 
 <Divider label="1 · Specchio di Corrente Elementare" />
 
-La topologia di base impiega due MOSFET della stessa polarità che condividono la tensione Gate-Source per copiare una corrente di riferimento su un ramo di uscita.
+### Copia di Corrente tramite $V_{GS}$ Condivisa
 
-### Esempio Concettuale — Il Rubinetto Maestro e i Rubinetti Gemelli
+Lo specchio di corrente elementare impiega due MOSFET della stessa polarità con Gate e Source in comune per replicare una corrente di riferimento $I_{ref}$ su uno o più rami di uscita senza occupare l'area di grandi resistori integrati.
 
-Immagina di dover alimentare cinque fontanelle con portate diverse partendo da un unico serbatoio, senza usare misuratori su ciascuna linea. Monti una valvola di riferimento (*maestra*) e la apri finché vi scorre esattamente la portata desiderata; poi blocchi la manopola in quella posizione e colleghi meccanicamente sullo stesso asse una seconda valvola gemella, oppure larga il doppio.
-
-Se le valvole sono identiche per fabbricazione e la pressione a valle non disturba il flusso, la seconda valvola erogherà automaticamente la stessa portata o esattamente il doppio. Se però la pressione sul tubo di uscita cambia molto rispetto a quella della valvola maestra, la portata copiata inizierà a discostarsi leggermente dal valore ideale.
+Il transistore di ingresso connesso a diodo ($V_{DS1} = V_{GS1}$) opera sempre in saturazione e converte $I_{ref}$ nell'unica tensione $V_{GS}$ compatibile con la propria geometria $(W/L)_1$. Applicando la stessa $V_{GS}$ al transistore di uscita (anch'esso in saturazione), i parametri tecnologici $k_n'$ e $V_{th}$ condivisi sul medesimo chip si elidono, rendendo il rapporto di copia $I_O / I_{ref}$ proporzionale al rapporto geometrico $(W/L)_2 / (W/L)_1$, al netto del piccolo scarto introdotto dalla modulazione di canale $\lambda$ quando $V_{DS2} \ne V_{DS1}$.
 
 ### Teoria — Connessione a Diodo, Legge di Scala e Modulazione
 
@@ -85,11 +83,11 @@ Per verificarne l'ordine di grandezza, se $I_{ref} = 100\,\mu\text{A}$ con $(W/L
 
 <Divider label="2 · Specchio di Corrente Cascode" />
 
-Per azzerare l'errore dovuto alla differenza tra $V_{DS2}$ e $V_{DS1}$ e aumentare la resistenza d'uscita di uno o due ordini di grandezza, si protegge lo specchio base con una coppia di transistori superiori impilati.
+### Schermatura del Drain e Moltiplicazione di $R_{out}$
 
-### Esempio Concettuale — Lo Scudo di Pressione a Valle
+Nello specchio elementare, ogni variazione della tensione di uscita $V_O = V_{DS2}$ rispetto a $V_{DS1}$ perturba la corrente copiata attraverso la resistenza finita $r_{o2} = 1/(\lambda I_O)$.
 
-Riprendiamo la valvola gemella dell'esempio precedente, la cui portata variava leggermente al cambiare della pressione sul tubo di uscita. Se montiamo subito a valle della valvola gemella una seconda valvola regolatrice che assorbe su di sé le oscillazioni di pressione esterne mantenendo fissa la pressione proprio sopra la valvola principale, quest'ultima lavorerà sempre nelle identiche condizioni della valvola maestra, indipendentemente da ciò che accade all'uscita.
+Impilando un secondo transistore in configurazione Common Gate sopra il transistore specchio di uscita (**specchio Cascode**), le escursioni di tensione sul nodo di uscita vengono assorbite dal dispositivo superiore mantenendo pressoché costante $V_{DS2} \approx V_{DS1}$. Questa schermatura annulla l'errore sistematico dovuto a $\lambda$ e moltiplica la resistenza d'uscita di un fattore $\sim g_m r_o$, al prezzo di una tensione minima di conformità (*headroom*) più alta.
 
 ### Teoria — Pareggiamento di Tensione, Moltiplicazione di Resistenza e Headroom
 
@@ -140,13 +138,11 @@ Rispetto a $V_{OV}$ dello specchio semplice, lo specchio Cascode classico sacrif
 
 <Divider label="3 · Common Source con Carico Attivo" />
 
-Nei circuiti integrati moderni, gli specchi di corrente non servono solo a polarizzare gli stadi ma sostituiscono direttamente il resistore di Drain $R_D$ come **carico attivo**.
+### Guadagno Elevato a Bassa Tensione di Alimentazione
 
-### Esempio Concettuale — Alta Resistenza Senza Caduta Continua
+Nei circuiti integrati moderni alimentati a tensioni ridotte (es. $1.8\,\text{V}$), ottenere un guadagno di tensione elevato mediante un resistore passivo $R_D$ molto grande (ad es. $100\,\text{k}\Omega$) con una corrente di polarizzazione di $100\,\mu\text{A}$ è fisicamente impossibile: la sola caduta statica $R_D I_D = 10\,\text{V}$ supererebbe l'alimentazione spegnendo il transistore.
 
-Immagina di voler ottenere una grande variazione di tensione al variare di una piccola corrente, ma di avere a disposizione una batteria da appena $1.8\,\text{V}$. Se usassi un resistore passivo molto grande (ad esempio $100\,\text{k}\Omega$) con una corrente di riposo di $100\,\mu\text{A}$, la sola caduta statica necessaria a far passare la corrente continua richiederebbe $10\,\text{V}$, mandando subito in crisi l'alimentazione.
-
-Un **carico attivo** a MOSFET aggira questo limite grazie alla forma della sua curva caratteristica in saturazione: lascia passare la corrente continua di riposo consumando appena $0.2\,\text{V}$ di caduta DC, ma alle piccole variazioni alternate oppone una pendenza quasi orizzontale, offrendo un'altissima resistenza differenziale $r_o$.
+Sostituendo $R_D$ con uno specchio di corrente PMOS in saturazione (**carico attivo**), la curva quasi piatta in saturazione separa la caduta DC dal comportamento AC: il carico attivo fornisce la corrente continua con una caduta statica di appena $\sim 0.2\,\text{V}$ ($V_{OV}$), ma oppone alle piccole variazioni alternate l'elevata resistenza differenziale $r_{o2}$, portando il guadagno dello stadio vicino al limite intrinseco $g_{m1}(r_{o1} \parallel r_{o2})$.
 
 ### Teoria — Modello del Carico Attivo e Guadagno Intrinseco
 

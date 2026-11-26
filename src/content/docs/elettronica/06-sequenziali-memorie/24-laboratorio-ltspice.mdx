@@ -18,15 +18,11 @@ Anche quando si disegna uno schema grafico a schermo, il simulatore lo traduce s
 
 <Divider label="1 · Netlist SPICE e Analisi Stazionaria" />
 
-Per risolvere numericamente una rete arbitraria, il simulatore deve conoscere ogni componente, i suoi valori e a quali nodi è collegato rispetto a un riferimento comune. Questa descrizione testuale è la **netlist**, su cui si eseguono il calcolo di un singolo punto di lavoro (**`.op`**) oppure la scansione statica di un generatore (**`.dc`**).
+### Topologia a Nodi e Solutori in Continua
 
-### Esempio — Descrivere una Rete a Parole e Misurarne il Riposo
+Per risolvere numericamente qualsiasi rete, SPICE traduce lo schema in una **netlist** testuale: un elenco di righe in cui ogni elemento dichiara i propri terminali riferiti a nodi numerati o nominali rispetto a un riferimento obbligatorio di massa (`0`), seguito dai parametri fisici o dal nome del modello.
 
-Immagina di dover dettare per telefono lo schema di un impianto idraulico a un collega che non può vederlo:
-
-- Per prima cosa fissate un punto di riferimento comune a pressione zero (la **massa `0`**) e assegnate un numero o un nome a ogni altro raccordo (**nodi** `1`, `2`, `3`).
-- Poi elencate i tubi e le pompe uno per riga indicando esattamente tra quali due raccordi sono collegati e con quale resistenza idraulica.
-- Una volta completata la lista, l'analisi **`.op`** scatta una singola fotografia delle pressioni e dei flussi a regime statico; l'analisi **`.dc`**, invece, fa ruotare gradualmente una manopola di ingresso passo dopo passo e registra la curva statica risultante.
+Su questa descrizione topologica, l'analisi **`.op`** calcola un singolo punto di lavoro statico (aprendo i condensatori, cortocircuitando gli induttori e risolvendo il sistema nodale KCL, iterativamente con Newton-Raphson in presenza di dispositivi non lineari); l'analisi **`.dc`** ripete la stessa procedura lungo una scansione parametrica di un generatore indipendente per tracciare curve $I\text{--}V$ o caratteristiche statiche VTC.
 
 ### Teoria — Anatomia della Netlist, Suffissi e Analisi .op / .dc
 
@@ -86,11 +82,11 @@ Risolvendo il sistema, il simulatore stampa `V(1) = 12 V`, `V(2) = 8 V` e `V(3) 
 
 <Divider label="2 · Analisi Transitoria e Modelli Dispositivi" />
 
-Mentre `.op` e `.dc` forniscono soltanto istantanee statiche, molti fenomeni elettronici — come la carica di un condensatore, il ritardo di propagazione di una porta logica o la saturazione di un amplificatore — evolvono nel tempo e dipendono dalla forma completa non lineare dei dispositivi. L'analisi **`.tran`** integra nel tempo le equazioni differenziali del circuito appoggiandosi ai parametri fisici dichiarati nelle direttive **`.MODEL`**.
+### Integrazione Temporale delle Equazioni Non Lineari
 
-### Esempio — L'Oscilloscopio Virtuale sul Banco di Prova
+Mentre `.op` e `.dc` forniscono soltanto soluzioni stazionarie, transitori RC, ritardi di propagazione digitali, *Slew-Rate* e distorsioni armoniche dipendono dalla dinamica temporale e dalle equazioni non lineari complete dei dispositivi.
 
-Immagina di collegare un circuito reale a un generatore di onde quadre e a un oscilloscopio digitale: parti da una condizione iniziale di riposo, poi premi il pulsante di avvio e osservi sullo schermo come salgono e scendono le tensioni istante dopo istante. L'analisi **`.tran`** svolge esattamente questo ruolo: avanza a piccoli passi temporali successivi calcolando l'evoluzione reale del segnale, inclusi ritardi, distorsioni e saturazioni, usando i parametri del modello di ciascun transistore o diodo.
+Partendo dal punto operativo iniziale `.op`, l'analisi **`.tran`** integra numericamente nel tempo le equazioni differenziali di condensatori e induttori a passi temporali discreti, valutando a ogni istante le caratteristiche complete dichiarate nelle direttive **`.MODEL`** (come `VTO`, `KP`, `GAMMA`, `LAMBDA` per i MOSFET `LEVEL=1`), così da catturare fedelmente ritardi, saturazione e *clipping*.
 
 ### Teoria — Solutore .tran, Sorgenti, .MODEL e Scarica CMOS
 
@@ -156,11 +152,11 @@ Integrando $C_L\,\frac{dV}{dt} = -I_{D,\text{sat}}$, il tempo di scarica fino a 
 
 <Divider label="3 · Analisi in Frequenza di Piccolo Segnale" />
 
-Per tracciare il diagramma di Bode di un amplificatore o di un filtro tra pochi hertz e centinaia di megahertz, simulare centinaia di periodi sinusoidali con `.tran` a ogni frequenza sarebbe lentissimo. L'analisi **`.ac`** risolve il problema linearizzando il circuito attorno al suo punto di lavoro e risolvendolo direttamente nel dominio dei fasori.
+### Linearizzazione al Punto di Lavoro e Risposta Fasoriale
 
-### Esempio — Sondare l'Amplificatore con un Segnale Test Unitario
+Ricavare la risposta in frequenza su molte decadi eseguendo centinaia di simulazioni temporali `.tran` sarebbe computazionalmente lento e inutile per il piccolo segnale.
 
-Immagina di voler misurare la risposta in frequenza di un sistema non lineare per piccoli segnali: anziché inviare onde grandi che farebbero distorcere il circuito, blocchi prima il circuito nel suo punto di riposo, sostituisci ogni curva non lineare con la sua retta tangente locale, e poi applichi in ingresso un segnale di prova di ampiezza esattamente unitaria ($1\,\text{V}$) variando la frequenza. In questo modo l'ampiezza e la fase lette direttamente in uscita coincidono con il guadagno e lo sfasamento del circuito, senza alcuna divisione aggiuntiva — ricordando però che questo modello linearizzato non si accorge mai se il segnale reale supererebbe i limiti di alimentazione.
+L'analisi **`.ac`** risolve il problema in tre fasi: calcola il punto di lavoro DC (`.op`), sostituisce ogni dispositivo non lineare con il proprio circuito equivalente linearizzato valutato in quel punto ($g_m, r_o, C_{gs}, C_{gd}$) spegnendo le sorgenti DC, e risolve direttamente il sistema lineare dei fasori al variare di $f$. Applicando `AC 1` in ingresso, la tensione fasoriale d'uscita restituisce direttamente modulo e fase del guadagno, ricordando però che il modello linearizzato non può rilevare saturazioni o *clipping* di grande segnale.
 
 ### Teoria — Linearizzazione Armonica, Direttiva .ac e Risonanza RLC
 

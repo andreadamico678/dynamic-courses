@@ -18,13 +18,9 @@ Il capitolo si divide in due blocchi: prima esaminiamo come il campo elettrico v
 
 <Divider label="1 · Condensatore MOS e Formazione del Canale" />
 
-### Concetto
+### Concetto — Struttura MOS e Inversione del Canale
 
-Tutti i regimi elettrostatici del MOSFET condividono la stessa pila verticale **Gate–Ossido–Body**, che si comporta come un condensatore a facce piane in cui l'armatura inferiore è il silicio drogato. Ciò che distingue i diversi regimi è esclusivamente il **segno e l'ampiezza della tensione verticale $V_{GB}$**: a seconda del suo valore, il campo elettrico richiama portatori maggioritari in superficie, scopre cariche ioniche fisse oppure crea uno strato sottile di portatori minoritari mobili (il **canale**).
-
-### Esempio Concettuale
-
-Immagina due isole di terra ferma (Source e Drain) separate da un terreno asciutto (il substrato di Body), con una piastra metallica sospesa sopra il terreno e isolata da una sottile lastra di vetro (l'ossido di Gate). Finché sulla piastra applichi una carica negativa o troppo debole, tra le due isole non c'è alcun passaggio. Quando però carichi positivamente la piastra oltre una certa intensità, l'attrazione elettrostatica attraverso il vetro richiama cariche mobili negative sulla superficie del terreno asciutto, stendendo un sottile "ponte" conduttivo da un'isola all'altra senza che nessuna carica attraversi mai il vetro.
+Tutti i regimi elettrostatici del MOSFET condividono la stessa pila verticale **Gate–Ossido–Body**, che si comporta come un condensatore a facce piane in cui l'elettrodo di Gate è isolato dal silicio tramite uno strato dielettrico di $\text{SiO}_2$ ($I_G = 0$ in continua). Ciò che distingue i diversi regimi è esclusivamente il **segno e l'ampiezza della tensione verticale $V_{GB}$**: a seconda del suo valore, il campo elettrico richiama portatori maggioritari in superficie (**accumulazione**), respinge i maggioritari scoprendo ioni fissi (**svuotamento**) oppure attira elettroni minoritari fino a formare un sottile strato conduttivo tra Source e Drain (**forte inversione**).
 
 ### Teoria — Architettura a Quattro Terminali e Regimi del Condensatore MOS
 
@@ -91,13 +87,9 @@ Nell'esempio numerico precedente, ciò corrisponde a $Q_{d,\max} \approx -1.64 \
 
 <Divider label="2 · Tensione di Soglia ed Effetto Body" />
 
-### Concetto
+### Concetto — Origine di $V_{th}$ ed Effetto Body
 
-La **tensione di soglia** $V_{th}$ è la tensione minima tra Gate e Source richiesta per raggiungere la forte inversione e formare il canale. Questo valore non è fissato una volta per tutte dal solo processo tecnologico: se nei circuiti integrati il terminale di Source sale a un potenziale superiore rispetto al Body condiviso, la barriera elettrostatica sotto il canale si allarga e richiede una tensione di soglia più elevata (**effetto Body**).
-
-### Esempio Concettuale
-
-Immagina di dover sollevare una serranda idraulica fino a un livello minimo per far passare l'acqua: quel livello minimo è la soglia nominale $V_{th0}$. Se però il pavimento del canale (il Body) sprofonda rispetto al livello di ingresso (il Source), tra canale e substrato si apre uno spazio vuoto aggiuntivo carico di ioni fissi. Prima di poter attirare nuova acqua in superficie, il comando dall'alto (il Gate) deve compensare questo dislivello extra, quindi serve una spinta maggiore per aprire il passaggio.
+La **tensione di soglia** $V_{th}$ è la tensione minima tra Gate e Source richiesta per bilanciare la carica fissa della regione svuotata sottostante e raggiungere la forte inversione. Questo valore non è fissato una volta per tutte dal solo processo tecnologico: se nei circuiti integrati il terminale di Source sale a un potenziale superiore rispetto al Body condiviso ($V_{SB} > 0$), la giunzione canale–substrato risulta polarizzata inversamente, la zona svuotata si allarga scoprendo più ioni accettori fissi e il Gate richiede una tensione di soglia più elevata per formare il canale (**effetto Body**).
 
 ### Teoria — Derivazione di $V_{th0}$, Effetto Body e Simboli Circuitali
 

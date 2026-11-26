@@ -16,13 +16,11 @@ Mettendo a contatto nello stesso cristallo di silicio una regione drogata P e un
 
 <Divider label="1 · Equilibrio, Potenziale di Contatto e Zona di Carica Spaziale" />
 
-Quando due regioni con portatori maggioritari opposti entrano in contatto dentro lo stesso reticolo cristallino, il forte squilibrio di concentrazione innesca una diffusione iniziale attraverso il confine. Questo flusso svuota una sottile fascia centrale scoprendo gli ioni fissi del reticolo e generando un campo elettrico interno che arresta spontaneamente la diffusione, stabilendo una barriera di potenziale di equilibrio.
+### Equilibrio Elettrostatico e Zona Svuotata
 
-### Esempio — La Diga Spontanea al Confine
+Quando nello stesso monocristallo di silicio una regione drogata P e una regione drogata N entrano in contatto, l'enorme gradiente di concentrazione innesca una diffusione iniziale di lacune da P a N e di elettroni da N a P. I portatori che attraversano l'interfaccia si ricombinano, lasciando scoperti ai due lati gli **ioni droganti fissi** nel reticolo: accettori negativi $N_A^-$ sul lato P e donori positivi $N_D^+$ sul lato N.
 
-Immaginiamo due vasche affiancate colme di biglie di colore diverso: moltissime biglie rosse a sinistra e pochissime a destra, e viceversa per le biglie blu. Appena togliamo la parete divisoria, le biglie iniziano subito a mescolarsi attraversando la soglia da entrambi i lati.
-
-Supponiamo però che ogni biglia che attraversa la soglia lasci fissato sul pavimento della propria vasca di origine un magnete immobile di segno opposto. Man mano che le biglie attraversano e si annullano vicino al confine, lungo la striscia centrale non restano più biglie libere, ma soltanto due file affacciate di magneti fissi che creano una spinta contraria. Ben presto questa forza elettrica respinge le altre biglie esattamente quanto la pressione di mescolamento le spingeva avanti: il flusso netto si ferma da solo formando una barriera naturale. Inoltre, se i magneti sul lato destro sono molto più radi rispetto a quelli sul lato sinistro, per raccogliere la stessa carica totale la zona svuotata dovrà allargarsi molto di più nel lato meno denso.
+Questa fascia svuotata di cariche mobili (**SCR**) genera un campo elettrico interno da N verso P che produce una corrente di deriva opposta alla diffusione fino a raggiungere l'equilibrio dinamico ($I_D = 0$) con una barriera di potenziale integrata $V_0$. Per la neutralità della SCR ($N_A x_p = N_D x_n$), in una giunzione asimmetrica la regione svuotata penetra quasi interamente nel lato meno drogato.
 
 ### Teoria — Equilibrio della Giunzione p-n
 
@@ -75,13 +73,11 @@ In **polarizzazione diretta** ($V_D > 0$) la barriera si riduce a $V_0 - V_D$ e 
 
 <Divider label="2 · Polarizzazione, Equazione di Shockley e Sensibilità Termica" />
 
-Applicando una tensione esterna $V_D$ tra il terminale P (anodo) e il terminale N (catodo), rompiamo il pareggio dell'equilibrio modificando l'altezza della barriera nella SCR: abbassare la barriera libera una corrente di diffusione che cresce esponenzialmente, mentre alzarla blocca i maggioritari lasciando passare solo una minuscola corrente inversa di origine termica.
+### Modulazione della Barriera ed Effetto Termico
 
-### Esempio — Abbassare o Alzare l'Argine
+Applicando una tensione esterna $V_D$ tra anodo (P) e catodo (N), si modifica l'altezza della barriera elettrostatica nella SCR rompendo l'equilibrio tra diffusione e deriva. In **polarizzazione diretta** ($V_D > 0$), la barriera scende a $V_0 - V_D$: poiché la coda energetica dei portatori segue la statistica di Boltzmann, anche un modesto abbassamento della barriera moltiplica esponenzialmente i maggioritari iniettati oltre la giunzione.
 
-La barriera interna $V_0$ agisce come un argine che trattiene i moltissimi portatori maggioritari pronti a diffondere da entrambi i lati. Se colleghiamo una tensione esterna che abbassa anche di poco l'altezza di questo argine, una frazione enormemente più grande di portatori possiede ora l'energia termica sufficiente per scavalcarlo e riversarsi nel lato opposto: la corrente cresce quindi con una rapidità vertiginosa al minimo aumento di spinta.
-
-Se invece applichiamo la tensione nel verso opposto, l'argine si alza ancora di più e nessun portatore maggioritario riesce a superarlo: il flusso diretto si azzera e attraversa il confine soltanto il filo minuscolo e costante dei pochi portatori minoritari generati dal calore vicino alla soglia. Inoltre, se il dispositivo si scalda, l'energia termica media dei portatori cresce e permette loro di scavalcare l'argine più facilmente, riducendo la tensione diretta necessaria a mantenere la stessa corrente.
+In **polarizzazione inversa** ($V_D < 0$), la barriera sale a $V_0 + \lvert V_D \rvert$ sopprimendo la diffusione dei maggioritari e lasciando scorrere soltanto la minuscola corrente di saturazione $-I_S$ dei portatori minoritari generati termicamente. Al crescere della temperatura, $I_S(T)$ aumenta rapidamente e, a corrente diretta fissata, la caduta $V_D$ diminuisce di circa $-2\,\text{mV/}^\circ\text{C}$.
 
 ### Teoria — Polarizzazione, Equazione di Shockley e Deriva Termica
 
@@ -133,13 +129,11 @@ La dipendenza termica del diodo permette di realizzare sensori di temperatura pr
 
 <Divider label="3 · Breakdown Inverso, Capacità Dinamiche e Diodo Schottky" />
 
-Superando in polarizzazione inversa una soglia critica di tensione, la giunzione entra in **breakdown** lasciando passare grandi correnti a tensione quasi fissa grazie a due distinti meccanismi fisici. Inoltre il comportamento dinamico del diodo è regolato da due diverse capacità parassite a seconda del regime, e il ritardo di spegnimento dovuto alle cariche minoritarie può essere eliminato ricorrendo al **diodo Schottky** metallo-semiconduttore.
+### Breakdown, Effetti Capacitivi e Commutazione Unipolare
 
-### Esempio — Condensatori Nascosti e Spegnimento Rapido
+Oltre una tensione inversa critica $V_Z$, la giunzione entra in **breakdown** reversibile (per effetto tunnel Zener in giunzioni fortemente drogate o per moltiplicazione a valanga in giunzioni meno drogate), mantenendo la tensione quasi costante al crescere della corrente inversa.
 
-Un diodo reale non commuta mai istantaneamente tra acceso e spento. Quando è polarizzato inversamente, le due zone conduttive P ed N restano separate dalla fascia svuotata isolante, formando un piccolo condensatore naturale le cui armature si allontanano man mano che aumentiamo la tensione inversa.
-
-Quando invece il diodo $p$-$n$ conduce in diretta, lungo le regioni neutre viaggia una scorta di portatori minoritari in eccesso in attesa di ricombinarsi. Se proviamo a spegnere di colpo il diodo invertendo la tensione, questa scorta accumulata mantiene ancora aperto il passaggio per un breve istante finché non viene interamente svuotata. Sostituendo il lato P con un contatto metallico (il diodo Schottky), conducono soltanto gli elettroni maggioritari: non si accumula nessuna scorta minoritaria e lo spegnimento diventa praticamente istantaneo.
+Sul piano dinamico il diodo presenta due capacità parassite distinte: in polarizzazione inversa, le regioni neutre separate dalla SCR isolante formano la **capacità di giunzione** $C_j$, che diminuisce all'aumentare della tensione inversa; in conduzione diretta, l'accumulo di minoritari iniettati genera la **capacità di diffusione** $C_d$, responsabile del ritardo di spegnimento (*reverse recovery* $t_{rr}$). Il **diodo Schottky** (giunzione metallo–semiconduttore N) elimina questo ritardo perché la conduzione è affidata esclusivamente ai portatori maggioritari.
 
 ### Teoria — Breakdown, Capacità e Diodo Schottky
 

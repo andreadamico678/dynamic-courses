@@ -16,11 +16,11 @@ Un singolo invertitore nega un bit, ma qualsiasi sistema digitale richiede porte
 
 <Divider label="1 · Reti Duali PDN/PUN, Porte NAND e NOR" />
 
-### Serie, Parallelo e Dualità Intuitiva
+### Dualità Topologica e Dimensionamento di Serie e Parallelo
 
-Per passare dall'invertitore a porte con più ingressi basta pensare a come combinare più interruttori idraulici tra il nodo di uscita, il serbatoio superiore ($V_{DD}$) e lo scarico inferiore ($0\,\text{V}$). Se vogliamo svuotare l'uscita soltanto quando **entrambi** i comandi $A$ e $B$ sono attivi (una condizione AND nello scarico), dobbiamo mettere due valvole **in serie** lungo lo stesso tubo; perché la rete di riempimento superiore faccia esattamente l'opposto — cioè riempia l'uscita non appena **almeno uno** dei due comandi si spegne — le sue due valvole vanno disposte **in parallelo**.
+Estendere l'invertitore CMOS a funzioni booleane a più ingressi richiede di sostituire il singolo NMOS con una rete di pull-down (**PDN**) e il singolo PMOS con una rete duale di pull-up (**PUN**). Per i teoremi di De Morgan, ogni combinazione **serie** nella PDN (condizione AND verso massa) corrisponde a una combinazione **parallelo** nella PUN, e viceversa: ciò garantisce che, a regime, esista sempre esattamente un percorso chiuso verso $V_{DD}$ o verso massa.
 
-Mettere più interruttori in serie lungo un unico tubo aumenta però la resistenza incontrata dal flusso: per mantenere la stessa portata di una singola valvola di riferimento, ciascuna delle valvole messe in serie deve essere costruita proporzionalmente più larga. Al contrario, le valvole in parallelo lavorano in percorsi indipendenti e possono restare della dimensione base.
+Poiché $k$ MOSFET connessi in serie lungo un ramo sommano le proprie resistenze di canale, per conservare nel caso peggiore la stessa conducibilità dell'invertitore di riferimento la larghezza $W$ di ciascun transistore in serie va moltiplicata per $k$, mentre i rami in parallelo mantengono la dimensione unitaria. Ne segue che le porte NAND (NMOS in serie) risultano sempre più compatte e veloci delle porte NOR (PMOS in serie, già più larghi per via della minore mobilità delle lacune).
 
 ### Teoria — Dualità di De Morgan, Dimensionamento e Sforzo Logico
 
@@ -130,9 +130,9 @@ Realizzare $Y = \overline{A \cdot B + C}$ con porte elementari richiederebbe una
 
 ### Interruttori Bidirezionali e Perdita di Soglia
 
-Oltre alle porte statiche che collegano l'uscita ai binari fissi $V_{DD}$ e massa, i circuiti digitali usano spesso interruttori bidirezionali in serie al percorso del segnale per costruire multiplexer compatti, porte XOR e memorie latch. In questi interruttori, però, nessuno dei due terminali di conduzione è ancorato stabilmente all'alimentazione: la tensione sul nodo di uscita sale o scende insieme al segnale stesso.
+Oltre alle porte statiche che collegano l'uscita ai binari fissi $V_{DD}$ e massa, i circuiti digitali usano spesso interruttori bidirezionali in serie al percorso del segnale per costruire multiplexer compatti, porte XOR e memorie latch. In questi interruttori nessuno dei due terminali di conduzione è ancorato stabilmente all'alimentazione: la tensione sul nodo di uscita varia insieme al segnale trasferito.
 
-Immaginiamo una valvola a molla tenuta aperta da una pressione di comando fissa: quando la pressione a valle si avvicina troppo a quella di comando, la forza differenziale che tiene aperta la valvola si esaurisce e la valvola si richiude prematuramente prima che il serbatoio si sia riempito (o svuotato) del tutto. Accoppiando in parallelo due valvole complementari — una che eccelle vicino allo zero e l'altra che eccelle vicino a $V_{DD}$ — l'interruttore rimane aperto sull'intera escursione di tensione.
+Di conseguenza, un singolo *pass-transistor* NMOS con gate a $V_{DD}$ scarica completamente fino a $0\,\text{V}$ ma si interdice quando l'uscita sale a $V_{DD} - V_{tn}$ (degradando lo `'1'`), mentre un singolo PMOS trasferisce $V_{DD}$ ma si arresta a $\lvert V_{tp}\rvert$ (degradando lo `'0'`). Accoppiando un NMOS e un PMOS in parallelo con comandi complementari (**Transmission Gate**), almeno uno dei due canali resta in conduzione sull'intera escursione da $0$ a $V_{DD}$, eliminando la perdita di soglia.
 
 ### Teoria — Limiti dei Pass-Transistor e Porta di Trasmissione
 

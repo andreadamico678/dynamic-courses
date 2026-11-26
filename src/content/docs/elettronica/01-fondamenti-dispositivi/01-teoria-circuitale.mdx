@@ -16,13 +16,11 @@ Analizzare qualsiasi circuito elettronico richiede di padroneggiare quattro oper
 
 <Divider label="1 · Segnali, Leggi di Kirchhoff e Partitori" />
 
-Un segnale elettrico trasporta informazione tramite l'andamento nel tempo di una tensione o di una corrente. Nella pratica elettronica quasi ogni nodo mescola una componente continua costante che mantiene attivi i dispositivi e una piccola variazione dinamica che porta l'informazione; quando questa variazione attraversa due componenti in serie o in parallelo, si ripartisce secondo regole fissate dalla conservazione della carica e dell'energia.
+### Separazione DC/AC e Ripartizione dei Segnali
 
-### Esempio — Sonda Cardiaca e Ripartizione
+Nei circuiti elettronici reali, quasi ogni nodo combina una **componente continua (DC)**, che mantiene polarizzati i dispositivi attivi in una regione operativa desiderata, e una piccola **variazione dinamica (AC)** sovrapposta, che trasporta l'informazione utile. Grazie alla linearizzazione attorno al punto di riposo, le due componenti si analizzano separatamente prima di sommarne gli effetti.
 
-Immaginiamo una sonda appoggiata sulla pelle per rilevare il battito cardiaco. La sonda si trova a una tensione di riposo costante su cui si sovrappongono onde minuscole dovute all'attività elettrica del cuore: la situazione è analoga a una piccola increspatura sulla superficie di una marea stazionaria.
-
-Quando colleghiamo la sonda all'ingresso di uno strumento di misura, la resistenza interna della sonda e l'ingresso dello strumento si contendono la tensione disponibile. Se lo strumento assorbe corrente con facilità, buona parte della tensione utile va persa già dentro la sonda prima ancora di arrivare allo strumento; se invece lo strumento oppone un ingresso quasi isolato, lascia scorrere pochissima corrente e legge quasi l'intera tensione generata dalla sonda. Nel caso opposto in cui un sensore eroga una corrente fissa verso due rami affiancati, il flusso sceglie soprattutto il ramo che oppone meno ostacolo.
+Quando un segnale attraversa due elementi passivi in serie o in parallelo, la sua ampiezza si ripartisce secondo i vincoli di Kirchhoff e legge di Ohm: in un collegamento serie (partitore di tensione), la caduta maggiore si concentra sulla resistenza più grande, per cui leggere fedelmente la tensione di un sensore richiede uno stadio d'ingresso ad alta impedenza ($R_{in} \gg R_s$); in un collegamento parallelo (partitore di corrente), la corrente si concentra invece nel ramo a impedenza inferiore.
 
 ### Teoria — Notazione, Kirchhoff e Partitori
 
@@ -92,13 +90,11 @@ Al numeratore compare la resistenza dell'**altro** ramo ($R_1$), perché la corr
 
 <Divider label="2 · Thévenin, Norton ed Effetto di Carico" />
 
-Quando colleghiamo un componente o uno stadio di carico a una rete lineare complessa, non serve risolvere ogni volta tutti i nodi interni della rete a monte. Visti da una coppia di morsetti, qualsiasi circuito lineare si riduce a un generatore ideale abbinato a una sola resistenza interna; il segnale effettivamente trasferito nasce poi dal confronto tra questa resistenza equivalente e quella del carico collegato.
+### Riduzione ai Morsetti ed Effetto di Carico
 
-### Esempio — Semplificare una Scatola Chiusa
+Visto da una singola porta a due morsetti, qualsiasi circuito lineare tempo-invariante — indipendentemente dal numero di nodi interni — è completamente caratterizzato da due soli parametri: la tensione a circuito aperto $V_{TH}$ e la resistenza equivalente $R_{TH}$ (oppure la corrente di cortocircuito $I_N = V_{TH}/R_{TH}$). Quando colleghiamo un carico $R_L$, la tensione effettivamente trasferita si attenua per partizione su $R_{TH}$ (**effetto di carico**).
 
-Immaginiamo un circuito contenuto dentro una scatola sigillata da cui escono soltanto due morsetti. A vuoto, cioè senza nulla collegato all'esterno, ai morsetti misuriamo una tensione ben definita; appena colleghiamo una lampadina o un resistore che assorbe corrente, la tensione ai morsetti cala perché una parte della spinta interna viene dissipata lungo il percorso dentro la scatola.
-
-Per conoscere l'entità di questa caduta non serve aprire la scatola: basta misurare quanta tensione c'è a vuoto e quanto velocemente la tensione scende al crescere della corrente prelevata. Se però dentro la scatola è presente un meccanismo attivo che reagisce alle variazioni di tensione ai morsetti, come accade negli amplificatori, spegnere l'alimentazione del segnale non elimina questa reazione interna: per misurare la resistenza equivalente vista dai morsetti occorre applicare una piccola spinta di prova dall'esterno e osservare la corrente che ne risulta.
+Nel caso delle reti puramente passive $R_{TH}$ si calcola semplicemente spegnendo i generatori indipendenti; in presenza di dispositivi attivi modellati con **generatori dipendenti** (come $g_m v_{gs}$), questi ultimi restano invece attivi perché reagiscono alle tensioni ai morsetti, rendendo necessario determinare $R_{TH}$ tramite un generatore di prova esterno ($R_{TH} = v_x / i_x$).
 
 ### Teoria — Equivalenti di Thévenin/Norton ed Effetto di Carico
 
@@ -157,13 +153,11 @@ Quando colleghiamo più stadi in cascata o leggiamo un sensore reale ad alta imp
 
 <Divider label="3 · Generatori Dipendenti e Stadi Differenziali" />
 
-I componenti passivi (resistori e condensatori) possono soltanto attenuare o filtrare un segnale. Per ottenere guadagno di potenza o di tensione servono dispositivi attivi modellabili tramite **generatori dipendenti**, i quali permettono anche di realizzare stadi **differenziali** capaci di amplificare la differenza tra due ingressi rigettando i disturbi identici presenti su entrambi i fili.
+### Controllo Attivo e Reiezione di Modo Comune
 
-### Esempio — Due Elettrodi nello Stesso Rumore
+I componenti passivi possono soltanto attenuare o filtrare un segnale; per ottenere guadagno di tensione, corrente o potenza occorrono dispositivi attivi modellati a piccolo segnale tramite **generatori dipendenti**, nei quali una grandezza d'uscita è controllata da una tensione o corrente di ingresso.
 
-Immaginiamo di dover misurare un segnale biologico piccolissimo mediante due elettrodi collegati tramite due cavi paralleli. I cavi attraversano un ambiente pieno di interferenze elettromagnetiche alla frequenza di rete ($50\,\text{Hz}$), che inducono su entrambi i fili lo stesso identico disturbo, molto più ampio del segnale utile.
-
-Se collegassimo un solo filo a un amplificatore ordinario riferito a massa, l'amplificatore ingrandirebbe sia il segnale utile sia il disturbo di rete, saturando quasi subito. Uno stadio differenziale guarda invece soltanto lo squilibrio tra i due fili: poiché il disturbo entra allo stesso modo su entrambi i cavi, la differenza lo cancella quasi del tutto, mentre le oscillazioni opposte del segnale utile si sommano e vengono amplificate pulite verso l'uscita.
+Abilitando due ingressi simmetrici, uno **stadio differenziale** amplifica selettivamente la differenza $v_1 - v_2$ (**modo differenziale**) e sopprime la media $(v_1 + v_2)/2$ (**modo comune**). Questa proprietà è essenziale nelle misure di front-end (come i segnali biomedicali ECG), dove un debole segnale utile differenziale viaggia sovrapposto a forti interferenze di rete a $50\,\text{Hz}$ accoppiate in modo identico su entrambi i conduttori.
 
 ### Teoria — Generatori Pilotati e Reiezione di Modo Comune
 
@@ -210,13 +204,11 @@ Si usa il fattore $20$ (e non $10$, riservato ai rapporti di potenza) perché la
 
 <Divider label="4 · Filtri Passivi RC del Primo Ordine" />
 
-Nessun circuito elettronico reale amplifica allo stesso modo a qualunque frequenza. La risposta in banda è sempre delimitata da capacità: alcune vengono inserite apposta per bloccare la componente continua tra uno stadio e l'altro (creando un limite alle basse frequenze), altre sono capacità parassite inevitabili verso massa che cortocircuitano il segnale quando oscilla troppo velocemente (creando un limite alle alte frequenze).
+### Selettività in Frequenza delle Celle RC
 
-### Esempio — Bloccare la Continua e Tagliare i Fruscii
+Poiché la reattanza di un condensatore vale $\lvert Z_C \rvert = 1/(\omega C)$, la sua opposizione al passaggio di corrente varia inversamente con la frequenza: in continua ($\omega \to 0$) si comporta come un circuito aperto, mentre ad alte frequenze ($\omega \to \infty$) tende a un cortocircuito.
 
-Immaginiamo un collegamento audio tra due stadi amplificatori. Il primo stadio lavora a una certa tensione continua di riposo che non deve entrare nello stadio successivo, ma deve comunque lasciare passare le vibrazioni della voce. Inserendo un condensatore in serie lungo il filo di collegamento, la tensione continua trova la strada sbarrata, mentre le oscillazioni rapide della voce attraversano il condensatore tanto più agevolmente quanto più alta è la loro frequenza.
-
-Al contrario, verso l'uscita del circuito le piste e i dispositivi presentano sempre una piccola capacità parassita collegata verso massa. Quando il segnale varia lentamente, questa capacità rimane praticamente invisibile; quando invece arrivano disturbi o segnali ad altissima frequenza, la capacità offre una scorciatoia diretta verso massa e scarica a terra le oscillazioni più rapide, lasciando passare soltanto la banda lenta utile.
+Questa proprietà fissa i due limiti di banda di qualsiasi amplificatore reale: un condensatore in **serie** sul percorso del segnale (**cella passa-alto**) blocca la componente continua di polarizzazione lasciando passare le componenti AC sopra $f_L$; una capacità in **parallelo** verso massa (**cella passa-basso**, dovuta al carico o alle capacità parassite) lascia intatti i segnali lenti e shunta verso massa le componenti oltre $f_H$.
 
 ### Teoria — Celle Passa-Alto, Passa-Basso e Funzioni di Trasferimento
 

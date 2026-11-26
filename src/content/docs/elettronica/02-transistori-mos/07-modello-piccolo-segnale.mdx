@@ -16,13 +16,9 @@ In regione di saturazione ([Capitolo 6](/dynamic-courses/elettronica/02-transist
 
 <Divider label="1 · Separazione DC/AC e Linearizzazione" />
 
-### Concetto
+### Concetto — Sovrapposizione DC/AC e Approssimazione Lineare
 
-L'analisi di un amplificatore si spezza in due problemi indipendenti grazie ai condensatori esterni: in continua fissiamo $Q$ senza interferenze dal segnale o dal carico; alle frequenze di segnale ($AC$ a centro banda), se l'ampiezza della variazione sul Gate è molto minore di $2V_{OV}$, il tratto di parabola attorno a $Q$ si confonde con la sua retta tangente e il transistore risponde in modo lineare.
-
-### Esempio Concettuale
-
-Immagina di osservare una grande parabola tracciata su un foglio: vista da lontano curva visibilmente e deformerebbe qualsiasi segnale. Se però punti una lente d'ingrandimento su un punto preciso $Q$ della curva e guardi soltanto un tratto minuscolo attorno a quel punto, l'arco di parabola appare praticamente indistinguibile da una semplice linea retta inclinata. Più piccolo è il segnale rispetto all'apertura della curva ($2V_{OV}$), più fedele è l'approssimazione lineare.
+Grazie ai condensatori di accoppiamento e bypass, l'analisi di un amplificatore si separa in due problemi indipendenti: in **DC** si fissa il punto di riposo $Q$ in saturazione senza interferenze della sorgente o del carico; in **AC a centro banda**, purché l'oscillazione sul Gate resti piccola rispetto all'apertura della curva quadratica ($\lvert v_{gs} \rvert \ll 2 V_{OV}$), il termine di distorsione quadratica risulta trascurabile e il transistore si comporta localmente come un dispositivo lineare tangente alla caratteristica in $Q$.
 
 ### Teoria — Principio di Sovrapposizione DC/AC e Linearizzazione
 
@@ -66,13 +62,9 @@ $$
 
 <Divider label="2 · Parametri Differenziali e Guadagno Intrinseco" />
 
-### Concetto
+### Concetto — Parametri Differenziali e Guadagno Intrinseco
 
-I tre coefficienti della corrente incrementale ($g_m, 1/r_o, g_{mb}$) misurano quanto è sensibile la corrente di Drain a piccole variazioni di tensione su Gate, Drain e Body intorno al punto $Q$. Il prodotto tra la capacità di comando del Gate ($g_m$) e la resistenza d'uscita ($r_o$) definisce infine il **fattore di amplificazione intrinseco** $\mu_f$, cioè il tetto massimo di guadagno ottenibile da un singolo transistore.
-
-### Esempio Concettuale
-
-Pensa al MOSFET polarizzato al punto $Q$ come a una valvola regolata da tre manopole di sensibilità: la manopola principale sul Gate trasforma con grande efficacia piccole variazioni di tensione in variazioni di corrente ($g_m$); una seconda manopola parassita sul Drain lascia filtrare una piccola variazione di corrente se cambia la tensione d'uscita ($1/r_o$); la terza manopola sul substrato ($g_{mb}$) agisce da comando secondario e resta ferma a zero finché il Source non oscilla rispetto al Body.
+Linearizzando la corrente di Drain al primo ordine attorno a $Q$, il comportamento incrementale del MOSFET è interamente descritto da tre coefficienti differenziali: la **transconduttanza** $g_m$ (sensibilità della corrente a $v_{gs}$), la conduttanza d'uscita $1/r_o$ (pendenza finita dovuta alla modulazione di canale rispetto a $v_{ds}$) e la **transconduttanza di back-gate** $g_{mb}$ (modulazione della soglia quando $v_{bs} \ne 0$). Il prodotto $g_m r_o$ definisce il **guadagno intrinseco** $\mu_f$, ovvero il massimo guadagno di tensione ottenibile da un singolo transistore su carico ideale infinito.
 
 ### Teoria — Le Tre Formule di $g_m$, Resistenza $r_o$, Effetto Body $g_{mb}$ e Guadagno $\mu_f$
 
@@ -137,13 +129,9 @@ La formula $\mu_f = \frac{2 V_A' L}{V_{OV}}$ spiega perché sullo stesso chip co
 
 <Divider label="3 · Modelli Equivalenti a π Ibrido e a T" />
 
-### Concetto
+### Concetto — Scelta tra Modello a π Ibrido e a T
 
-Per risolvere qualsiasi amplificatore a centro banda con le normali leggi delle reti lineari, sostituiamo il MOSFET con uno di due circuiti equivalenti esattamente intercambiabili ai morsetti esterni: il **modello a $\pi$ ibrido**, naturale quando il Source è a massa dinamica, e il **modello a T**, che esplicita la resistenza $1/g_m$ sul Source ed è comodissimo quando al Source è collegato un resistore non bypassato o un segnale.
-
-### Esempio Concettuale
-
-Pensa a due schemi elettrici diversi chiusi dentro la stessa scatola nera con tre morsetti (Gate, Drain, Source). Nel primo schema lasci il filo di comando isolato e metti la sorgente controllata direttamente tra uscita e riferimento; nel secondo sposti una piccola resistenza equivalente direttamente sotto il terminale di Source, in modo che si veda a colpo d'occhio come un'eventuale resistenza esterna sul Source formi un partitore di tensione con l'interno del transistore.
+I modelli a **$\pi$ ibrido** e a **T** rappresentano esattamente la medesima rete lineare ai tre morsetti esterni (Gate, Drain, Source) e sono algebricamente intercambiabili. Si sceglie l'uno o l'altro per comodità d'ispezione: il modello a **$\pi$** separa nettamente ingresso isolato e generatore controllato di uscita ed è immediato quando il Source è a massa AC; il modello a **T** sposta la resistenza differenziale $1/g_m$ in serie al ramo di Source, mettendo subito in evidenza il partitore con eventuali resistori non bypassati collegati al Source.
 
 ### Teoria — Topologia a π Ibrido e Trasformazione nel Modello a T
 

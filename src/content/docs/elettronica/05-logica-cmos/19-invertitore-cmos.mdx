@@ -19,9 +19,9 @@ L'**invertitore CMOS statico** è il blocco elementare di tutta l'elettronica di
 
 ### Funzionamento Complementare della Coppia
 
-L'idea dell'invertitore CMOS è collegare il nodo di uscita tra due valvole che rispondono in modo opposto allo stesso comando $v_{in}$: la valvola superiore (PMOS) è aperta quando $v_{in}$ è basso e si chiude quando $v_{in}$ sale; la valvola inferiore (NMOS) è chiusa quando $v_{in}$ è basso e si apre quando $v_{in}$ sale.
+L'invertitore CMOS statico collega il nodo d'uscita tra due interruttori complementari pilotati dallo stesso segnale $v_{in}$: un transistore PMOS verso $V_{DD}$ (attivo per ingressi bassi) e un transistore NMOS verso massa (attivo per ingressi alti).
 
-Immaginiamo due rubinetti montati sullo stesso tubo di uscita, uno collegato al serbatoio alto ($V_{DD}$) e l'altro allo scarico ($0\,\text{V}$), comandati da una singola leva. Quando la leva è tutta a sinistra, è aperto solo il rubinetto superiore e l'uscita resta ferma a $V_{DD}$ senza che scorra acqua verso lo scarico. Man mano che spostiamo la leva verso il centro, il rubinetto inferiore inizia a lasciar passare corrente mentre quello superiore è ancora aperto; al punto di equilibrio centrale entrambi oppongono una forte resistenza dinamica e l'uscita crolla bruscamente. Spingendo infine la leva tutta a destra, il rubinetto superiore si chiude e l'uscita si adagia stabilmente a massa, ancora una volta senza flusso continuo.
+Negli stati logici estremi uno dei due dispositivi è interdetto mentre l'altro è in triodo a corrente nulla, ancorando l'uscita esattamente a $V_{DD}$ o a $0\,\text{V}$ (*rail-to-rail*) senza assorbimento statico continuo. Soltanto nella ristretta fascia centrale attorno alla soglia logica $V_M$ entrambi i transistori entrano simultaneamente in saturazione, generando un elevato guadagno differenziale che rende ripida la transizione della VTC e riduce l'intervallo di incertezza $[V_{IL}, V_{IH}]$.
 
 ### Teoria — Topologia Statica e Cinque Regioni Operative
 
@@ -76,9 +76,9 @@ Al crescere progressivo di $v_{in}$ da $0$ a $V_{DD}$, i due MOSFET attraversano
 
 ### Equilibrio tra Rete NMOS e Rete PMOS
 
-La **soglia logica** $V_M$ rappresenta il punto di pareggio in cui il transistore NMOS che tira verso massa e il transistore PMOS che tira verso $V_{DD}$ esercitano esattamente la stessa forza. Per ottenere la massima immunità ai disturbi sia per lo `'0'` sia per l'`'1'`, desideriamo che questo equilibrio cada esattamente a metà dell'alimentazione ($V_M = V_{DD}/2$).
+La **soglia logica** $V_M$ è il punto in cui la capacità di conduzione del ramo NMOS e quella del ramo PMOS si eguagliano ($i_{Dn} = i_{Dp}$ con $v_{in} = v_{out} = V_M$). Per massimizzare contemporaneamente entrambi i margini di rumore ($NM_L \approx NM_H$), occorre centrare questa soglia esattamente a metà alimentazione ($V_M = V_{DD}/2$).
 
-Tuttavia, nel silicio gli elettroni che trasportano la corrente nell'NMOS sono circa $2.5\text{--}3$ volte più mobili delle lacune che trasportano la corrente nel PMOS. Se costruissimo i due transistori con le stesse dimensioni geometriche, l'NMOS risulterebbe molto più forte del PMOS: vincerebbe il tiro alla fune prima ancora di arrivare a metà strada, spostando la soglia $V_M$ verso massa e rendendo la carica in salita più lenta della scarica in discesa. Per pareggiare le forze occorre allargare il canale del PMOS in modo da compensare la minore velocità dei suoi portatori.
+Poiché nel silicio la mobilità delle lacune nel PMOS è circa $2.5\text{--}3$ volte inferiore a quella degli elettroni nell'NMOS, dimensionare i due transistori con identico rapporto $W/L$ renderebbe l'NMOS dominante, spostando $V_M$ verso massa e rallentando la carica in salita rispetto alla scarica. Compensare questa asimmetria richiede di allargare il canale del PMOS del fattore $\mu_n / \mu_p$, pareggiando i fattori di transconduttanza $K_p = K_n$.
 
 ### Teoria — Soglia Logica, Simmetria Geometrica e Corrente di Picco
 

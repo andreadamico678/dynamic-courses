@@ -16,11 +16,11 @@ All'interno di un microprocessore una porta logica minima ha una capacità d'ing
 
 <Divider label="1 · Fattore di Carico e Catena Rastremata Ideale" />
 
-### Perché Servono Stadi Intermedi Crescenti
+### Compromesso di Scalamento tra Stadi in Cascata
 
-Immaginiamo di dover spostare un masso molto pesante disponendo di una persona esile che riesce a spingere soltanto un compagno poco più robusto di lei. Se la persona esile prova a spingere direttamente il masso, non riesce quasi a muoverlo (pilotaggio diretto: ritardo enorme). Se invece la colleghiamo subito a un gigante capace di spostare il masso, la persona esile rimane comunque bloccata nel tentativo di muovere il gigante.
+Pilotare un grande carico capacitivo esterno $C_L$ direttamente con una porta minima ($C_{in} \ll C_L$) comporta una costante di tempo proporzionale al rapporto $F = C_L / C_{in}$, producendo un ritardo proibitivo. D'altra parte, sostituire subito la porta minima con un unico stadio molto largo ridurrebbe il ritardo verso $C_L$ ma trasferirebbe un carico capacitivo enorme allo stadio precedente, spostando semplicemente il collo di bottiglia a monte.
 
-L'unico modo per massimizzare la rapidità complessiva è formare una staffetta progressiva in cui ciascun elemento è più grande del precedente dello stesso fattore costante $f$: in questo modo nessuno stadio è sovraccaricato e tutti lavorano con lo stesso sforzo relativo. Nasce però un compromesso naturale: se usiamo pochissimi stadi il salto $f$ tra uno stadio e il successivo è troppo grande e ciascuno stadio è lento; se usiamo troppi stadi ciascuno è rapidissimo, ma il segnale deve attraversare troppi gradini in serie. Esiste quindi un fattore di scala ottimo $f_{\text{opt}}$ che rende minimo il ritardo totale.
+La soluzione ottima consiste nell'interporre una catena di $N$ invertitori la cui larghezza cresce geometricamente di un fattore costante $f > 1$ ($C_{in,j} = f^{j-1} C_{in}$): la riduzione della resistenza $R_j \propto 1/f^{j-1}$ compensa la crescita della capacità successiva, rendendo uguale lo sforzo elettrico e il ritardo di ogni stadio ($t_{p,j} \propto f$). Emerge così un compromesso analitico: $f$ troppo grande sovraccarica i singoli stadi, mentre $f$ troppo vicino a $1$ moltiplica il numero di stadi $N$; il minimo teorico del ritardo complessivo si raggiunge per $f_{\text{opt}} = e \approx 2.72$, abbattendo la dipendenza da lineare ($F$) a logaritmica ($\ln F$).
 
 ### Teoria — Scalamento Geometrico e Derivazione di $f_{\text{opt}} = e$
 

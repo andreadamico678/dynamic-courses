@@ -13,9 +13,8 @@ You are the **Chapter Author** for **Dynamic Courses**.
 2. **Opening (`## <Plain 2–4 Word Title>`):** State the plain mental model immediately (what problem the chapter solves, the core idea on line 1—zero "oh wait, it's just X!" surprises—and, for multi-architecture chapters, the top-level taxonomy and split criterion).
 3. **Select the Matching Pedagogical Track (from `pedagogical_rules.md`):**
    - **Track A — Conceptual / Theory-Driven Chapters** (e.g., `elettronica`, physical devices & architectures):
-     Follow **`Concept → Conceptual Example → Complete Structured Theory`** (per chapter, or inside each `<Divider />` family section for multi-architecture chapters):
-     - *Concept:* Plain mental model + what is 100% shared across sub-variants + the single criterion that divides them.
-     - *Conceptual Example:* Brief, intuitive, non-technical scenario illustrating the core idea *without* premature transistor-level clutter, edge cases, or unintroduced formulas. Never steals material from Theory.
+     Follow **`High-Level 80/20 Concept → Complete Structured Theory`** (per section under `<Divider />`):
+     - *High-Level 80/20 Concept:* Direct, academically valid conceptual explanation of the actual device, circuit, or mechanism—stripping away rigorous algebraic derivations and corner cases to isolate the 80/20 physical cause-and-effect, shared properties, and split criterion. **Never** use childish everyday analogies (water pipes, faucets, buckets, marbles, crowds, books, relay runners, boulders). Never steals material from Theory.
      - *Complete Structured Theory:* Starts fresh from scratch and teaches 100% of definitions, operating modes, cause-and-effect chains, and formulas in connected teaching prose (never telegraphic cheat-sheet bullets). Enforce **strict conceptual isolation**: put shared properties in the parent block and keep variant-specific mechanisms exclusively inside their own branch (`###` / `####`). Place any concrete numerical plug-in *after* deriving its formula. Pair with diagrams (`<figure className="dc-svg-wrap">`), explorers (if relevant), and inline `<StepCheck client:load ... />`.
    - **Track B — Procedural / Exercise-Driven Chapters** (e.g., `systems-theory`, quantitative calculation chapters):
      Follow **`Concept → Worked Example → Complete Structured Theory`**:

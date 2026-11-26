@@ -18,11 +18,11 @@ Quando la retroazione negativa è attiva e l'uscita non satura, il circuito impo
 
 <Divider label="1 · Modello Ideale e Corto Circuito Virtuale" />
 
-### Esempio Concettuale — Il Regolatore ad Alto Guadagno
+### Principio della Retroazione Negativa
 
-Immaginiamo di controllare la temperatura di una stanza con una caldaia dotata di una manopola ipersensibile: basta uno scarto di un millesimo di grado per portarla dalla potenza zero al massimo assoluto. Usata "alla cieca" (ad anello aperto), una caldaia del genere è inutilizzabile: oscillerebbe di continuo tra spento e bruciante.
+Un amplificatore operazionale ad anello aperto ha un guadagno differenziale così elevato ($A_0 \sim 10^5\text{--}10^6$) che qualsiasi scarto di pochi microvolt tra $v^+$ e $v^-$ porta immediatamente l'uscita in saturazione contro le alimentazioni, rendendolo utilizzabile solo come comparatore.
 
-Se invece colleghiamo un termostato che confronta la temperatura effettiva con quella desiderata e riduce la fiamma non appena la stanza si avvicina all'obiettivo (**retroazione negativa**), l'enorme sensibilità della caldaia diventa un vantaggio: il sistema si stabilizza automaticamente nel punto in cui lo scarto tra temperatura reale e temperatura impostata è pressoché nullo. È esattamente ciò che accade nell'Op-Amp retroazionato: il guadagno enorme spinge l'uscita esattamente al valore necessario per annullare la differenza tra i due ingressi.
+Chiudendo l'uscita sul morsetto invertente ($-$) tramite una rete esterna (**retroazione negativa**), ogni incremento di $v^-$ abbassa $v_o$ e riporta $v^-$ verso $v^+$. Finché l'uscita rimane entro i limiti lineari di alimentazione, il guadagno enorme costringe la differenza differenziale $v^+ - v^- = v_o/A_0$ a tendere a zero: combinando questa condizione con la corrente d'ingresso nulla ($i^+ = i^- = 0$) si ottiene il **corto circuito virtuale**, che svincola il guadagno del circuito dai parametri dei transistori interni.
 
 ### Teoria — Modello Ideale e Meccanismo della Retroazione Negativa
 
@@ -77,11 +77,11 @@ Si parla di corto circuito **virtuale** perché i due morsetti assumono lo stess
 
 <Divider label="2 · Configurazione Invertente e Transresistenza" />
 
-### Esempio Concettuale — Il Nodo Inchiodato a Zero Volt
+### Massa Virtuale e Conversione Corrente-Tensione
 
-Immaginiamo di voler misurare un flusso d'acqua in ingresso lungo un tubo senza permettere al livello di una vasca di alzarsi mai sopra il livello del mare ($0\,\text{V}$). Ogni volta che entra acqua dal tubo d'ingresso, una pompa automatica collegata al fondo aspira esattamente la stessa portata lungo un secondo tubo di scarico.
+Ancorando a massa il morsetto non invertente ($v^+ = 0\,\text{V}$) e chiudendo la retroazione su $v^-$, il corto circuito virtuale inchioda anche il nodo invertente a $0\,\text{V}$ pur senza un collegamento fisico verso massa (**massa virtuale**).
 
-Poiché il livello nella vasca non cambia mai ($v^- = 0\,\text{V}$) e la vasca non trattiene acqua ($i^- = 0$), chi immette liquido dall'ingresso sente solo la resistenza del primo tubo, mentre la pressione negativa creata dalla pompa allo scarico risulta proporzionale alla portata entrante e alla resistenza del tubo di uscita. In elettronica, questo nodo tenuto fisso a zero volt si chiama **massa virtuale**.
+Questo vincolo fissa il comportamento di due topologie fondamentali: nello **stadio invertente**, la sorgente applica tensione su $R_1$ verso un nodo fermo a $0\,\text{V}$ (quindi $R_{in} = R_1$), e la corrente risultante è costretta a fluire interamente in $R_2$ invertendo il segno in uscita; eliminando $R_1$ per iniettare direttamente una corrente di segnale $i_s$ (come quella di un fotodiodo), il nodo a $0\,\text{V}$ offre impedenza d'ingresso nulla e trasforma il circuito in un **convertitore di transresistenza**.
 
 ### Teoria — Stadio Invertente e Convertitore di Transresistenza
 
@@ -132,11 +132,11 @@ $$
 
 <Divider label="3 · Configurazione Non Invertente e Buffer" />
 
-### Esempio Concettuale — Leggere Senza Caricare
+### Disaccoppiamento ad Alta Impedenza d'Ingresso
 
-Supponiamo di dover leggere la tensione di un sensore chimico molto fragile, dotato di un'altissima resistenza interna (come un elettrodo pH): se provassimo a prelevare anche pochi microampere, la sua tensione crollerebbe all'istante a causa della caduta interna.
+Quando una sorgente ha un'alta resistenza interna $R_s$, la resistenza d'ingresso finita $R_1$ dello stadio invertente produce un partitore che attenua il segnale prima dell'amplificazione. Applicando invece il segnale direttamente sul morsetto **non invertente** ($+$), l'assorbimento di corrente è nullo ($i^+ = 0$): su $R_s$ non si verifica alcuna caduta e l'intera tensione a vuoto giunge intatta sull'ingresso.
 
-Dobbiamo allora osservare la tensione del sensore con una sonda completamente isolata che non preleva corrente, e incaricare un generatore alimentato separatamente di riprodurre (o moltiplicare) quella stessa tensione su un carico pesante a bassa resistenza. La sorgente resta così a riposo assoluto, mentre tutta la potenza richiesta dal carico proviene dalle alimentazioni dell'amplificatore.
+La retroazione su $R_1$–$R_2$ costringe $v^-$ a inseguire $v_{in}$ fornendo un guadagno positivo $\ge 1$ con resistenza d'ingresso ideale infinita e resistenza d'uscita nulla; nel caso limite di retroazione unitaria ($R_2 = 0, R_1 \to \infty$), lo stadio diventa un **buffer di tensione** puro dedicato all'adattamento di impedenza.
 
 ### Teoria — Stadio Non Invertente e Buffer di Tensione
 

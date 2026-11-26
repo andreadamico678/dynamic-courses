@@ -17,13 +17,9 @@ Nel [Capitolo 7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-picc
 
 <Divider label="1 · Procedura Generale e Rete a 3 Resistori" />
 
-### Concetto
+### Concetto — Analisi Sistematica e Fragilità della Rete a 3 Resistori
 
-Analizzare qualunque circuito di polarizzazione significa aprire eventuali condensatori, imporre $I_G = 0$ sul Gate, ipotizzare la saturazione per ricavare $I_D$ e $V_{DS}$, e poi verificare obbligatoriamente che il risultato rispetti $V_{DS} \ge V_{GS} - V_{th}$. Se però la rete fissa rigidamente $V_{GS}$ al nodo di Gate tenendo il Source a massa (**rete a 3 resistori**), ogni variazione di $V_{th}$ o di $K_n$ si scarica interamente e quadraticamente sulla corrente $I_D$.
-
-### Esempio Concettuale
-
-Immagina di voler mantenere costante la portata d'acqua di un rubinetto bloccando la manopola a un angolo fisso senza mai misurare quanta acqua esce davvero. Se cambia la pressione dell'acquedotto o l'usura della guarnizione (l'equivalente di una deriva su $V_{th}$ o $K_n$), il flusso in uscita cambia bruscamente senza che alcun meccanismo lo corregga.
+Analizzare qualunque rete di polarizzazione significa aprire i condensatori, imporre $I_G = 0$, ipotizzare la saturazione per ricavare $(I_D, V_{DS})$ e verificare a posteriori $V_{DS} \ge V_{GS} - V_{th}$. Nella **rete a 3 resistori** (Source direttamente a massa), il partitore fissa rigidamente $V_{GS} = V_{EQ}$ senza alcun meccanismo di correzione: di conseguenza, qualsiasi deriva tecnologica o termica su $V_{th}$ o $K_n$ si scarica interamente e quadraticamente sulla corrente $I_D$.
 
 ### Teoria — Procedura Sistematica in 5 Passi e Rete a 3 Resistori
 
@@ -73,13 +69,9 @@ Varia i cursori di $V_{th}$ e $K_n$ nell'esploratore qui sotto mantenendo fisso 
 
 <Divider label="2 · Rete a 4 Resistori e Retroazione Locale di Source" />
 
-### Concetto
+### Concetto — Stabilizzazione tramite Retroazione su $R_S$
 
-Per rendere il punto di riposo $Q$ robusto rispetto alle tolleranze su $V_{th}$ e $K_n$, si aggiunge un quarto resistore $R_S$ sul terminale di Source. Questo elemento introduce una **retroazione negativa automatica**: se la corrente $I_D$ tende a crescere, la caduta $R_S I_D$ solleva il potenziale del Source e riduce di conseguenza la tensione $V_{GS}$, opponendosi alla variazione iniziale.
-
-### Esempio Concettuale
-
-Riprendendo l'analogia del rubinetto, la rete a 4 resistori equivale ad aggiungere un piccolo galleggiante a valle dell'apertura: se la portata d'acqua prova ad aumentare oltre il dovuto, la spinta sul galleggiante solleva il riferimento inferiore dell'otturatore, restringendo automaticamente l'apertura e riportando il flusso vicino al valore progettato.
+Inserendo un quarto resistore $R_S$ sul terminale di Source, il potenziale di Source non è più vincolato a massa ma sale proporzionalmente alla corrente ($V_S = R_S I_D$). Ciò introduce una **retroazione negativa locale**: un eventuale incremento di $I_D$ dovuto a tolleranze su $V_{th}$ o $K_n$ fa aumentare $V_S$ e riduce automaticamente $V_{GS} = V_{EQ} - R_S I_D$, frenando la deriva della corrente di polarizzazione.
 
 ### Teoria — Equazione Quadratica, Retroazione su $R_S$ e Caso Duale PMOS
 
@@ -146,13 +138,9 @@ con $I_D = \frac{K_p}{2}(V_{SG} - |V_{TP}|)^2$ (scegliendo ancora la radice mino
 
 <Divider label="3 · Polarizzazione Drain-Gate (Self-Biasing)" />
 
-### Concetto
+### Concetto — Auto-Polarizzazione Drain-Gate
 
-Un'alternativa compatta che elimina il partitore di ingresso è collegare direttamente il Drain al Gate attraverso un resistore elevato $R_G$ (**polarizzazione Drain-Gate** o *self-biasing*). Poiché in continua $I_G = 0$, Gate e Drain assumono lo stesso potenziale ($V_{GS} = V_{DS}$), garantendo matematicamente la saturazione finché il MOSFET ad arricchimento è acceso e stabilizzando la corrente tramite la caduta su $R_D$.
-
-### Esempio Concettuale
-
-Qui è la stessa uscita a regolare l'ingresso: poiché in continua il filo verso il Gate non trasporta corrente, il Gate "legge" esattamente la tensione del Drain. Se la corrente di canale prova ad aumentare, la caduta su $R_D$ abbassa il potenziale del Drain e quindi tira verso il basso anche il Gate, frenando immediatamente la corrente.
+Collegando il Drain al Gate attraverso un resistore $R_G$ si elimina il partitore di ingresso sfruttando il fatto che in continua $I_G = 0$: su $R_G$ non cade tensione, quindi $V_{GS} = V_{DS}$. Questa topologia garantisce la saturazione per costruzione finché il MOSFET ad arricchimento è acceso ($V_{DS} > V_{GS} - V_{th}$) e stabilizza la corrente tramite retroazione negativa, poiché un aumento di $I_D$ accresce la caduta su $R_D$ abbassando contemporaneamente $V_D$ e $V_G$.
 
 ### Teoria — Connessione $V_{DS} = V_{GS}$ e Saturazione Intrinseca
 

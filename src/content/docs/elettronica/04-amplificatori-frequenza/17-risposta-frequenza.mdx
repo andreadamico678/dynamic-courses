@@ -19,13 +19,11 @@ In un amplificatore reale ([figura seguente](#fig-bode-response)), il guadagno �
 
 <Divider label="1 · Banda Bassa e Metodo SCTC" />
 
-Alle basse frequenze le capacità interne del transistore sono ancora trascurabili, mentre i grandi condensatori esterni introdotti per separare la polarizzazione DC dal segnale AC fanno attenuare il guadagno man mano che la frequenza scende verso la continua.
+### Attenuazione Passa-Alto dei Condensatori Esterni
 
-### Esempio Concettuale — Il Pedaggio dei Condensatori Esterni
+Alle basse frequenze le minuscole capacità parassite interne del MOSFET ($\text{fF}\text{--}\text{pF}$) presentano reattanze enormi e si comportano come circuiti aperti; la caduta del guadagno verso la continua è invece determinata esclusivamente dai grandi condensatori esterni di accoppiamento ($C_G, C_D$) e di bypass ($C_S$), dell'ordine dei $\mu\text{F}$.
 
-Un condensatore si comporta come un varco sensibile alla rapidità con cui cambia il segnale: quando la tensione oscilla velocemente (a centro banda), la carica entra ed esce dalle armature senza opporre ostacolo, come una porta girevole ben oliata. Man mano che l'oscillazione rallenta, il condensatore si carica completamente prima che il segnale inverta direzione e inizia a bloccare il passaggio, fino a risultare un muro invalicabile in corrente continua.
-
-Ogni condensatore esterno presente nel circuito (in ingresso, in uscita o sul Source) introduce così un proprio sbarramento a una frequenza caratteristica che dipende da quanto grande è il condensatore e da quanto è alta o bassa la resistenza vista ai suoi capi.
+Man mano che la frequenza scende, la reattanza $1/(\omega C_j)$ cresce e ciascun condensatore introduce un polo passa-alto a una pulsazione fissata dalla resistenza equivalente vista ai suoi morsetti quando gli altri condensatori esterni sono a centro banda (cortocircuiti). La somma delle frequenze di polo elementari (**metodo SCTC**) stima direttamente la frequenza di taglio inferiore $f_L$.
 
 ### Teoria — Separazione di Scala e Costanti di Tempo di Cortocircuito
 
@@ -79,13 +77,11 @@ Per verificarne subito gli ordini di grandezza su un Common Source ($g_m = 4\,\t
 
 <Divider label="2 · Teorema di Miller e Metodo OCTC nel Common Source" />
 
-Salendo oltre il centro banda, tutti i condensatori esterni diventano cortocircuiti perfetti e l'attenzione si sposta sulle capacità parassite interne del MOSFET ($C_{gs}, C_{gd}$) e sull'eventuale capacità di carico $C_L$.
+### Moltiplicazione Capacitiva di Miller e Costanti OCTC
 
-### Esempio Concettuale — La Molla tra Due Porte Opposte
+Oltre il centro banda tutti i condensatori esterni si comportano come cortocircuiti ideali, mentre le capacità parassite interne ($C_{gs}, C_{gd}$) e di carico ($C_L$) iniziano a deviare corrente verso massa riducendo il guadagno oltre $f_H$.
 
-Immagina due porte collegate tra loro da una piccola molla: se spingi la porta d'ingresso in avanti di $1\,\text{cm}$, ma allo stesso tempo un meccanismo amplificatore tira la porta d'uscita all'indietro di $20\,\text{cm}$, la molla tra le due porte subisce un allungamento complessivo di $21\,\text{cm}$.
-
-Chi spinge la porta d'ingresso avverte quindi una resistenza $21$ volte più dura rispetto a quella della molla da sola. Esattamente allo stesso modo, una minuscola capacità fisica $C_{gd}$ collegata tra ingresso e uscita di un amplificatore invertente con guadagno $-20$ appare all'ingresso come una capacità equivalente $21$ volte più pesante, rallentando bruscamente lo stadio alle alte frequenze.
+Nel Common Source la capacità $C_{gd}$ collega il Gate al Drain, la cui tensione oscilla in opposizione di fase con guadagno $-|A_v|$: la differenza di potenziale istantanea ai capi di $C_{gd}$ risulta pari a $(1 + |A_v|)\,v_g$, richiamando una corrente d'ingresso $(1 + |A_v|)$ volte maggiore rispetto a una capacità riferita a massa (**effetto Miller**). Questa capacità riflessa domina la costante di tempo dominante al Gate stimabile sistematicamente tramite il **metodo OCTC**.
 
 ### Teoria — Effetto Miller e Costanti di Tempo a Circuito Aperto
 
@@ -167,11 +163,11 @@ Nel simulatore interattivo qui sotto alterna **Common Source**, **Common Drain**
 
 <Divider label="3 · Alta Frequenza in Common Drain, Common Gate e Confronto" />
 
-Eliminare l'inversione di fase ad alto guadagno tra i terminali collegati dalle capacità interne permette di ampliare drasticamente la banda superiore rispetto al Common Source.
+### Eliminazione dell'Effetto Miller in CD, CG e Cascode
 
-### Esempio Concettuale — Perché Senza Inversione la Banda Esplode
-
-Riprendiamo l'analogia della molla tra due porte: se invece di spingere l'uscita nella direzione opposta all'ingresso la facciamo muovere **nella stessa direzione** e quasi della stessa quantità (come accade nel Common Drain), la molla collegata tra le due porte si deforma pochissimo e all'ingresso non si avverte quasi alcuno sforzo. Se invece interponiamo tra ingresso e uscita un muro fermo che scherma i due lati (come il Gate a massa AC nel Common Gate), non esiste proprio alcuna molla a ponte tra le due porte.
+La limitazione di banda del Common Source nasce dalla presenza di una capacità ponte ($C_{gd}$) sottoposta a un guadagno invertente elevato. Eliminare l'inversione ad alto guadagno tra i terminali di controllo estende la frequenza di taglio superiore di circa un ordine di grandezza:
+* **Common Drain:** il Drain è a massa AC ($C_{gd}$ non vede amplificazione), mentre l'uscita sul Source insegue il Gate in fase con guadagno $\approx +1$, riducendo la tensione ai capi di $C_{gs}$ (*bootstrapping*) e la corrente reattiva richiesta alla sorgente.
+* **Common Gate e Cascode:** il Gate a massa AC isola fisicamente l'ingresso (Source) dall'uscita (Drain), confinando $C_{gs}$ e $C_{gd}$ verso massa senza alcun ponte capacitivo moltiplicato per il guadagno.
 
 ### Teoria — Costanti OCTC di CD e CG e Confronto Topologico
 

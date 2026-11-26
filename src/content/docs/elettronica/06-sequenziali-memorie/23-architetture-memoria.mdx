@@ -18,14 +18,11 @@ Tutte le memorie si dividono anzitutto in base alla **volatilità**: le memorie 
 
 <Divider label="1 · Organizzazione a Matrice e Classificazione" />
 
-Per accedere a milioni di celle di memoria senza posare milioni di fili di selezione separati, le celle vengono ordinate in una griglia rettangolare (idealmente quadrata) in cui ogni elemento è individuato dall'incrocio tra una riga (**Word-Line**) e una colonna (**Bit-Line**).
+### Riduzione delle Linee di Indirizzamento a Matrice
 
-### Esempio — Un Milione di Fili Contro Duemila
+Indirizzare $2^{K}$ celle di memoria disponendole in un vettore lineare richiederebbe un decodificatore da $2^K$ linee fisiche (oltre un milione di conduttori per appena $1\,\text{Mbit} = 2^{20}$ celle), con ritardi RC e ingombro insostenibili.
 
-Immagina di dover selezionare una singola casella tra $1\,\text{Mbit} = 2^{20} \approx 1\,048\,576$ celle di memoria:
-
-- Se le disponessi tutte in una sola fila lineare e volessi raggiungerle singolarmente dall'esterno, servirebbe un decodificatore gigantesco con oltre **un milione di fili** indipendenti e piste lunghissime.
-- Se invece disponi le stesse celle in una **matrice quadra** da $1024$ righe per $1024$ colonne ($2^{10} \times 2^{10}$), bastano $1024$ fili orizzontali per scegliere la riga e $1024$ fili verticali per scegliere la colonna: appena **$2048$ linee complessive**, comandate da $10$ bit di indirizzo di riga e $10$ bit di indirizzo di colonna.
+Organizzando invece le celle in una **matrice bidimensionale** $2^N \times 2^M$ approssimativamente quadrata ($N \approx M$, ad esempio $1024 \times 1024$ per $1\,\text{Mbit}$), ogni cella è selezionata dall'intersezione tra una riga (**Word-Line**) e una colonna (**Bit-Line**). Ciò riduce le linee complessive da $2^{N+M}$ a $2^N + 2^M$ ($2048$ linee invece di un milione), minimizzando lunghezza delle interconnessioni, capacità parassite e complessità di decodifica.
 
 ### Teoria — Tassonomia delle Memorie e Architettura a Matrice
 
@@ -55,16 +52,11 @@ Scegliere una matrice approssimativamente quadrata ($N \approx M$) minimizza la 
 
 <Divider label="2 · Cella Statica SRAM 6T" />
 
-La cella **SRAM 6T** miniaturizza l'anello bistabile a due invertitori del [Capitolo 22](/dynamic-courses/elettronica/06-sequenziali-memorie/22-circuiti-sequenziali/) e lo isola dal bus condiviso tramite due interruttori di accesso controllati dalla *Word-Line*. Finché il chip è alimentato, la cella trattiene il bit in modo statico senza richiedere *refresh*, privilegiando la velocità rispetto alla densità.
+### Compromesso di Dimensionamento tra Lettura e Scrittura
 
-### Esempio — Il Tiro alla Fune tra Lettura e Scrittura
+La cella **SRAM 6T** miniaturizza l'anello bistabile a due invertitori del [Capitolo 22](/dynamic-courses/elettronica/06-sequenziali-memorie/22-circuiti-sequenziali/) e lo collega alle linee differenziali $BL$ e $\overline{BL}$ tramite due NMOS di accesso controllati dalla *Word-Line* ($WL$). Finché è alimentata, mantiene il bit staticamente senza *refresh*.
 
-Immagina due persone che tengono ferma un'asta in equilibrio su `'0'` o su `'1'`, chiuse in una stanza con una piccola finestra:
-
-- Quando vuoi **leggere** cosa c'è scritto senza rovinare l'informazione, devi sbirciare esercitando una spinta leggerissima: se spingessi con troppa forza dall'esterno, faresti ribaltare l'asta compromettendo il dato.
-- Quando invece vuoi **scrivere** un nuovo valore opposto a quello attuale, devi avere abbastanza forza dall'esterno da vincere chi sta tenendo l'asta nella stanza e portarla dalla parte opposta.
-
-La progettazione della cella SRAM consiste proprio nel bilanciare queste due esigenze opposte.
+Il progetto dei rapporti geometrici nella SRAM 6T deve soddisfare due vincoli opposti lungo lo stesso transistore di accesso: in **lettura** l'access-NMOS non deve perturbare il nodo a `'0'` oltre la soglia dell'invertitore opposto (**stabilità di lettura**), imponendo che il pull-down NMOS sia più forte dell'accesso; in **scrittura**, invece, l'access-NMOS collegato a $BL = 0$ deve riuscire a scaricare il nodo a `'1'` vincendo il PMOS di pull-up (**scrivibilità**), imponendo che l'accesso sia più forte del PMOS.
 
 ### Teoria — Struttura 6T, Modalità Operative e Rapporto di Dimensionamento
 
@@ -118,14 +110,11 @@ $$
 
 <Divider label="3 · Cella Dinamica DRAM 1T-1C" />
 
-Sei transistori per bit rendono la SRAM costosa in termini di area. La **DRAM 1T-1C** riduce la cella all'essenziale: **un solo transistore NMOS** di accesso e **un solo condensatore** di immagazzinamento. Questa estrema compattezza ha però due conseguenze fisiche inevitabili: la lettura scarica parzialmente la cella e richiede immediata riscrittura (**write-back**), mentre le correnti di perdita impongono una ricarica periodica (**refresh**).
+### Ripartizione Capacitiva di Carica, Write-Back e Refresh
 
-### Esempio — Il Secchiello Collegato a un Lungo Tubo
+Per massimizzare la densità di integrazione, la **DRAM 1T-1C** sostituisce l'anello bistabile a $6$ transistori con un solo NMOS di accesso e un minuscolo condensatore di cella $C_S$ ($\sim 30\text{--}35\,\text{fF}$) che memorizza il bit come carica elettrica ($V_{DD}$ oppure $0\,\text{V}$).
 
-Immagina di conservare un bit riempiendo o svuotando un minuscolo bicchiere d'acqua, e di volerlo misurare collegandolo tramite un rubinetto a una lunga vasca già riempita esattamente a metà:
-
-- Quando apri il rubinetto, l'acqua del bicchiere e quella della vasca si mescolano fino a raggiungere lo stesso livello. Siccome la vasca è molto più grande del bicchiere, il livello della vasca si sposta **pochissimo** (giusto un piccolo increspamento verso l'alto o verso il basso), mentre il bicchiere ha ormai **perso** il suo livello originario.
-- Appena riconosci se l'increspamento era positivo o negativo, devi subito usare una pompa esterna per riempire o svuotare di nuovo il bicchiere prima di chiudere il rubinetto. Inoltre, anche a rubinetto chiuso, una leggera evaporazione fa calare l'acqua nel tempo, costringendoti a ripristinare periodicamente tutti i bicchieri.
+Questa compattezza impone due meccanismi di gestione indispensabili. Durante la lettura, la connessione di $C_S$ alla *Bit-Line* precaricata a $V_{DD}/2$ provoca un *charge sharing* capacitivo con la grande capacità parassita di colonna $C_{BL} \gg C_S$: la tensione su $BL$ varia solo di poche decine di millivolt e il livello originario su $C_S$ va quasi distrutto, obbligando il *Sense Amplifier* a eseguire un **write-back** immediato; inoltre, le correnti di perdita scaricano lentamente $C_S$ anche a riposo, richiedendo il **refresh** periodico di tutte le righe.
 
 ### Teoria — Scrittura, Charge Sharing, Write-Back e Refresh
 
@@ -178,14 +167,13 @@ Dal meccanismo di *charge sharing* derivano due operazioni essenziali ma concett
 
 <Divider label="4 · Memorie Non Volatili ROM e Flash" />
 
-Le memorie non volatili (**NVM**) conservano i bit anche quando si toglie completamente alimentazione, perché non si affidano né a un circuito alimentato né alla carica di un condensatore di giunzione. Tutte le memorie non volatili condividono comunque la lettura su **matrice $(WL, BL)$**: si precarica o polarizza la *Bit-Line*, si attiva una *Word-Line* $WL$ e si verifica se la cella all'incrocio entra in conduzione (abbassando $BL$) oppure rimane interdetta (lasciando $BL$ alta).
+### Principio Condiviso di Lettura e Criterio di Programmazione
 
-Il criterio fondamentale che separa le due famiglie non volatili riguarda **come e quando** viene stabilito se la cella conduce o meno: nelle **Mask ROM** la scelta è impressa fisicamente in modo permanente nelle maschere di fabbrica, mentre nelle **memorie Flash** la conducibilità viene modificata elettricamente sul campo intrappolando o rimuovendo carica elettrica.
+Le memorie non volatili (**NVM**) conservano i bit in assenza di alimentazione perché non si affidano né a un anello bistabile alimentato né alla carica volatile di una giunzione. Tutte le memorie non volatili condividono comunque la lettura su **matrice $(WL, BL)$**: si precarica o polarizza la *Bit-Line*, si attiva una *Word-Line* $WL$ e si rileva se la cella selezionata entra in conduzione (abbassando $BL$) oppure rimane interdetta (lasciando $BL$ alta).
 
-### Esempio — Incisione di Fabbrica vs. Carica Intrappolata
-
-- **Mask ROM:** funziona come un cartoncino perforato in tipografia durante la stampa: in certi incroci c'è un collegamento, in altri manca. Una volta uscito dalla fabbrica non può più essere modificato, ma è rapidissimo ed economico da produrre in milioni di copie identiche.
-- **Memoria Flash:** funziona invece come una cassaforte microscopica isolata da pareti impermeabili alla corrente normale: con un impulso elettrico intenso si possono spingere dentro cariche elettriche (cambiando la risposta della cella) e, applicando un impulso opposto, si può svuotare in un attimo un intero blocco di celle ("in un flash") per riscrivere nuovi dati.
+Il criterio fondamentale che separa le due famiglie non volatili riguarda **come e quando** viene fissata la soglia di conduzione della cella:
+* **Mask ROM:** la presenza o l'assenza del transistore (o del contatto) a ogni incrocio è definita permanentemente nelle maschere litografiche in fabbrica, offrendo massima semplicità e bassissimo costo unitario per firmware immutabili ad alti volumi.
+* **Memoria Flash:** ogni cella integra un elettrodo isolato nell'ossido (*Floating Gate*); tramite impulsi elettrici intensi si intrappolano o si rimuovono elettroni dal *Floating Gate*, spostando reversibilmente la tensione di soglia $V_{th}$ della cella sul campo con cancellazione simultanea a blocchi.
 
 ### Teoria — Mask ROM e Memoria Flash
 

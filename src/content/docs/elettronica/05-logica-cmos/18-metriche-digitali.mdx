@@ -18,9 +18,9 @@ Nel mondo digitale ragioniamo in termini di simboli discreti (`0` e `1`), ma den
 
 ### Immunità ai Disturbi e Rigenerazione
 
-Una porta logica deve fare molto più che invertire o combinare bit ideali: deve **rigenerare** i segnali degradati. Anche se il collegamento verso lo stadio successivo raccoglie un piccolo disturbo di tensione, la porta ricevente deve riconoscere senza ambiguità il livello logico corretto e restituire in uscita un segnale più pulito vicino ai valori nominali.
+Una porta logica deve fare molto più che invertire o combinare bit ideali: deve **rigenerare** i segnali degradati. Anche se il collegamento verso lo stadio successivo raccoglie disturbi di tensione (accoppiamento capacitivo, cadute resistivo-induttive sulle alimentazioni), la porta ricevente deve riconoscere senza ambiguità il livello logico corretto e restituire in uscita un segnale prossimo ai valori nominali.
 
-Immaginiamo una staffetta in cui ciascun corridore riceve un cartellino leggermente stropicciato e lo riscrive a caratteri nitidi per il compagno successivo. Se la piega è lieve, ogni passaggio cancella l'imperfezione e il messaggio resta integro per centinaia di stadi; se invece la macchia è così estesa da rendere indecifrabile se la parola sia `0` o `1`, il corridore di mezzo esita e trasmette al compagno successivo un errore ancora più marcato. In tensione accade esattamente questo: finché il disturbo mantiene l'ingresso nelle zone piatte della risposta, la porta lo attenua; se il disturbo spinge l'ingresso nella fascia centrale ripida di transizione, la porta lo amplifica e corrompe l'informazione.
+Questo meccanismo richiede una caratteristica di trasferimento fortemente non lineare: finché il disturbo mantiene l'ingresso nelle regioni piatte della VTC, il guadagno differenziale in modulo resta inferiore all'unità ($\lvert dv_{out}/dv_{in}\rvert < 1$) e ogni stadio successivo attenua l'errore; se invece il disturbo spinge l'ingresso nella regione centrale di transizione ($\lvert dv_{out}/dv_{in}\rvert > 1$), la porta amplifica la perturbazione corrompendo l'informazione.
 
 ### Teoria — Curva VTC, Rigenerazione del Segnale e Margini Statici
 
@@ -79,9 +79,9 @@ Nel caso limite ideale di una VTC a gradino verticale centrata a $V_{DD}/2$, ent
 
 ### Velocità di Commutazione e Capacità di Carico
 
-La tensione di un nodo digitale non può cambiare istantaneamente, perché ogni nodo accumula carica elettrica sulla propria capacità complessiva verso massa (capacità di drain dei transistori che pilotano il nodo, capacità della pista metallica e capacità di gate delle porte a valle). La rapidità con cui una porta cambia stato dipende quindi dal compromesso tra quanta carica va spostata e quanta corrente i transistori riescono a fornire.
+La tensione di un nodo digitale non può cambiare istantaneamente, perché ogni nodo accumula carica elettrica sulla propria capacità complessiva verso massa $C_L$ (capacità di drain dei transistori che pilotano il nodo, capacità della pista metallica e capacità di gate delle porte a valle). La rapidità di commutazione è fissata dal compromesso tra carica da spostare e corrente erogabile dai transistori.
 
-Possiamo pensare a un serbatoio d'acqua collegato a due rubinetti: uno verso l'alto per riempirlo e uno verso lo scarico per svuotarlo. Se il serbatoio è più grande (capacità di carico maggiore) oppure se la valvola è più stretta (resistenza del transistore maggiore), il livello impiega più tempo a superare la soglia intermedia. Abbassare la pressione di rete corrisponde infine a ridurre l'alimentazione $V_{DD}$: la corrente cala e i transitori si allungano.
+Riducendo ogni transistore acceso alla sua resistenza equivalente di canale ($R_n$ per l'NMOS, $R_p$ per il PMOS), la commutazione si riconduce a un transitorio RC del primo ordine: capacità $C_L$ elevate o resistenze di canale alte allungano i fronti, mentre ridurre la tensione di alimentazione $V_{DD}$ vicino alla soglia $V_{th}$ contrae l'overdrive e aumenta $R_n, R_p$, rallentando sensibilmente la porta.
 
 ### Teoria — Metriche Temporali e Modello RC Equivalente
 
@@ -147,9 +147,9 @@ Da queste formule emerge immediatamente che per ottenere fronti simmetrici e rit
 
 ### Costo Energetico delle Commutazioni
 
-Una porta CMOS statica che mantiene fermo un `0` o un `1` non dovrebbe consumare quasi nulla, perché uno dei due rami tra $V_{DD}$ e massa è aperto. Il consumo principale nasce invece quando i dati cambiano rapidamente: a ogni ciclo di lavoro occorre prelevare carica dall'alimentazione per riempire le capacità interne e poi scaricarla verso massa.
+In regime stazionario (`0` o `1` costante), una porta CMOS complementare interrompe sempre uno dei due rami tra $V_{DD}$ e massa, limitando la dissipazione statica alle sole correnti di perdita (*leakage*). Il consumo dominante nasce invece in regime dinamico, quando i nodi commutano ad alta frequenza.
 
-La situazione ricorda una chiusa idraulica: tenere il livello fermo costa pochissimo (al netto di qualche goccia che trafila dalle guarnizioni), mentre alzare e abbassare il bacino migliaia di volte al secondo richiede lavoro continuo per pompare l'acqua. Quando miliardi di porte operano in parallelo sullo stesso chip, il calore generato da queste micro-cariche e scariche diventa il vincolo termico principale del processore.
+A ogni transizione completa ($0 \to 1 \to 0$), l'alimentazione trasferisce la carica $Q = C_L V_{DD}$ caricando la capacità di carico (metà energia immagazzinata in $C_L$ e metà dissipata sul ramo PMOS) per poi scaricarla a massa sul ramo NMOS. Poiché questa energia per ciclo cresce quadraticamente con $V_{DD}$ e linearmente con la frequenza di clock, la gestione termica dei microprocessori dipende criticamente dalla riduzione della tensione di alimentazione.
 
 ### Teoria — Componenti di Potenza e Figure di Merito
 

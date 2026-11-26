@@ -14,15 +14,14 @@ Teach via ordering, conceptual isolation, and clear cause-and-effect prose—nev
 * **Choose One of Two Chapter Tracks (Never Mix Half-Example / Half-Theory):**
 
   #### Track A — Conceptual / Theory-Driven Chapters (e.g., *Elettronica*, architectural & physical-device chapters)
-  $$\text{Concept} \longrightarrow \text{Conceptual Example} \longrightarrow \text{Complete Structured Theory} \longrightarrow \text{Summary} \longrightarrow \text{Practice}$$
+  $$\text{High-Level 80/20 Concept} \longrightarrow \text{Complete Structured Theory} \longrightarrow \text{Summary} \longrightarrow \text{Practice}$$
 
-  1. **Concept (Opening / Section Lead-In):**
-     - State the **plain mental model first** (1 short paragraph: what problem this solves, what it fundamentally is—eliminating any "oh wait, it's just X!" delayed realization).
+  1. **Direct High-Level Conceptual Explanation (80/20 Model):**
+     - Open the chapter and each major section with a **direct, academically valid conceptual explanation** of the actual device, circuit, or physical/architectural mechanism—never childish everyday analogies (no water pipes, faucets, buckets, marbles, crowds, books on shelves, relay runners, boulders, or tug-of-war metaphors).
+     - Strip away heavy algebraic derivations, secondary effects, and corner cases so the reader grasps the **80/20 core principle** first: what problem the mechanism solves, how the physical/electrical variables interact at a high level, and what dominant trade-off governs its behavior.
      - When a topic splits into sub-families (e.g., Mask ROM vs. Flash, SRAM vs. DRAM), state *only* what is 100% shared by all sub-families plus the **single criterion that divides them**.
-  2. **Conceptual Example (Intuition Only — Lightweight & Non-Technical):**
-     - Present one brief, intuitive concrete scenario (e.g., "1M wires vs. 2048 wires" or a high-level bit trace) that makes the core idea click *before* technical details.
-     - **Hard Boundary:** Keep the conceptual example light and jargon-free. **Never** cram transistor-level derivations, premature edge cases, or unintroduced formulas into it, and **never** use it to replace part of the Theory section.
-  3. **Complete Structured Theory (Starts Fresh, 100% Self-Contained):**
+     - **Hard Boundary:** Keep the 80/20 overview focused and uncluttered—**never** cram full mathematical derivations or edge-case algebra into it, and **never** rely on it to replace part of the Theory section.
+  2. **Complete Structured Theory (Starts Fresh, 100% Self-Contained):**
      - Start fresh from the ground up and teach *every* concept, operating mode, physical cause-and-effect chain, and formula completely on its own.
      - **Strict Conceptual Isolation (Tree-Like Hierarchy):** Mirror a clean conceptual tree directly in your headings (`###` / `####`) and nested prose—shared parent properties live in the parent block; branch-specific mechanisms live *exclusively* inside their own branch (e.g., Floating Gate and block erase belong strictly under Flash, never in the shared intro or Mask ROM).
      - **Full Explanatory Prose, Not Cheat-Sheet Bullets:** Keep syllabus scope strictly unchanged (no extra out-of-scope content), but unpack every in-scope mechanism with explicit cause-and-effect reasoning (*why* A causes B causes C) so a student can learn directly from the page without consulting external sources.

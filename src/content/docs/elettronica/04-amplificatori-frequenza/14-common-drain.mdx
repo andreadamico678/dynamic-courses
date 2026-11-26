@@ -19,13 +19,11 @@ L'**amplificatore Common Drain** (chiamato *Source Follower*, cioè inseguitore 
 
 <Divider label="1 · Inseguitore di Source ed Effetto Body" />
 
-Nel Common Drain il Drain è ancorato all'alimentazione fissa, quindi funge da riferimento comune in alternata mentre l'uscita sul Source insegue la tensione applicata al Gate.
+### Inseguimento di Tensione con Retroazione Unitaria
 
-### Esempio Concettuale — L'Inseguitore Senza Sforzo
+Nel Common Drain il Drain è ancorato all'alimentazione fissa (massa AC), mentre l'uscita è prelevata sul terminale di Source. Poiché la tensione di controllo del canale dipende dalla differenza tra ingresso e uscita ($v_{gs} = v_i - v_{out}$), il circuito opera in **retroazione negativa unitaria**: appena $v_i$ sale, la corrente nel canale cresce e carica il nodo di Source finché $v_{out}$ segue $v_i$ mantenendo lo scarto $v_{gs}$ necessario a sostenere la corrente sul carico.
 
-Immagina di dover spostare un peso notevole seguendo con precisione i movimenti di una lancetta delicatissima di un orologio. Se legassi il peso direttamente alla lancetta, il suo ingranaggio si bloccherebbe all'istante.
-
-Usi allora un sensore ottico che legge la posizione della lancetta senza toccarla e comanda un pistone alimentato dalla rete elettrica: il pistone replica esattamente lo spostamento della lancetta sul carico pesante. Per continuare a spingere il carico, però, deve sempre esistere un piccolissimo scarto tra la posizione di riferimento e quella effettiva dell'uscita: per questo il movimento replicato segue quello d'ingresso nella stessa direzione, restando appena al di sotto di un rapporto uno a uno.
+Di conseguenza l'uscita replica il segnale d'ingresso in fase con guadagno positivo leggermente inferiore all'unità ($0 < A_v < 1$), ridotto ulteriormente nei circuiti integrati dall'oscillazione del Source rispetto al Body ($v_{bs} = -v_{out}$).
 
 ### Teoria — Modello, Guadagno ed Effetto Body
 
@@ -115,11 +113,11 @@ $$
 
 <Divider label="2 · Resistenza d'Uscita e Adattamento d'Impedenza" />
 
-La ragione principale per cui si inserisce un Source Follower in una catena analogica non è il guadagno vicino a $1$, ma la sua capacità di abbattere drasticamente la resistenza vista dal carico.
+### Disaccoppiamento di Impedenza tra Stadi e Carico
 
-### Esempio Concettuale — Il Disaccoppiatore di Impedenza
+La funzione primaria del Common Drain non è l'amplificazione in tensione, bensì il **disaccoppiamento di impedenza**. Un precedente stadio Common Source ad alto guadagno presenta un'elevata resistenza d'uscita ($R_D \parallel r_o$): collegarlo direttamente a un carico resistivo piccolo $R_L$ attenuerebbe gran parte del segnale per partizione di tensione.
 
-Se provi a riempire un secchio molto bucato collegandolo a un rubinetto che ha un ugello sottilissimo (alta resistenza interna), quasi tutta la pressione si perde dentro l'ugello e il livello nel secchio rimane bassissimo. Se invece usi l'ugello sottile soltanto per comandare la valvola di una condotta principale larga (bassa resistenza d'uscita), la condotta mantiene costante il livello nel secchio anche se i buchi richiedono molta portata. Il Common Drain svolge esattamente il ruolo di questa valvola adattatrice tra uno stadio amplificatore delicato e un carico esigente.
+Interponendo un *Source Follower*, il Gate isolato presenta al CS un'impedenza d'ingresso altissima evitando perdite di carico a monte, mentre dal terminale di Source il carico vede la bassissima resistenza differenziale $R_{out} \approx 1/(g_m + g_{mb})$, trasferendo la tensione quasi intatta anche verso carichi di poche centinaia di ohm.
 
 ### Teoria — Resistenza d'Uscita e Adattamento
 
