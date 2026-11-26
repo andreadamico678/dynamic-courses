@@ -10,20 +10,20 @@ import Divider from "@components/Divider.astro";
 
 ## Introduzione
 
-Le porte combinatorie della Parte V calcolano funzioni istantanee senza ricordare il passato. Un calcolatore reale però ha bisogno di **stato, sincronizzazione e memoria**: trattenere un bit tra un ciclo di clock e il successivo, scandire istruzioni con Flip-Flop sensibili ai fronti e conservare gigabyte di dati su matrici ad altissima densità.
+Le porte combinatorie della Parte V calcolano funzioni istantanee senza ricordare il passato: appena gli ingressi cambiano, l'uscita si aggiorna. Un sistema digitale reale ha invece bisogno di **stato, sincronizzazione e memoria**: trattenere un bit tra un ciclo di clock e il successivo, scandire istruzioni con Flip-Flop sensibili ai fronti e conservare milioni o miliardi di bit su matrici compatte.
 
-La Parte VI chiude il percorso completo dell'elettronica: prima scopri come la **retroazione positiva** tra due invertitori generi celle bistabili (Latch e Flip-Flop Master-Slave), poi confronti i compromessi fisici e di densità tra **SRAM 6T** (cache velocissima), **DRAM 1T-1C** (RAM principale compatta ma bisognosa di *refresh*) e memorie **Flash** non volatili, fino al laboratorio pratico di simulazione numerica SPICE/LTspice.
+La Parte VI completa il percorso dell'elettronica collegando tre livelli complementari: prima mostra come la **retroazione positiva** tra due invertitori generi celle bistabili (Latch, Flip-Flop Master-Slave, registri e contatori), poi confronta i compromessi fisici e circuitali delle **memorie a semiconduttore** organizzate a matrice (**SRAM 6T**, **DRAM 1T-1C**, **Mask ROM** e **Flash**), e infine introduce la **simulazione numerica SPICE/LTspice** per verificare sul calcolatore reti analogiche e digitali prima della realizzazione fisica.
 
 ### Esempi Pratici nel Mondo Reale
 
-- **Gerarchia di Memoria in un SoC:** Un Flip-Flop Master-Slave nei registri della CPU richiede $\sim 20$ transistori; una cella **SRAM 6T** in cache L1 scende a 6 transistori per bit senza bisogno di *refresh*; la RAM principale **DRAM** riduce l'ingombro a 1 transistore e 1 condensatore richiedendo però riscrittura periodica ogni $\sim 64\,\text{ms}$.
-- **SSD e Firmware (Memorie Flash *Floating-Gate*):** Intrappolando elettroni dietro un ossido isolante tramite effetto tunnel di Fowler-Nordheim o iniezione di portatori caldi, le celle Flash spostano la soglia $V_{th}$ e trattengono dati per anni anche a batteria scollegata.
-- **Verifica Pre-Silicio in LTspice:** Prima di saldare una scheda o produrre un circuito integrato, i progettisti scrivono e verificano netlist SPICE (`.op`, `.dc`, `.ac`, `.tran`) per validare punti di lavoro, bande passanti e margini temporali.
+- **Gerarchia di Memoria in un SoC:** Un Flip-Flop Master-Slave nei registri della CPU richiede circa $20$ transistori per garantire campionamento sul fronte immune ai *glitch*; una cella **SRAM 6T** in cache riduce l'ingombro a $6$ transistori per bit senza bisogno di *refresh*; la RAM principale **DRAM 1T-1C** scende a $1$ transistore e $1$ condensatore, richiedendo però riscrittura dopo ogni lettura (*write-back*) e *refresh* periodico ogni poche decine di millisecondi.
+- **Firmware e Unità SSD (ROM e Flash):** Dove il codice è fisso e prodotto in altissimi volumi si usano **Mask ROM** programmate in fabbrica; per memorizzare firmware aggiornabile (Flash NOR) o gigabyte di dati su SSD (Flash NAND), le celle **Flash *Floating-Gate*** intrappolano elettroni dietro un ossido isolante per spostare la soglia $V_{th}$ e trattenere i bit per anni anche senza alimentazione.
+- **Verifica Pre-Silicio in LTspice:** Prima di saldare una scheda o fabbricare un circuito integrato, i progettisti traducono lo schema in una **netlist SPICE** ed eseguono analisi `.op`, `.dc`, `.tran` e `.ac` per controllare punti di lavoro, caratteristiche statiche, ritardi temporali e risposte in frequenza.
 
 <Divider />
 
 ## Mappa dei Capitoli
 
-1. **[22. Circuiti Sequenziali CMOS](/dynamic-courses/elettronica/06-sequenziali-memorie/22-circuiti-sequenziali/)** — Anelli bistabili, metastabilità, Latch SR (NOR/NAND), D-Latch a *Transmission Gate*, Flip-Flop Master-Slave, registri e contatori.
-2. **[23. Architetture di Memoria](/dynamic-courses/elettronica/06-sequenziali-memorie/23-architetture-memoria/)** — Organizzazione a matrice $2^N \times 2^M$, SRAM 6T, DRAM 1T-1C con lettura distruttiva, ROM, EPROM, EEPROM e Flash.
-3. **[24. Simulazione Circuitale LTspice](/dynamic-courses/elettronica/06-sequenziali-memorie/24-laboratorio-ltspice/)** — Anatomia delle netlist SPICE, direttive di analisi DC/AC/transitorio e verifica circuitale pratica.
+1. **[22. Circuiti Sequenziali CMOS](/dynamic-courses/elettronica/06-sequenziali-memorie/22-circuiti-sequenziali/)** — Anello bistabile, metastabilità, Latch SR (NOR/NAND), Flip-Flop JK/T/D, Transmission Gate, D-Latch, Flip-Flop D Master-Slave, registri e contatori.
+2. **[23. Architetture di Memoria](/dynamic-courses/elettronica/06-sequenziali-memorie/23-architetture-memoria/)** — Organizzazione a matrice $2^N \times 2^M$, SRAM 6T ($CR$ e $PR$), DRAM 1T-1C (*charge sharing*, *write-back*, *refresh*), Mask ROM e Flash NOR/NAND a *Floating Gate*.
+3. **[24. Simulazione Circuitale LTspice](/dynamic-courses/elettronica/06-sequenziali-memorie/24-laboratorio-ltspice/)** — Anatomia delle netlist SPICE, suffissi di scala, analisi stazionarie (`.op`, `.dc`), transitorie (`.tran` e `.MODEL`) e in frequenza di piccolo segnale (`.ac`).

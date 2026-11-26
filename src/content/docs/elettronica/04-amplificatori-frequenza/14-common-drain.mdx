@@ -13,15 +13,25 @@ import SingleStageExplorer from "@components/SingleStageExplorer.tsx";
 
 ## Introduzione
 
-Lo stadio Common Source del [Capitolo 13](/dynamic-courses/elettronica/04-amplificatori-frequenza/13-common-source/) offre un guadagno elevato, ma ha un limite pratico: una resistenza d'uscita $R_{out} \approx R_D$ spesso di diversi chilo-ohm. Se lo colleghi direttamente a un carico piccolo da $50\,\Omega$ o $500\,\Omega$ (come una cuffia audio o un cavo lungo), il partitore d'uscita fa crollare quasi tutto il segnale.
+Lo stadio Common Source del [Capitolo 13](/dynamic-courses/elettronica/04-amplificatori-frequenza/13-common-source/) fornisce un elevato guadagno di tensione, ma presenta una resistenza d'uscita relativamente alta ($R_{out} = R_D \parallel r_o$) che fa crollare il segnale quando viene collegato direttamente a un carico resistivo piccolo come un altoparlante o una linea da poche centinaia di ohm.
 
-Il **Common Drain** (detto *Source Follower*) risolve questo problema rinunciando ad amplificare la tensione ($A_v \lesssim 1$, senza inversione di fase) per offrire un'**impedenza d'ingresso altissima** sul Gate e una **resistenza d'uscita bassissima** sul Source ($\approx 1/g_m$), comportandosi da adattatore d'impedenza ideale.
+L'**amplificatore Common Drain** (chiamato *Source Follower*, cioè inseguitore di Source) risolve questo problema scambiando il guadagno di tensione con l'**adattamento d'impedenza**: mantiene un'altissima resistenza d'ingresso sul Gate, trasferisce la tensione sul Source in fase con guadagno poco inferiore all'unità ($0 \lt A_v \lesssim 1$) e offre una bassissima resistenza d'uscita ($\approx 1/g_m$) capace di pilotare carichi pesanti senza attenuazioni.
 
-<Divider label="1 · Inseguitore di Source e Guadagno con Effetto Body" />
+<Divider label="1 · Inseguitore di Source ed Effetto Body" />
 
-### Esempio — Buffer Source Follower su Carico da 500 Ω
+Nel Common Drain il Drain è ancorato all'alimentazione fissa, quindi funge da riferimento comune in alternata mentre l'uscita sul Source insegue la tensione applicata al Gate.
 
-Supponiamo di dover pilotare un carico pesante $R_L = 500\,\Omega$ usando lo stadio Common Drain di [la figura](#fig-cd-amplifier) e il suo modello di piccolo segnale di [la figura](#fig-cd-small-signal). Il MOSFET ha $g_m = 4\,\text{mA/V}$ e $R_S = 2\,\text{k}\Omega$ (con $r_o \to \infty$). Confrontiamo il caso ideale senza effetto Body ($g_{mb} = 0$) con un processo integrato con substrato a massa ($g_{mb} = 0.8\,\text{mA/V}$).
+### Esempio Concettuale — L'Inseguitore Senza Sforzo
+
+Immagina di dover spostare un peso notevole seguendo con precisione i movimenti di una lancetta delicatissima di un orologio. Se legassi il peso direttamente alla lancetta, il suo ingranaggio si bloccherebbe all'istante.
+
+Usi allora un sensore ottico che legge la posizione della lancetta senza toccarla e comanda un pistone alimentato dalla rete elettrica: il pistone replica esattamente lo spostamento della lancetta sul carico pesante. Per continuare a spingere il carico, però, deve sempre esistere un piccolissimo scarto tra la posizione di riferimento e quella effettiva dell'uscita: per questo il movimento replicato segue quello d'ingresso nella stessa direzione, restando appena al di sotto di un rapporto uno a uno.
+
+### Teoria — Modello, Guadagno ed Effetto Body
+
+#### Architettura e Massa AC sul Drain
+
+Nello schema completo di [la figura seguente](#fig-cd-amplifier), il segnale d'ingresso entra attraverso $C_G$ sul Gate polarizzato dal partitore $R_1, R_2$, il terminale di Drain è connesso direttamente all'alimentazione costante $V_{DD}$ e l'uscita viene prelevata dal terminale di Source tramite $C_D$ verso il carico $R_L$. Passando al circuito equivalente di piccolo segnale a centro banda ([seconda figura](#fig-cd-small-signal)), i condensatori $C_G$ e $C_D$ diventano cortocircuiti, mentre $V_{DD}$ diventa una **massa AC**, imponendo $v_d = 0$.
 
 <figure id="fig-cd-amplifier" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cd-amplifier.svg" alt="Circuito dell'amplificatore Common Drain (Source Follower) a singola alimentazione." />
@@ -33,131 +43,140 @@ Supponiamo di dover pilotare un carico pesante $R_L = 500\,\Omega$ usando lo sta
   <figcaption>Circuito equivalente di piccolo segnale dello stadio Common Drain con effetto Body ($g_{mb}$) e carichi al Source.</figcaption>
 </figure>
 
-A centro banda, $V_{DD}$ collega direttamente il Drain a **massa AC** e i condensatori esterni sono cortocircuiti:
-
-1. **Carico equivalente al Source:** sul Source convergono verso massa AC il resistore $R_S$ e il carico $R_L$:
-
-$$
-R_L' = R_S \parallel R_L = 2000\,\Omega \parallel 500\,\Omega = 400\,\Omega = 0.4\,\text{k}\Omega
-$$
-
-2. **Guadagno senza effetto Body ($g_{mb} = 0$):** il MOSFET spinge corrente in $R_L'$ in base a $v_{gs} = v_i - v_{out}$, facendo sì che l'uscita insegua l'ingresso in fase:
-
-$$
-A_v = \frac{g_m R_L'}{1 + g_m R_L'} = \frac{4\,\text{mA/V} \cdot 0.4\,\text{k}\Omega}{1 + 4\,\text{mA/V} \cdot 0.4\,\text{k}\Omega} = \frac{1.6}{2.6} \approx 0.615\,\text{V/V}
-$$
-
-3. **Guadagno con effetto Body ($g_{mb} = 0.8\,\text{mA/V}$):** poiché il Source oscilla a $v_{out}$ mentre il Body è fisso a massa ($v_{bs} = -v_{out}$), il generatore di Body $g_{mb}$ frena leggermente l'uscita:
-
-$$
-A_{v,\text{body}} = \frac{g_m R_L'}{1 + (g_m + g_{mb}) R_L'} = \frac{1.6}{1 + (4 + 0.8) \cdot 0.4} = \frac{1.6}{2.92} \approx 0.548\,\text{V/V}
-$$
-
-   Anche scollegando il carico ($R_L' \to \infty$), l'effetto Body limita il guadagno massimo a $A_{v,\max} = \frac{g_m}{g_m + g_{mb}} = \frac{4}{4.8} \approx 0.83\,\text{V/V}$.
-
-Seleziona **Common Drain** nel simulatore interattivo qui sotto e varia $g_m$ e $R_L$: osserva come $A_v$ resti positivo e inferiore a $1$, mentre $R_{out}$ scala inversamente a $g_m$.
-
-<SingleStageExplorer client:load />
-
-<StepCheck client:load lang="it" prompt="Nel circuito dell'esempio ($g_m = 4\,\text{mA/V}$, $R_S = 2\,\text{k}\Omega$, $r_o \to \infty$, $g_{mb} = 0$), se il carico diventa $R_L = 2\,\text{k}\Omega$, quanto vale il guadagno $A_v$?" expected={0.8} tolerance={0.02} unit="$\text{V/V}$" explanation="$R_L' = 2\,\text{k}\Omega \parallel 2\,\text{k}\Omega = 1\,\text{k}\Omega$; $A_v = (4 \cdot 1) / (1 + 4 \cdot 1) = 4 / 5 = 0.80\,\text{V/V}$." />
-
-### Teoria — Modello, Guadagno di Tensione ed Effetto Body
-
-#### Architettura e Modello di Piccolo Segnale
-
-Nel Common Drain ([la figura](#fig-cd-amplifier)), il segnale entra sul Gate, l'uscita si preleva dal Source e il Drain è collegato direttamente a $V_{DD}$, che in AC è **massa** ($v_d = 0$). Lo stadio si chiama **Source Follower** perché la tensione di Source sale e scende in fase con quella del Gate, inseguendola con guadagno poco inferiore a $1$.
-
-Come negli altri stadi, l'ossido di Gate non assorbe corrente ($i_g = 0$), quindi la resistenza d'ingresso è fissata dal solo partitore di polarizzazione:
+Poiché il Gate isolato non assorbe corrente ($i_g = 0$), la sorgente $v_{sig}$ vede oltre $C_G$ soltanto i due resistori di polarizzazione collegati verso massa AC ($R_1$ attraverso $V_{DD}$ ed $R_2$ verso massa). La resistenza d'ingresso resta quindi identica a quella del Common Source:
 
 $$
 R_{in} = R_1 \parallel R_2
 $$
 
-C'è però una differenza importante rispetto al Common Source: nei chip CMOS con substrato (Body) a massa ($v_b = 0$), qui il Source oscilla alla tensione d'uscita ($v_s = v_{out}$). Si crea quindi una tensione alternata $v_{bs} = -v_{out}$ tra Body e Source, che attiva il generatore di **effetto Body** $g_{mb} v_{bs} = -g_{mb} v_{out}$ in parallelo al generatore principale $g_m v_{gs}$ ([la figura](#fig-cd-small-signal)).
+La tensione $v_i = v_{sig} \frac{R_{in}}{R_{sig} + R_{in}}$ si applica al Gate, mentre il terminale di Source coincide con il nodo d'uscita ($v_s = v_{out}$). Di conseguenza, la tensione di comando tra Gate e Source vale:
 
-#### Calcolo del Guadagno
+$$
+v_{gs} = v_i - v_{out}
+$$
 
-Poiché il Drain è a massa AC, la resistenza interna $r_o$ si trova esattamente in parallelo a $R_S$ e a $R_L$. Possiamo quindi raccogliere tutti i rami passivi al Source in un unico carico equivalente:
+#### Origine dell'Effetto Body Dinamico
+
+Nello stadio Common Source base del capitolo precedente, il Source era fermo a massa AC ($v_s = 0$): anche nei circuiti integrati in cui il substrato (Body) è collegato a massa ($v_b = 0$), la tensione tra Body e Source restava nulla ($v_{bs} = 0$) e l'**effetto Body** non interveniva in piccolo segnale.
+
+Nel Common Drain integrato con Body a massa ($v_b = 0$), invece, il terminale di Source oscilla insieme alla tensione d'uscita ($v_s = v_{out}$). Nasce quindi una tensione alternata tra Body e Source pari a:
+
+$$
+v_{bs} = v_b - v_s = -v_{out}
+$$
+
+Fisicamente, quando $v_{out}$ sale rispetto al substrato, cresce la tensione inversa $V_{SB}$ e la tensione di soglia $V_{th}$ aumenta leggermente ([Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)). Nel modello linearizzato ([Capitolo 7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/)), questa modulazione è rappresentata dal generatore di corrente controllato $g_{mb} v_{bs} = -g_{mb} v_{out}$ in parallelo a $g_m v_{gs}$, che frena la salita della corrente quando l'uscita cresce. (Se invece si usa un transistore discreto o in pozzetto isolato con Body cortocircuitato al Source, risulta $v_{bs} = 0$ e il termine $g_{mb}$ si annulla.)
+
+#### Calcolo del Guadagno e Partitore Intrinseco
+
+Poiché il Drain è a massa AC ($v_d = 0$), la resistenza interna di modulazione di canale $r_o$ si trova collegata esattamente tra il Source e massa AC, cioè in parallelo al resistore di polarizzazione $R_S$ e al carico esterno $R_L$. Raccogliendo questi tre rami in un unico carico equivalente al Source:
 
 $$
 R_L' = R_S \parallel r_o \parallel R_L
 $$
 
-Esprimendo le tensioni di comando come $v_{gs} = v_i - v_{out}$ e $v_{bs} = -v_{out}$, scriviamo la KCL al nodo di Source (corrente uscente verso massa in $R_L'$ uguale alla somma delle correnti dei due generatori):
+Scriviamo la legge di Kirchhoff alle correnti (KCL) al nodo di Source: la corrente uscente verso massa attraverso $R_L'$ deve uguagliare la somma delle correnti erogate dai due generatori controllati dal Drain verso il Source:
 
 $$
-\frac{v_{out}}{R_L'} = g_m (v_i - v_{out}) - g_{mb} v_{out} \implies v_{out} \left( \frac{1}{R_L'} + g_m + g_{mb} \right) = g_m v_i
+\frac{v_{out}}{R_L'} = g_m (v_i - v_{out}) - g_{mb} v_{out}
 $$
 
-Ricavando $A_v = v_{out}/v_i$ otteniamo la formula generale del guadagno del Common Drain:
+Raggruppando tutti i termini in $v_{out}$ al primo membro:
+
+$$
+v_{out} \left( \frac{1}{R_L'} + g_m + g_{mb} \right) = g_m v_i
+$$
+
+Dividendo $v_{out}$ per $v_i$ e moltiplicando numeratore e denominatore per $R_L'$, si ottiene l'espressione generale del **guadagno di tensione** del Common Drain:
 
 $$
 A_v = \frac{v_{out}}{v_i} = \frac{g_m R_L'}{1 + (g_m + g_{mb}) R_L'}
 $$
 
-Per il guadagno complessivo dalla sorgente $A_{vs}$, come sempre basta moltiplicare $A_v$ per il partitore d'ingresso $\frac{R_{in}}{R_{sig} + R_{in}}$.
+Per il guadagno complessivo dalla sorgente $A_{vs}$, si moltiplica come di consueto per il partitore d'ingresso $\frac{R_{in}}{R_{sig} + R_{in}}$.
 
-#### Impatto dell'Effetto Body
-
-* **Senza effetto Body ($g_{mb} = 0$):** il guadagno diventa $A_v = \frac{g_m R_L'}{1 + g_m R_L'} = \frac{R_L'}{1/g_m + R_L'}$. Si vede subito che il Source Follower si comporta come un **partitore di tensione** tra la resistenza interna $1/g_m$ e il carico $R_L'$: il guadagno si avvicina a $1$ quando $R_L' \gg 1/g_m$, ma resta sempre leggermente minore di $1$ perché serve comunque una piccola $v_{gs} > 0$ per mantenere il canale attivo.
-* **Con effetto Body ($g_{mb} \neq 0$):** anche con carico infinito ($R_L' \to \infty$), il termine $g_{mb}$ al denominatore limita il guadagno massimo a:
+Questa formula spiega immediatamente due proprietà chiave dello stadio:
+1. **Inseguimento in fase ($0 \lt A_v \lt 1$):** trascurando l'effetto Body ($g_{mb} = 0$) e dividendo numeratore e denominatore per $g_m$, il guadagno assume la forma di un partitore di tensione:
 
 $$
-A_{v,\max} = \frac{g_m}{g_m + g_{mb}} \approx 0.80 \div 0.90\,\text{V/V}
+A_v = \frac{R_L'}{\frac{1}{g_m} + R_L'}
 $$
 
-  L'effetto Body riduce dunque il guadagno del $10\%\text{--}20\%$ anche a vuoto.
+   Lo stadio si comporta come se $v_i$ alimentasse il carico $R_L'$ attraverso una resistenza serie interna pari a $1/g_m$. Il guadagno è positivo (uscita in fase con l'ingresso) e si avvicina a $1$ quando $R_L' \gg 1/g_m$, ma resta sempre **strettamente minore di $1$**: se $v_{out}$ uguagliasse $v_i$, la tensione $v_{gs} = v_i - v_{out}$ si annullerebbe e il MOSFET non potrebbe erogare alcuna corrente alternata verso $R_L'$.
+2. **Riduzione dovuta all'effetto Body ($g_{mb} \neq 0$):** quando $g_{mb} > 0$, anche con carico aperto ($R_L' \to \infty$) il guadagno massimo raggiungibile non è $1$, bensì:
 
-<StepCheck client:load lang="it" mode="choice" prompt="In un Source Follower integrato con substrato connesso a massa ($V_B = 0$), come influenza l'effetto Body ($g_{mb} > 0$) il guadagno di tensione $A_v$?" options={["Aumenta $A_v$ oltre $1$", "Riduce $A_v$ di circa il $10\\%\\text{--}20\\%$", "Rende il guadagno invertente ($A_v < 0$)", "Non ha alcun effetto su $A_v$"]} correctIndex={1} explanation="Poiché $v_{bs} = -v_{out}$, l'effetto Body compare a denominatore come $(g_m + g_{mb})R_L'$, riducendo il guadagno asintotico a $g_m / (g_m + g_{mb}) \approx 0.80\text{--}0.90$." />
+$$
+A_{v,\max} = \frac{g_m}{g_m + g_{mb}}
+$$
+
+   Poiché nei processi CMOS $g_{mb}$ vale tipicamente $0.1 g_m \div 0.25 g_m$, l'effetto Body riduce il guadagno del Source Follower di circa il $10\%\text{--}20\%$ portandolo intorno a $0.80\text{--}0.90\,\text{V/V}$.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Perché, anche trascurando l'effetto Body ($g_{mb} = 0$) e con carico infinito, il guadagno del Common Drain non può superare l'unità?" options={["Perché l'alimentazione $V_{DD}$ taglia il segnale positivo", "Perché $v_{gs} = v_i - v_{out}$: se $v_{out}$ raggiungesse $v_i$, la tensione di comando $v_{gs}$ si annullerebbe e non scorrerebbe corrente AC nel canale", "Perché $R_1 \\parallel R_2$ inverte la fase del segnale", "Perché $C_D$ dimezza sempre la tensione sul Source"]} correctIndex={1} explanation="Dal modello a partitore $A_v = R_L' / (1/g_m + R_L')$, serve sempre una differenza non nulla $v_{gs} = v_i - v_{out} > 0$ affinché il MOSFET generi la corrente alternata che alimenta $R_L'$." />
 
 <Divider label="2 · Resistenza d'Uscita e Adattamento d'Impedenza" />
 
-### Esempio — Calcolo di $R_{out}$ e Confronto con il Common Source
+La ragione principale per cui si inserisce un Source Follower in una catena analogica non è il guadagno vicino a $1$, ma la sua capacità di abbattere drasticamente la resistenza vista dal carico.
 
-Calcoliamo la resistenza d'uscita $R_{out}$ dello stadio dell'esempio precedente ($g_m = 4\,\text{mA/V}$, $R_S = 2\,\text{k}\Omega$, $r_o = 40\,\text{k}\Omega$, [la figura](#fig-cd-rout)) e vediamo perché è indispensabile per collegare un preamplificatore Common Source ($A_{vo,\text{CS}} = -20\,\text{V/V}$, $R_{out,\text{CS}} = 10\,\text{k}\Omega$) a un carico pesante $R_L = 500\,\Omega$.
+### Esempio Concettuale — Il Disaccoppiatore di Impedenza
+
+Se provi a riempire un secchio molto bucato collegandolo a un rubinetto che ha un ugello sottilissimo (alta resistenza interna), quasi tutta la pressione si perde dentro l'ugello e il livello nel secchio rimane bassissimo. Se invece usi l'ugello sottile soltanto per comandare la valvola di una condotta principale larga (bassa resistenza d'uscita), la condotta mantiene costante il livello nel secchio anche se i buchi richiedono molta portata. Il Common Drain svolge esattamente il ruolo di questa valvola adattatrice tra uno stadio amplificatore delicato e un carico esigente.
+
+### Teoria — Resistenza d'Uscita e Adattamento
+
+#### Calcolo Analitico con Generatore di Prova
+
+Per calcolare la resistenza d'uscita $R_{out}$ vista guardando nel Source (escludendo $R_L$), spegniamo la sorgente di segnale al Gate imponendo $v_i = 0$ e colleghiamo al nodo di Source un generatore di tensione di prova $v_x$ che eroga una corrente $i_x$ ([figura seguente](#fig-cd-rout)).
 
 <figure id="fig-cd-rout" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cd-rout.svg" alt="Circuito con generatore di prova v_x per il calcolo analitico della resistenza d'uscita R_out." />
   <figcaption>Circuito con generatore di prova $v_x$ per il calcolo analitico della resistenza d'uscita $R_{out}$.</figcaption>
 </figure>
 
-1. **Resistenza d'uscita del Source Follower:** con il Gate a massa AC ($v_g = 0$), guardando nel Source si vede la resistenza intrinseca $1/g_m = 250\,\Omega$ in parallelo a $R_S = 2000\,\Omega$ e a $r_o = 40\,\text{k}\Omega$:
+A differenza del Common Source base—dove spegnere il Gate spegneva anche il generatore controllato perché il Source era fermo a massa—nel Common Drain muovere il terminale di Source di $+v_x$ con Gate e Body a massa AC ($v_g = v_b = 0$) genera immediatamente due tensioni negative di controllo:
 
 $$
-R_{out} = \frac{1}{g_m} \parallel R_S \parallel r_o = 250\,\Omega \parallel 2000\,\Omega \parallel 40\,000\,\Omega \approx 221\,\Omega
+v_{gs} = v_g - v_s = -v_x, \qquad v_{bs} = v_b - v_s = -v_x
 $$
 
-   Con l'effetto Body ($g_{mb} = 0.8\,\text{mA/V}$), la resistenza al Source scende a $\frac{1}{g_m + g_{mb}} \approx 208\,\Omega$, portando $R_{out}$ a circa $188\,\Omega$.
-
-2. **Confronto diretto sul carico da $500\,\Omega$:**
-   * **Senza buffer:** collegando il Common Source ($R_{out,\text{CS}} = 10\,\text{k}\Omega$) direttamente a $R_L = 500\,\Omega$, il partitore lascia passare appena il $5\%$ del segnale e il guadagno crolla da $-20$ a un misero $-0.95\,\text{V/V}$.
-   * **Con buffer Common Drain:** il Gate ad alta impedenza non carica il Common Source (che mantiene il suo $-20\,\text{V/V}$), mentre il Source con $R_{out} \approx 221\,\Omega$ trasferisce a $R_L$ circa il $69\%$ del segnale, dando un guadagno totale di $-20 \times 0.615 \approx -12.3\,\text{V/V}$ (oltre $12$ volte superiore!).
-
-<StepCheck client:load lang="it" prompt="Se in un Source Follower ($R_S = 2\,\text{k}\Omega$, $r_o \to \infty$, $g_{mb} = 0$) raddoppiamo la transconduttanza a $g_m = 8\,\text{mA/V}$, quanto vale la nuova resistenza d'uscita $R_{out}$ (in $\Omega$)?" expected={117.6} tolerance={1.5} unit="$\Omega$" explanation="$1/g_m = 125\,\Omega$; quindi $R_{out} = 125 \parallel 2000 = 250000 / 2125 \approx 117.65\,\Omega$." />
-
-### Teoria — Derivazione di $R_{out}$ col Generatore di Prova
-
-Per trovare $R_{out}$ (escludendo $R_L$), spegniamo il segnale sul Gate ($v_g = 0$) e applichiamo al Source un generatore di tensione di prova $v_x$ che eroga la corrente $i_x$ ([la figura](#fig-cd-rout)).
-
-Con Gate e Body a massa AC ($v_g = v_b = 0$), portando il Source a $v_x$ si ha $v_{gs} = -v_x$ e $v_{bs} = -v_x$. A differenza del Common Source, qui muovere il Source accende i generatori controllati, che aspirano una forte corrente $(g_m + g_{mb})v_x$ verso il Drain a massa AC. Scrivendo la KCL al nodo di Source:
+Di conseguenza i due generatori controllati $g_m v_{gs} = -g_m v_x$ e $g_{mb} v_{bs} = -g_{mb} v_x$ si accendono in senso opposto al normale, cioè **aspirano corrente dal Source verso il Drain** (che è a massa AC). Scrivendo la KCL al nodo di Source, la corrente totale $i_x$ fornita dal generatore di prova si divide nei quattro rami verso massa AC:
 
 $$
 i_x = g_m v_x + g_{mb} v_x + \frac{v_x}{r_o} + \frac{v_x}{R_S} = v_x \left( g_m + g_{mb} + \frac{1}{r_o} + \frac{1}{R_S} \right)
 $$
 
-Dividendo $v_x$ per $i_x$ otteniamo il parallelo di quattro resistenze:
+Il rapporto $v_x / i_x$ corrisponde esattamente al parallelo di quattro resistenze:
 
 $$
-R_{out} = \frac{v_x}{i_x} = \frac{1}{g_m} \parallel \frac{1}{g_{mb}} \parallel r_o \parallel R_S \approx \frac{1}{g_m + g_{mb}} \approx \frac{1}{g_m}
+R_{out} = \frac{v_x}{i_x} = \frac{1}{g_m} \parallel \frac{1}{g_{mb}} \parallel r_o \parallel R_S = \frac{1}{g_m + g_{mb}} \parallel R_S \parallel r_o
 $$
 
-Poiché per valori tipici di $g_m$ la resistenza $1/g_m$ vale appena $100\text{--}500\,\Omega$, essa domina il parallelo rispetto a $R_S$ e $r_o$, rendendo il Source Follower un ottimo stadio pilota a bassa impedenza d'uscita.
+Poiché per valori tipici di transconduttanza il termine $1/g_m$ vale poche decine o centinaia di ohm (ad esempio $250\,\Omega$ per $g_m = 4\,\text{mA/V}$), mentre $R_S$ ed $r_o$ sono nell'ordine dei chilo-ohm o decine di chilo-ohm, il termine $1/(g_m + g_{mb})$ domina il parallelo:
 
-<Callout type="tip" title="Buffer a Singolo Transistore">
+$$
+R_{out} \approx \frac{1}{g_m + g_{mb}} \approx \frac{1}{g_m}
+$$
 
-Il Source Follower offre una soluzione estremamente compatta quando uno stadio ad alto guadagno (come un Common Source, con alta resistenza d'uscita $R_D \parallel r_o$) deve pilotare un carico a bassa resistenza $R_L$. Basta aggiungere in cascata un singolo MOSFET in configurazione **Common Drain**: la sua alta resistenza d'ingresso non carica lo stadio a monte, mentre la bassissima resistenza d'uscita $R_{out} \approx 1/g_m$ pilota agevolmente il carico finale.
+Si osserva che anche l'effetto Body, pur riducendo leggermente il guadagno, contribuisce ad abbassare ulteriormente $R_{out}$ sommando la propria conduttanza $g_{mb}$ a $g_m$.
+
+#### Impiego come Buffer tra Stadi
+
+Mettendo insieme le proprietà d'ingresso e d'uscita del Source Follower si comprende la sua funzione di **buffer di tensione**. Se un preamplificatore Common Source ($A_{vo,\text{CS}} = -20\,\text{V/V}$, $R_{out,\text{CS}} = 10\,\text{k}\Omega$) pilotasse direttamente un carico pesante $R_L = 500\,\Omega$, il partitore di uscita ridurrebbe il guadagno a $-20 \cdot \frac{0.5}{10 + 0.5} \approx -0.95\,\text{V/V}$.
+
+Interponendo un Common Drain ($g_m = 4\,\text{mA/V}$, $R_S = 2\,\text{k}\Omega$, $r_o = 40\,\text{k}\Omega$, $g_{mb} = 0$, $R_{in,\text{CD}} = 200\,\text{k}\Omega$):
+* Al suo ingresso il Common Drain presenta $R_{in,\text{CD}} \gg R_{out,\text{CS}}$, non carica lo stadio precedente e gli permette di conservare quasi tutto il guadagno $-20\,\text{V/V}$.
+* All'uscita presenta $R_{out,\text{CD}} = 250\,\Omega \parallel 2000\,\Omega \parallel 40\,\text{k}\Omega \approx 221\,\Omega$: il carico equivalente sul Source è $R_L' = 2000 \parallel 40\,000 \parallel 500 \approx 396\,\Omega$, quindi il buffer trasferisce il segnale con $A_{v,\text{CD}} = \frac{4 \cdot 0.396}{1 + 4 \cdot 0.396} \approx 0.613\,\text{V/V}$, portando il guadagno totale a circa $-12.3\,\text{V/V}$ (oltre $12$ volte maggiore rispetto al collegamento diretto).
+
+<Callout type="tip" title="Adattamento d'Impedenza con un Solo MOSFET">
+
+Il Common Drain realizza in un solo transistore un adattatore unidirezionale ideale per segnali di tensione: ingresso isolato sul Gate ad altissima impedenza verso la sorgente e uscita sul Source a bassissima impedenza ($\approx 1/g_m$) verso il carico.
 
 </Callout>
+
+Seleziona **Common Drain** nel simulatore interattivo qui sotto e varia $g_m$ e $R_L$: osserva come $A_v$ resti positivo e inferiore a $1$, mentre $R_{out}$ scala inversamente a $g_m$.
+
+<SingleStageExplorer client:load />
+
+<StepCheck client:load lang="it" mode="choice" prompt="Perché nello stadio Common Drain la resistenza d'uscita $R_{out}$ è molto bassa ($\approx 1/g_m$), a differenza del Common Source ($R_D \parallel r_o$)?" options={["Perché il condensatore $C_D$ cortocircuita $R_S$", "Perché applicando $v_x$ al Source con Gate fermo si induce $v_{gs} = -v_x$, accendendo il generatore $g_m v_{gs}$ che assorbe corrente proporzionale a $g_m v_x$", "Perché il Drain non è collegato a nessuna resistenza", "Perché $r_o$ nel Common Drain è sempre nulla"]} correctIndex={1} explanation="Muovendo il Source di $v_x$ a Gate spento, varia direttamente $v_{gs} = -v_x$ (e $v_{bs} = -v_x$): il transistore reagisce assorbendo una forte corrente $(g_m + g_{mb})v_x$, che equivale a una bassa resistenza $1/(g_m + g_{mb})$." />
 
 <Divider label="3 · Sintesi" />
 
@@ -170,81 +189,72 @@ Il Source Follower offre una soluzione estremamente compatta quando uno stadio a
 
 ### Procedura di Analisi
 
-1. **Modello a centro banda:** mettere a massa AC il Drain ($V_{DD}$) e cortocircuitare i condensatori di accoppiamento; includere $g_{mb} v_{bs}$ se il Body è a massa separato dal Source.
-2. **Partitore d'ingresso:** calcolare $R_{in} = R_1 \parallel R_2$ e l'attenuazione $\frac{R_{in}}{R_{sig} + R_{in}}$.
-3. **Carico totale al Source:** calcolare $R_L' = R_S \parallel r_o \parallel R_L$ e valutare $A_v = \frac{g_m R_L'}{1 + (g_m + g_{mb}) R_L'}$.
-4. **Resistenza d'uscita:** calcolare $R_{out} = \frac{1}{g_m + g_{mb}} \parallel R_S \parallel r_o$ (escludendo $R_L$).
-
-### Dimostrazioni Chiave
-
-* **Guadagno $A_v$:** KCL al nodo di Source esprimendo $v_{gs} = v_i - v_{out}$ e $v_{bs} = -v_{out}$, risolvendo per $v_{out}/v_i$.
-* **Resistenza d'uscita $R_{out}$:** spegnere $v_i = 0$ e applicare $v_x$ al Source in modo che $v_{gs} = v_{bs} = -v_x$, ricavando la somma delle conduttanze parallele.
+1. **Modello a centro banda:** mettere a massa AC il Drain ($V_{DD}$) e cortocircuitare i condensatori di accoppiamento $C_G, C_D$; includere $g_{mb} v_{bs}$ se il Body è fissato a massa separato dal Source.
+2. **Partitore d'ingresso:** calcolare $R_{in} = R_1 \parallel R_2$ e il fattore di attenuazione $\frac{R_{in}}{R_{sig} + R_{in}}$.
+3. **Carico totale al Source e guadagno:** calcolare $R_L' = R_S \parallel r_o \parallel R_L$ e valutare $A_v = \frac{g_m R_L'}{1 + (g_m + g_{mb}) R_L'}$, moltiplicando poi per il partitore d'ingresso per ottenere $A_{vs}$.
+4. **Resistenza d'uscita:** escludendo $R_L$, calcolare $R_{out} = \frac{1}{g_m + g_{mb}} \parallel R_S \parallel r_o$.
 
 <Callout type="warning" title="Errori Comuni">
 
-* **Fase del Source Follower:** nel Common Drain l'uscita è prelevata sul Source e segue in fase il Gate ($A_v \gt 0$, sempre inferiore a $1$).
-* **Effetto Body nei CMOS:** quando il Source oscilla mentre il Body è fissato a massa, $g_{mb}$ compare al denominatore insieme a $g_m$ abbassando il guadagno massimo da $1$ a $\frac{g_m}{g_m + g_{mb}}$.
+* **Fase del Source Follower:** nel Common Drain l'uscita è prelevata sul Source e segue in fase il Gate ($A_v \gt 0$, mai negativo e sempre inferiore a $1$).
+* **Dimenticare l'effetto Body nei CMOS integrati:** poiché il Source oscilla mentre il substrato resta a massa, $g_{mb}$ compare al denominatore di $A_v$ limitando il guadagno a vuoto a $\frac{g_m}{g_m + g_{mb}}$ anziché a $1$.
+* **Includere $R_L$ dentro $R_{out}$:** la resistenza d'uscita dello stadio si calcola guardando nel Source prima del carico esterno $R_L$.
 
 </Callout>
 
 <Divider label="4 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-14-1" title="Esercizio 14.1 — Buffer Common Drain" level="Base" hint="Calcola $R_{Leq} = R_S \parallel R_L \parallel r_o$, poi $A_v = g_m R_{Leq} / (1 + g_m R_{Leq})$ e $R_{out} = (1/g_m) \parallel R_S \parallel r_o$.">
+<Exercise client:load lang="it" id="ex-14-1" title="Esercizio 14.1 — Ruolo dell'Effetto Body nel Source Follower" level="Base" hint="Confronta la tensione del Source e del Body in un Common Source base rispetto a un Common Drain integrato con substrato a massa.">
 
-Un Source Follower opera con $g_m = 5\,\text{mA/V}$, $R_S = 2\,\text{k}\Omega$, $R_L = 2\,\text{k}\Omega$ e $r_o = 40\,\text{k}\Omega$ ($g_{mb} = 0$).
+In un circuito integrato CMOS il substrato (Body) di tutti i transistori NMOS è collegato al potenziale fisso di massa ($V_B = 0$).
 
-<StepCheck client:load lang="it" prompt="Calcola il guadagno di tensione $A_v$:" expected={0.83} tolerance={0.015} unit="$\text{V/V}$" explanation="$R_{Leq} = 2 \parallel 2 \parallel 40 \approx 0.98\,\text{k}\Omega$; $A_v = (5 \cdot 0.98)/(1 + 5 \cdot 0.98) \approx 0.83\,\text{V/V}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola la resistenza d'uscita $R_{out}$ dello stadio (in $\Omega$):" expected={181.0} tolerance={2.0} unit="$\Omega$" explanation="$1/g_m = 200\,\Omega$; $R_{out} = 200 \parallel 2000 \parallel 40000 \approx 181\,\Omega$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Perché l'effetto Body ($g_{mb}$) altera il guadagno di piccolo segnale del Common Drain, mentre non interviene nello stadio Common Source con condensatore di bypass $C_S$?" options={["Perché nel Common Drain il Source oscilla con $v_{out}$ generando $v_{bs} = -v_{out} \\neq 0$, mentre nel CS bypassato il Source è fermo a massa AC ($v_{bs} = 0$)", "Perché nel Common Source il Drain è collegato al Body", "Perché l'effetto Body esiste solo quando il Drain è a massa", "Perché nel Common Drain $v_{gs}$ è sempre nullo"]} correctIndex={0} explanation="Nel CS base $C_S$ mantiene $v_s = 0$ come $v_b = 0$, quindi $v_{bs} = 0$ e $g_{mb} v_{bs} = 0$. Nel CD invece $v_s = v_{out}$ oscilla rispetto al Body fisso, attivando $g_{mb} v_{bs} = -g_{mb} v_{out}$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Carico equivalente al Source:**
-
-$$
-R_S \parallel R_L = 2\,\text{k}\Omega \parallel 2\,\text{k}\Omega = 1\,\text{k}\Omega \implies R_{Leq} = 1\,\text{k}\Omega \parallel 40\,\text{k}\Omega \approx 0.98\,\text{k}\Omega
-$$
-
-2. **Guadagno di tensione:** con $g_m R_{Leq} = 5 \cdot 0.98 = 4.9$:
-
-$$
-A_v = \frac{4.9}{1 + 4.9} \approx 0.83\,\text{V/V}
-$$
-
-3. **Resistenza d'uscita:** con $1/g_m = 200\,\Omega$ in parallelo a $R_S \parallel r_o \approx 1905\,\Omega$:
-
-$$
-R_{out} = 200\,\Omega \parallel 1905\,\Omega \approx 181\,\Omega
-$$
+1. **Condizione per l'effetto Body dinamico:** il generatore di piccolo segnale $g_{mb} v_{bs}$ si attiva ogni volta che esiste una variazione di tensione alternata tra Body e Source ($v_{bs} = v_b - v_s \neq 0$).
+2. **Confronto CS base vs. CD:** nello stadio Common Source con condensatore di bypass $C_S$, il Source è ancorato a massa AC ($v_s = 0$) esattamente come il substrato ($v_b = 0$), quindi $v_{bs} = 0$ e il generatore $g_{mb} v_{bs}$ resta spento. Nel Common Drain integrato, invece, l'uscita viene prelevata sul Source ($v_s = v_{out}$): quando l'uscita sale, il Source si alza rispetto al Body creando $v_{bs} = -v_{out} < 0$, che innalza dinamicamente la soglia $V_{th}$ e sottrae corrente tramite $g_{mb} v_{out}$, riducendo il guadagno asintotico a $\frac{g_m}{g_m + g_{mb}}$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-14-2" title="Esercizio 14.2 — Source Follower con Effetto Body" level="Livello Esame" hint="Includi $g_{mb}$ sia al denominatore di $A_v$ sia nella conduttanza di uscita $g_m + g_{mb}$." >
+<Exercise client:load lang="it" id="ex-14-2" title="Esercizio 14.2 — Funzione di Buffer e Resistenza d'Uscita" level="Intermedio" hint="Collega le proprietà delle due porte del Source Follower ($R_{in}$ al Gate, $R_{out}$ al Source) a ciò che accade quando è interposto tra un CS e un carico piccolo.">
+
+Uno stadio Common Source con $R_{out,\text{CS}} = 10\,\text{k}\Omega$ deve pilotare un carico resistivo $R_L = 500\,\Omega$. Si decide di interporre un Source Follower tra l'uscita del Common Source e il carico $R_L$.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Quale coppia di proprietà del Common Drain permette di recuperare quasi tutto il segnale sul carico $R_L = 500\,\Omega$?" options={["Alta $R_{in}$ (non carica il CS a monte) e bassa $R_{out} \\approx 1/g_m$ (non crea partitore sfavorevole con $R_L$)", "Guadagno di tensione elevato ($|A_v| \\gg 10$) e inversione di fase", "Bassa $R_{in}$ e altissima $R_{out}$", "Capacità di bloccare la tensione di uscita sotto $V_{DD}$"]} correctIndex={0} explanation="Grazie a $R_{in} = R_1 \parallel R_2 \gg R_{out,\text{CS}}$, il CD lascia intatto il guadagno del CS; grazie a $R_{out} \approx 1/g_m$, trasferisce efficacemente la tensione al carico piccolo $R_L$." />
+
+<details className="dc-solution">
+<summary>Mostra Risposta Orale Modello</summary>
+
+1. **Il problema del collegamento diretto:** collegando $R_L = 500\,\Omega$ direttamente al Drain del CS ($R_{out,\text{CS}} = 10\,\text{k}\Omega$), il carico si pone in parallelo a $R_D \parallel r_o$ facendo crollare la resistenza di carico vista dal CS a meno di $500\,\Omega$ e distruggendo il guadagno $|A_v| = g_m R_L'$.
+2. **Come agisce il buffer CD:** il Common Drain presenta al Gate un'alta impedenza d'ingresso ($R_{in} = R_1 \parallel R_2 \gg 10\,\text{k}\Omega$), quindi non carica il Drain del CS che conserva il proprio guadagno a vuoto. Allo stesso tempo, dal Source il CD presenta una bassa resistenza d'uscita $R_{out} = \frac{1}{g_m + g_{mb}} \parallel R_S \parallel r_o \approx \frac{1}{g_m}$ (tipicamente $100\text{--}300\,\Omega$), formando con $R_L = 500\,\Omega$ un partitore favorevole che consegna gran parte del segnale al carico senza inversione di fase.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-14-3" title="Esercizio 14.3 — Verifica Rapida su Guadagno e Resistenza d'Uscita" level="Base" hint="Calcola prima $R_L' = R_S \parallel R_L$ (con $r_o \to \infty$), poi applica $A_v = \frac{g_m R_L'}{1 + (g_m + g_{mb})R_L'}$ e $R_{out} = \frac{1}{g_m + g_{mb}} \parallel R_S$.">
 
 Un Source Follower integrato (Body a massa) ha $g_m = 5\,\text{mA/V}$, $g_{mb} = 1\,\text{mA/V}$, $R_S = 2\,\text{k}\Omega$, $R_L = 2\,\text{k}\Omega$ e $r_o \to \infty$.
 
-<StepCheck client:load lang="it" prompt="Calcola il guadagno di tensione $A_v$ includendo l'effetto Body:" expected={0.714} tolerance={0.015} unit="$\text{V/V}$" explanation="$R_L' = 2 \parallel 2 = 1\,\text{k}\Omega$; $A_v = (5 \cdot 1) / (1 + (5 + 1) \cdot 1) = 5 / 7 \approx 0.71\,\text{V/V}$." />
+<StepCheck client:load lang="it" prompt="Calcola il guadagno di tensione $A_v$ dello stadio includendo l'effetto Body:" expected={0.714} tolerance={0.015} unit="$\text{V/V}$" explanation="$R_L' = 2 \parallel 2 = 1\,\text{k}\Omega$; $A_v = (5 \cdot 1) / [1 + (5 + 1) \cdot 1] = 5 / 7 \approx 0.714\,\text{V/V}$." />
 
-<StepCheck client:load lang="it" prompt="Calcola la resistenza d'uscita $R_{out}$ dello stadio (in $\Omega$):" expected={153.8} tolerance={2.0} unit="$\Omega$" explanation="$1/(g_m + g_{mb}) \approx 167\,\Omega$; $R_{out} = 167 \parallel 2000 \approx 154\,\Omega$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Se nello stesso stadio l'effetto Body fosse nullo ($g_{mb} = 0$, Body connesso al Source), come cambierebbero $A_v$ e $R_{out}$?" options={["$A_v$ aumenterebbe (da $0.714$ a $0.833$) e $R_{out}$ aumenterebbe leggermente (da $\\approx 154\\,\\Omega$ a $\\approx 182\\,\\Omega$)", "$A_v$ diminuirebbe e $R_{out}$ si dimezzerebbe", "Entrambi resterebbero identici", "$A_v$ diventerebbe negativo"]} correctIndex={0} explanation="Con $g_{mb} = 0$, sparisce il termine frenante al denominatore di $A_v$ ($5/6 \approx 0.833$), mentre viene meno la conduttanza parallela $g_{mb}$ in uscita facendo salire $R_{out} = (1/g_m) \parallel R_S = 200 \parallel 2000 \approx 182\,\Omega$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Carico equivalente al Source:** $R_L' = R_S \parallel R_L = 2\,\text{k}\Omega \parallel 2\,\text{k}\Omega = 1\,\text{k}\Omega$.
-2. **Guadagno con effetto Body:**
-
-$$
-A_v = \frac{g_m R_L'}{1 + (g_m + g_{mb}) R_L'} = \frac{5 \cdot 1}{1 + (5 + 1) \cdot 1} = \frac{5}{7} \approx 0.714\,\text{V/V}
-$$
-
-3. **Resistenza d'uscita:** con $g_m + g_{mb} = 6\,\text{mA/V}$, la resistenza intrinseca vale $\frac{1}{6\,\text{mA/V}} \approx 167\,\Omega$:
+1. **Con effetto Body ($g_{mb} = 1\,\text{mA/V}$):** il carico equivalente al Source è $R_L' = R_S \parallel R_L = 2\,\text{k}\Omega \parallel 2\,\text{k}\Omega = 1\,\text{k}\Omega$. Applicando la formula generale:
 
 $$
-R_{out} = 167\,\Omega \parallel 2000\,\Omega \approx 153.8\,\Omega
+A_v = \frac{g_m R_L'}{1 + (g_m + g_{mb})R_L'} = \frac{5 \cdot 1}{1 + (5 + 1) \cdot 1} = \frac{5}{7} \approx 0.714\,\text{V/V}
 $$
+
+La resistenza d'uscita vale $R_{out} = \frac{1}{g_m + g_{mb}} \parallel R_S = 166.7\,\Omega \parallel 2000\,\Omega \approx 153.8\,\Omega$.
+2. **Senza effetto Body ($g_{mb} = 0$):** il guadagno sale a $5/6 \approx 0.833\,\text{V/V}$ perché scompare la modulazione di soglia dovuta a $v_{bs}$, mentre $R_{out}$ sale leggermente a $200\,\Omega \parallel 2000\,\Omega \approx 181.8\,\Omega$ perché viene meno la conduttanza aggiuntiva $g_{mb}$ verso massa AC.
 
 </details>
 

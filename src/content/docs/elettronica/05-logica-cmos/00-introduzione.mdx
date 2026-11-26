@@ -10,21 +10,29 @@ import Divider from "@components/Divider.astro";
 
 ## Introduzione
 
-Come fa un blocco di silicio contenente miliardi di transistori a calcolare somme binarie miliardi di volte al secondo senza fondersi per il calore? La risposta è la **logica CMOS complementare**: associare reti NMOS verso massa (PDN) e reti PMOS verso $V_{DD}$ (PUN) in modo che a regime statico non scorra mai corrente continua dall'alimentazione a massa.
+Come fa un circuito integrato con miliardi di transistori a eseguire operazioni binarie miliardi di volte al secondo senza fondersi per il calore? La risposta sta nella **logica CMOS complementare**: ogni porta logica abbina una rete di transistori NMOS verso massa (**PDN**, *Pull-Down Network*) a una rete duale di transistori PMOS verso l'alimentazione $V_{DD}$ (**PUN**, *Pull-Up Network*) in modo che, a regime statico, una delle due reti sia sempre aperta e non esista mai un percorso continuo tra $V_{DD}$ e massa.
 
-La Parte V parte dalle metriche oggettive con cui si giudica una famiglia digitale—robustezza ai disturbi (*Noise Margins*), velocità ($t_p$) e consumo ($P = C V_{DD}^2 f$)—studia l'atomo fondamentale di tutto il mondo VLSI (l'**invertitore CMOS**), generalizza la sintesi a porte NAND/NOR/AOI arbitrarie e risolve il problema fisico di pilotare grandi capacità esterne tramite catene di **buffer scalati**.
+Questa architettura divide lo studio della logica combinatoria in quattro passi progressivi:
 
-### Esempi Pratici nel Mondo Reale
+1. **Metriche di giudizio:** definire come si misurano l'immunità ai disturbi (*margini di rumore* $NM_H, NM_L$), la velocità di commutazione ($t_p$) e il bilancio energetico ($P_{dyn}$, $\text{PDP}$, $\text{EDP}$).
+2. **L'invertitore CMOS:** analizzare l'atomo fondamentale della famiglia CMOS lungo la sua caratteristica statica e ricavare la condizione di simmetria che centra la soglia logica $V_M$ ed equilibra i ritardi.
+3. **Porte logiche combinatorie:** generalizzare la coppia complementare a porte NAND, NOR e celle complesse AOI/OAI tramite dualità di De Morgan, completando il quadro con i *pass-transistor* e i *Transmission Gate*.
+4. **Pilotaggio di grandi carichi:** risolvere il rallentamento dovuto a piste lunghe o pin esterni tramite catene geometriche di **buffer scalati** con fattore di scala $f$.
 
-- **Gestione Termica delle CPU Moderne ($P \propto V_{DD}^2 f$):** Quando la frequenza di clock $f$ cresce, l'energia dinamica di carica/scarica dei condensatori interni domina la potenza del chip: abbassare la tensione di alimentazione $V_{DD}$ riduce drasticamente il calore perché compare al quadrato.
-- **Dimensionamento Simmetrico ($W_p \approx 2.5\div 3\,W_n$):** Poiché le lacune nel PMOS hanno mobilità $\mu_p$ inferiore agli elettroni nell'NMOS, gli standard-cell layout dei microprocessori allargano il PMOS per centrare la soglia logica $V_M \approx V_{DD}/2$ ed equilibrare fronti di salita e discesa.
-- **Pilotaggio dei Pin di I/O e Alberi di Clock:** Una porta logica minima interna ($C_{in} \approx \text{fF}$) impiegherebbe decine di nanosecondi a caricare un pin di scheda ($C_L \approx \text{pF}$): una catena geometrica di invertitori crescenti di fattore $u \approx e$ (o $3\div 4$ su silicio reale) minimizza il ritardo totale.
+### Sistema Ricorrente: Dal Nodo Logico Interno al Pin Esterno
+
+Per collegare tutti i capitoli della Parte V seguiamo idealmente il percorso di un segnale digitale all'interno di un microprocessore alimentato a $V_{DD} = 1.8\,\text{V}$:
+
+* **Affidabilità e consumo del nodo:** lungo le piste interne i segnali subiscono disturbi e devono commutare rapidamente caricando e scaricando capacità dell'ordine dei femtofarad ($P_{dyn} \propto C_L V_{DD}^2 f_{clk}$).
+* **Simmetria dell'invertitore:** poiché nel silicio le lacune del PMOS sono circa $2.5\text{--}3$ volte più lente degli elettroni dell'NMOS, lo stadio base compensa allargando il PMOS ($W_p \approx 2.5\div 3\,W_n$) per centrare $V_M = V_{DD}/2$ e pareggiare salita e discesa.
+* **Composizione logica:** combinando più ingressi in serie e in parallelo nelle reti PDN e PUN, le porte NAND, NOR e AOI/OAI realizzano funzioni booleane complesse mantenendo gli stessi ritardi dell'invertitore di riferimento.
+* **Uscita verso l'esterno:** quando lo stesso segnale deve uscire dal chip verso un pin di scheda ($C_L$ migliaia di volte più grande di una porta minima), una catena di buffer crescenti di fattore $f$ ($f_{\text{opt}} = e$ nel caso ideale, $\approx 3.5\text{--}4$ con i parassiti reali) abbatte il ritardo totale da lineare a logaritmico.
 
 <Divider />
 
 ## Mappa dei Capitoli
 
-1. **[18. Metriche dei Circuiti Digitali](/dynamic-courses/elettronica/05-logica-cmos/18-metriche-digitali/)** — Livelli $V_{OH}, V_{OL}, V_{IH}, V_{IL}$, margini di rumore, ritardi di propagazione, potenza statica/dinamica e PDP/EDP.
-2. **[19. Invertitore CMOS Statico](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/)** — Analisi delle 5 regioni della VTC, calcolo della soglia logica $V_M$, simmetria geometrica e corrente di cortocircuito.
-3. **[20. Porte Logiche Combinatorie](/dynamic-courses/elettronica/05-logica-cmos/20-porte-logiche-cmos/)** — Sintesi duale NMOS/PMOS, criterio dell'invertitore equivalente, porte complesse AOI/OAI e Transmission Gate.
-4. **[21. Buffer Scalati in Cascata](/dynamic-courses/elettronica/05-logica-cmos/21-buffer-scalati/)** — Derivazione del numero ottimo di stadi $N$ e del fattore di scalamento $u$ per carichi capacitivi elevati.
+1. **[18. Metriche dei Circuiti Digitali](/dynamic-courses/elettronica/05-logica-cmos/18-metriche-digitali/)** — Curva VTC, rigenerazione del segnale, margini di rumore $NM_H$ e $NM_L$, modello RC dei ritardi, potenza statica/dinamica e figure di merito PDP ed EDP.
+2. **[19. Invertitore CMOS Statico](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/)** — Analisi delle cinque regioni della VTC, derivazione della soglia logica $V_M$, dimensionamento simmetrico e picco di cortocircuito.
+3. **[20. Porte Logiche Combinatorie](/dynamic-courses/elettronica/05-logica-cmos/20-porte-logiche-cmos/)** — Dualità PDN/PUN, dimensionamento di caso peggiore per NAND e NOR, sforzo logico, celle AOI/OAI, pass-transistor e Transmission Gate.
+4. **[21. Buffer Scalati in Cascata](/dynamic-courses/elettronica/05-logica-cmos/21-buffer-scalati/)** — Scalamento geometrico di fattore $f$, derivazione di $f_{\text{opt}} = e$, effetto delle capacità parassite di drain, regola pratica FO4 e vincolo di parità.

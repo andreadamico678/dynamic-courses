@@ -12,35 +12,42 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Introduzione
 
-Le porte logiche combinatorie del [Capitolo 20](/dynamic-courses/elettronica/05-logica-cmos/20-porte-logiche-cmos/) reagiscono agli ingressi attuali senza trattenere memoria del passato: appena gli ingressi cambiano, cambia anche l'uscita. Per costruire registri e contatori serve invece un circuito capace di **memorizzare un bit** e aggiornarlo soltanto quando lo comanda il segnale di **clock ($CLK$)**.
+Le porte logiche combinatorie del [Capitolo 20](/dynamic-courses/elettronica/05-logica-cmos/20-porte-logiche-cmos/) calcolano l'uscita esclusivamente in funzione degli ingressi presenti in quell'istante: appena gli ingressi cambiano, l'uscita si aggiorna senza conservare memoria del passato. Per realizzare registri, memorie di stato e contatori occorre invece un circuito capace di **trattenere un bit** nel tempo e di aggiornarlo soltanto in istanti controllati dal segnale di **clock ($CLK$)**.
 
-Tutta la logica sequenziale statica nasce chiudendo due invertitori CMOS in un **anello a retroazione positiva** dotato di due stati stabili (`0` e `1`), da cui derivano latch, flip-flop, registri e contatori.
+Tutta la logica sequenziale statica poggia su un'idea semplice: chiudere due stadi invertenti in un **anello a retroazione positiva** che possiede due stati di equilibrio stabili (`0` e `1`). Partendo da questo anello elementare si aggiungono prima ingressi di scrittura asincroni (**Latch SR**), poi il controllo sincrono e l'eliminazione degli stati proibiti (**Flip-Flop JK, T e D**), fino alle celle CMOS compatte a **Transmission Gate** (**D-Latch** e **Flip-Flop D Master-Slave**), mattoni base per **registri a scorrimento** e **contatori**.
 
 <Divider label="1 · Anello Bistabile e Latch SR" />
 
-### Esempio — Sequenza Operativa di un Latch SR a Porte NOR
+Una cella di memoria elementare nasce dalla **retroazione positiva**: due elementi che si invertono a vicenda si bloccano in uno di due stati opposti e stabili finché il circuito rimane alimentato. Sostituendo i due invertitori con porte logiche dotate di un ingresso libero si ottiene la possibilità di forzare dall'esterno il bit memorizzato.
 
-Consideriamo un **Latch SR** realizzato con due porte NOR incrociate ([la figura](#fig-sr-latch)b) e seguiamo come cambia l'uscita $Q$ partendo da $Q = 0, \overline{Q} = 1$:
+### Esempio — L'Interruttore a Due Stati Stabili
+
+Immagina un interruttore basculante collegato a una lampadina con due pulsanti separati, **Set** e **Reset**:
+
+- Premi per un istante **Set** e poi lo rilasci: la lampadina si accende e **resta accesa** da sola anche dopo aver tolto il dito, perché un meccanismo interno blocca la leva in posizione `1`.
+- Premi per un istante **Reset** e poi lo rilasci: la leva scatta all'opposto e la lampadina **resta spenta** (`0`) a tempo indeterminato.
+- Se non premi nessuno dei due pulsanti, il circuito ricorda l'ultimo comando ricevuto. Se invece provi a premere **Set e Reset contemporaneamente**, dai due ordini contraddittori allo stesso meccanismo: le due metà si forzano sullo stesso valore perdendo la complementarità, e al rilascio simultaneo il sistema può assestarsi in modo imprevedibile.
+
+### Teoria — Bistabilità, Metastabilità e Latch SR
 
 <figure id="fig-sr-latch" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-sr-latch.svg" alt="Elementi bistabili fondamentali: (a) anello bistabile a due invertitori in cascata; (b) Latch SR a porte NOR; (c) Latch overlineSoverlineR a porte NAND." />
   <figcaption>Elementi bistabili fondamentali: (a) anello bistabile a due invertitori in cascata; (b) Latch SR a porte NOR; (c) Latch $\overline{S}\overline{R}$ a porte NAND.</figcaption>
 </figure>
 
-1. **Set ($S = 1, R = 0$):** l'ingresso $S = 1$ forza a `0` l'uscita della NOR inferiore ($\overline{Q} = 0$); questo `0`, sommato a $R = 0$ sulla NOR superiore, porta $Q = 1$.
-2. **Mantenimento / Hold ($S = 0, R = 0$):** riportiamo $S = 0$. Le due uscite continuano a bloccarsi a vicenda ($Q = 1, \overline{Q} = 0$): il bit `1` resta memorizzato.
-3. **Reset ($S = 0, R = 1$):** l'ingresso $R = 1$ forza $Q = 0$ e di conseguenza $\overline{Q} = 1$.
-4. **Stato proibito ($S = 1, R = 1$):** entrambe le NOR vengono forzate a `0` ($Q = \overline{Q} = 0$), rompendo la complementarità; se poi $S$ e $R$ tornano a `0` insieme, il latch entra in corsa e lo stato finale diventa imprevedibile.
+#### Anello Bistabile e Metastabilità
 
-<StepCheck client:load lang="it" mode="choice" prompt="In un Latch SR a porte NOR in stato di memoria ($S = 0, R = 0$) con $Q = 1$, cosa succede applicando $S = 1, R = 1$?" options={["Entrambe le uscite $Q$ e $\\overline{Q}$ vanno a `0` (stato proibito)", "Il latch mantiene $Q = 1$", "Il latch commuta a $Q = 0, \\overline{Q} = 1$"]} correctIndex={0} explanation="Con almeno un ingresso a `1`, qualsiasi porta NOR produce uscita `0`, quindi $Q = \\overline{Q} = 0$, violando la complementarità." />
+Colleghiamo in anello chiuso due invertitori CMOS identici ([la figura](#fig-sr-latch)a), imponendo che l'uscita del primo alimenti l'ingresso del secondo ($V_{out1} = V_{in2}$) e l'uscita del secondo ritorni all'ingresso del primo ($V_{out2} = V_{in1}$). Sovrapponendo le due transcaratteristiche statiche (VTC, studiate nel [Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/)) compaiono **tre punti di equilibrio**:
 
-### Teoria — Bistabilità, Metastabilità e Latch SR
+- **Due stati stabili agli estremi (`0`/`1` e `1`/`0`):** quando $Q = 0\,\text{V}$ e $\overline{Q} = V_{DD}$ (o viceversa), entrambi gli invertitori lavorano nelle regioni piatte della VTC, dove il guadagno di tensione in modulo è molto minore di $1$. Se un piccolo disturbo altera leggermente una tensione, l'anello attenua la perturbazione e riporta subito il nodo al valore originario.
+- **Un punto instabile (metastabile) al centro ($V_M$):** quando entrambi i nodi valgono esattamente la soglia logica $V_{in1} = V_{in2} = V_M$, i due invertitori sono entrambi in saturazione con guadagno elevato ($|A_v| \gg 1$), per cui il guadagno d'anello supera $1$. Come una pallina in bilico sulla vetta di una collina, qualsiasi minima fluttuazione termica viene amplificata in modo rigenerativo dalla retroazione positiva, facendo "cadere" rapidamente il circuito verso uno dei due stati stabili.
 
-L'anello di due invertitori in cascata ([la figura](#fig-sr-latch)a) possiede tre punti di equilibrio:
-- **Due stati stabili** agli estremi (`0` e `1`): se un disturbo sposta leggermente la tensione, la retroazione la riporta subito allo stato originale.
-- **Un punto instabile (metastabile)** al centro ($V_M$): come una pallina in bilico sulla cima di una collina, basta una minima perturbazione perché il circuito "cada" rapidamente verso `0` o `1`.
+#### Latch SR a Porte NOR e NAND
 
-Per poter **scrivere** lo stato dall'esterno si sostituiscono i due invertitori con due porte **NOR** (**Latch SR** attivo alto, [la figura](#fig-sr-latch)b) oppure due porte **NAND** (**Latch $\overline{S}\overline{R}$** attivo basso, [la figura](#fig-sr-latch)c):
+L'anello a due invertitori trattiene un bit, ma non offre alcun terminale per cambiarlo dall'esterno. Per rendere il circuito scrivibile si sostituiscono i due invertitori con due porte **NOR** (**Latch SR** attivo alto, [la figura](#fig-sr-latch)b) oppure con due porte **NAND** (**Latch $\overline{S}\overline{R}$** attivo basso, [la figura](#fig-sr-latch)c):
+
+- **Latch SR a porte NOR (attivo alto):** una porta NOR restituisce `0` non appena almeno un ingresso è `1`, mentre si comporta come un invertitore rispetto all'altro ingresso quando il primo è `0`. Con $S = 0, R = 0$ le due porte equivalgono a due invertitori incrociati e **mantengono** il bit memorizzato (**Hold**). Portando $S = 1, R = 0$, la NOR inferiore è forzata a $\overline{Q} = 0$, che applicato insieme a $R = 0$ alla NOR superiore produce $Q = 1$ (**Set**); riportando poi $S$ a `0`, il nuovo stato `1`/`0` si automantiene. Simmetricamente, $S = 0, R = 1$ forza $Q = 0$ e $\overline{Q} = 1$ (**Reset**). Infine, la combinazione $S = 1, R = 1$ forza entrambe le uscite a `0` ($Q = \overline{Q} = 0$): è lo **stato proibito**, perché distrugge la complementarità tra $Q$ e $\overline{Q}$; se poi $S$ e $R$ tornano a `0` nello stesso istante, i due rami entrano in competizione e lo stato finale diventa indeterminato (o può innescare metastabilità).
+- **Latch $\overline{S}\overline{R}$ a porte NAND (attivo basso):** funziona in modo esattamente duale sfruttando il fatto che una porta NAND va a `1` non appena almeno un ingresso è `0`. Qui il riposo (**Hold**) corrisponde a $\overline{S} = 1, \overline{R} = 1$; l'ingresso attivo basso $\overline{S} = 0, \overline{R} = 1$ esegue il **Set** ($Q = 1$); $\overline{S} = 1, \overline{R} = 0$ esegue il **Reset** ($Q = 0$); lo **stato proibito** è $\overline{S} = 0, \overline{R} = 0$, che forza entrambe le uscite a `1`.
 
 | $S$ | $R$ | Stato (NOR) | Azione |
 | :---: | :---: | :---: | :--- |
@@ -49,154 +56,231 @@ Per poter **scrivere** lo stato dall'esterno si sostituiscono i due invertitori 
 | $1$ | $0$ | $1$ | **Set** (forza a `1`) |
 | $1$ | $1$ | $0\,/\,0$ | **Proibito** ($Q = \overline{Q} = 0$) |
 
-<Divider label="2 · Flip-Flop Sincronizzati, JK e T" />
+<StepCheck client:load lang="it" mode="choice" prompt="In un anello bistabile formato da due invertitori CMOS, perché il punto di equilibrio centrale $V_{in1} = V_{in2} = V_M$ è detto metastabile?" options={["Perché in $V_M$ entrambi gli invertitori sono in saturazione con guadagno d'anello maggiore di $1$, quindi ogni minimo disturbo fa divergere l'uscita verso `0` o `1`", "Perché a $V_M$ i due transistori sono entrambi spenti", "Perché la retroazione negativa blocca il circuito a metà tensione"]} correctIndex={0} explanation="Nel punto $V_M$ entrambi gli invertitori lavorano nella regione di massimo guadagno: la retroazione positiva amplifica qualunque rumore e spinge il circuito in uno dei due stati stabili." />
 
-### Esempio — Il Problema del Race-Around nel Flip-Flop JK a Livello
+<Divider label="2 · Latch Sincronizzati e Flip-Flop JK, T e D" />
 
-Consideriamo un **Flip-Flop JK** sincronizzato sul livello alto del clock ($CLK = 1$, [la figura](#fig-gated-sr-jk-ff)b) a cui applichiamo $J = 1$ e $K = 1$ (modalità *Toggle*, inversione).
+Il Latch SR cambia stato appena cambiano $S$ o $R$, rendendo impossibile coordinare migliaia di celle in un sistema digitale. Per ottenere un comportamento sincrono occorre prima filtrare gli ingressi attraverso un segnale di **clock ($CLK$)**, e poi eliminare lo stato proibito mediante una retroazione dalle uscite oppure riducendo il comando a un unico ingresso di dato.
+
+### Esempio — Abilitazione a Finestra e Inversione Continua
+
+Immagina una porta automatica che si apre per l'intera durata di un verde semaforico ($CLK = 1$) lasciando passare un comando di "inversione di marcia": se il verde dura cinque secondi e il sistema impiega un decimo di secondo a girarsi, il comando di inversione continua a rientrare mentre il verde è ancora acceso e fa girare il sistema decine di volte di seguito senza controllo. Per invertire lo stato **una sola volta** a ogni ciclo, il circuito non deve restare aperto per tutta la durata del segnale alto, ma deve catturare il comando soltanto in un istante brevissimo, sul fronte di salita o di discesa.
+
+### Teoria — Dal Gated SR ai Flip-Flop JK, T e D
 
 <figure id="fig-gated-sr-jk-ff" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-gated-sr-jk-ff.svg" alt="Celle sequenziali sincronizzate: (a) Gated SR Latch con ingresso di abilitazione CLK; (b) Flip-Flop JK; (c) conversione in Flip-Flop T e D." />
   <figcaption>Celle sequenziali sincronizzate: (a) Gated SR Latch con ingresso di abilitazione $CLK$; (b) Flip-Flop JK; (c) conversione in Flip-Flop T e D.</figcaption>
 </figure>
 
-- Finché $CLK = 1$ resta attivo più a lungo del ritardo interno della porta, l'uscita invertita $Q$ torna indietro agli ingressi e fa commutare il circuito **più volte di seguito** dentro lo stesso impulso di clock ($0 \to 1 \to 0 \to 1 \dots$). Questo fenomeno incontrollato si chiama **race-around**.
-- Per evitarlo, il circuito deve essere sensibile solo a un **istante brevissimo** sul fronte del clock (*edge-triggered*), anziché a tutto il livello alto.
+#### Gated SR Latch
 
-<StepCheck client:load lang="it" mode="choice" prompt="Perché un Flip-Flop JK pilotato sul livello ($CLK = 1$) oscilla quando $J = K = 1$?" options={["Perché $CLK = 1$ dura più del ritardo interno e l'uscita invertita rientra in retroazione provocando commutazioni multiple (race-around)", "Perché $J = K = 1$ è lo stato proibito del latch", "Perché i PMOS non riescono a spegnersi"]} correctIndex={0} explanation="Con $J=K=1$ il circuito inverte l'uscita continuamente finché il clock rimane abilitato." />
+Aggiungendo due porte AND davanti a un Latch SR a porte NOR ([la figura](#fig-gated-sr-jk-ff)a), gli ingressi esterni $S$ e $R$ raggiungono il latch interno soltanto quando $CLK = 1$:
 
-### Teoria — Latch Sincronizzato, Flip-Flop JK, T e D
+- Quando $CLK = 0$, entrambe le AND forniscono `0` al latch interno, che resta bloccato nello stato di **Hold** indipendentemente da ciò che accade su $S$ e $R$.
+- Quando $CLK = 1$, i segnali $S$ e $R$ passano e comandano il latch come di consueto. Tuttavia, il limite dello stato proibito rimane: se $S = R = 1$ mentre $CLK = 1$, le uscite vanno entrambe a `0`.
 
-1. **Gated SR Latch ([la figura](#fig-gated-sr-jk-ff)a):** aggiunge due porte AND davanti al Latch SR in modo che gli ingressi agiscano solo quando $CLK = 1$.
-2. **Flip-Flop JK ([la figura](#fig-gated-sr-jk-ff)b):** elimina lo stato proibito portando $Q$ e $\overline{Q}$ in retroazione sulle porte d'ingresso. Quando $J = K = 1$, il circuito **inverte** lo stato precedente (*Toggle*: $Q^+ = \overline{Q}$).
-3. **Flip-Flop T e Flip-Flop D ([la figura](#fig-gated-sr-jk-ff)c):**
-   - Collegando insieme $J = K = T$ si ottiene il **Flip-Flop T**: se $T = 0$ mantiene il dato, se $T = 1$ inverte l'uscita a ogni fronte di clock (dimezzando la frequenza del segnale).
-   - Collegando $J = D$ e $K = \overline{D}$ si ottiene il **Flip-Flop D** (*Data*): a ogni fronte attivo l'uscita copia esattamente l'ingresso ($Q^+ = D$), senza alcuno stato proibito.
+#### Flip-Flop JK e Problema del Race-Around
 
-<Divider label="3 · Transmission Gate e D-Latch" />
+Per eliminare lo stato proibito si riportano le uscite $\overline{Q}$ e $Q$ in retroazione sugli ingressi delle due AND ([la figura](#fig-gated-sr-jk-ff)b), rinominando gli ingressi in **$J$** (*Set*) e **$K$** (*Reset*):
 
-### Esempio — Trasparenza del D-Latch CMOS
+- Poiché $Q$ e $\overline{Q}$ sono complementari, in qualunque istante **una sola** delle due AND d'ingresso è abilitata dalla retroazione: se $Q = 0$ ($\overline{Q} = 1$) può attivarsi soltanto il ramo di $J$ (per portare $Q \to 1$); se $Q = 1$ ($\overline{Q} = 0$) può attivarsi soltanto il ramo di $K$ (per riportare $Q \to 0$).
+- In questo modo, applicando $J = K = 1$, il circuito non entra mai in uno stato proibito ma **inverte** lo stato precedente (**Toggle**, $Q^+ = \overline{Q}$).
 
-Un **D-Latch CMOS** sostituisce le porte logiche d'ingresso con due **Transmission Gate (TG)** ([la figura](#fig-transmission-gate)), cioè interruttori bidirezionali formati da un NMOS e un PMOS in parallelo comandati in controfase ($C$ e $\overline{C}$).
+Se però il Flip-Flop JK è **abilitato sul livello** ($CLK = 1$), la modalità *Toggle* ($J = K = 1$) genera il fenomeno del **race-around**: non appena $Q$ commuta dopo il ritardo interno di propagazione $t_p$ della cella, i nuovi valori invertiti di $Q$ e $\overline{Q}$ tornano indietro sulle AND d'ingresso mentre $CLK$ è ancora a `1`. La cella commuta quindi una seconda volta, poi una terza e così via ($0 \to 1 \to 0 \to 1 \dots$) per tutta la durata dell'impulso di clock ($t_{\text{impulso}} > t_p$), rendendo imprevedibile lo stato finale alla chiusura di $CLK$. Per eliminare il *race-around* è indispensabile che l'elemento sia sensibile soltanto al **fronte** del clock (*edge-triggered*).
+
+#### Flip-Flop T e Flip-Flop D
+
+Dal Flip-Flop JK si ricavano due varianti di uso universale ([la figura](#fig-gated-sr-jk-ff)c):
+
+- **Flip-Flop T (*Toggle*):** si ottiene collegando insieme i due ingressi ($J = K = T$). Quando $T = 0$ il circuito mantiene lo stato ($Q^+ = Q$); quando $T = 1$ inverte lo stato a ogni fronte attivo di clock ($Q^+ = \overline{Q}$), comportandosi da divisore di frequenza per $2$.
+- **Flip-Flop D (*Data*):** si ottiene collegando $J = D$ e $K = \overline{D}$ tramite un invertitore. Poiché $J$ e $K$ sono sempre opposti, non esiste alcuno stato proibito né condizione di oscillazione: a ogni fronte attivo l'uscita copia esattamente il valore presente sull'ingresso dato ($Q^+ = D$).
+
+<StepCheck client:load lang="it" mode="choice" prompt="In che modo il Flip-Flop JK elimina lo stato proibito del Latch SR e perché, se pilotato sul livello $CLK=1$, soffre di race-around quando $J=K=1$?" options={["Riportando $Q$ e $\\overline{Q}$ in retroazione sulle porte d'ingresso: solo un ramo è attivo alla volta, ma se $CLK=1$ dura più del ritardo interno l'uscita invertita rientra in retroazione generando commutazioni multiple", "Sostituendo le porte NOR con condensatori che si scaricano dopo un ciclo", "Collegando $J$ e $K$ direttamente a massa durante la lettura"]} correctIndex={0} explanation="La retroazione di $Q$ e $\overline{Q}$ trasforma $(1,1)$ nell'operazione di Toggle, ma in una cella sensibile al livello la nuova uscita rientra subito negli ingressi causando oscillazioni finché $CLK=1$." />
+
+<Divider label="3 · Transmission Gate e D-Latch Statico" />
+
+In tecnologia CMOS costruire un D-Latch con porte logiche AND-NOR richiede molti transistori. È molto più compatto e veloce impiegare interruttori controllati direttamente dal clock per aprire e chiudere l'anello bistabile: questo ruolo è svolto dal **Transmission Gate (TG)**.
+
+### Esempio — Un Interruttore Che Lascia Passare Sia lo Zero Sia l'Uno
+
+Un singolo transistore MOS usato come interruttore assomiglia a una valvola asimmetrica: un tipo lascia scorrere benissimo la pressione bassa (`0`), ma si blocca un po' prima di raggiungere il massimo (`1`); il tipo complementare lascia passare perfettamente il massimo (`1`), ma non riesce a svuotare fino in fondo a `0`. Accoppiandoli in parallelo con comandi opposti si ottiene un interruttore simmetrico perfetto che trasmette senza perdite entrambi i livelli e permette di alternare il circuito tra "ascolto diretto dell'ingresso" e "chiusura su sé stesso in memoria".
+
+### Teoria — Transmission Gate e Funzionamento del D-Latch
 
 <figure id="fig-transmission-gate" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-transmission-gate.svg" alt="Schema elettrico del Transmission Gate (TG) CMOS complementare a piena escursione logica." />
   <figcaption>Schema elettrico del Transmission Gate (TG) CMOS complementare a piena escursione logica.</figcaption>
 </figure>
 
-- Quando $CLK = 1$, il TG d'ingresso è chiuso: l'uscita $Q$ segue immediatamente ogni variazione di $D$ (**fase trasparente**). Proprio per questa trasparenza, se su $D$ arriva un breve disturbo (*glitch*) mentre $CLK = 1$, il disturbo passa direttamente su $Q$.
-- Quando $CLK = 0$, il TG d'ingresso si apre e si chiude quello dell'anello interno: il latch congela l'ultimo valore visto.
+#### Perché Serve il Transmission Gate
 
-<StepCheck client:load lang="it" mode="choice" prompt="Perché un D-Latch CMOS usa un Transmission Gate (NMOS + PMOS) invece di un singolo NMOS?" options={["Perché un solo NMOS degrada lo `'1'` a $V_{DD} - V_{tn}$, mentre in parallelo al PMOS trasmette sia `'0'` sia `'1'` senza perdite", "Perché consuma meno area di un singolo transistore", "Perché funziona anche senza segnale di clock"]} correctIndex={0} explanation="L'NMOS trasmette bene lo `'0'` e il PMOS trasmette bene l'`'1'`: insieme garantiscono l'intera escursione da $0$ a $V_{DD}$." />
+Come visto nelle [caratteristiche statiche del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/) e nel [Capitolo 20](/dynamic-courses/elettronica/05-logica-cmos/20-porte-logiche-cmos/), un singolo *pass-transistor* soffre di degradazione di tensione su uno dei due livelli logici:
 
-### Teoria — Transmission Gate e D-Latch Statico
+- **Singolo NMOS:** con il gate a $V_{DD}$, trasmette uno `'0'` forte fino a $0\,\text{V}$ (perché il terminale che funge da Source resta a $0\,\text{V}$ e $V_{GS} = V_{DD} > V_{tn}$), ma mentre cerca di caricare l'uscita verso `'1'` il suo Source sale fino a $V_{DD} - V_{tn}$, punto in cui $V_{GS} = V_{tn}$ e il transistore si spegne (**`'1'` debole**).
+- **Singolo PMOS:** con il gate a $0\,\text{V}$, trasmette un `'1'` forte fino a $V_{DD}$, ma mentre cerca di scaricare l'uscita verso `'0'` si spegne non appena la tensione scende a $|V_{tp}|$ (**`'0'` debole**).
 
-Un singolo *pass-transistor* NMOS non riesce a caricare un nodo fino a $V_{DD}$ (si ferma a $V_{DD} - V_{tn}$), e un singolo PMOS non riesce a scaricarlo fino a $0\,\text{V}$ (si ferma a $|V_{tp}|$). Mettendoli in parallelo nel **Transmission Gate** ([la figura](#fig-transmission-gate)), l'interruttore trasmette l'intera dinamica *rail-to-rail* ($0\,\text{V}$ e $V_{DD}$).
+Mettendo un NMOS e un PMOS in parallelo e pilotandoli in controfase con $C$ sull'NMOS e $\overline{C}$ sul PMOS ([la figura](#fig-transmission-gate)), si realizza il **Transmission Gate**: quando $C = 1$ ($\overline{C} = 0$), l'NMOS garantisce la scarica completa a $0\,\text{V}$ e il PMOS garantisce la carica completa a $V_{DD}$, assicurando l'intera escursione *rail-to-rail* ($0\,\text{V} \div V_{DD}$); quando $C = 0$ ($\overline{C} = 1$), entrambi i transistori sono interdetti e l'interruttore è aperto.
 
-Collegando due invertitori ad anello tramite due TG comandati in opposizione da $CLK$ e $\overline{CLK}$ si realizza un **D-Latch statico** compatto: trasparente per $CLK = 1$ ($Q = D$), bloccato in memoria per $CLK = 0$.
+#### D-Latch Statico e Trasparenza
 
-<Divider label="4 · Flip-Flop D Master-Slave" />
+Collegando due invertitori in cascata tramite due Transmission Gate comandati in opposizione da $CLK$ e $\overline{CLK}$ si ottiene un **D-Latch statico CMOS**:
 
-### Esempio — Campionamento sul Fronte e Immunità ai Glitch
+- **Fase trasparente ($CLK = 1$):** il TG d'ingresso è **chiuso** e collega direttamente $D$ al primo invertitore, mentre il TG di retroazione è **aperto**. In questa fase l'uscita $Q$ copia continuamente qualunque variazione di $D$: il circuito è *trasparente*, quindi anche eventuali disturbi impulsivi (*glitch*) su $D$ passano subito su $Q$.
+- **Fase di memoria ($CLK = 0$):** il TG d'ingresso si **apre** isolando $D$, e contemporaneamente il TG di retroazione si **chiude**, ricomponendo l'anello bistabile a due invertitori che mantiene indefinitamente l'ultimo bit campionato.
 
-Per evitare che i disturbi su $D$ passino all'uscita durante $CLK = 1$, si collegano in cascata due D-Latch pilotati in controfase, formando il **Flip-Flop D Master-Slave** ([la figura](#fig-master-slave-dff)):
+<StepCheck client:load lang="it" mode="choice" prompt="Perché un D-Latch CMOS utilizza Transmission Gate (NMOS + PMOS in parallelo) invece di un singolo pass-transistor NMOS?" options={["Perché un solo NMOS degrada lo `'1'` logico fermandosi a $V_{DD} - V_{tn}$, mentre l'NMOS + PMOS garantisce l'intera escursione da $0$ a $V_{DD}$", "Perché il Transmission Gate elimina la fase trasparente rendendo il latch insensibile ai glitch", "Perché un solo NMOS non è in grado di trasmettere lo `'0'` logico"]} correctIndex={0} explanation="L'NMOS trasmette senza attenuazione lo `'0'` e il PMOS trasmette senza attenuazione l'`'1'`: insieme evitano la perdita di soglia $V_{tn}$ o $|V_{tp}|$." />
+
+<Divider label="4 · Flip-Flop D Master-Slave e Vincoli Temporali" />
+
+Poiché il D-Latch è trasparente durante tutto il semiperiodo in cui $CLK = 1$, non può essere usato direttamente per collegare registri tra loro in un percorso sincrono. Per ottenere un vero **Flip-Flop sensibile al solo fronte** (*edge-triggered*) si mettono in cascata due D-Latch pilotati su fasi opposte del clock, creando l'architettura **Master-Slave**.
+
+### Esempio — La Doppia Porta a Camera Stagna
+
+Immagina una camera di compensazione con due porte successive che non si aprono mai insieme: finché la prima porta è aperta, la seconda resta sigillata; nell'istante in cui scatta il segnale, la prima porta si chiude e la seconda si apre. In questo modo ciò che entra nell'anticamera viene trasferito all'uscita soltanto nell'istante esatto della commutazione, e qualsiasi rumore o cambiamento successivo davanti alla prima porta rimane completamente bloccato fuori.
+
+### Teoria — Architettura Master-Slave, Setup, Hold e Periodo Minimo
 
 <figure id="fig-master-slave-dff" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-master-slave-dff.svg" alt="Architettura interna del Flip-Flop D Master-Slave CMOS a porte di trasmissione (*positive-edge triggered*)." />
   <figcaption>Architettura interna del Flip-Flop D Master-Slave CMOS a porte di trasmissione (*positive-edge triggered*).</figcaption>
 </figure>
 
-- **Mentre $CLK = 0$:** il primo stadio (*Master*, $TG_1$ chiuso) segue $D$, mentre il secondo stadio (*Slave*, $TG_3$ aperto) isola e mantiene ferma l'uscita $Q$.
-- **Sul fronte di salita ($CLK: 0 \to 1$):** $TG_1$ si **apre** bloccando fuori qualsiasi nuovo cambiamento di $D$, mentre $TG_3$ si **chiude** trasferendo a $Q$ il valore appena campionato dal Master. Eventuali *glitch* su $D$ durante $CLK = 1$ restano completamente ignorati.
+#### Funzionamento Fase per Fase (*Positive-Edge Triggered*)
 
-<StepCheck client:load lang="it" mode="choice" prompt="In un Flip-Flop D Master-Slave *positive-edge triggered*, quando avviene il trasferimento del nuovo dato sull'uscita $Q$?" options={["Sul fronte di salita $CLK: 0 \\to 1$, quando il Master si isola da $D$ e lo Slave diventa trasparente", "Durante tutta la fase $CLK = 0$", "Solo quando $D$ e $CLK$ sono entrambi a `0`"]} correctIndex={0} explanation="Con $CLK = 0$ il Master campiona $D$ ma lo Slave isola $Q$; sul fronte $0 \to 1$ il Master congela il dato e lo Slave lo porta su $Q$." />
+Il **Flip-Flop D Master-Slave** ([la figura](#fig-master-slave-dff)) collega in serie uno stadio **Master** (che campiona durante $CLK = 0$) e uno stadio **Slave** (che trasferisce all'uscita durante $CLK = 1$), mediante quattro Transmission Gate pilotati in controfase:
 
-### Teoria — Architettura Master-Slave, Setup e Hold
+1. **Fase $CLK = 0$ (acquisizione nel Master, isolamento su $Q$):** $TG_1$ è **chiuso** e $TG_2$ è **aperto**, quindi il Master è trasparente e segue l'ingresso $D$. Nello stesso tempo $TG_3$ è **aperto** e $TG_4$ è **chiuso**: lo Slave è scollegato dal Master e mantiene stabile su $Q$ il bit memorizzato al ciclo precedente.
+2. **Fronte di salita ($CLK: 0 \to 1$):** $TG_1$ si **apre** istantaneamente isolando l'ingresso $D$, mentre $TG_2$ si **chiude** chiudendo l'anello del Master che congela il bit presente sull'ingresso al momento del fronte. Contemporaneamente $TG_3$ si **chiude** e $TG_4$ si **apre**: il dato appena congelato dal Master attraversa lo Slave e aggiorna l'uscita $Q$.
+3. **Fase $CLK = 1$ (immunità ai glitch):** poiché $TG_1$ è aperto, qualunque variazione o disturbo (*glitch*) su $D$ durante tutto il livello alto di clock rimane bloccato fuori dal Master e non può in alcun modo perturbare $Q$.
 
-Poiché $TG_1$ (ingresso del Master) e $TG_3$ (ingresso dello Slave) non sono mai chiusi nello stesso momento, non esiste mai un percorso diretto tra $D$ e $Q$: il circuito è **sensibile al solo fronte** (*edge-triggered*).
+Poiché $TG_1$ e $TG_3$ non sono mai chiusi nello stesso istante, non esiste mai un percorso trasparente diretto tra $D$ e $Q$: il dispositivo è **sensibile esclusivamente al fronte di salita** (*positive-edge triggered*).
 
-Per campionare il bit senza errori o metastabilità vanno rispettati due vincoli temporali attorno al fronte attivo di $CLK$:
-1. **Tempo di Setup ($t_{setup}$):** l'ingresso $D$ deve rimanere stabile *prima* del fronte di clock affinché il Master faccia in tempo a caricare il proprio nodo interno.
-2. **Tempo di Hold ($t_{hold}$):** l'ingresso $D$ deve rimanere stabile *dopo* il fronte di clock finché $TG_1$ non si è completamente aperto.
+#### Tempi di Setup, Hold e Frequenza Massima
 
-Tra due Flip-Flop separati da una rete combinatoria con ritardo $t_{\text{comb}}$, il periodo minimo di clock deve permettere al dato lanciato dal primo registro di attraversare la logica e arrivare in tempo per il *setup* del secondo: $T_{clk,\min} = t_{p,cq} + t_{\text{comb}} + t_{setup}$.
+Per evitare errori di campionamento o cadute del nodo interno in **metastabilità**, il segnale $D$ deve rispettare due finestre di stabilità attorno al fronte attivo di $CLK$:
+
+- **Tempo di Setup ($t_{setup}$):** è il tempo minimo per cui $D$ deve restare stabile *prima* del fronte di salita affinché il segnale riesca a propagarsi attraverso $TG_1$ e il primo invertitore del Master, caricando correttamente il nodo interno prima che $TG_1$ si apra.
+- **Tempo di Hold ($t_{hold}$):** è il tempo minimo per cui $D$ deve restare stabile *dopo* il fronte di salita affinché $TG_1$ faccia in tempo a spegnersi completamente (tenendo conto anche del ritardo dell'invertitore che genera $\overline{CLK}$), evitando che il nuovo valore di $D$ si infiltri nel Master mentre la porta si sta chiudendo.
+
+Considerando infine due Flip-Flop collegati attraverso una rete combinatoria con ritardo di propagazione $t_{\text{comb}}$, un bit lanciato dal primo registro sul fronte di clock impiega il ritardo uscita-clock $t_{p,cq}$ per apparire su $Q_1$, attraversa la rete combinatoria in $t_{\text{comb}}$ e deve arrivare sull'ingresso $D_2$ del secondo registro almeno $t_{setup}$ prima del fronte successivo. Il periodo minimo di clock è quindi vincolato da:
+
+$$
+T_{clk,\min} = t_{p,cq} + t_{\text{comb}} + t_{setup}
+$$
+
+da cui discende la frequenza massima di funzionamento $f_{clk,\max} = 1 / T_{clk,\min}$.
+
+<StepCheck client:load lang="it" mode="choice" prompt="In un Flip-Flop D Master-Slave positive-edge triggered, perché eventuali disturbi su $D$ durante $CLK = 1$ non alterano l'uscita $Q$?" options={["Perché con $CLK = 1$ il Transmission Gate d'ingresso $TG_1$ è aperto e isola il Master da $D$", "Perché durante $CLK = 1$ anche lo Slave si spegne completamente", "Perché l'uscita $Q$ è collegata a massa durante $CLK = 1$"]} correctIndex={0} explanation="Durante $CLK = 1$ il Master ha $TG_1$ aperto e $TG_2$ chiuso (in memoria): i cambiamenti su $D$ non possono entrare né nel Master né nello Slave." />
 
 <Divider label="5 · Registri e Contatori" />
 
-### Esempio — Divisione di Frequenza con Contatore Asincrono
+Disponendo di un Flip-Flop D sensibile al fronte è immediato costruire blocchi a più bit: collegandoli in cascata con lo stesso clock si trasporta informazione nello spazio (**Shift Register**), mentre chiudendo ciascuno stadio su sé stesso in modalità *Toggle* si scandisce il tempo e si divide la frequenza (**Contatori**).
 
-Collegando $3$ Flip-Flop T in cascata con $T = 1$ (o Flip-Flop D con uscita negata $\overline{Q}$ riportata su $D$, [la figura](#fig-shift-register-counter)b) e applicando un clock a $16\,\text{MHz}$ sul primo stadio:
+### Esempio — Catena di Passamano e Divisori per Due
+
+Pensa a quattro persone disposte in fila che si passano un biglietto a ogni battito di tamburo: al primo battito il biglietto passa dal primo al secondo, al secondo battito dal secondo al terzo, avanzando di un posto a ogni colpo (registro a scorrimento). Se invece ciascuna persona tiene un cartello e lo gira ogni volta che la persona alla sua sinistra passa da bianco a nero, la prima gira il cartello a ogni battito, la seconda ogni due battiti, la terza ogni quattro, riducendo progressivamente la cadenza per potenze di due.
+
+### Teoria — Shift Register e Contatori Asincroni vs Sincroni
 
 <figure id="fig-shift-register-counter" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-shift-register-counter.svg" alt="Applicazioni a cascata di Flip-Flop D: (a) registro a scorrimento (Shift Register) a 4 bit; (b) contatore binario asincrono (Ripple Counter) a 3 bit." />
   <figcaption>Applicazioni a cascata di Flip-Flop D: (a) registro a scorrimento (*Shift Register*) a 4 bit; (b) contatore binario asincrono (*Ripple Counter*) a 3 bit.</figcaption>
 </figure>
 
-- Ogni Flip-Flop commuta a metà frequenza rispetto al proprio clock d'ingresso: $Q_0$ oscilla a $8\,\text{MHz}$, $Q_1$ a $4\,\text{MHz}$ e $Q_2$ a $2\,\text{MHz}$ ($16\,\text{MHz} / 2^3$).
-- Le tre uscite $(Q_2, Q_1, Q_0)$ contano in binario da `000` a `111`.
+#### Registro a Scorrimento (*Shift Register*)
 
-<StepCheck client:load lang="it" prompt="Se un contatore asincrono a $4$ bit riceve un clock da $32\,\text{MHz}$, quale frequenza si misura sull'uscita più significativa $Q_3$ (in $\text{MHz}$)?" expected={2} tolerance={0.1} unit="$\text{MHz}$" explanation="Ogni stadio divide per $2$, quindi dopo $4$ stadi $f_{Q3} = 32 / 2^4 = 32 / 16 = 2\,\text{MHz}$." />
+Collegando $N$ Flip-Flop D in serie con l'uscita $Q_i$ connessa all'ingresso $D_{i+1}$ dello stadio successivo e pilotandoli tutti con un **clock comune** ([la figura](#fig-shift-register-counter)a), a ogni fronte attivo ciascuno stadio copia il bit tenuto dal precedente. Un flusso seriale applicato all'ingresso $D_{\text{in}}$ avanza così di una posizione per ciclo di clock, rendendo disponibili contemporaneamente gli $N$ bit sulle uscite parallele (conversione seriale-parallelo e linee di ritardo digitali).
 
-### Teoria — Shift Register e Contatori Asincroni vs Sincroni
+#### Contatore Asincrono (*Ripple Counter*) e Divisione di Frequenza
 
-1. **Registro a Scorrimento (*Shift Register*, [la figura](#fig-shift-register-counter)a):** collega più Flip-Flop D in serie con un clock comune. A ogni fronte di clock, il bit presente su ciascun registro avanza di una posizione verso destra.
-2. **Contatori Asincroni (*Ripple Counter*, [la figura](#fig-shift-register-counter)b):** ogni stadio riceve il clock dall'uscita dello stadio precedente, dividendo la frequenza per $2^N$. Sono molto semplici, ma i ritardi si sommano a cascata (*ripple delay*). Nei **contatori sincroni**, invece, tutti i Flip-Flop ricevono lo stesso clock comune e commutano simultaneamente.
+Collegando l'uscita negata $\overline{Q}$ di un Flip-Flop D al proprio ingresso $D$ (equivalente a un Flip-Flop T con $T = 1$), lo stadio inverte il proprio stato una volta per ogni fronte attivo del proprio ingresso di clock: per compiere un ciclo completo (`0 -> 1 -> 0`) impiega quindi **due** periodi del clock d'ingresso, dimezzandone la frequenza.
+
+In un **contatore asincrono (*Ripple Counter*)** a $N$ stadi ([la figura](#fig-shift-register-counter)b), il primo stadio riceve il clock esterno $f_{clk}$ e ciascuno stadio successivo riceve come clock l'uscita dello stadio precedente. Ne derivano due proprietà:
+
+- **Divisione per $2^N$:** dopo $N$ stadi, la frequenza sull'uscita più significativa $Q_{N-1}$ vale:
+
+$$
+f_{Q_{N-1}} = \frac{f_{clk}}{2^N}
+$$
+
+  e la parola binaria $(Q_{N-1}, \dots, Q_1, Q_0)$ avanza ciclicamente da $0$ a $2^N - 1$. Per esempio, con $N = 4$ stadi e $f_{clk} = 32\,\text{MHz}$, sull'uscita $Q_3$ si misura $f_{Q3} = 32 / 2^4 = 2\,\text{MHz}$.
+- **Limite del *Ripple Delay* vs. Contatori Sincroni:** poiché il secondo stadio deve attendere che commuti il primo, il terzo che commuti il secondo e così via, i ritardi si sommano a cascata (*ripple delay* pari fino a $N \cdot t_{p,cq}$), generando brevi stati transitori spuri tra una cifra e la successiva e limitando la frequenza massima. Nei **contatori sincroni**, invece, tutti i Flip-Flop ricevono lo **stesso clock comune** e commutano simultaneamente guidati da una rete combinatoria che calcola in anticipo lo stato futuro.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Qual è il principale svantaggio di un contatore asincrono (Ripple Counter) rispetto a un contatore sincrono?" options={["I ritardi di propagazione dei Flip-Flop si sommano a cascata generando stati transitori spuri e riducendo la frequenza massima", "Non riesce a dividere la frequenza per potenze di due", "Richiede che tutti i Flip-Flop commutino simultaneamente sullo stesso clock"]} correctIndex={0} explanation="Nel Ripple Counter ogni stadio attende la commutazione del precedente (ritardo totale proporzionale a $N \cdot t_{p,cq}$), mentre nel contatore sincrono tutti i Flip-Flop commutano insieme sul clock comune." />
 
 <Divider label="6 · Sintesi" />
 
 ### Tabella Riassuntiva degli Elementi Sequenziali
 
 | Dispositivo | Controllo | Stato Proibito | Funzione Principale |
-| :--- | :---: | :---: | :--- |
-| **Latch SR (NOR)** | Livello ($S, R$) | $S=1, R=1$ | Memoria elementare asincrona |
-| **D-Latch** | Livello ($CLK = 1$) | Nessuno | Trasparente se $CLK=1$, memoria se $CLK=0$ |
-| **Flip-Flop D Master-Slave** | Fronte ($0 \to 1$) | Nessuno | Campiona $D$ solo sul fronte; immune ai glitch |
-| **Flip-Flop JK / T** | Fronte ($0 \to 1$) | Nessuno | $J=K=1$ (o $T=1$) inverte lo stato (*Toggle*) |
-
-### Concetti Chiave
-
-- **Bistabilità:** due invertitori ad anello hanno due stati stabili (`0`, `1`) e un punto instabile centrale (metastabilità).
-- **Master-Slave:** due D-Latch in controfase isolano sempre $D$ da $Q$, eliminando la trasparenza e il *race-around*.
-- **Setup e Hold:** il dato $D$ deve restare stabile subito prima ($t_{setup}$) e subito dopo ($t_{hold}$) il fronte di clock.
+| :--- | :--- | :--- | :--- |
+| **Latch SR (NOR)** | Livello ($S, R$) | $S=1, R=1$ | Memoria elementare asincrona ($Q=\overline{Q}=0$ proibito) |
+| **Latch $\overline{S}\overline{R}$ (NAND)** | Livello ($\overline{S}, \overline{R}$) | $\overline{S}=0, \overline{R}=0$ | Memoria elementare attiva bassa ($Q=\overline{Q}=1$ proibito) |
+| **Flip-Flop JK** | Fronte (ideale) | Nessuno | $J=K=1$ inverte lo stato (*Toggle*); su livello soffre di *race-around* |
+| **D-Latch (TG)** | Livello ($CLK = 1$) | Nessuno | Trasparente se $CLK=1$, memoria se $CLK=0$ |
+| **Flip-Flop D Master-Slave** | Fronte ($0 \to 1$) | Nessuno | Campiona $D$ solo sul fronte; immune ai *glitch* |
 
 <Callout type="warning" title="Errori Comuni">
 
-Non confondere un **D-Latch** (sensibile a tutto il livello $CLK=1$ e quindi vulnerabile ai glitch) con un **Flip-Flop D Master-Slave** (sensibile solo al fronte di clock). Inoltre, ricorda che la frequenza massima di una catena sincrona dipende da $t_{p,cq} + t_{\text{comb}} + t_{setup}$, mentre il vincolo di *hold* richiede che i percorsi veloci non siano troppo rapidi.
+Non confondere un **D-Latch** (sensibile a tutto il livello $CLK = 1$, quindi trasparente e vulnerabile ai *glitch* sull'ingresso) con un **Flip-Flop D Master-Slave** (sensibile esclusivamente al fronte di clock perché $TG_1$ e $TG_3$ lavorano in controfase). Ricorda inoltre che la frequenza massima di una catena sincrona dipende da $T_{clk,\min} = t_{p,cq} + t_{\text{comb}} + t_{setup}$, mentre il rispetto del tempo di *hold* ($t_{hold}$) riguarda la stabilità del dato subito dopo il fronte e non si migliora rallentando il clock.
 
 </Callout>
 
 <Divider label="7 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-22-1" title="Esercizio 22.1 — Sequenza su Latch SR e Contatore" level="Base" hint="Nella NOR con almeno un ingresso a 1 l'uscita va a 0. In un contatore a N stadi la frequenza si divide per 2^N.">
+<Exercise client:load lang="it" id="ex-22-1" title="Esercizio 22.1 — Bistabilità, Metastabilità e Race-Around" level="Base" hint="Collega il guadagno dei due invertitori in V_M alla crescita dei disturbi e osserva cosa accade al ritardo interno rispetto alla durata di CLK = 1.">
 
-1. Un Latch SR a porte NOR parte da $Q = 0, \overline{Q} = 1$. Applica in sequenza: $(S=1, R=0) \to (S=0, R=0) \to (S=0, R=1)$.
-2. Un contatore asincrono a $3$ bit è pilotato da un clock a $24\,\text{MHz}$.
+Verifica i concetti fondamentali dell'anello bistabile e dell'evoluzione dal Latch SR al Flip-Flop JK:
 
-<StepCheck client:load lang="it" prompt="Qual è il valore finale di $Q$ al termine della sequenza sul Latch SR?" expected={0} tolerance={0.1} explanation="Dopo il Set ($Q=1$) e l'Hold ($Q=1$), il Reset ($S=0, R=1$) porta $Q=0$." />
+<StepCheck client:load lang="it" mode="choice" prompt="1. In un Latch SR a porte NOR inizialmente in Hold ($S=0, R=0$) con $Q=1$, cosa succede portando $S=1, R=1$ e poi riportando entrambi gli ingressi a `0` nello stesso istante?" options={["Durante $S=R=1$ entrambe le uscite vanno a `0`, rompendo la complementarità; al ritorno simultaneo a `0` i due rami competono e lo stato finale diventa imprevedibile", "Il latch mantiene sicuramente $Q=1$ in entrambi i passaggi", "Il latch commuta in modo deterministico a $Q=0, \\overline{Q}=1$"]} correctIndex={0} explanation="Con $S=R=1$ entrambe le NOR sono forzate a `0`; togliendo i due comandi insieme si innesca una corsa simmetrica tra le porte il cui esito dipende dalle asimmetrie di processo o dal rumore." />
 
-<StepCheck client:load lang="it" prompt="Qual è la frequenza sull'uscita del terzo Flip-Flop $Q_2$ (in $\text{MHz}$)?" expected={3} tolerance={0.1} unit="$\text{MHz}$" explanation="Tre stadi dividono per $2^3 = 8$, quindi $24\,\text{MHz} / 8 = 3\,\text{MHz}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="2. Perché il Flip-Flop JK pilotato sul livello alto ($CLK=1$) risolve lo stato proibito ma introduce il problema del race-around?" options={["Perché con $J=K=1$ la retroazione di $Q$ e $\\overline{Q}$ provoca un'inversione dopo il ritardo interno $t_p$, che rientra subito agli ingressi facendo oscillare l'uscita finché $CLK=1$", "Perché le porte AND d'ingresso hanno uno stato proibito quando $J=K=1$", "Perché il Transmission Gate d'ingresso rimane chiuso anche quando $CLK=0$"]} correctIndex={0} explanation="Se la durata dell'impulso $CLK=1$ supera il ritardo interno $t_p$ della cella, l'uscita commutata rientra in retroazione e fa commutare nuovamente il circuito in modo incontrollato." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Latch SR:** $(1,0)$ esegue il *Set* ($Q=1$); $(0,0)$ mantiene $Q=1$; $(0,1)$ esegue il *Reset* ($Q=0$).
-2. **Contatore a 3 bit:** $f_{Q2} = f_{clk} / 2^3 = 24 / 8 = 3\,\text{MHz}$.
+1. **Bistabilità e stato proibito del Latch SR:** Due invertitori in anello presentano due punti di equilibrio stabili agli estremi della VTC (dove il guadagno d'anello è minore di $1$) e un punto centrale **metastabile** in $V_M$ (dove entrambi gli invertitori sono in saturazione ad alto guadagno e amplificano qualunque disturbo). Sostituendo gli invertitori con due porte NOR, $(S=0, R=0)$ mantiene lo stato, $(1,0)$ esegue il *Set* e $(0,1)$ il *Reset*; $(1,1)$ invece forza entrambe le uscite a `0`, distruggendo la complementarità $Q/\overline{Q}$ e causando una corsa incerta se $S$ e $R$ si azzerano insieme.
+2. **Dal Latch SR al JK e *race-around*:** Portando $\overline{Q}$ e $Q$ in retroazione sulle AND di $J$ e $K$, solo uno dei due rami è attivo alla volta e la combinazione $J=K=1$ diventa un *Toggle* pulito ($Q^+ = \overline{Q}$). Se però il circuito è sensibile all'intero livello $CLK=1$ e l'impulso di clock dura più del ritardo interno $t_p$, l'uscita invertita ritorna agli ingressi causando commutazioni multiple (*race-around*). Per questo si passa a celle sensibili al solo fronte (*edge-triggered*).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-22-2" title="Esercizio 22.2 — Frequenza Massima di Clock" level="Intermedio" hint="Somma il ritardo del primo Flip-Flop, quello della logica combinatoria e il tempo di setup del secondo.">
+<Exercise client:load lang="it" id="ex-22-2" title="Esercizio 22.2 — D-Latch vs Master-Slave e Vincoli Temporali" level="Intermedio" hint="Confronta la chiusura di TG_1 e TG_3 nelle due fasi di clock e ricorda il percorso del segnale tra due registri.">
 
-Due Flip-Flop D Master-Slave ($t_{p,cq} = 100\,\text{ps}$, $t_{setup} = 50\,\text{ps}$) sono collegati da una rete combinatoria con ritardo $t_{\text{comb}} = 350\,\text{ps}$.
+Analizza il funzionamento CMOS del Flip-Flop D Master-Slave e le cause fisiche dei vincoli temporali:
 
-<StepCheck client:load lang="it" prompt="Calcola il periodo minimo di clock $T_{clk,\min}$ (in $\text{ps}$):" expected={500} tolerance={5} unit="$\text{ps}$" explanation="$T_{clk,\min} = 100 + 350 + 50 = 500\,\text{ps}$ ($f_{\max} = 2\,\text{GHz}$)." />
+<StepCheck client:load lang="it" mode="choice" prompt="1. Cosa distingue operativamente un D-Latch statico da un Flip-Flop D Master-Slave?" options={["Il D-Latch è trasparente durante tutto $CLK=1$ lasciando passare eventuali glitch su $D$, mentre il Master-Slave isola sempre $D$ da $Q$ e aggiorna $Q$ solo sul fronte di clock", "Il D-Latch usa un solo invertitore mentre il Master-Slave ne usa uno solo in retroazione", "Il Master-Slave non ha tempi di setup né di hold"]} correctIndex={0} explanation="Nel Master-Slave i Transmission Gate $TG_1$ e $TG_3$ lavorano in controfase e non sono mai chiusi contemporaneamente: $Q$ è sempre isolata da cambiamenti successivi di $D$." />
+
+<StepCheck client:load lang="it" mode="choice" prompt="2. Perché è necessario rispettare i tempi di setup ($t_{setup}$) e hold ($t_{hold}$) attorno al fronte attivo di clock?" options={["$t_{setup}$ serve a caricare il nodo interno del Master prima che $TG_1$ si apra; $t_{hold}$ serve ad attendere che $TG_1$ si spenga completamente dopo il fronte evitando infiltrazioni del nuovo dato", "Entrambi servono solo a ridurre il consumo statico degli invertitori", "$t_{setup}$ riguarda il solo Slave e $t_{hold}$ solo la rete combinatoria"]} correctIndex={0} explanation="Violare $t_{setup}$ o $t_{hold}$ impedisce al Master di risolvere con certezza il bit prima della chiusura dell'anello, esponendo il circuito alla metastabilità." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
+
+1. **D-Latch vs. Master-Slave:** Entrambi usano **Transmission Gate** (NMOS + PMOS in parallelo in controfase) per trasmettere senza perdite l'intera escursione $0 \div V_{DD}$. Tuttavia, nel D-Latch singolo, finché $CLK=1$ il TG d'ingresso è chiuso e l'anello di memoria è aperto, per cui $Q$ segue $D$ in tempo reale (*trasparenza*) propagando eventuali *glitch*. Il **Master-Slave** mette in cascata due D-Latch pilotati su fasi opposte: per $CLK=0$ il Master campiona $D$ ($TG_1$ chiuso) ma lo Slave isola $Q$ ($TG_3$ aperto); sul fronte $0 \to 1$, $TG_1$ si apre congelando il dato nel Master e $TG_3$ si chiude portandolo su $Q$.
+2. **Significato fisico di $t_{setup}$ e $t_{hold}$:** Prima del fronte ($t_{setup}$), $D$ deve restare fermo affinché il segnale attraversi $TG_1$ e porti il nodo interno del Master oltre la soglia di decisione; subito dopo il fronte ($t_{hold}$), $D$ deve restare fermo finché $TG_1$ non è completamente spento (considerando anche il ritardo dell'invertitore che genera $\overline{CLK}$). Tra due registri collegati da una rete combinatoria di ritardo $t_{\text{comb}}$, il periodo minimo di clock vale $T_{clk,\min} = t_{p,cq} + t_{\text{comb}} + t_{setup}$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-22-3" title="Esercizio 22.3 — Contatori Asincroni e Periodo Minimo di Clock" level="Base" hint="Ricorda che ogni stadio di un contatore asincrono divide per 2 la frequenza ricevuta e che T_clk,min = t_p,cq + t_comb + t_setup.">
+
+Considera un sistema sincrono con due Flip-Flop D collegati da una rete combinatoria ($t_{p,cq} = 100\,\text{ps}$, $t_{\text{comb}} = 350\,\text{ps}$, $t_{setup} = 50\,\text{ps}$) e un contatore asincrono a $3$ bit:
+
+<StepCheck client:load lang="it" mode="choice" prompt="1. In un contatore asincrono a $3$ bit costruito con Flip-Flop D in configurazione Toggle ($\overline{Q}$ su $D$), come varia la frequenza tra ingresso di clock e terza uscita $Q_2$?" options={["Ogni stadio dimezza la frequenza del precedente, quindi su $Q_2$ la frequenza vale $f_{clk}/2^3 = f_{clk}/8$", "Tutte le uscite oscillano alla stessa frequenza $f_{clk}$", "La frequenza triplica a $3\\,f_{clk}$"]} correctIndex={0} explanation="Con $\overline{Q}$ collegata a $D$, ogni Flip-Flop commuta a ogni fronte attivo dimezzando la frequenza: $N$ stadi in cascata dividono per $2^N$." />
+
+<StepCheck client:load lang="it" prompt="2. Calcola il periodo minimo di clock $T_{clk,\min}$ (in $\text{ps}$) per la catena sincrona data ($t_{p,cq} = 100\,\text{ps}$, $t_{\text{comb}} = 350\,\text{ps}$, $t_{setup} = 50\,\text{ps}$):" expected={500} tolerance={5} unit="$\text{ps}$" explanation="$T_{clk,\min} = t_{p,cq} + t_{\text{comb}} + t_{setup} = 100 + 350 + 50 = 500\,\text{ps}$ (corrispondente a $f_{clk,\max} = 2\,\text{GHz}$)." />
+
+<details className="dc-solution">
+<summary>Mostra Risposta Orale Modello</summary>
+
+1. **Divisione di frequenza e confronto asincrono/sincrono:** Collegando $\overline{Q}$ a $D$, l'uscita di ogni Flip-Flop inverte stato a ogni fronte di salita del proprio clock, impiegando due fronti per compiere un periodo completo e dividendo quindi la frequenza per $2$. Dopo $3$ stadi in cascata si ottiene $f_{Q2} = f_{clk}/2^3 = f_{clk}/8$. Poiché però ogni stadio fa da clock al successivo, i ritardi si accumulano (*ripple delay*) a differenza di un contatore sincrono in cui tutti i Flip-Flop condividono lo stesso clock.
+2. **Periodo minimo di clock:** Nel percorso critico tra due registri il segnale deve uscire dal primo Flip-Flop ($t_{p,cq}$), attraversare la logica combinatoria ($t_{\text{comb}}$) e giungere stabile al secondo almeno $t_{setup}$ prima del fronte successivo:
 
 $$
-T_{clk,\min} = t_{p,cq} + t_{\text{comb}} + t_{setup} = 100 + 350 + 50 = 500\,\text{ps} \implies f_{clk,\max} = \frac{1}{500\,\text{ps}} = 2.0\,\text{GHz}
+T_{clk,\min} = t_{p,cq} + t_{\text{comb}} + t_{setup} = 100 + 350 + 50 = 500\,\text{ps} \implies f_{clk,\max} = \frac{1}{500\,\text{ps}} = 2\,\text{GHz}
 $$
 
 </details>

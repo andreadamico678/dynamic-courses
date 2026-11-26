@@ -12,300 +12,263 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Introduzione
 
-Su una scheda PCB un resistore da $100\,\text{k}\Omega$ costa pochissimo ed è minuscolo; dentro un chip CMOS, invece, un resistore di quel valore occupa un'area enorme ed è impreciso. Come fanno i circuiti integrati a distribuire correnti di polarizzazione precise e a realizzare carichi ad alta resistenza in pochi micron?
+Su una scheda elettronica discreta un resistore da $100\,\text{k}\Omega$ è minuscolo ed economico; dentro un circuito integrato CMOS, invece, un resistore di quel valore occupa un'area di silicio enorme ed è soggetto a forti tolleranze di fabbricazione. Per distribuire correnti di polarizzazione precise e realizzare carichi ad altissima resistenza in pochi micrometri quadrati, i chip analogici usano lo **specchio di corrente**.
 
-Usano lo **specchio di corrente**: un MOSFET connesso a diodo ($V_{GS} = V_{DS}$) fissa una tensione di Gate e la copia su altri transistori in proporzione alle loro dimensioni $(W/L)$. Vedremo lo specchio elementare, la versione **Cascode** ad altissima impedenza e l'uso dello specchio come **carico attivo** negli amplificatori CMOS.
+Il principio è semplice: un MOSFET di riferimento connesso a diodo trasforma una corrente nota $I_{ref}$ in una tensione di Gate condivisa, che pilota altri transistori affinché replichino la corrente in proporzione esatta alle loro geometrie $(W/L)$. Vedremo prima lo **specchio elementare** (con il limite imposto dalla modulazione di canale $\lambda$), poi la versione **Cascode** (che moltiplica la resistenza d'uscita e annulla l'errore sistematico) e infine l'impiego dello specchio come **carico attivo** di uno stadio Common Source integrato.
 
-<Divider label="1 · Specchio di Corrente Elementare ed Errore di Modulazione" />
+<Divider label="1 · Specchio di Corrente Elementare" />
 
-### Esempio — Dimensionamento ed Errore da Modulazione di Canale
+La topologia di base impiega due MOSFET della stessa polarità che condividono la tensione Gate-Source per copiare una corrente di riferimento su un ramo di uscita.
 
-Vogliamo generare una corrente nominale $I_{O,id} = 200\,\mu\text{A}$ partendo da un riferimento $I_{ref} = 100\,\mu\text{A}$ ($V_{DD} = 3.3\,\text{V}$), usando lo specchio NMOS elementare di [la figura](#fig-basic-current-mirror) con $V_{th} = 0.6\,\text{V}$, $k_n' = 200\,\mu\text{A/V}^2$ e $(W/L)_1 = 10$.
+### Esempio Concettuale — Il Rubinetto Maestro e i Rubinetti Gemelli
+
+Immagina di dover alimentare cinque fontanelle con portate diverse partendo da un unico serbatoio, senza usare misuratori su ciascuna linea. Monti una valvola di riferimento (*maestra*) e la apri finché vi scorre esattamente la portata desiderata; poi blocchi la manopola in quella posizione e colleghi meccanicamente sullo stesso asse una seconda valvola gemella, oppure larga il doppio.
+
+Se le valvole sono identiche per fabbricazione e la pressione a valle non disturba il flusso, la seconda valvola erogherà automaticamente la stessa portata o esattamente il doppio. Se però la pressione sul tubo di uscita cambia molto rispetto a quella della valvola maestra, la portata copiata inizierà a discostarsi leggermente dal valore ideale.
+
+### Teoria — Connessione a Diodo, Legge di Scala e Modulazione
+
+#### Connessione a Diodo e Saturazione Garantita
+
+Lo specchio di corrente elementare ([figura seguente](#fig-basic-current-mirror)) è composto da due transistori NMOS ($M_1$ e $M_2$) con i Source collegati a massa e i Gate collegati insieme. Il transistore di ingresso $M_1$ ha il Drain cortocircuitato al proprio Gate: questa configurazione è detta **connessione a diodo** perché impone un dispositivo a due terminali con $V_{DS1} = V_{GS1}$.
 
 <figure id="fig-basic-current-mirror" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-basic-current-mirror.svg" alt="Schema dello specchio di corrente elementare a due transistori NMOS con M_1 connesso a diodo." />
   <figcaption>Schema dello specchio di corrente elementare a due transistori NMOS con $M_1$ connesso a diodo.</figcaption>
 </figure>
 
-1. **Dimensionamento ideale ($\lambda = 0$):** $M_1$ ha Drain e Gate uniti ($V_{DS1} = V_{GS}$), quindi è sempre in saturazione e assorbe tutta la corrente $I_{ref}$. Invertendo la legge di saturazione troviamo la tensione di Gate comune:
+Finché $M_1$ è acceso ($V_{GS1} \gt V_{th}$), la condizione per lavorare in regione di saturazione ($V_{DS1} \ge V_{GS1} - V_{th}$) diventa $V_{GS1} \ge V_{GS1} - V_{th}$, cioè $V_{th} \ge 0$. Per qualunque MOSFET ad arricchimento ($V_{th} \gt 0$), il transistore connesso a diodo si trova quindi **automaticamente in saturazione**. Poiché il Gate non assorbe corrente statica, tutta la corrente di riferimento $I_{ref}$ (tipicamente fissata da un resistore $R$ collegato a $V_{DD}$) scorre nel canale di $M_1$, determinando in modo univoco la tensione comune di Gate (trascurando inizialmente $\lambda$):
 
 $$
-I_{ref} = \frac{1}{2} k_n' \left(\frac{W}{L}\right)_1 (V_{GS} - V_{th})^2 \implies V_{GS} = 0.6 + \sqrt{\frac{2 \cdot 100}{200 \cdot 10}} \approx 0.92\,\text{V}
+I_{ref} = \frac{1}{2} k_n' \left(\frac{W}{L}\right)_1 (V_{GS} - V_{th})^2 \implies V_{GS} = V_{th} + \sqrt{\frac{2 I_{ref}}{k_n' (W/L)_1}}
 $$
 
-   Per fissare $I_{ref} = 100\,\mu\text{A}$ serve quindi un resistore $R = \frac{3.3 - 0.92}{100\,\mu\text{A}} \approx 23.8\,\text{k}\Omega$. Sul ramo di uscita, $M_2$ ha la stessa $V_{GS}$: se $V_O \ge V_{OV} = 0.32\,\text{V}$ resta in saturazione e, scegliendo $(W/L)_2 = 2 (W/L)_1 = 20$, copia esattamente $I_{O,id} = 2 I_{ref} = 200\,\mu\text{A}$.
+#### Legge di Scala Geometrica
 
-2. **Effetto reale ($\lambda = 0.05\,\text{V}^{-1}$):** se l'uscita si trova a $V_O = V_{DS2} = 2.92\,\text{V}$ (ossia $2.0\,\text{V}$ sopra $V_{DS1} = 0.92\,\text{V}$), la modulazione di canale fa crescere la corrente copiata:
-
-$$
-I_O = I_{O,id} \cdot \frac{1 + \lambda V_O}{1 + \lambda V_{GS}} = 200\,\mu\text{A} \cdot \frac{1 + 0.05 \cdot 2.92}{1 + 0.05 \cdot 0.92} \approx 219\,\mu\text{A}
-$$
-
-   Lo specchio semplice introduce un errore di circa il $+10\%$ e ha una resistenza d'uscita finita pari a $R_{out} = r_{o2} = \frac{1}{\lambda I_{O,id}} = 100\,\text{k}\Omega$.
-
-<StepCheck client:load lang="it" prompt="Se nello stesso specchio ideale ($\lambda = 0$) vogliamo ottenere $I_O = 350\,\mu\text{A}$ mantenendo $I_{ref} = 100\,\mu\text{A}$ e $(W/L)_1 = 10$, quale rapporto geometrico $(W/L)_2$ occorre dimensionare?" expected={35} tolerance={0.5} explanation="Poiché $I_O / I_{ref} = (W/L)_2 / (W/L)_1$, risulta $(W/L)_2 = 10 \cdot (350 / 100) = 35$." />
-
-### Teoria — Legge di Scala Geometrica, Errore da $\lambda$ e Tensione di Conformità
-
-#### Specchio di Corrente Elementare
-
-Lo specchio elementare ([la figura](#fig-basic-current-mirror)) usa due MOSFET uguali per polarità (qui due NMOS) con i Gate uniti e i Source a massa.
-
-Il transistore $M_1$ ha Drain e Gate cortocircuitati (**connessione a diodo**), quindi $V_{DS1} = V_{GS}$. Finché è acceso ($V_{GS} > V_{th}$), la condizione di saturazione $V_{DS1} \ge V_{GS} - V_{th}$ è automaticamente verificata per qualunque $V_{th} > 0$. La corrente $I_{ref}$ fissa quindi la tensione di Gate comune:
+Il transistore d'uscita $M_2$ riceve esattamente la stessa tensione $V_{GS}$ fissata da $M_1$ ed è realizzato sullo stesso chip (stessi parametri tecnologici $k_n'$ e $V_{th}$). Se anche $M_2$ opera in saturazione e si trascura l'effetto di modulazione di lunghezza del canale ($\lambda = 0$), dividendo l'espressione della corrente di uscita $I_O = I_{D2}$ per $I_{ref} = I_{D1}$ tutti i parametri elettrici e termici si semplificano:
 
 $$
-V_{GS} = V_{th} + \sqrt{\frac{2 I_{ref}}{k_n' (W/L)_1}}
+\frac{I_O}{I_{ref}} = \frac{\frac{1}{2} k_n' (W/L)_2 (V_{GS} - V_{th})^2}{\frac{1}{2} k_n' (W/L)_1 (V_{GS} - V_{th})^2} = \frac{(W/L)_2}{(W/L)_1}
 $$
 
-Poiché $M_2$ condivide la stessa $V_{GS}$, se lavora in saturazione ($V_O \ge V_{GS} - V_{th}$) e trascuriamo $\lambda$, nel rapporto $I_O / I_{ref}$ tutti i parametri tecnologici e di overdrive si semplificano, lasciando la **legge di scala geometrica**:
+Si ottiene così la **legge di scala geometrica** dello specchio ideale:
 
 $$
 I_O = I_{ref} \cdot \frac{(W/L)_2}{(W/L)_1}
 $$
 
-Il fattore di copia dipende solo dalle geometrie disegnate sul silicio, risultando insensibile alla temperatura.
+Il rapporto di copia dipende unicamente dalle dimensioni geometriche disegnate sul silicio (spesso realizzate affiancando in parallelo più transistori unitari identici per garantire la massima precisione di *matching*).
 
-#### Errore da Modulazione di Canale e Resistenza d'Uscita
+#### Errore da Modulazione di Canale e Tensione Minima
 
-Nei MOSFET reali ($\lambda \neq 0$, [Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)), la corrente cresce leggermente con $V_{DS}$. Poiché $V_{DS1} = V_{GS}$ mentre $V_{DS2} = V_O$, dividendo le due correnti compare il fattore correttivo:
+Nei dispositivi reali, la modulazione della lunghezza di canale ($\lambda \neq 0$, [Capitolo 6](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)) fa crescere leggermente la corrente di saturazione al crescere di $V_{DS}$. Poiché in $M_1$ la connessione a diodo fissa $V_{DS1} = V_{GS}$, mentre sul nodo d'uscita $M_2$ si trova alla tensione $V_{DS2} = V_O$, dividendo le due correnti reali rimane un termine correttivo:
 
 $$
-I_O = I_{ref} \cdot \frac{(W/L)_2}{(W/L)_1} \cdot \left( \frac{1 + \lambda V_O}{1 + \lambda V_{GS}} \right)
+I_O = I_{ref} \cdot \frac{(W/L)_2}{(W/L)_1} \cdot \left(\frac{1 + \lambda V_O}{1 + \lambda V_{GS}}\right)
 $$
 
-Quando $V_O \neq V_{GS}$, la corrente copiata si discosta dal valore ideale di circa $\lambda (V_O - V_{GS})$ in valore relativo. Inoltre, la pendenza della corrente rispetto a $V_O$ fissa la **resistenza d'uscita** dello specchio semplice a:
+Ogni volta che la tensione di uscita $V_O$ differisce da $V_{GS}$, nasce un **errore sistematico di copia** approssimabile in valore relativo a $\lambda (V_O - V_{GS})$. Inoltre, la dipendenza lineare di $I_O$ da $V_O$ implica che lo specchio non è un generatore di corrente ideale ma presenta una **resistenza d'uscita finita** pari alla resistenza differenziale di $M_2$:
 
 $$
 R_{out} = r_{o2} = \frac{1}{\lambda I_O}
 $$
 
-Infine, per non far uscire $M_2$ dalla saturazione (entrando in triodo), la tensione d'uscita deve restare sopra la **tensione minima di conformità**:
+Infine, affinché la legge di copia resti valida, $M_2$ non deve entrare nella regione di triodo: la tensione sul suo Drain non può quindi scendere sotto la **tensione minima di conformità** (*compliance voltage*), pari alla tensione di overdrive:
 
 $$
 V_{O,\min} = V_{OV2} = V_{GS} - V_{th}
 $$
 
-<StepCheck client:load lang="it" mode="choice" prompt="Perché un transistore NMOS con Drain cortocircuitato al Gate ($V_{DS} = V_{GS}$) opera sempre in saturazione quando acceso ($V_{GS} > V_{th}$)?" options={["Perché $V_{DS} = V_{GS} > V_{GS} - V_{th}$ per qualunque $V_{th} > 0$", "Perché il canale è in triodo profondo", "Perché $\\lambda$ annulla la soglia", "Perché la corrente di Gate uguaglia $I_D$"]} correctIndex={0} explanation="La saturazione richiede $V_{DS} \ge V_{GS} - V_{th}$: con $V_{DS} = V_{GS}$ la disequazione diventa $0 \ge -V_{th}$, sempre verificata per $V_{th} > 0$." />
+Per verificarne l'ordine di grandezza, se $I_{ref} = 100\,\mu\text{A}$ con $(W/L)_1 = 10$, $(W/L)_2 = 20$, $V_{GS} = 0.92\,\text{V}$ ($V_{OV} = 0.32\,\text{V}$) e $\lambda = 0.05\,\text{V}^{-1}$, la corrente nominale è $I_{O,id} = 200\,\mu\text{A}$ e $R_{out} = 100\,\text{k}\Omega$; se però l'uscita lavora a $V_O = 2.92\,\text{V}$, il fattore $(1 + 0.05 \cdot 2.92)/(1 + 0.05 \cdot 0.92)$ fa salire $I_O$ a circa $219\,\mu\text{A}$, introducendo quasi il $+10\%$ di errore.
+
+<StepCheck client:load lang="it" mode="choice" prompt="In uno specchio di corrente elementare a due NMOS identici ($(W/L)_1 = (W/L)_2$) con $\lambda > 0$, quando si annulla l'errore sistematico dovuto alla modulazione di canale?" options={["Quando la tensione di uscita $V_O = V_{DS2}$ uguaglia la tensione di Gate $V_{GS1} = V_{DS1}$", "Quando $V_O$ è portata a zero volt", "Quando $M_2$ entra nella regione di triodo", "Quando il resistore di riferimento $R$ è molto piccolo"]} correctIndex={0} explanation="Nel fattore correttivo $(1 + \lambda V_{DS2}) / (1 + \lambda V_{DS1})$, i due termini si semplificano esattamente solo quando $V_{DS2} = V_{DS1} = V_{GS1}$." />
 
 <Divider label="2 · Specchio di Corrente Cascode" />
 
-### Esempio — Innalzamento di $R_{out}$ ed Eliminazione dell'Errore Sistematico nel Cascode
+Per azzerare l'errore dovuto alla differenza tra $V_{DS2}$ e $V_{DS1}$ e aumentare la resistenza d'uscita di uno o due ordini di grandezza, si protegge lo specchio base con una coppia di transistori superiori impilati.
 
-Per azzerare l'errore di copia e alzare $R_{out}$ ai mega-ohm, usiamo lo **specchio Cascode** a quattro transistori identici di [la figura](#fig-cascode-mirror), con $I_{ref} = I_O = 100\,\mu\text{A}$, $V_{th} = 0.6\,\text{V}$, $V_{OV} = 0.30\,\text{V}$ ($V_{GS} = 0.90\,\text{V}$), $g_m = 1.5\,\text{mA/V}$ e $r_o = 200\,\text{k}\Omega$ ($g_{mb} = 0$).
+### Esempio Concettuale — Lo Scudo di Pressione a Valle
+
+Riprendiamo la valvola gemella dell'esempio precedente, la cui portata variava leggermente al cambiare della pressione sul tubo di uscita. Se montiamo subito a valle della valvola gemella una seconda valvola regolatrice che assorbe su di sé le oscillazioni di pressione esterne mantenendo fissa la pressione proprio sopra la valvola principale, quest'ultima lavorerà sempre nelle identiche condizioni della valvola maestra, indipendentemente da ciò che accade all'uscita.
+
+### Teoria — Pareggiamento di Tensione, Moltiplicazione di Resistenza e Headroom
+
+#### Pareggiamento delle Tensioni Drain-Source
+
+Lo **specchio Cascode** ([figura seguente](#fig-cascode-mirror)) impila una coppia superiore ($M_3, M_4$, connessi anch'essi come specchio o con $M_3$ a diodo) sopra lo specchio elementare ($M_1, M_2$). Supponendo i quattro transistori uguali e percorsi dalla stessa corrente, i due dispositivi connessi a diodo a sinistra ($M_1$ ed $M_3$) portano il Gate di $M_4$ al potenziale costante:
+
+$$
+V_{G4} = V_{GS1} + V_{GS3}
+$$
 
 <figure id="fig-cascode-mirror" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cascode-mirror.svg" alt="Architettura dello specchio di corrente Cascode a quattro transistori." />
   <figcaption>Architettura dello specchio di corrente Cascode a quattro transistori.</figcaption>
 </figure>
 
-1. **Pareggiamento delle tensioni $V_{DS}$:** sul ramo sinistro il Gate comune di $M_3$ e $M_4$ è a $V_{G4} = V_{GS1} + V_{GS3} = 1.80\,\text{V}$. Scendendo al Source di $M_4$, il Drain di $M_2$ viene bloccato a:
+Poiché $M_4$ è attraversato dalla corrente di uscita e richiede una tensione $V_{GS4} \approx V_{GS3}$ tra il proprio Gate e il proprio Source, il terminale di Drain di $M_2$ (che coincide con il Source di $M_4$) viene bloccato al potenziale:
 
 $$
-V_{DS2} = V_{G4} - V_{GS4} = 1.80 - 0.90 = 0.90\,\text{V} = V_{DS1}
+V_{DS2} = V_{G4} - V_{GS4} = V_{GS1} + V_{GS3} - V_{GS4} \approx V_{GS1} = V_{DS1}
 $$
 
-   Avendo $V_{DS2} = V_{DS1}$, l'errore dovuto a $\lambda$ si annulla.
+In questo modo, qualunque sia la tensione $V_O$ applicata sul Drain di $M_4$, il transistore $M_2$ lavora sempre alla stessa $V_{DS}$ del transistore di riferimento $M_1$, eliminando l'errore sistematico di copia dovuto a $\lambda$.
 
-2. **Moltiplicazione di $R_{out}$:** $M_4$ vede sul proprio Source la resistenza $r_{o2} = 200\,\text{k}\Omega$, che agisce come degenerazione di Source con fattore $(1 + g_{m4} r_{o2}) = 1 + 1.5 \cdot 200 = 301$:
+#### Moltiplicazione della Resistenza d'Uscita
 
-$$
-R_{out,\text{cascode}} = r_{o4}(1 + g_{m4} r_{o2}) + r_{o2} = 60.4\,\text{M}\Omega \approx g_m r_o^2 = 60.0\,\text{M}\Omega
-$$
+In piccolo segnale, con $I_{ref}$ spenta ($v_{gs1} = v_{g4} = 0$), il transistore superiore $M_4$ ha il Gate fisso a massa AC e si comporta esattamente come uno stadio [Common Gate](/dynamic-courses/elettronica/04-amplificatori-frequenza/15-common-gate-multistadio/), mentre il transistore inferiore $M_2$ (avendo $v_{gs2} = 0$) si riduce alla sua sola resistenza differenziale $r_{o2}$ collegata tra il Source di $M_4$ e massa AC.
 
-   La resistenza d'uscita cresce di oltre **$300$ volte**.
-
-3. **Tensione minima d'uscita (*headroom*):** perché sia $M_2$ ($V_{DS2} = 0.90\,\text{V}$) sia $M_4$ ($V_{DS4} \ge 0.30\,\text{V}$) restino in saturazione, serve almeno:
+Applicando la formula della resistenza vista nel Drain con degenerazione di Source ricavata nel [Capitolo 13](/dynamic-courses/elettronica/04-amplificatori-frequenza/13-common-source/) (con $R_S = r_{o2}$), $M_2$ moltiplica la resistenza di $M_4$ per il guadagno intrinseco $(1 + g_{m4} r_{o2})$:
 
 $$
-V_{O,\min,\text{cascode}} = V_{DS2} + V_{OV4} = 2 V_{OV} + V_{th} = 1.20\,\text{V}
+R_{out,\text{cascode}} = r_{o4}(1 + g_{m4} r_{o2}) + r_{o2} \approx g_{m4} r_{o4} r_{o2}
 $$
 
-<StepCheck client:load lang="it" prompt="Se in uno specchio Cascode i transistori hanno $g_m = 1.0\,\text{mA/V}$ e $r_o = 100\,\text{k}\Omega$ ($g_{mb} = 0$), quanto vale la stima asintotica della resistenza d'uscita $R_{out,\text{cascode}} \approx g_m r_o^2$ (in $\text{M}\Omega$)?" expected={10.0} tolerance={0.2} unit="$\text{M}\Omega$" explanation="$g_m r_o = 1.0 \cdot 100 = 100$; quindi $R_{out,\text{cascode}} \approx 100 \cdot 100\,\text{k}\Omega = 10.0\,\text{M}\Omega$." />
+Si passa così dalle decine o centinaia di chilo-ohm dello specchio semplice alle decine di mega-ohm (ad esempio, con $g_m = 1.5\,\text{mA/V}$ e $r_o = 200\,\text{k}\Omega$, $g_m r_o = 300$ e la resistenza d'uscita sale da $200\,\text{k}\Omega$ a circa $60\,\text{M}\Omega$).
 
-### Teoria — Moltiplicazione dell'Impedenza e Vincolo di Headroom
+#### Compromesso di Headroom
 
-Lo specchio **Cascode** ([la figura](#fig-cascode-mirror)) aggiunge una coppia superiore ($M_3, M_4$) sopra lo specchio base ($M_1, M_2$). Il transistore $M_4$ ha il Gate fisso e lavora come uno stadio [Common Gate](/dynamic-courses/elettronica/04-amplificatori-frequenza/15-common-gate-multistadio/) sopra $M_2$.
-
-In piccolo segnale, con $I_{ref}$ spenta, $M_2$ si comporta come un resistore $r_{o2}$ collegato al Source di $M_4$. Applicando la formula della degenerazione di Source vista nel Capitolo 13 (con $R_S = r_{o2}$), la resistenza d'uscita di $M_4$ viene moltiplicata per il guadagno intrinseco $(1 + g_{m4} r_{o2})$:
+Questo enorme guadagno di impedenza e precisione si paga in termini di dinamica di uscita disponibile (**headroom**). Perché lo specchio Cascode funzioni correttamente, sia $M_2$ sia $M_4$ devono rimanere in regione di saturazione: poiché il Source di $M_4$ è bloccato a $V_{DS2} = V_{GS1} = V_{OV} + V_{th}$ e $M_4$ richiede almeno $V_{DS4} \ge V_{OV4}$ per restare saturo, la tensione minima ammissibile all'uscita sale a:
 
 $$
-R_{out,cascode} = r_{o4}(1 + g_{m4} r_{o2}) + r_{o2} \approx g_{m4} r_{o4} r_{o2}
+V_{O,\min,\text{cascode}} = V_{DS2} + V_{OV4} \approx 2 V_{OV} + V_{th}
 $$
 
-In questo modo si passa dalle decine di chilo-ohm dello specchio semplice alle decine di mega-ohm. Allo stesso tempo, in DC la coppia $M_3\text{--}M_4$ blocca il Drain di $M_2$ al potenziale $V_{DS2} = V_{GS1} + V_{GS3} - V_{GS4} \approx V_{DS1}$, eliminando l'errore sistematico di copia dovuto a $\lambda$.
+Rispetto a $V_{OV}$ dello specchio semplice, lo specchio Cascode classico sacrifica una soglia $V_{th}$ più un overdrive sull'escursione di tensione verso massa.
 
-Lo svantaggio è che serve più spazio in tensione (**headroom**): per mantenere entrambi i transistori $M_2$ e $M_4$ in saturazione occorre che la tensione d'uscita non scenda sotto:
-
-$$
-V_{O,\min,cascode} = V_{DS2} + V_{OV4} \approx 2 V_{OV} + V_{th}
-$$
+<StepCheck client:load lang="it" mode="choice" prompt="Qual è il compromesso principale introdotto dallo specchio di corrente Cascode rispetto allo specchio elementare?" options={["Riduce la resistenza d'uscita ma aumenta l'escursione di tensione", "Moltiplica la resistenza d'uscita fino a $\\approx g_m r_o^2$ e azzera l'errore sistematico da $\\lambda$, ma richiede una tensione minima d'uscita più alta ($\\approx 2V_{OV} + V_{th}$)", "Funziona solo con segnali digitali", "Elimina la connessione a diodo dal ramo di riferimento"]} correctIndex={1} explanation="La coppia superiore blocca $V_{DS2} \approx V_{DS1}$ e degenera $r_{o4}$ con $r_{o2}$ portando $R_{out} \approx g_m r_o^2$, ma impilare due transistori in saturazione alza $V_{O,\min}$ a $V_{DS2} + V_{OV4} \approx 2V_{OV} + V_{th}$." />
 
 <Divider label="3 · Common Source con Carico Attivo" />
 
-### Esempio — Guadagno Intrinseco di un Common Source con Specchio PMOS
+Nei circuiti integrati moderni, gli specchi di corrente non servono solo a polarizzare gli stadi ma sostituiscono direttamente il resistore di Drain $R_D$ come **carico attivo**.
 
-Consideriamo lo stadio Common Source integrato di [la figura](#fig-cs-active-load) ($V_{DD} = 1.8\,\text{V}$), dove al posto di $R_D$ c'è uno specchio PMOS ($M_3\text{--}M_2$) che impone $I_D = 100\,\mu\text{A}$ ($|V_{OV}| = 0.20\,\text{V}$). L'NMOS $M_1$ ha $g_{m1} = 1.5\,\text{mA/V}$ e $\lambda_n = 0.04\,\text{V}^{-1}$, mentre il PMOS $M_2$ ha $\lambda_p = 0.06\,\text{V}^{-1}$.
+### Esempio Concettuale — Alta Resistenza Senza Caduta Continua
+
+Immagina di voler ottenere una grande variazione di tensione al variare di una piccola corrente, ma di avere a disposizione una batteria da appena $1.8\,\text{V}$. Se usassi un resistore passivo molto grande (ad esempio $100\,\text{k}\Omega$) con una corrente di riposo di $100\,\mu\text{A}$, la sola caduta statica necessaria a far passare la corrente continua richiederebbe $10\,\text{V}$, mandando subito in crisi l'alimentazione.
+
+Un **carico attivo** a MOSFET aggira questo limite grazie alla forma della sua curva caratteristica in saturazione: lascia passare la corrente continua di riposo consumando appena $0.2\,\text{V}$ di caduta DC, ma alle piccole variazioni alternate oppone una pendenza quasi orizzontale, offrendo un'altissima resistenza differenziale $r_o$.
+
+### Teoria — Modello del Carico Attivo e Guadagno Intrinseco
+
+#### Equivalente AC dello Specchio PMOS
+
+Consideriamo un amplificatore Common Source realizzato su silicio integrato ([figura seguente](#fig-cs-active-load)), dove il transistore amplificatore NMOS ($M_1$) ha al posto di $R_D$ il ramo di uscita di uno specchio di corrente PMOS ($M_3\text{--}M_2$).
 
 <figure id="fig-cs-active-load" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cs-active-load.svg" alt="Amplificatore Common Source (M_1) caricato attivamente mediante uno specchio di corrente PMOS (M_3--M_2)." />
   <figcaption>Amplificatore Common Source ($M_1$) caricato attivamente mediante uno specchio di corrente PMOS ($M_3\text{--}M_2$).</figcaption>
 </figure>
 
-1. **Resistenza d'uscita:** le resistenze interne dei due transistori a $I_D = 100\,\mu\text{A}$ valgono:
+In regime continuo (DC), lo specchio PMOS fissa la corrente di polarizzazione $I_D$ dell'intero ramo imponendo una tensione costante sul Gate di $M_2$. Passando al modello di piccolo segnale (AC), la tensione sul Gate di $M_2$ resta ferma rispetto a $V_{DD}$ (massa AC), quindi $v_{sg2} = 0$: il generatore controllato $g_{m2} v_{sg2}$ è completamente spento e il transistore di carico $M_2$ si comporta dinamicamente come la sola resistenza differenziale $r_{o2}$ collegata verso massa AC.
+
+#### Guadagno a Vuoto ed Escursione Lineare
+
+Al nodo d'uscita confluiscono quindi soltanto la resistenza di canale dell'NMOS ($r_{o1}$) e quella del PMOS ($r_{o2}$) in parallelo. La resistenza d'uscita e il guadagno di tensione a vuoto dello stadio valgono dunque:
 
 $$
-r_{o1} = \frac{1}{\lambda_n I_D} = 250\,\text{k}\Omega, \qquad r_{o2} = \frac{1}{\lambda_p I_D} \approx 167\,\text{k}\Omega
+R_{out} = r_{o1} \parallel r_{o2} = \frac{1}{(\lambda_n + \lambda_p) I_D}, \qquad A_v = -g_{m1}(r_{o1} \parallel r_{o2})
 $$
 
-   In AC il Gate di $M_2$ è fisso ($v_{sg2} = 0$), quindi $M_2$ presenta verso $V_{DD}$ (massa AC) la sola resistenza $r_{o2}$. La resistenza d'uscita dello stadio è:
-
-$$
-R_{out} = r_{o1} \parallel r_{o2} = \frac{1}{(\lambda_n + \lambda_p) I_D} = 100\,\text{k}\Omega
-$$
-
-2. **Guadagno a vuoto e risparmio di tensione:**
-
-$$
-A_v = -g_{m1}(r_{o1} \parallel r_{o2}) = -(1.5\,\text{mA/V})(100\,\text{k}\Omega) = -150\,\text{V/V}
-$$
-
-   Per ottenere $100\,\text{k}\Omega$ con un resistore passivo a $100\,\mu\text{A}$, servirebbe una caduta DC di $10\,\text{V}$! Il carico attivo PMOS offre $167\,\text{k}\Omega$ in AC consumando appena $0.20\,\text{V}$ in DC, lasciando all'uscita un'ampia escursione tra $0.20\,\text{V}$ e $1.60\,\text{V}$.
-
-<StepCheck client:load lang="it" prompt="Se nello stadio Common Source con carico attivo dell'esempio dimezziamo la corrente di polarizzazione a $I_D = 50\,\mu\text{A}$ (per cui $r_{o1}$ e $r_{o2}$ raddoppiano), quanto vale la nuova resistenza d'uscita $R_{out} = r_{o1} \parallel r_{o2}$ (in $\text{k}\Omega$)?" expected={200.0} tolerance={1.0} unit="$\text{k}\Omega$" explanation="$R_{out} = 1 / [(\lambda_n + \lambda_p) I_D] = 1 / (0.10 \cdot 50\,\mu\text{A}) = 200.0\,\text{k}\Omega$." />
-
-### Teoria — Guadagno a Vuoto e Vantaggi dei Carichi Attivi CMOS
-
-Nei chip CMOS gli specchi di corrente sostituiscono i resistori di Drain $R_D$ come **carico attivo** ([la figura](#fig-cs-active-load)). Poiché il Gate di $M_2$ è tenuto a tensione DC costante da $M_3$, in AC si ha $v_{sg2} = 0$: il generatore controllato di $M_2$ è spento e il carico si riduce alla sua sola resistenza $r_{o2}$ verso massa AC.
-
-Il guadagno a vuoto e la resistenza d'uscita dello stadio diventano quindi:
-
-$$
-A_v = -g_{m1} (r_{o1} \parallel r_{o2}), \qquad R_{out} = r_{o1} \parallel r_{o2}
-$$
-
-Affinché sia $M_1$ sia $M_2$ restino in saturazione, la tensione d'uscita deve restare nella finestra:
+Affinché l'amplificatore mantenga questo altissimo guadagno senza distorcere, entrambi i transistori devono rimanere in saturazione durante tutta l'escursione del segnale. Il limite inferiore è fissato da $M_1$ ($V_{DS1} \ge V_{OV1}$), mentre il limite superiore è fissato da $M_2$ ($V_{SD2} \ge |V_{OV2}|$), confinando la tensione istantanea di uscita $v_O(t)$ nella finestra:
 
 $$
 V_{OV1} \le v_O(t) \le V_{DD} - |V_{OV2}|
 $$
 
-<Callout type="tip" title="Carichi Attivi nei Chip CMOS">
+Con un'alimentazione tipica $V_{DD} = 1.8\,\text{V}$, $|V_{OV}| = 0.20\,\text{V}$, $I_D = 100\,\mu\text{A}$, $g_{m1} = 1.5\,\text{mA/V}$, $\lambda_n = 0.04\,\text{V}^{-1}$ e $\lambda_p = 0.06\,\text{V}^{-1}$, si ottiene $r_{o1} = 250\,\text{k}\Omega$, $r_{o2} \approx 167\,\text{k}\Omega$, $R_{out} = 100\,\text{k}\Omega$ e un guadagno $A_v = -150\,\text{V/V}$ con un'ampia escursione utile da $0.20\,\text{V}$ a $1.60\,\text{V}$: un risultato impossibile da ottenere con un resistore passivo a bassa tensione di alimentazione.
 
-Sostituire i resistori passivi con specchi di corrente è indispensabile nei chip integrati per due ragioni:
-1. **Compattezza sul silicio:** un resistore da $100\,\text{k}\Omega$ occupa un'area enorme rispetto a un singolo MOSFET.
-2. **Bassa tensione $V_{DD}$:** un carico attivo offre $100\text{--}200\,\text{k}\Omega$ in AC consumando appena $|V_{OV}| \approx 0.2\,\text{V}$ in DC, permettendo di amplificare molto anche con alimentazioni da $1.8\,\text{V}$ o $3.3\,\text{V}$.
+<Callout type="tip" title="Vantaggi dei Carichi Attivi CMOS">
+
+Sostituire $R_D$ con uno specchio di corrente risolve due vincoli critici dell'elettronica integrata:
+1. **Minima area sul silicio:** un singolo MOSFET occupa migliaia di volte meno spazio rispetto a un resistore integrato da $100\,\text{k}\Omega$.
+2. **Alto guadagno a bassa tensione $V_{DD}$:** il carico attivo separa la caduta DC (appena $|V_{OV}| \approx 0.2\,\text{V}$) dall'impedenza AC ($r_{o2} \gt 100\,\text{k}\Omega$), consentendo guadagni superiori a $100\,\text{V/V}$ anche con $V_{DD} = 1.8\,\text{V}$.
 
 </Callout>
 
+<StepCheck client:load lang="it" mode="choice" prompt="In uno stadio Common Source NMOS ($M_1$) con carico attivo a specchio PMOS ($M_2$), perché il transistore $M_2$ contribuisce in AC soltanto con $r_{o2}$ e non con $g_{m2}$?" options={["Perché $M_2$ opera in regione di interdizione", "Perché il Gate di $M_2$ è polarizzato a tensione costante dallo specchio, quindi in AC $v_{sg2} = 0$ e il generatore $g_{m2}v_{sg2}$ è spento", "Perché i PMOS hanno transconduttanza sempre nulla", "Perché $C_{gd2}$ cortocircuita il canale"]} correctIndex={1} explanation="In piccolo segnale $V_{DD}$ e il potenziale DC fissato sul Gate comune dello specchio PMOS sono fermi in AC: quindi $v_{sg2} = 0$ e di $M_2$ resta attiva solo la resistenza di uscita $r_{o2}$." />
+
 <Divider label="4 · Sintesi" />
 
-| Topologia | Rapporto $I_O / I_{ref}$ | Resistenza d'uscita $R_{out}$ | Tensione minima $V_{O,\min}$ |
+| Topologia | Rapporto $I_O / I_{ref}$ | Resistenza d'uscita $R_{out}$ | Tensione minima / Finestra |
 | :--- | :--- | :--- | :--- |
-| **Specchio elementare (2 MOS)** | $\frac{(W/L)_2}{(W/L)_1} \cdot \frac{1 + \lambda V_{DS2}}{1 + \lambda V_{DS1}}$ | $r_{o2} = \frac{1}{\lambda I_O}$ | $V_{OV2}$ |
-| **Specchio Cascode (4 MOS)** | $\frac{(W/L)_2}{(W/L)_1}$ ($V_{DS2} \approx V_{DS1}$) | $r_{o4}(1 + g_{m4} r_{o2}) + r_{o2} \approx g_m r_o^2$ | $2 V_{OV} + V_{th}$ ($2V_{OV}$ low-voltage) |
-| **CS con carico attivo** | — | $r_{o1} \parallel r_{o2}$ | $V_{OV1}$ (lato basso), $V_{DD} - \lvert V_{OV2}\rvert$ (lato alto) |
+| **Specchio elementare (2 MOS)** | $\frac{(W/L)_2}{(W/L)_1} \cdot \frac{1 + \lambda V_{DS2}}{1 + \lambda V_{DS1}}$ | $r_{o2} = \frac{1}{\lambda I_O}$ | $V_O \ge V_{OV2}$ |
+| **Specchio Cascode (4 MOS)** | $\frac{(W/L)_2}{(W/L)_1}$ ($V_{DS2} \approx V_{DS1}$) | $r_{o4}(1 + g_{m4} r_{o2}) + r_{o2} \approx g_m r_o^2$ | $V_O \ge 2 V_{OV} + V_{th}$ |
+| **CS con carico attivo** | — | $r_{o1} \parallel r_{o2} = \frac{1}{(\lambda_n + \lambda_p) I_D}$ | $V_{OV1} \le v_O(t) \le V_{DD} - \lvert V_{OV2}\rvert$ |
 
 ### Procedura di Analisi
 
-1. **Punto di lavoro di $M_1$:** risolvere la maglia di riferimento ($I_{ref} = \frac{V_{DD} - V_{GS1}}{R}$) e ricavare $V_{GS1} = V_{th} + \sqrt{\frac{2 I_{ref}}{k_n'(W/L)_1}}$.
-2. **Rapporto di copia:** calcolare $I_O = I_{ref} \frac{(W/L)_2}{(W/L)_1}$, applicando la correzione $\frac{1 + \lambda V_{DS2}}{1 + \lambda V_{DS1}}$ nello specchio semplice se $\lambda \ne 0$.
-3. **Verifica di saturazione:** controllare che $V_O \ge V_{O,\min}$ affinché il transistore d'uscita (o entrambi i transistori nel Cascode) non entri in regione triodo.
-4. **Piccolo segnale con carico attivo:** sostituire il transistore di carico di polarità opposta (con $v_{gs} = 0$) semplicemente con la sua resistenza differenziale $r_{o2}$, ottenendo $A_v = -g_{m1}(r_{o1} \parallel r_{o2})$.
-
-### Dimostrazioni Chiave
-
-* **Saturazione garantita da connessione a diodo:** cortocircuitando Drain e Gate ($V_{DS} = V_{GS}$) la condizione di saturazione $V_{DS} \ge V_{GS} - V_{th}$ si riduce a $V_{th} > 0$, sempre soddisfatta in conduzione.
-* **Legge di scala geometrica:** uguagliando $V_{GS1} = V_{GS2}$ nelle equazioni quadratiche di saturazione, si elidono $k_n'$ e $(V_{GS} - V_{th})^2$.
-* **Resistenza del Cascode:** $M_4$ funge da stadio degenerato dal resistore $r_{o2}$ al Source, moltiplicando $r_{o4}$ per $(1 + g_{m4} r_{o2})$.
-* **Compensazione di $V_{DS}$:** nello specchio Cascode classico $V_{D2} = V_{GS1} + V_{GS3} - V_{GS4} \approx V_{GS1} = V_{D1}$, annullando l'errore sistematico dovuto a $\lambda$.
+1. **Ramo di riferimento ($M_1$):** calcolare $I_{ref} = \frac{V_{DD} - V_{GS1}}{R}$ e ricavare $V_{GS1} = V_{th} + \sqrt{\frac{2 I_{ref}}{k_n'(W/L)_1}}$.
+2. **Rapporto di copia:** determinare $I_O = I_{ref} \frac{(W/L)_2}{(W/L)_1}$, includendo il fattore $\frac{1 + \lambda V_{DS2}}{1 + \lambda V_{DS1}}$ nello specchio semplice quando $\lambda \neq 0$ e $V_{DS2} \neq V_{DS1}$.
+3. **Verifica di saturazione:** controllare che $V_O$ rispetti la tensione minima di conformità ($V_{OV2}$ nello specchio semplice, $2 V_{OV} + V_{th}$ nel Cascode classico).
+4. **Carico attivo in AC:** sostituire il MOSFET di carico polarizzato a Gate costante con $r_{o2}$ verso massa AC, ottenendo $R_{out} = r_{o1} \parallel r_{o2}$ e $A_v = -g_{m1} R_{out}$.
 
 <Callout type="warning" title="Errori Comuni">
 
-* **Errore di copia anche con transistori identici:** anche se $(W/L)_1 = (W/L)_2$, la corrente copiata coincide con $I_{ref}$ solo se $V_{DS2} = V_{DS1}$. Con $\lambda \ne 0$, qualunque differenza $V_{DS2} - V_{DS1}$ introduce l'errore relativo $\approx \lambda(V_{DS2} - V_{DS1})$.
-* **Saturazione persa sul carico attivo o Cascode:** se $V_O$ scende sotto $V_{O,\min}$, il transistore d'uscita entra in triodo e la resistenza differenziale crolla a pochi ohm.
+* **Assumere $I_O = I_{ref}$ con transistori identici e $\lambda \neq 0$:** anche se $(W/L)_1 = (W/L)_2$, se $V_{DS2} \neq V_{DS1}$ nello specchio semplice compare l'errore relativo $\approx \lambda (V_{DS2} - V_{DS1})$.
+* **Ignorare la perdita di saturazione:** se la tensione di uscita scende sotto $V_{O,\min}$, il transistore d'uscita entra in triodo e la resistenza differenziale crolla a poche centinaia di ohm.
+* **Dimenticare $r_{o2}$ nel CS con carico attivo:** a differenza di un generatore ideale infinito, il carico attivo PMOS limita $R_{out}$ al parallelo $r_{o1} \parallel r_{o2}$.
 
 </Callout>
 
 <Divider label="5 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-16-1" title="Esercizio 16.1 — Dimensionamento dello Specchio Elementare" level="Base" hint="Ricava $V_{GS} = V_{th} + \sqrt{2 I_{ref} / [k_n' (W/L)_1]}$, poi $R = (V_{DD} - V_{GS})/I_{ref}$ e $V_{O,\min} = V_{GS} - V_{th}$.">
+<Exercise client:load lang="it" id="ex-16-1" title="Esercizio 16.1 — Saturazione del Diodo-Connesso ed Errore da Modulazione" level="Base" hint="Confronta la disequazione di saturazione $V_{DS} \ge V_{GS} - V_{th}$ con il vincolo $V_{DS} = V_{GS}$, poi analizza l'effetto di $\lambda$ quando $V_O \neq V_{GS}$.">
 
-Uno specchio di corrente NMOS elementare alimentato a $V_{DD} = 2.5\,\text{V}$ deve generare una corrente di uscita $I_O = 250\,\mu\text{A}$ a partire da una corrente di riferimento $I_{ref} = 100\,\mu\text{A}$. I parametri di processo sono $V_{th} = 0.5\,\text{V}$, $k_n' = 200\,\mu\text{A/V}^2$, $\lambda = 0$ e il transistore di riferimento ha $(W/L)_1 = 4$.
+Uno specchio di corrente NMOS elementare utilizza due transistori identici $(W/L)_1 = (W/L)_2$ con $\lambda \gt 0$.
 
-<StepCheck client:load lang="it" prompt="Calcola il resistore $R$ necessario per fissare $I_{ref} = 100\,\mu\text{A}$ (in $\text{k}\Omega$):" expected={15.0} tolerance={0.2} unit="$\text{k}\Omega$" explanation="$V_{OV} = \sqrt{2 \cdot 100 / (200 \cdot 4)} = 0.5\,\text{V}$, quindi $V_{GS} = 0.5 + 0.5 = 1.0\,\text{V}$ e $R = (2.5 - 1.0) / 0.1\,\text{mA} = 15.0\,\text{k}\Omega$." />
-
-<StepCheck client:load lang="it" prompt="Calcola il rapporto geometrico $(W/L)_2$ e la tensione minima di conformità $V_{O,\min}$ (inserisci $(W/L)_2$):" expected={10.0} tolerance={0.1} explanation="$(W/L)_2 = (W/L)_1 \cdot (I_O / I_{ref}) = 4 \cdot (250 / 100) = 10$ (con $V_{O,\min} = V_{OV} = 0.5\,\text{V}$)." />
+<StepCheck client:load lang="it" mode="choice" prompt="Perché $M_1$ (con Drain unito al Gate) si trova sempre in saturazione in conduzione, mentre $M_2$ può uscire dalla saturazione o introdurre errore di copia?" options={["Perché in $M_1$ vale $V_{DS1} = V_{GS1} > V_{GS1} - V_{th}$ sempre, mentre in $M_2$ la tensione $V_{DS2} = V_O$ è imposta dal circuito esterno: se $V_O < V_{OV}$ entra in triodo, e se $V_O \\neq V_{GS1}$ il fattore $(1 + \\lambda V_O)$ altera $I_O$", "Perché $M_2$ non riceve la stessa $V_{GS}$ di $M_1$", "Perché $M_1$ conduce anche quando $V_{GS1} < V_{th}$", "Perché in $M_2$ il Gate assorbe metà della corrente $I_{ref}$"]} correctIndex={0} explanation="La connessione a diodo garantisce $V_{DS1} = V_{GS1} > V_{GS1} - V_{th}$ per qualunque $V_{th} > 0$. Su $M_2$, invece, $V_O$ è libera: sotto $V_{OV}$ si entra in triodo, e per $V_O \neq V_{GS1}$ la modulazione $\lambda$ genera un errore di copia." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Overdrive e $V_{GS}$ di $M_1$:**
-
-   $$
-   V_{OV} = \sqrt{\frac{2 \cdot 100\,\mu\text{A}}{200\,\mu\text{A/V}^2 \cdot 4}} = \sqrt{0.25} = 0.5\,\text{V} \implies V_{GS} = 0.5 + 0.5 = 1.0\,\text{V}
-   $$
-
-2. **Resistore di riferimento $R$:**
-
-   $$
-   R = \frac{V_{DD} - V_{GS}}{I_{ref}} = \frac{2.5 - 1.0}{0.1\,\text{mA}} = 15.0\,\text{k}\Omega
-   $$
-
-3. **Dimensionamento di $M_2$:**
-
-   $$
-   \left(\frac{W}{L}\right)_2 = 4 \cdot \frac{250}{100} = 10, \qquad V_{O,\min} = V_{OV} = 0.5\,\text{V}
-   $$
+1. **Saturazione garantita in $M_1$:** cortocircuitando Drain e Gate si impone $V_{DS1} = V_{GS1}$. La condizione di saturazione $V_{DS1} \ge V_{GS1} - V_{th}$ si riduce a $0 \ge -V_{th}$, ossia $V_{th} \ge 0$, sempre soddisfatta in un MOSFET ad arricchimento acceso ($V_{GS1} \gt V_{th}$).
+2. **Comportamento di $M_2$:** in $M_2$ la tensione di Drain $V_O = V_{DS2}$ dipende dal carico collegato all'uscita. Se $V_O$ scende sotto $V_{OV} = V_{GS} - V_{th}$, $M_2$ entra in triodo e perde la funzione di generatore di corrente. Anche restando in saturazione, quando $V_O \neq V_{GS1}$ la modulazione di lunghezza del canale ($\lambda \gt 0$) altera la corrente secondo $\frac{1 + \lambda V_O}{1 + \lambda V_{GS1}}$, creando un errore sistematico e fissando $R_{out} = r_{o2} = 1/(\lambda I_O)$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-16-2" title="Esercizio 16.2 — Common Source con Carico Attivo PMOS" level="Intermedio" hint="Calcola $r_{o1} = 1/(\lambda_n I_D)$ e $r_{o2} = 1/(\lambda_p I_D)$; poi $R_{out} = r_{o1} \parallel r_{o2}$ e $A_v = -g_{m1} R_{out}$.">
+<Exercise client:load lang="it" id="ex-16-2" title="Esercizio 16.2 — Meccanismo dello Specchio Cascode" level="Intermedio" hint="Spiega prima come $M_3$–$M_4$ bloccano $V_{DS2}$ in DC e poi come $M_2$ degeneri il Source di $M_4$ in AC.">
 
-Uno stadio Common Source NMOS ($M_1$) con carico attivo a specchio PMOS ($M_2$) è polarizzato a $I_D = 100\,\mu\text{A}$. Il transistore $M_1$ ha $g_{m1} = 1.5\,\text{mA/V}$ e $\lambda_n = 0.04\,\text{V}^{-1}$, mentre $M_2$ ha $\lambda_p = 0.06\,\text{V}^{-1}$.
+Si sostituisce uno specchio semplice con uno specchio Cascode a quattro transistori NMOS identici ($M_1\text{--}M_4$).
 
-<StepCheck client:load lang="it" prompt="Calcola la resistenza d'uscita complessiva dello stadio $R_{out} = r_{o1} \parallel r_{o2}$ (in $\text{k}\Omega$):" expected={100.0} tolerance={1.0} unit="$\text{k}\Omega$" explanation="$r_{o1} = 250\,\text{k}\Omega$ e $r_{o2} \approx 167\,\text{k}\Omega$, quindi $R_{out} = 250 \parallel 167 = 100.0\,\text{k}\Omega$." />
-
-<StepCheck client:load lang="it" prompt="Calcola il guadagno di tensione a vuoto $A_v$ dello stadio (con segno):" expected={-150.0} tolerance={1.5} unit="$\text{V/V}$" explanation="$A_v = -g_{m1}(r_{o1} \parallel r_{o2}) = -1.5\,\text{mA/V} \cdot 100\,\text{k}\Omega = -150\,\text{V/V}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="In che modo la coppia superiore $M_3\text{--}M_4$ risolve contemporaneamente l'errore sistematico di copia e la bassa resistenza d'uscita dello specchio semplice?" options={["Raddoppiando la larghezza geometrica di $M_2$", "Bloccando $V_{DS2} \\approx V_{GS1} = V_{DS1}$ in DC e facendo vedere ad $M_4$ la resistenza $r_{o2}$ sul Source in AC, così che $R_{out} \\approx g_{m4} r_{o4} r_{o2}$", "Cortocircuitando a massa il Drain di $M_4$", "Eliminando la tensione di soglia $V_{th}$"]} correctIndex={1} explanation="In DC $V_{DS2} = V_{GS1} + V_{GS3} - V_{GS4} \approx V_{DS1}$ azzera il disallineamento dovuto a $\lambda$; in AC $M_4$ lavora da Common Gate degenerato da $r_{o2}$, moltiplicando la resistenza d'uscita per $(1 + g_{m4} r_{o2})$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Resistenze differenziali:** $r_{o1} = \frac{1}{0.04 \cdot 10^{-4}} = 250\,\text{k}\Omega$ e $r_{o2} = \frac{1}{0.06 \cdot 10^{-4}} \approx 167\,\text{k}\Omega$.
-2. **Resistenza d'uscita e guadagno:**
-
-   $$
-   R_{out} = r_{o1} \parallel r_{o2} = \frac{1}{(\lambda_n + \lambda_p) I_D} = 100.0\,\text{k}\Omega \implies A_v = -1.5 \cdot 100 = -150\,\text{V/V}
-   $$
+1. **Azzeramento dell'errore sistematico in DC:** il ramo di riferimento impone al Gate di $M_4$ il potenziale $V_{G4} = V_{GS1} + V_{GS3}$. Poiché $M_4$ conduce la corrente di uscita con $V_{GS4} \approx V_{GS3}$, il potenziale al Drain di $M_2$ viene fissato a $V_{DS2} = V_{G4} - V_{GS4} \approx V_{GS1} = V_{DS1}$. Avendo la stessa $V_{DS}$, $M_2$ copia $I_{ref}$ senza errore dovuto a $\lambda$.
+2. **Moltiplicazione di $R_{out}$ in AC:** in piccolo segnale $M_4$ ha Gate fisso (Common Gate) e vede sul proprio Source la resistenza $r_{o2}$ di $M_2$, che funge da degenerazione di Source portando $R_{out,\text{cascode}} = r_{o4}(1 + g_{m4} r_{o2}) + r_{o2} \approx g_{m4} r_{o4} r_{o2}$, al prezzo di una tensione minima di conformità maggiore ($V_{O,\min} \approx 2V_{OV} + V_{th}$).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-16-3" title="Esercizio 16.3 — Errore da Modulazione e Specchio Cascode" level="Livello Esame" hint="$I_{out} = I_{ref} \cdot ((W/L)_2/(W/L)_1) \cdot (1 + \lambda V_{DS2})/(1 + \lambda V_{DS1})$. Per il Cascode $R_{out} \approx g_m r_o^2$.">
+<Exercise client:load lang="it" id="ex-16-3" title="Esercizio 16.3 — Common Source con Carico Attivo PMOS" level="Base" hint="Ricorda che $r_o = 1/(\lambda I_D)$ e che in AC i due transistori vedono le loro resistenze interne in parallelo verso massa AC.">
 
-1. Uno specchio semplice con $I_{ref} = 100\,\mu\text{A}$ e rapporto geometrico $(W/L)_2 / (W/L)_1 = 3$ opera con $\lambda = 0.05\,\text{V}^{-1}$, $V_{DS1} = 0.9\,\text{V}$ e $V_{DS2} = 2.9\,\text{V}$.
-2. Uno specchio Cascode usa dispositivi identici con $g_m = 2\,\text{mA/V}$ e $r_o = 50\,\text{k}\Omega$.
+Uno stadio Common Source NMOS ($M_1$) con carico attivo a specchio PMOS ($M_2$) lavora a $I_D = 100\,\mu\text{A}$ con $g_{m1} = 1.5\,\text{mA/V}$, $\lambda_n = 0.04\,\text{V}^{-1}$ e $\lambda_p = 0.06\,\text{V}^{-1}$.
 
-<StepCheck client:load lang="it" prompt="Calcola la corrente reale di uscita $I_{out}$ dello specchio semplice (in $\mu\text{A}$):" expected={328.71} tolerance={1.5} unit="$\mu\text{A}$" explanation="$I_{out} = 300 \cdot (1 + 0.05 \cdot 2.9)/(1 + 0.05 \cdot 0.9) = 300 \cdot 1.145 / 1.045 \approx 328.7\,\mu\text{A}$." />
+<StepCheck client:load lang="it" prompt="Calcola la resistenza d'uscita complessiva dello stadio $R_{out} = r_{o1} \parallel r_{o2}$ (in $\text{k}\Omega$):" expected={100.0} tolerance={1.0} unit="$\text{k}\Omega$" explanation="$r_{o1} = 1/(0.04 \cdot 0.1\,\text{mA}) = 250\,\text{k}\Omega$ e $r_{o2} = 1/(0.06 \cdot 0.1\,\text{mA}) \approx 166.7\,\text{k}\Omega$, quindi $R_{out} = 250 \parallel 166.7 = 100.0\,\text{k}\Omega$." />
 
-<StepCheck client:load lang="it" prompt="Stima la resistenza d'uscita $R_{out}$ dello specchio Cascode (in $\text{M}\Omega$):" expected={5.0} tolerance={0.1} unit="$\text{M}\Omega$" explanation="$R_{out} \approx g_m r_o^2 = 2\times 10^{-3} \cdot (50\times 10^3)^2 = 5.0\,\text{M}\Omega$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Se dimezzassimo la corrente di polarizzazione $I_D$ da $100\,\mu\text{A}$ a $50\,\mu\text{A}$ (mantenendo invariato $g_{m1}$ o ricordando come scala $g_{m1} \propto \sqrt{I_D}$), che cosa succederebbe a $R_{out} = 1/[(\lambda_n + \lambda_p)I_D]$ e al modulo del guadagno $|A_v| = g_{m1} R_{out}$?" options={["$R_{out}$ raddoppia e $|A_v|$ cresce come $1/\\sqrt{I_D}$ (aumenta di $\\sqrt{2}$)", "$R_{out}$ si dimezza e $|A_v|$ crolla", "Entrambi restano indipendenti da $I_D$", "$R_{out}$ raddoppia ma $|A_v|$ diminuisce"]} correctIndex={0} explanation="Poiché $r_o = 1/(\lambda I_D)$ è inversamente proporzionale a $I_D$, dimezzando $I_D$ la resistenza $R_{out}$ raddoppia; siccome $g_{m1} \propto \sqrt{I_D}$ scende solo di $\sqrt{2}$, il prodotto $|A_v| = g_{m1} R_{out} \propto 1/\sqrt{I_D}$ aumenta!" />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Specchio semplice:** $I_{O,id} = 300\,\mu\text{A}$. Includendo $\lambda$:
+1. **Calcolo di $R_{out}$ e $A_v$:** a $I_D = 100\,\mu\text{A} = 0.1\,\text{mA}$ si ha:
 
-   $$
-   I_{out} = 300\,\mu\text{A} \cdot \frac{1 + 0.05(2.9)}{1 + 0.05(0.9)} = 300 \cdot \frac{1.145}{1.045} \approx 328.7\,\mu\text{A}
-   $$
+$$
+r_{o1} = \frac{1}{\lambda_n I_D} = 250\,\text{k}\Omega, \qquad r_{o2} = \frac{1}{\lambda_p I_D} \approx 166.7\,\text{k}\Omega
+$$
 
-2. **Specchio Cascode:** con $g_m r_o = 2 \cdot 50 = 100$:
+In AC il Gate di $M_2$ è tenuto fermo dallo specchio ($v_{sg2} = 0$), quindi $M_2$ equivale a $r_{o2}$ verso massa AC:
 
-   $$
-   R_{out} \approx g_m r_o^2 = (2 \times 10^{-3}) \cdot (50 \times 10^3)^2 = 5.0\,\text{M}\Omega
-   $$
+$$
+R_{out} = r_{o1} \parallel r_{o2} = \frac{1}{(\lambda_n + \lambda_p) I_D} = \frac{1}{(0.04 + 0.06)\cdot 0.1\,\text{mA}} = 100.0\,\text{k}\Omega
+$$
+
+Il guadagno a vuoto vale $A_v = -g_{m1} R_{out} = -1.5\,\text{mA/V} \cdot 100\,\text{k}\Omega = -150\,\text{V/V}$.
+2. **Effetto di $I_D$ sul guadagno:** riducendo la corrente di polarizzazione $I_D$, $R_{out}$ cresce come $1/I_D$ mentre $g_{m1} = \sqrt{2 k_n' (W/L)_1 I_D}$ decresce più lentamente come $\sqrt{I_D}$; pertanto il guadagno intrinseco $|A_v| \propto 1/\sqrt{I_D}$ aumenta a correnti di riposo minori (a scapito della velocità/banda).
 
 </details>
 

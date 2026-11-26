@@ -1,22 +1,31 @@
 # Exercise Rules — Interactive Practice Protocol
 
-Practice appears both inline during the explanation and at the end of each chapter under `<Divider label="4 · Exercises" />` (`"4 · Esercizi"`).
+Practice appears both inline during the explanation and at the end of each chapter under the final `<Divider label="... · Exercises" />` (`"... · Esercizi"`).
 
 ### 1. Strict Exercise-to-Theory Closure (Zero Surprise Formulas)
 
-* **Every formula, edge case, or counterfactual rule used in an exercise MUST be explicitly stated and derived in that chapter's `2 · Theory` section** (or explicitly linked back to an earlier chapter that derives it).
-* Never ask a student to compute a variation (e.g., a non-double-pumped Register File stall using $f_{\text{ALU}} + f_{\text{load}}$) unless `2 · Theory` explicitly states the general formula ($\text{Stalls} = f_{\text{conflict}} \times P_{\text{conflict}}$) and explains how to pick $f_{\text{conflict}}$.
+* **Every formula, edge case, or counterfactual rule used in an exercise MUST be explicitly stated and derived in that chapter's Theory section** (or explicitly linked back to an earlier chapter that derives it).
+* Never ask a student to compute a variation (e.g., a non-double-pumped Register File stall using $f_{\text{ALU}} + f_{\text{load}}$) unless Theory explicitly states the general formula ($\text{Stalls} = f_{\text{conflict}} \times P_{\text{conflict}}$) and explains how to pick $f_{\text{conflict}}$.
 * When an exercise combines a formula from an earlier chapter (e.g., Amdahl's Law or CPU Execution Time), include a direct clickable link to that earlier chapter inside the problem prompt.
 
-### 2. Inline Checks & Explorers (Sections 1 & 2)
+### 2. Inline Checks & Explorers (Example & Theory Sections)
 
-* Place quick `<StepCheck>` checks right after key ideas in Sections 1 and 2 so the reader verifies understanding immediately.
+* Place quick `<StepCheck>` checks right after key ideas in the Example and Theory sections so the reader verifies understanding immediately.
 * Above any interactive explorer (`<BodeExplorer />`, `<RouthExplorer />`, `<PhaseFlowExplorer />`, `<PipelineExplorer />`, etc.), write one short 1–2 sentence instruction telling the student what parameter to adjust and what change to look for—without gimmicky labels.
 
-### 3. End-of-Chapter Progression (Section 4)
+### 3. End-of-Chapter Progression (Match the Track & Exam Format)
 
-Use plain topic titles inside `<Exercise id="..." title="Exercise N.k — Topic" level="...">` (never add meta-labels like *Worked Archetype*, *Faded Completion*, or *Interleaved Synthesis* to titles):
+Use plain topic titles inside `<Exercise id="..." title="Exercise N.k — Topic" level="...">` (never add meta-labels like *Worked Archetype*, *Faded Completion*, *Oral Proof:*, or *Interleaved Synthesis* to titles).
 
+#### Track A — Conceptual / Oral-Exam Courses (e.g., *Elettronica*)
+* **Goal:** Verify genuine understanding of concepts, mechanisms, cause-and-effect, and clear oral explanation—NOT numerical drilling or trick edge cases.
+* **Difficulty:** Keep questions **easy to medium** (`Base` / `Intermedio`). Avoid convoluted algebraic edge cases or obscure corner traps.
+* **Structure (2–4 concise items):**
+  1. **Core Mechanism & Cause-and-Effect Checks (`mode="choice"`):** Ask *why* a circuit or device behaves a certain way, or how changing one physical quantity affects another.
+  2. **Conceptual Distinctions & Comparisons:** Test the clean boundaries established in Theory (e.g., Mask ROM vs. Flash, write-back vs. refresh, Latch vs. Flip-Flop, NOR vs. NAND) using `<StepCheck mode="choice">` + a concise, clear model oral explanation inside `<details className="dc-solution">`.
+  3. **Minimal Quantitative Checks (Optional, 0–1 max):** Include a simple, direct plug-in calculation *only* if a core formula is central to the chapter (and never make numerical computation the focus of the section).
+
+#### Track B — Procedural / Written-Exam Courses (e.g., *Systems Theory / Automatica*, quantitative chapters)
 1. **`Exercise N.1`:** Complete solved exam-style problem with a `<StepCheck>` before `<details className="dc-solution">`.
 2. **`Exercise N.2`:** Problem that gives the setup/first step and asks the student to finish the critical step via `<StepCheck>` before expanding `<details className="dc-solution">`.
 3. **`Exercise N.3+`:** Synthesis problem combining the current chapter's method with earlier chapters' tools (linking back to those chapters).

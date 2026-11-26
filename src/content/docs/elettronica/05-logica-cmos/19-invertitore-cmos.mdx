@@ -13,134 +13,146 @@ import CmosVtcExplorer from "@components/CmosVtcExplorer.tsx";
 
 ## Introduzione
 
-L'**invertitore CMOS statico** è il mattone base di tutta l'elettronica digitale integrata: un transistore NMOS porta l'uscita a massa quando l'ingresso è alto, mentre un transistore PMOS complementare la porta a $V_{DD}$ quando l'ingresso è basso. Poiché negli stati logici stabili i due transistori non sono mai accesi contemporaneamente, a riposo la porta non consuma quasi nulla. Vediamo come la coppia attraversa cinque regioni di funzionamento lungo la curva VTC e come dimensionare i due transistori per centrare la soglia logica $V_M$ e massimizzare i margini di rumore introdotti nel [Capitolo 18](/dynamic-courses/elettronica/05-logica-cmos/18-metriche-digitali/).
+L'**invertitore CMOS statico** è il blocco elementare di tutta l'elettronica digitale integrata: una coppia di due interruttori complementari pilotati dallo stesso ingresso $v_{in}$, in cui un transistore NMOS porta l'uscita a massa quando l'ingresso è alto e un transistore PMOS la porta all'alimentazione $V_{DD}$ quando l'ingresso è basso. Poiché negli stati logici stabili uno dei due rami è sempre aperto e l'altro è chiuso, il circuito garantisce un'escursione completa tra $0\,\text{V}$ e $V_{DD}$ con consumo statico praticamente nullo. In questo capitolo analizziamo le cinque regioni di funzionamento lungo la curva VTC e ricaviamo come dimensionare la coppia per centrare la soglia logica $V_M$ e massimizzare i margini di rumore definiti nel [Capitolo 18](/dynamic-courses/elettronica/05-logica-cmos/18-metriche-digitali/).
 
 <Divider label="1 · Architettura Complementare e Cinque Regioni della VTC" />
 
-### Esempio — Esplorazione Punto per Punto della VTC di un Invertitore CMOS
+### Funzionamento Complementare della Coppia
 
-Seguiamo cosa succede ai due transistori $M_n$ ed $M_p$ di un invertitore CMOS ([la figura](#fig-cmos-inverter-schematic)) alimentato a $V_{DD} = 3.3\,\text{V}$, con soglie $V_{tn} = |V_{tp}| = 0.7\,\text{V}$ e fattori bilanciati $K_n = K_p = 400\,\mu\text{A/V}^2$ ($V_M = 1.65\,\text{V}$), mentre aumentiamo l'ingresso $v_{in}$ da $0\,\text{V}$ a $3.3\,\text{V}$ attraverso le cinque regioni della VTC ([la figura](#fig-cmos-vtc-regions)):
+L'idea dell'invertitore CMOS è collegare il nodo di uscita tra due valvole che rispondono in modo opposto allo stesso comando $v_{in}$: la valvola superiore (PMOS) è aperta quando $v_{in}$ è basso e si chiude quando $v_{in}$ sale; la valvola inferiore (NMOS) è chiusa quando $v_{in}$ è basso e si apre quando $v_{in}$ sale.
+
+Immaginiamo due rubinetti montati sullo stesso tubo di uscita, uno collegato al serbatoio alto ($V_{DD}$) e l'altro allo scarico ($0\,\text{V}$), comandati da una singola leva. Quando la leva è tutta a sinistra, è aperto solo il rubinetto superiore e l'uscita resta ferma a $V_{DD}$ senza che scorra acqua verso lo scarico. Man mano che spostiamo la leva verso il centro, il rubinetto inferiore inizia a lasciar passare corrente mentre quello superiore è ancora aperto; al punto di equilibrio centrale entrambi oppongono una forte resistenza dinamica e l'uscita crolla bruscamente. Spingendo infine la leva tutta a destra, il rubinetto superiore si chiude e l'uscita si adagia stabilmente a massa, ancora una volta senza flusso continuo.
+
+### Teoria — Topologia Statica e Cinque Regioni Operative
+
+#### Topologia e Relazioni ai Terminali
+
+L'invertitore CMOS statico ([la figura](#fig-cmos-inverter-schematic)) collega in serie tra $V_{DD}$ e massa un transistore PMOS $M_p$ (rete di **Pull-Up**, PUN) e un transistore NMOS $M_n$ (rete di **Pull-Down**, PDN):
+
+* I due **gate** sono cortocircuitati insieme sul morsetto di ingresso $v_{in}$.
+* I due **drain** convergono sul morsetto di uscita $v_{out}$, che pilota la capacità di carico complessiva $C_L$.
+* I **source** e i **body** sono collegati ai rispettivi riferimenti fissi: source e body di $M_n$ a massa ($V_{SBn} = 0$), source e body di $M_p$ a $V_{DD}$ ($V_{BSp} = 0$), eliminando l'effetto body.
 
 <figure id="fig-cmos-inverter-schematic" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cmos-inverter-schematic.svg" alt="Schema circuitale dell'invertitore CMOS statico con carico capacitivo C_L." />
   <figcaption>Schema circuitale dell'invertitore CMOS statico con carico capacitivo $C_L$.</figcaption>
 </figure>
 
-1. **Regione A ($v_{in} = 0.3\,\text{V} < V_{tn}$):**
-   L'NMOS è sotto soglia ed è **interdetto** ($i_{Dn} = 0$). Il PMOS è acceso in **triodo** ($v_{SGp} = 3.0\,\text{V} > 0.7\,\text{V}$), ma con corrente nulla tiene l'uscita ferma a $v_{out} = V_{OH} = 3.3\,\text{V}$ senza consumare potenza.
-2. **Regione B ($v_{in} = 1.2\,\text{V} \in [0.7\,\text{V}, 1.65\,\text{V})$):**
-   $M_n$ supera la soglia ed entra in **saturazione** con una piccola corrente ($i_{Dn} = \frac{1}{2} K_n (1.2 - 0.7)^2 = 50\,\mu\text{A}$). Il PMOS, ancora ben acceso in **triodo**, fa passare la stessa corrente cedendo appena $\approx 0.1\,\text{V}$, così l'uscita scende leggermente a $v_{out} \approx 3.2\,\text{V}$.
-3. **Regione C ($v_{in} = V_M = 1.65\,\text{V}$):**
-   Al punto centrale $v_{out} = v_{in} = 1.65\,\text{V}$, **entrambi i transistori sono in saturazione**: è la zona di transizione più ripida della curva.
-4. **Regione D ($v_{in} = 2.1\,\text{V} \in (1.65\,\text{V}, 2.6\,\text{V}]$):**
-   I ruoli si invertono in modo speculare alla Regione B: ora è il PMOS a essere in **saturazione** ($i_{Dp} = 50\,\mu\text{A}$), mentre l'NMOS lavora in **triodo** e tira l'uscita vicino a massa ($v_{out} \approx 0.1\,\text{V}$).
-5. **Regione E ($v_{in} = 3.0\,\text{V} > V_{DD} - |V_{tp}| = 2.6\,\text{V}$):**
-   Il PMOS si spegne (**interdetto**) e l'NMOS in **triodo** a corrente nulla blocca l'uscita esattamente a $v_{out} = V_{OL} = 0\,\text{V}$, ancora una volta a consumo statico nullo.
+Le tensioni ai terminali dei due dispositivi (secondo le [caratteristiche statiche del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)) si esprimono direttamente in funzione di $v_{in}$ e $v_{out}$:
+
+$$
+v_{GSn} = v_{in}, \quad v_{DSn} = v_{out}, \qquad v_{SGp} = V_{DD} - v_{in}, \quad v_{SDp} = V_{DD} - v_{out}
+$$
+
+In condizioni statiche la capacità $C_L$ si comporta come un circuito aperto, quindi la legge di Kirchhoff al nodo di uscita impone che tutta la corrente erogata dal PMOS entri nell'NMOS:
+
+$$
+i_{Dp} = i_{Dn}
+$$
+
+#### Le Cinque Regioni della VTC
+
+Al crescere progressivo di $v_{in}$ da $0$ a $V_{DD}$, i due MOSFET attraversano cinque regioni operative ([la figura](#fig-cmos-vtc-regions)):
+
+1. **Regione A ($0 \le v_{in} \lt V_{tn}$):**
+   La tensione di ingresso è inferiore alla soglia dell'NMOS, quindi $M_n$ è **interdetto** ($i_{Dn} = 0$). Il PMOS ha $v_{SGp} = V_{DD} - v_{in} > |V_{tp}|$ ed è pronto a condurre, ma poiché $i_{Dp} = i_{Dn} = 0$ può azzerare la corrente solo annullando $v_{SDp} = V_{DD} - v_{out}$. Pertanto $M_p$ lavora in **triodo** a corrente nulla e aggancia l'uscita esattamente a $v_{out} = V_{DD} = V_{OH}$.
+2. **Regione B ($V_{tn} \le v_{in} \lt V_M$):**
+   Appena $v_{in}$ supera $V_{tn}$, $M_n$ si accende. Poiché $v_{out}$ è ancora molto alta (vicina a $V_{DD}$), si ha $v_{DSn} > v_{in} - V_{tn}$, quindi $M_n$ entra in **saturazione** e inizia a tirare una piccola corrente verso massa. Il PMOS, ancora fortemente acceso con $v_{SDp}$ piccolissima, riesce a fornire la stessa corrente lavorando in **triodo** con una caduta minima su $v_{SDp}$. L'uscita inizia a scendere dolcemente e incontra il primo punto a pendenza unitaria $V_{IL}$.
+3. **Regione C ($v_{in} \approx V_M$):**
+   Attorno al punto di commutazione $v_{in} = v_{out} = V_M$, la tensione d'uscita è scesa abbastanza da portare $v_{SDp} > v_{SGp} - |V_{tp}|$ mantenendo al contempo $v_{DSn} > v_{GSn} - V_{tn}$. **Entrambi i transistori operano simultaneamente in saturazione**. Trascurando la modulazione di lunghezza di canale ($\lambda \approx 0$), il parallelo delle loro resistenze d'uscita differenziali è molto elevato: la coppia agisce come un amplificatore invertente ad altissimo guadagno, rendendo la VTC quasi verticale e restringendo così la zona di incertezza $[V_{IL}, V_{IH}]$.
+4. **Regione D ($V_M \lt v_{in} \le V_{DD} - |V_{tp}|$):**
+   I ruoli si scambiano in modo speculare alla Regione B: ora $v_{out}$ è bassa, quindi $M_n$ opera in **triodo** con piccola caduta $v_{DSn}$, mentre $M_p$ ha ampia tensione $v_{SDp}$ ed è in **saturazione**. La curva rallenta nuovamente fino a raggiungere il secondo punto a pendenza unitaria $V_{IH}$.
+5. **Regione E ($V_{DD} - |V_{tp}| \lt v_{in} \le V_{DD}$):**
+   Quando $v_{in}$ supera $V_{DD} - |V_{tp}|$, risulta $v_{SGp} < |V_{tp}|$: il PMOS si spegne (**interdetto**, $i_{Dp} = 0$). Di conseguenza $M_n$ opera in **triodo** a corrente nulla ($v_{DSn} = 0$) e blocca l'uscita esattamente a $v_{out} = 0\,\text{V} = V_{OL}$, di nuovo senza dissipazione statica.
 
 <figure id="fig-cmos-vtc-regions" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cmos-vtc-regions.svg" alt="Le cinque regioni di funzionamento dei transistori M_n ed M_p lungo la caratteristica VTC dell'invertitore CMOS." />
   <figcaption>Le cinque regioni di funzionamento dei transistori $M_n$ ed $M_p$ lungo la caratteristica VTC dell'invertitore CMOS.</figcaption>
 </figure>
 
-<StepCheck client:load lang="it" mode="choice" prompt="In quale regione operativa lavorano rispettivamente $M_n$ e $M_p$ quando $v_{in} = V_M$?" options={["$M_n$ in triodo, $M_p$ in saturazione", "Entrambi in saturazione", "$M_n$ in saturazione, $M_p$ in triodo"]} correctIndex={1} explanation="Al punto di commutazione $v_{in} = v_{out} = V_M$, entrambi i transistori soddisfano $v_{DS} > v_{GS} - V_{th}$ e operano simultaneamente in saturazione (Regione C)." />
-
-### Teoria — Struttura Complementare e Cinque Regioni della VTC
-
-L'invertitore CMOS ([la figura](#fig-cmos-inverter-schematic)) unisce in modo complementare un NMOS $M_n$ tra uscita e massa (rete di **Pull-Down**, PDN) e un PMOS $M_p$ tra $V_{DD}$ e uscita (rete di **Pull-Up**, PUN). I due gate sono collegati insieme all'ingresso $v_{in}$, i due drain all'uscita $v_{out}$, e i rispettivi body ai propri riferimenti ($V_{SBn} = 0$, $V_{BSp} = 0$).
-
-In condizioni statiche la capacità $C_L$ è aperta, quindi la corrente che entra in $M_n$ deve eguagliare quella che esce da $M_p$ ($i_{Dn} = i_{Dp}$). Le tensioni ai terminali (secondo le [caratteristiche statiche del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)) dipendono direttamente da $v_{in}$ e $v_{out}$:
-
-$$
-v_{GSn} = v_{in}, \quad v_{DSn} = v_{out}, \qquad v_{SGp} = V_{DD} - v_{in}, \quad v_{SDp} = V_{DD} - v_{out}
-$$
-
-Al crescere di $v_{in}$ da $0$ a $V_{DD}$, la coppia attraversa cinque regioni ([la figura](#fig-cmos-vtc-regions)):
-
-1. **Regione A ($0 \le v_{in} \lt V_{tn}$):** $M_n$ è **interdetto** ($i_{Dn} = 0$); $M_p$ è in **triodo** a corrente nulla e mantiene $v_{out} = V_{DD} = V_{OH}$.
-2. **Regione B ($V_{tn} \le v_{in} \lt V_M$):** $M_n$ inizia a condurre in **saturazione**, mentre $M_p$ resta in **triodo** perché $v_{out}$ è ancora alta. L'uscita inizia a scendere e incontra il punto $V_{IL}$ (pendenza $-1$).
-3. **Regione C ($v_{in} \approx V_M$):** vicino alla soglia logica, **entrambi i transistori sono in saturazione**. Lavorano come un amplificatore invertente ad altissimo guadagno, rendendo la transizione quasi verticale e restringendo così la zona di incertezza $[V_{IL}, V_{IH}]$.
-4. **Regione D ($V_M \lt v_{in} \le V_{DD} - |V_{tp}|$):** i ruoli si scambiano: $M_n$ passa in **triodo** (perché $v_{out}$ è ormai bassa) e $M_p$ entra in **saturazione**. Qui la curva rallenta la discesa e incontra $V_{IH}$ (pendenza $-1$).
-5. **Regione E ($V_{DD} - |V_{tp}| \lt v_{in} \le V_{DD}$):** $M_p$ è **interdetto** ($i_{Dp} = 0$); $M_n$ è in **triodo** a corrente nulla e fissa $v_{out} = 0\,\text{V} = V_{OL}$.
+<StepCheck client:load lang="it" mode="choice" prompt="In quale regione operativa lavorano rispettivamente $M_n$ e $M_p$ quando $v_{in} = V_M$ e perché la curva è così ripida in quel punto?" options={["$M_n$ in triodo e $M_p$ in saturazione, creando un partitore resistivo lineare", "Entrambi in saturazione, comportandosi come un amplificatore invertente ad alto guadagno", "$M_n$ in saturazione e $M_p$ interdetto, scaricando bruscamente l'uscita"]} correctIndex={1} explanation="Al punto di commutazione $v_{in} = v_{out} = V_M$, entrambi i transistori soddisfano $v_{DS} > v_{GS} - V_{th}$ e operano simultaneamente in saturazione (Regione C), generando un guadagno differenziale molto elevato." />
 
 <Divider label="2 · Soglia Logica, Dimensionamento Simmetrico e Margini" />
 
-### Esempio — Asimmetria di Mobilità, Centratura di $V_M$ e Corrente di Picco
+### Equilibrio tra Rete NMOS e Rete PMOS
 
-Dimensioniamo un invertitore CMOS alimentato a $V_{DD} = 3.3\,\text{V}$, con soglie $V_{tn} = |V_{tp}| = 0.7\,\text{V}$ e parametri tecnologici $k_n' = 200\,\mu\text{A/V}^2$ e $k_p' = 80\,\mu\text{A/V}^2$ (quindi $\mu_n / \mu_p = 2.5$). Partiamo da un NMOS con $(W/L)_n = 2$, che dà $K_n = 200 \times 2 = 400\,\mu\text{A/V}^2$:
+La **soglia logica** $V_M$ rappresenta il punto di pareggio in cui il transistore NMOS che tira verso massa e il transistore PMOS che tira verso $V_{DD}$ esercitano esattamente la stessa forza. Per ottenere la massima immunità ai disturbi sia per lo `'0'` sia per l'`'1'`, desideriamo che questo equilibrio cada esattamente a metà dell'alimentazione ($V_M = V_{DD}/2$).
 
-1. **Caso non compensato ($(W/L)_p = (W/L)_n = 2$):**
-   Se usiamo le stesse dimensioni per entrambi, il PMOS risulta $2.5$ volte più debole dell'NMOS ($K_p = 80 \times 2 = 160\,\mu\text{A/V}^2$). Il rapporto di asimmetria vale $r = \sqrt{K_n / K_p} = \sqrt{2.5} \approx 1.58$, e la soglia logica $V_M$ scende sotto metà alimentazione ($1.65\,\text{V}$):
+Tuttavia, nel silicio gli elettroni che trasportano la corrente nell'NMOS sono circa $2.5\text{--}3$ volte più mobili delle lacune che trasportano la corrente nel PMOS. Se costruissimo i due transistori con le stesse dimensioni geometriche, l'NMOS risulterebbe molto più forte del PMOS: vincerebbe il tiro alla fune prima ancora di arrivare a metà strada, spostando la soglia $V_M$ verso massa e rendendo la carica in salita più lenta della scarica in discesa. Per pareggiare le forze occorre allargare il canale del PMOS in modo da compensare la minore velocità dei suoi portatori.
 
-$$
-V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r} = \frac{3.3 - 0.7 + 1.58 \times 0.7}{1 + 1.58} \approx 1.44\,\text{V}
-$$
+### Teoria — Soglia Logica, Simmetria Geometrica e Corrente di Picco
 
-   Questa asimmetria riduce il margine di rumore basso $NM_L$ e rende la salita $t_{pLH}$ ben $2.5$ volte più lenta della discesa $t_{pHL}$.
+#### Derivazione Generale della Soglia Logica $V_M$
 
-2. **Dimensionamento simmetrico ($(W/L)_p = 2.5\,(W/L)_n = 5$):**
-   Per centrare $V_M = 1.65\,\text{V}$ e rendere uguali i tempi di carica e scarica, allarghiamo il PMOS del fattore $2.5$: ponendo $(W/L)_p = 5$ otteniamo $K_p = 80 \times 5 = 400\,\mu\text{A/V}^2 = K_n$ ($r = 1$). Le soglie critiche diventano:
-
-$$
-V_{IL} = \frac{3 V_{DD} + 2 V_{th}}{8} = \frac{9.9 + 1.4}{8} \approx 1.41\,\text{V}, \qquad V_{IH} = \frac{5 V_{DD} - 2 V_{th}}{8} = \frac{16.5 - 1.4}{8} \approx 1.89\,\text{V}
-$$
-
-   con margini bilanciati $NM_L = NM_H \approx 1.41\,\text{V}$. Al passaggio per $v_{in} = V_M = 1.65\,\text{V}$, la corrente di cortocircuito tra $V_{DD}$ e massa tocca il picco:
-
-$$
-I_{peak} = \frac{1}{2} K_n (V_M - V_{tn})^2 = 0.5 \times 400\,\mu\text{A/V}^2 \times (1.65 - 0.7)^2 \approx 180.5\,\mu\text{A}
-$$
-
-Nel simulatore qui sotto prova a variare $K_n/K_p$ da $1.0$ a $2.5$ e a $0.4$, osservando come si spostano $V_M$ e i margini di rumore.
-
-<CmosVtcExplorer client:load />
-
-<StepCheck client:load lang="it" prompt="Nel circuito d'esempio ($V_{DD} = 3.3\,\text{V}$, $V_{tn} = |V_{tp}| = 0.7\,\text{V}$), se il PMOS è dimensionato in modo simmetrico ($K_n = K_p$), quanto vale il margine di rumore $NM_L = NM_H$ (in $\text{V}$)?" expected={1.413} tolerance={0.02} unit="$\text{V}$" explanation="Per un invertitore simmetrico $V_{IL} = (3 V_{DD} + 2 V_{th})/8 = (9.9 + 1.4)/8 = 1.4125\,\text{V}$, quindi $NM_L = NM_H = 1.413\,\text{V}$." />
-
-### Teoria — Derivazione di $V_M$, Regola di Simmetria, $V_{IL}/V_{IH}$ e Picco $I_{peak}$
-
-1. **Derivazione della soglia logica $V_M$:**
-   Nel punto di commutazione $v_{in} = v_{out} = V_M$ (Regione C) entrambi i MOSFET sono in saturazione. Uguagliando le due correnti con $K_n = k_n'(W/L)_n$ e $K_p = k_p'(W/L)_p$:
+Nel punto di commutazione $v_{in} = v_{out} = V_M$ (Regione C) entrambi i transistori sono in saturazione. Trascurando l'effetto di modulazione di lunghezza di canale e ponendo $i_{Dn} = i_{Dp}$ con $K_n = k_n'(W/L)_n$ e $K_p = k_p'(W/L)_p$, si scrive:
 
 $$
 \frac{1}{2} K_n (V_M - V_{tn})^2 = \frac{1}{2} K_p (V_{DD} - V_M - |V_{tp}|)^2
 $$
 
-   Estraendo la radice quadrata positiva e definendo il **rapporto di asimmetria** $r = \sqrt{K_n / K_p}$:
+Poiché in Regione C entrambi gli overdrive sono positivi ($V_M > V_{tn}$ e $V_{DD} - V_M > |V_{tp}|$), possiamo estrarre la radice quadrata positiva di entrambi i membri. Definendo il **rapporto di asimmetria** $r = \sqrt{K_n / K_p}$ si ottiene:
 
 $$
-r(V_M - V_{tn}) = V_{DD} - V_M - |V_{tp}| \implies V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r}
+r(V_M - V_{tn}) = V_{DD} - V_M - |V_{tp}|
 $$
 
-2. **Condizione di simmetria geometrica ($V_M = V_{DD}/2$):**
-   Con soglie uguali ($V_{tn} = |V_{tp}| = V_{th}$), per ottenere $V_M = V_{DD}/2$ serve $r = 1$, cioè $K_n = K_p$. Poiché $k_n'/k_p' = \mu_n/\mu_p$, si ricava la regola pratica di dimensionamento simmetrico:
+Risolvendo rispetto a $V_M$ si ricava l'espressione generale della soglia logica valida per qualsiasi dimensionamento:
 
 $$
-\left(\frac{W}{L}\right)_p = \frac{\mu_n}{\mu_p} \left(\frac{W}{L}\right)_n \implies W_p \approx (2.5 \div 3.0) \times W_n \quad (\text{a } L_p = L_n)
+V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r}, \qquad \text{con } r = \sqrt{\frac{K_n}{K_p}}
 $$
 
-   Allargare il PMOS compensa la minore mobilità delle lacune nel silicio e garantisce tre vantaggi insieme: soglia centrata ($V_M = V_{DD}/2$), margini uguali ($NM_H = NM_L$) e ritardi bilanciati ($t_{pHL} = t_{pLH}$).
+Questa formula mostra chiaramente l'effetto dello squilibrio tra i due transistori:
+* se $K_n > K_p$ ($r > 1$), $V_M$ si abbassa al di sotto di $V_{DD}/2$, riducendo il margine di rumore basso $NM_L$ e rallentando la salita rispetto alla discesa;
+* se $K_p > K_n$ ($r < 1$), $V_M$ si sposta verso $V_{DD}$, penalizzando invece $NM_H$.
 
-3. **Formule chiuse per $V_{IL}$, $V_{IH}$ e margini (caso simmetrico):**
-   Imponendo la condizione di pendenza $-1$ nelle Regioni B e D per un invertitore simmetrico ($K_n = K_p$, $V_{tn} = |V_{tp}| = V_{th}$) si ottengono le espressioni compatte:
+#### Condizione di Simmetria Geometrica
+
+Nel caso in cui le soglie siano uguali in valore assoluto ($V_{tn} = |V_{tp}| = V_{th}$), imporre che la soglia cada esattamente al centro ($V_M = V_{DD}/2$) equivale a richiedere $r = 1$, cioè la perfetta uguaglianza dei fattori di transconduttanza geometrici:
+
+$$
+r = 1 \iff K_n = K_p \iff k_n'\left(\frac{W}{L}\right)_n = k_p'\left(\frac{W}{L}\right)_p
+$$
+
+Ricordando che $k_n' = \mu_n C_{ox}''$ e $k_p' = \mu_p C_{ox}''$, a parità di ossido di gate e di lunghezza di canale ($L_p = L_n$) si ottiene la regola fondamentale di **dimensionamento simmetrico**:
+
+$$
+\left(\frac{W}{L}\right)_p = \frac{\mu_n}{\mu_p} \left(\frac{W}{L}\right)_n \implies W_p \approx (2.5 \div 3.0) \times W_n
+$$
+
+Allargare il PMOS compensa la minore mobilità delle lacune nel silicio e produce tre benefici simultanei: centra la soglia logica a $V_M = V_{DD}/2$, rende uguali i margini di rumore ($NM_H = NM_L$) e bilancia le resistenze equivalenti ($R_p = R_n$), uniformando i ritardi di propagazione ($t_{pHL} = t_{pLH}$).
+
+#### Livelli Critici $V_{IL}, V_{IH}$ e Picco di Cortocircuito
+
+Per un invertitore dimensionato in modo simmetrico ($K_n = K_p$ e $V_{tn} = |V_{tp}| = V_{th}$), imponendo la condizione di pendenza differenziale $dv_{out}/dv_{in} = -1$ rispettivamente nella Regione B e nella Regione D si ricavano le espressioni chiuse dei livelli critici e dei margini di rumore:
 
 $$
 V_{IL} = \frac{3 V_{DD} + 2 V_{th}}{8}, \qquad V_{IH} = \frac{5 V_{DD} - 2 V_{th}}{8}, \qquad NM_L = NM_H = \frac{3 V_{DD} + 2 V_{th}}{8}
 $$
 
-4. **Corrente di picco di cortocircuito ($I_{peak}$):**
-   Mentre l'ingresso attraversa la soglia $V_M$, entrambi i MOSFET conducono in saturazione creando un passaggio diretto tra $V_{DD}$ e massa. Nel caso simmetrico ($V_M = V_{DD}/2$) il picco vale:
+Inoltre, mentre l'ingresso transita per la soglia $V_M$, entrambi i MOSFET conducono in saturazione creando un percorso diretto tra $V_{DD}$ e massa. La corrente assorbita dall'alimentazione tocca il suo massimo proprio in $v_{in} = V_M$:
 
 $$
-I_{peak} = \frac{1}{2} K_n \left(V_M - V_{th}\right)^2 = \frac{1}{2} K_n \left(\frac{V_{DD}}{2} - V_{th}\right)^2
+I_{peak} = \frac{1}{2} K_n (V_M - V_{tn})^2
 $$
 
-   Quando milioni di porte commutano insieme sullo stesso fronte di clock, la somma di questi picchi può causare disturbi sulle linee di alimentazione, motivo per cui sui chip si distribuiscono condensatori di disaccoppiamento.
+Nel caso simmetrico ($V_M = V_{DD}/2$), questo picco diventa $I_{peak} = \frac{1}{2} K_n \left(\frac{V_{DD}}{2} - V_{th}\right)^2$. Quando milioni di porte commutano sullo stesso fronte di clock, la somma di tali picchi può provocare cadute impulsive sulle piste di alimentazione, motivo per cui sui chip si distribuiscono condensatori di disaccoppiamento vicino ai blocchi logici.
 
 <Callout type="tip" title="Vantaggi del CMOS Complementare">
 
-L'architettura complementare NMOS + PMOS domina l'elettronica digitale per due motivi: consumo statico praticamente nullo negli stati fermi (uno dei due rami è sempre spento) ed escursione logica completa *rail-to-rail* tra $0\,\text{V}$ e $V_{DD}$.
+L'architettura complementare NMOS + PMOS domina l'elettronica digitale per due proprietà decisive: consumo statico trascurabile negli stati fermi (uno dei due rami è sempre interdetto) ed escursione logica completa *rail-to-rail* tra $0\,\text{V}$ e $V_{DD}$, con ampi margini di rumore.
 
 </Callout>
+
+Nel simulatore qui sotto varia il rapporto $K_n/K_p$ da $1.0$ a $2.5$ (caso non compensato con dimensioni identiche) e a $0.4$, osservando come si spostano la soglia $V_M$, la pendenza della VTC e i margini di rumore $NM_L$ e $NM_H$.
+
+<CmosVtcExplorer client:load />
+
+Verifichiamo i risultati sulle formule appena ricavate con un caso concreto a $V_{DD} = 3.3\,\text{V}$, $V_{tn} = |V_{tp}| = 0.7\,\text{V}$, $k_n' = 200\,\mu\text{A/V}^2$, $k_p' = 80\,\mu\text{A/V}^2$ ($\mu_n/\mu_p = 2.5$) e $(W/L)_n = 2$ ($K_n = 400\,\mu\text{A/V}^2$):
+* **Senza compensazione ($(W/L)_p = 2$):** risulta $K_p = 160\,\mu\text{A/V}^2$, quindi $r = \sqrt{2.5} \approx 1.58$ e la soglia scende a $V_M = \frac{3.3 - 0.7 + 1.58 \times 0.7}{1 + 1.58} \approx 1.44\,\text{V}$ (sotto $1.65\,\text{V}$).
+* **Con dimensionamento simmetrico ($(W/L)_p = 2.5 \times 2 = 5$):** si ottiene $K_p = K_n = 400\,\mu\text{A/V}^2$ ($r = 1$), $V_M = 1.65\,\text{V}$, livelli critici $V_{IL} = \frac{9.9 + 1.4}{8} \approx 1.41\,\text{V}$ e $V_{IH} \approx 1.89\,\text{V}$, margini bilanciati $NM_L = NM_H \approx 1.41\,\text{V}$ e corrente di picco $I_{peak} = 0.5 \times 400\,\mu\text{A/V}^2 \times (1.65 - 0.7)^2 \approx 180.5\,\mu\text{A}$.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Se in un invertitore CMOS scegliamo $(W/L)_p = (W/L)_n$ in un processo con $\mu_n / \mu_p = 2.5$, dove si sposta la soglia logica $V_M$ rispetto a $V_{DD}/2$?" options={["Resta esattamente a $V_{DD}/2$ perché le geometrie dei due transistori sono uguali", "Scende al di sotto di $V_{DD}/2$ perché l'NMOS ha una transconduttanza $K_n$ maggiore del PMOS ($r > 1$)", "Sale al di sopra di $V_{DD}/2$ perché le lacune conducono prima degli elettroni"]} correctIndex={1} explanation="Con geometrie uguali, $K_n > K_p$ per il rapporto $\mu_n / \mu_p = 2.5$, quindi $r = \sqrt{K_n/K_p} > 1$ e la formula $V_M = (V_{DD} - |V_{tp}| + r V_{tn})/(1 + r)$ sposta la soglia verso massa." />
 
 <Divider label="3 · Sintesi" />
 
@@ -148,111 +160,84 @@ L'architettura complementare NMOS + PMOS domina l'elettronica digitale per due m
 
 | Regione | Intervallo di $v_{in}$ | Stato $M_n$ | Stato $M_p$ | Comportamento di Uscita |
 | :--- | :--- | :--- | :--- | :--- |
-| **A** | $0 \le v_{in} \lt V_{tn}$ | Interdetto | Triodo | $v_{out} = V_{DD} = V_{OH}$ |
+| **A** | $0 \le v_{in} \lt V_{tn}$ | Interdetto | Triodo | $v_{out} = V_{DD} = V_{OH}$ ($i_D = 0$) |
 | **B** | $V_{tn} \le v_{in} \lt V_M$ | Saturazione | Triodo | Transizione alta; contiene $V_{IL}$ |
 | **C** | $v_{in} \approx V_M$ | Saturazione | Saturazione | Massima pendenza; $v_{out} = V_M$ |
 | **D** | $V_M \lt v_{in} \le V_{DD} - \lvert V_{tp}\rvert$ | Triodo | Saturazione | Transizione bassa; contiene $V_{IH}$ |
-| **E** | $V_{DD} - \lvert V_{tp}\rvert \lt v_{in} \le V_{DD}$ | Triodo | Interdetto | $v_{out} = 0\,\text{V} = V_{OL}$ |
+| **E** | $V_{DD} - \lvert V_{tp}\rvert \lt v_{in} \le V_{DD}$ | Triodo | Interdetto | $v_{out} = 0\,\text{V} = V_{OL}$ ($i_D = 0$) |
 
 ### Procedura di Dimensionamento
 
-1. **Calcolare il rapporto di asimmetria:** valutare $r = \sqrt{K_n / K_p}$ dai parametri tecnologici e dai rapporti $(W/L)$.
-2. **Determinare la soglia logica:** applicare $V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r}$ per verificare dove cade il punto di commutazione.
-3. **Imporre la simmetria ($V_M = V_{DD}/2$):** dimensionare $(W/L)_p = \frac{\mu_n}{\mu_p} (W/L)_n \approx (2.5 \div 3)\,(W/L)_n$ per ottenere $K_p = K_n$ e $t_{pHL} = t_{pLH}$.
-
-### Dimostrazioni Chiave
-
-* **Derivazione di $V_M$:** in $v_{in} = v_{out} = V_M$ entrambi i MOSFET sono in saturazione; uguagliando $I_{Dn} = I_{Dp}$ ed estraendo la radice quadrata positiva si ricava $V_M$.
-* **Condizione di simmetria $r = 1$:** imponendo $V_M = V_{DD}/2$ con $V_{tn} = |V_{tp}|$, si ottiene $r = 1 \iff K_n = K_p$.
-* **Picco di corrente di cortocircuito:** valutando la corrente di saturazione di $M_n$ a $v_{in} = V_M = V_{DD}/2$, si ha $I_{peak} = \frac{1}{2} K_n (V_{DD}/2 - V_{th})^2$.
+1. **Valutare il rapporto di asimmetria:** calcolare $r = \sqrt{K_n / K_p}$ dai parametri tecnologici $k_n', k_p'$ e dai rapporti geometrici $(W/L)$.
+2. **Determinare la soglia logica:** applicare $V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r}$ per individuare dove cade il punto di commutazione.
+3. **Imporre la simmetria ($V_M = V_{DD}/2$):** con $V_{tn} = |V_{tp}|$, dimensionare $(W/L)_p = \frac{\mu_n}{\mu_p} (W/L)_n \approx (2.5 \div 3)\,(W/L)_n$ in modo da ottenere $K_p = K_n$ e $t_{pHL} = t_{pLH}$.
 
 <Callout type="warning" title="Errori Comuni">
 
-Le lacune nel silicio hanno mobilità $\mu_p$ circa $2.5\text{--}3$ volte inferiore agli elettroni ($\mu_n$). Scegliere $(W/L)_p = (W/L)_n$ **non** rende l'invertitore simmetrico: sposta $V_M$ verso massa e rende la salita $t_{pLH}$ molto più lenta della discesa $t_{pHL}$.
+Le lacune nel silicio hanno mobilità $\mu_p$ circa $2.5\text{--}3$ volte inferiore agli elettroni ($\mu_n$). Scegliere $(W/L)_p = (W/L)_n$ **non** rende l'invertitore simmetrico: sposta $V_M$ verso massa ($r > 1$), riduce $NM_L$ e rende la salita $t_{pLH}$ molto più lenta della discesa $t_{pHL}$. Inoltre, nelle Regioni A ed E il transistore acceso lavora in **triodo a corrente nulla** ($v_{DS} = 0$), non in saturazione.
 
 </Callout>
 
 <Divider label="4 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-19-1" title="Esercizio 19.1 — Soglia Logica e Dimensionamento Simmetrico" level="Base" hint="Usa $r = \sqrt{K_n / K_p}$, $V_M = (V_{DD} - |V_{tp}| + r V_{tn})/(1 + r)$ e $(W/L)_p = (\mu_n/\mu_p)(W/L)_n$.">
+<Exercise client:load lang="it" id="ex-19-1" title="Esercizio 19.1 — Regioni Operative e Guadagno nella Zona Centrale" level="Base" hint="Analizza in quale regione lavorano $M_n$ ed $M_p$ quando $v_{in} = V_M$ e cosa significa avere entrambi i dispositivi in saturazione.">
 
-1. Un invertitore CMOS asimmetrico è alimentato a $V_{DD} = 3.3\,\text{V}$ con $V_{tn} = |V_{tp}| = 0.7\,\text{V}$ e $K_n / K_p = 4$.
-2. In un processo in cui $\mu_n / \mu_p = 2.8$ e l'NMOS ha $(W/L)_n = 2$, si vuole rendere simmetrico l'invertitore.
+Durante la discussione della VTC dell'invertitore CMOS viene chiesto come evolvono gli stati dei due transistori e perché la transizione attorno a $V_M$ è quasi verticale.
 
-<StepCheck client:load lang="it" prompt="Calcola la soglia logica $V_M$ dell'invertitore asimmetrico (in $\text{V}$):" expected={1.333} tolerance={0.02} unit="$\text{V}$" explanation="$r = \sqrt{4} = 2$; $V_M = (3.3 - 0.7 + 2\cdot 0.7) / (1 + 2) = 4.0 / 3 \approx 1.333\,\text{V}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola il rapporto $(W/L)_p$ necessario per ottenere la simmetria $K_p = K_n$:" expected={5.6} tolerance={0.05} explanation="$(W/L)_p = (\mu_n / \mu_p) \cdot (W/L)_n = 2.8 \cdot 2 = 5.6$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Quando $v_{in}$ cresce nella Regione B ($V_{tn} < v_{in} < V_M$) e poi entra nella Regione C ($v_{in} = V_M$), quale cambiamento di stato avviene?" options={["$M_n$ passa da interdetto a triodo mentre $M_p$ resta interdetto", "$M_p$ esce dal triodo ed entra in saturazione mentre $M_n$ resta in saturazione", "$M_n$ esce dalla saturazione ed entra in triodo mentre $M_p$ resta in triodo"]} correctIndex={1} explanation="Nella Regione B $M_n$ è già in saturazione e $M_p$ è in triodo; avvicinandosi a $V_M$, $v_{out}$ scende abbastanza da far crescere $v_{SDp} = V_{DD} - v_{out}$ oltre l'overdrive di $M_p$, portando anche $M_p$ in saturazione." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Soglia logica dell'invertitore asimmetrico:** con $r = \sqrt{K_n / K_p} = \sqrt{4} = 2$:
+Partendo da $v_{in} < V_{tn}$ (Regione A), $M_n$ è spento e $M_p$ è in triodo a corrente nulla, tenendo $v_{out} = V_{DD}$. Superata $V_{tn}$ (Regione B), $M_n$ si accende direttamente in **saturazione** perché $v_{DSn} = v_{out}$ è alta, mentre $M_p$ resta in **triodo** con piccola caduta $v_{SDp}$.
 
-   $$
-   V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r} = \frac{3.3 - 0.7 + 2 \cdot 0.7}{1 + 2} = \frac{4.0}{3} \approx 1.33\,\text{V}
-   $$
-
-   La soglia è spostata verso massa rispetto a $1.65\,\text{V}$ perché l'NMOS è quattro volte più forte del PMOS.
-
-2. **Dimensionamento simmetrico:** imponendo $K_p = K_n$:
-
-   $$
-   \left(\frac{W}{L}\right)_p = \frac{\mu_n}{\mu_p} \left(\frac{W}{L}\right)_n = 2.8 \cdot 2 = 5.6
-   $$
+Quando $v_{in}$ raggiunge la zona centrale attorno a $V_M$ (Regione C), la tensione d'uscita è scesa a sufficienza perché valga $v_{SDp} > v_{SGp} - |V_{tp}|$ pur restando $v_{DSn} > v_{GSn} - V_{tn}$: **entrambi i MOSFET si trovano in saturazione**. Poiché in saturazione ciascun MOSFET ha un'elevata resistenza differenziale d'uscita $r_o$, il circuito si comporta come uno stadio amplificatore invertente ad alto guadagno ($A_v = -(g_{mn} + g_{mp})(r_{on} \parallel r_{op})$). Questa pendenza elevata rende la fascia di incertezza $[V_{IL}, V_{IH}]$ molto stretta e garantisce ampi margini di rumore. Oltre $V_M$, i ruoli si invertono: $M_n$ passa in triodo (Regione D) fino allo spegnimento di $M_p$ (Regione E).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-19-2" title="Esercizio 19.2 — Margini e Corrente di Cortocircuito" level="Intermedio" hint="Per un invertitore simmetrico $V_{IL} = (3 V_{DD} + 2 V_{th})/8$ e $I_{peak} = 0.5 K_n (V_{DD}/2 - V_{th})^2$.">
+<Exercise client:load lang="it" id="ex-19-2" title="Esercizio 19.2 — Effetto della Mobilità su V_M e Simmetria" level="Intermedio" hint="Collega il rapporto $\mu_n / \mu_p$ ai fattori $K_n, K_p$, al parametro $r = \sqrt{K_n/K_p}$ e alle resistenze equivalenti RC.">
 
-Un invertitore CMOS simmetrico è alimentato a $V_{DD} = 1.8\,\text{V}$ con $V_{tn} = |V_{tp}| = 0.5\,\text{V}$ e $K_n = K_p = 600\,\mu\text{A/V}^2$.
+Un progettista disegna un invertitore CMOS scegliendo per errore dimensioni identiche per entrambi i transistori: $(W/L)_p = (W/L)_n$ in un processo con $\mu_n / \mu_p = 2.5$ e $V_{tn} = |V_{tp}|$.
 
-<StepCheck client:load lang="it" prompt="Calcola il livello di ingresso basso $V_{IL}$ (in $\text{V}$):" expected={0.8} tolerance={0.02} unit="$\text{V}$" explanation="$V_{IL} = (3 \cdot 1.8 + 2 \cdot 0.5) / 8 = 6.4 / 8 = 0.8\,\text{V}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola la corrente di picco di cortocircuito $I_{peak}$ a $v_{in} = V_M$ (in $\mu\text{A}$):" expected={48.0} tolerance={1.0} unit="$\mu\text{A}$" explanation="$V_M = 0.9\,\text{V}$; $I_{peak} = 0.5 \cdot 600\,\mu\text{A/V}^2 \cdot (0.9 - 0.5)^2 = 300 \cdot 0.16 = 48.0\,\mu\text{A}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Quali conseguenze produce la scelta $(W/L)_p = (W/L)_n$ sulle prestazioni statiche e dinamiche dell'invertitore?" options={["Sposta $V_M$ verso massa ($V_M < V_{DD}/2$), riduce $NM_L$ e rende il fronte di salita $t_{pLH}$ più lento di $t_{pHL}$", "Sposta $V_M$ verso $V_{DD}$ ($V_M > V_{DD}/2$), riduce $NM_H$ e accelera la salita $t_{pLH}$", "Mantiene $V_M = V_{DD}/2$ ma raddoppia la corrente di picco $I_{peak}$"]} correctIndex={0} explanation="Poiché $\mu_n > \mu_p$, dimensioni uguali danno $K_n = 2.5 K_p$ ($r > 1$): l'NMOS domina sul PMOS, abbassando $V_M$ (penalizzando $NM_L$) e rendendo $R_p > R_n$ (rallentando $t_{pLH}$)." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Livelli critici e margini di rumore:** essendo simmetrico, $V_M = V_{DD}/2 = 0.9\,\text{V}$:
+Il fattore di transconduttanza geometrico vale $K = \mu C_{ox}'' (W/L)$. Poiché nel silicio la mobilità degli elettroni è circa $2.5\text{--}3$ volte superiore a quella delle lacune, scegliendo $(W/L)_p = (W/L)_n$ l'NMOS risulta $2.5$ volte più forte del PMOS ($K_n = 2.5\,K_p$), quindi $r = \sqrt{K_n/K_p} > 1$.
 
-   $$
-   V_{IL} = \frac{3(1.8) + 2(0.5)}{8} = 0.8\,\text{V}, \qquad V_{IH} = \frac{5(1.8) - 2(0.5)}{8} = 1.0\,\text{V} \implies NM_L = NM_H = 0.8\,\text{V}
-   $$
+Questo squilibrio ha due conseguenze negative:
+1. **Sul piano statico:** dalla formula $V_M = \frac{V_{DD} - |V_{tp}| + r V_{tn}}{1 + r}$, un $r > 1$ abbassa la soglia $V_M$ sotto $V_{DD}/2$, avvicinando $V_{IL}$ a massa e riducendo il margine di rumore basso $NM_L$.
+2. **Sul piano dinamico:** la resistenza equivalente di carica $R_p = [K_p(V_{DD} - |V_{tp}|)]^{-1}$ diventa $2.5$ volte maggiore di $R_n$, per cui il ritardo basso-alto $t_{pLH}$ è $2.5$ volte più lento di $t_{pHL}$.
 
-2. **Corrente di picco a $v_{in} = V_M = 0.9\,\text{V}$:** l'overdrive di entrambi i transistori è $0.9 - 0.5 = 0.4\,\text{V}$:
-
-   $$
-   I_{peak} = \frac{1}{2} (600\,\mu\text{A/V}^2)(0.4\,\text{V})^2 = 48.0\,\mu\text{A}
-   $$
+Per ripristinare la simmetria ($r = 1 \iff K_n = K_p$) si allarga il PMOS secondo $(W/L)_p = (\mu_n/\mu_p)(W/L)_n$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-19-3" title="Esercizio 19.3 — Regioni Operative e Ritardo RC" level="Livello Esame" hint="Confronta $v_{in}$ con $V_{tn}$ e $V_M$ per stabilire la regione operativa; poi calcola $R_n = [K_n(V_{DD}-V_{tn})]^{-1}$ e $t_{pHL} = 0.69 R_n C_L$.">
+<Exercise client:load lang="it" id="ex-19-3" title="Esercizio 19.3 — Soglia Logica e Corrente di Picco" level="Intermedio" hint="Usa $V_M = (V_{DD} - |V_{tp}| + r V_{tn})/(1 + r)$ con $r = \sqrt{K_n / K_p}$ e ricorda dove entrambi i transistori conducono contemporaneamente.">
 
-Un invertitore CMOS simmetrico ha $V_{DD} = 2.5\,\text{V}$, $V_{tn} = |V_{tp}| = 0.5\,\text{V}$, $k_n' = 250\,\mu\text{A/V}^2$, $\mu_n / \mu_p = 2.5$, $(W/L)_n = 4$ e pilota una capacità di carico $C_L = 80\,\text{fF}$.
+Un invertitore CMOS alimentato a $V_{DD} = 3.3\,\text{V}$ con $V_{tn} = |V_{tp}| = 0.7\,\text{V}$ presenta un rapporto di transconduttanza sbilanciato $K_n / K_p = 4$.
 
-<StepCheck client:load lang="it" mode="choice" prompt="Quando $v_{in} = 0.8\,\text{V}$ (con $v_{out} \approx 2.38\,\text{V}$), in quale regione opera l'invertitore?" options={["Regione A ($M_n$ interdetto, $M_p$ triodo)", "Regione B ($M_n$ saturazione, $M_p$ triodo)", "Regione D ($M_n$ triodo, $M_p$ saturazione)"]} correctIndex={1} explanation="Poiché $V_{tn} = 0.5\,\text{V} < v_{in} = 0.8\,\text{V} < V_M = 1.25\,\text{V}$, $M_n$ è in saturazione e $M_p$ è ancora in triodo (Regione B)." />
+<StepCheck client:load lang="it" prompt="Calcola la soglia logica $V_M$ dell'invertitore (in $\text{V}$):" expected={1.333} tolerance={0.02} unit="$\text{V}$" explanation="$r = \sqrt{K_n / K_p} = \sqrt{4} = 2$, quindi $V_M = (3.3 - 0.7 + 2 \times 0.7) / (1 + 2) = 4.0 / 3 \approx 1.333\,\text{V}$." />
 
-<StepCheck client:load lang="it" prompt="Calcola il ritardo di propagazione alto-basso $t_{pHL}$ (in $\text{ps}$):" expected={27.6} tolerance={0.8} unit="$\text{ps}$" explanation="$K_n = 250\,\mu\text{A/V}^2 \cdot 4 = 1.0\,\text{mA/V}^2$; $R_n = [10^{-3}(2.5 - 0.5)]^{-1} = 500\,\Omega$; $t_{pHL} = 0.69 \cdot 500 \cdot 80\,\text{fF} = 27.6\,\text{ps}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="In quale punto della caratteristica statica la corrente assorbita da $V_{DD}$ verso massa raggiunge il picco massimo $I_{peak}$?" options={["A $v_{in} = 0\\,\\text{V}$, quando il PMOS è in triodo", "A $v_{in} = V_M$, quando sia $M_n$ sia $M_p$ sono accesi in saturazione", "A $v_{in} = V_{DD}$, quando l'NMOS è in triodo"]} correctIndex={1} explanation="Agli estremi ($0\,\text{V}$ e $V_{DD}$) uno dei due transistori è interdetto ($i_D = 0$). Il picco di corrente diretta tra $V_{DD}$ e massa si verifica al punto di commutazione $v_{in} = V_M$, dove entrambi conducono in saturazione." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Simmetria e regione operativa:** essendo simmetrico, $V_M = 1.25\,\text{V}$. Poiché $V_{tn} = 0.5\,\text{V} < v_{in} = 0.8\,\text{V} < V_M = 1.25\,\text{V}$, $M_n$ è in **saturazione** ($v_{DSn} = 2.38\,\text{V} \ge 0.3\,\text{V}$) e $M_p$ è in **triodo** ($v_{SDp} = 0.12\,\text{V} < 1.2\,\text{V}$): siamo in **Regione B**.
+1. **Calcolo di $V_M$:** uguagliando le correnti di saturazione di $M_n$ ed $M_p$ a $v_{in} = v_{out} = V_M$, si introduce $r = \sqrt{K_n / K_p} = \sqrt{4} = 2$:
 
-2. **Resistenza equivalente $R_n$ e ritardo $t_{pHL}$:**
+$$
+V_M = \frac{V_{DD} - |V_{tp}| + r\,V_{tn}}{1 + r} = \frac{3.3 - 0.7 + 2 \times 0.7}{1 + 2} = \frac{4.0}{3} \approx 1.33\,\text{V}
+$$
 
-   $$
-   K_n = 250\,\mu\text{A/V}^2 \cdot 4 = 1.0\,\text{mA/V}^2 \implies R_n = \frac{1}{1.0\,\text{mA/V}^2 \cdot (2.5 - 0.5)\,\text{V}} = 500\,\Omega
-   $$
+   Come atteso, essendo l'NMOS quattro volte più forte del PMOS, $V_M$ si sposta al di sotto di $V_{DD}/2 = 1.65\,\text{V}$.
 
-   $$
-   t_{pHL} = 0.69\,R_n C_L = 0.69 \cdot 500\,\Omega \cdot 80\,\text{fF} = 27.6\,\text{ps}
-   $$
+2. **Picco di corrente di cortocircuito:** a riposo ($v_{in} = 0$ o $v_{in} = V_{DD}$) un transistore è sempre spento e la corrente è nulla. Durante la commutazione, invece, nella fascia $[V_{tn}, V_{DD} - |V_{tp}|]$ entrambi conducono, raggiungendo la corrente massima esattamente a $v_{in} = V_M$ (Regione C, entrambi in saturazione), pari a $I_{peak} = \frac{1}{2} K_n (V_M - V_{tn})^2$.
 
 </details>
 

@@ -12,51 +12,34 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Introduzione
 
-Prima di immergerci nella fisica dei semiconduttori e nei transistori, ci serve un linguaggio comune per leggere qualsiasi circuito a colpo d'occhio. In questo capitolo impariamo a separare le grandezze continue (DC) dai segnali variabili (AC), a semplificare reti complesse con Thévenin e Norton, a valutare partitori ed effetti di carico, a usare i generatori pilotati con il CMRR differenziale e a calcolare le frequenze di taglio dei filtri RC del primo ordine.
+Analizzare qualsiasi circuito elettronico richiede di padroneggiare quattro operazioni di base: separare le tensioni continue di polarizzazione dalle piccole variazioni del segnale, sostituire reti complesse con un equivalente semplice ai morsetti, estrarre un segnale utile da due ingressi immersi nel rumore e prevedere come i condensatori limitano la banda in frequenza. In questo capitolo fissiamo il linguaggio comune e gli strumenti lineari che useremo per tutto il corso, dai diodi ai transistori MOSFET fino agli stadi amplificatori.
 
 <Divider label="1 · Segnali, Leggi di Kirchhoff e Partitori" />
 
-### Esempio — Sonda Biomedicale, Polarizzazione DC/AC e Partitore
+Un segnale elettrico trasporta informazione tramite l'andamento nel tempo di una tensione o di una corrente. Nella pratica elettronica quasi ogni nodo mescola una componente continua costante che mantiene attivi i dispositivi e una piccola variazione dinamica che porta l'informazione; quando questa variazione attraversa due componenti in serie o in parallelo, si ripartisce secondo regole fissate dalla conservazione della carica e dell'energia.
 
-Immaginiamo il nodo d'ingresso di un apparecchio biomedicale: una sonda elettrochimica è mantenuta a una tensione continua di riposo $V_{IN} = 1.2\,\text{V}$, su cui si sovrappone un piccolo segnale cardiaco sinusoidale $v_{in}(t) = 10\,\sin(\omega t)\,\text{mV}$. La tensione totale istantanea vale quindi $v_{IN}(t) = V_{IN} + v_{in}(t) = 1.2 + 0.01\,\sin(\omega t)\,\text{V}$.
+### Esempio — Sonda Cardiaca e Ripartizione
 
-Per il solo segnale variabile AC, il sensore equivale a un generatore $V_s = 10\,\text{mV}$ in serie alla sua resistenza interna $R_s = 50\,\text{k}\Omega$. Quando lo colleghiamo a un amplificatore con resistenza d'ingresso $R_{in}$, i due resistori formano una maglia chiusa in serie ([la figura](#fig-partitori-tensione-corrente)(a)):
+Immaginiamo una sonda appoggiata sulla pelle per rilevare il battito cardiaco. La sonda si trova a una tensione di riposo costante su cui si sovrappongono onde minuscole dovute all'attività elettrica del cuore: la situazione è analoga a una piccola increspatura sulla superficie di una marea stazionaria.
 
-<figure id="fig-partitori-tensione-corrente" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/elettronica/fig-partitori-tensione-corrente.svg" alt="Schemi canonici del partitore di tensione (a) e del partitore di corrente (b)." />
-  <figcaption>Schemi canonici del partitore di tensione (a) e del partitore di corrente (b).</figcaption>
-</figure>
+Quando colleghiamo la sonda all'ingresso di uno strumento di misura, la resistenza interna della sonda e l'ingresso dello strumento si contendono la tensione disponibile. Se lo strumento assorbe corrente con facilità, buona parte della tensione utile va persa già dentro la sonda prima ancora di arrivare allo strumento; se invece lo strumento oppone un ingresso quasi isolato, lascia scorrere pochissima corrente e legge quasi l'intera tensione generata dalla sonda. Nel caso opposto in cui un sensore eroga una corrente fissa verso due rami affiancati, il flusso sceglie soprattutto il ramo che oppone meno ostacolo.
 
-Per la legge di Kirchhoff alle maglie e la legge di Ohm, la tensione effettivamente letta dall'amplificatore è data dal **partitore di tensione**:
+### Teoria — Notazione, Kirchhoff e Partitori
 
-$$
-v_{in} = V_s \frac{R_{in}}{R_s + R_{in}}
-$$
+In base a come codificano l'informazione nel tempo, i segnali si dividono in due categorie distinte:
 
-Vediamo cosa succede in due situazioni opposte, insieme al caso duale del partitore di corrente ([la figura](#fig-partitori-tensione-corrente)(b)):
-
-1. **Carico a bassa impedenza ($R_{in} = 50\,\text{k}\Omega$):** La resistenza dell'amplificatore è uguale a quella della sonda. Metà della tensione cade dentro il sensore ($5\,\text{mV}$) e all'amplificatore arrivano appena $v_{in} = 10\,\text{mV} \cdot \frac{50}{50 + 50} = 5\,\text{mV}$: metà del segnale si è persa per strada.
-2. **Carico ad alta impedenza ($R_{in} = 950\,\text{k}\Omega \gg R_s$):** L'amplificatore assorbe pochissima corrente ($10\,\text{nA}$), quindi la caduta su $R_s$ è minuscola ($0.5\,\text{mV}$) e quasi tutto il segnale arriva intatto: $v_{in} = 9.5\,\text{mV}$.
-3. **Partitore di corrente duale:** Se un fotodiodo inietta $i_{in} = 100\,\mu\text{A}$ in un nodo con due rami in parallelo, $R_1 = 90\,\text{k}\Omega$ e $R_2 = 10\,\text{k}\Omega$ ([la figura](#fig-partitori-tensione-corrente)(b)), la corrente sceglie il percorso meno resistivo e in $R_2$ scorre la quota maggiore: $i_2 = 100\,\mu\text{A} \cdot \frac{90}{90 + 10} = 90\,\mu\text{A}$.
-
-<StepCheck client:load lang="it" prompt="Con $V_s = 10\,\text{mV}$ e $R_s = 50\,\text{k}\Omega$, calcola la tensione $v_{in}$ letta quando $R_{in} = 950\,\text{k}\Omega$ (in $\text{mV}$):" expected={9.5} tolerance={0.05} unit="mV" explanation="$v_{in} = 10 \cdot \frac{950}{50 + 950} = 9.5\,\text{mV}$." />
-
-### Teoria — Notazione DC/AC, Leggi di Kirchhoff e Partitori
-
-Un segnale elettrico trasporta informazione tramite l'andamento nel tempo di una tensione o di una corrente, e può essere di due tipi:
-
-1. **Segnali Analogici:** Assumono qualsiasi valore continuo nel tempo. Poiché ogni minima variazione rappresenta un dato, qualunque disturbo o rumore che si somma lungo il percorso altera il segnale originale in modo irreversibile.
-2. **Segnali Digitali:** Usano solo livelli discreti (di solito due: `0` e `1`). Finché il rumore non supera il margine di sicurezza tra i due livelli, ogni porta logica ricostruisce il valore esatto, cancellando il disturbo accumulato.
+* **Segnali analogici:** assumono qualsiasi valore continuo nel tempo. Poiché ogni minima variazione di ampiezza rappresenta un dato, qualsiasi disturbo che si somma lungo il percorso altera in modo irreversibile il segnale originale.
+* **Segnali digitali:** utilizzano soltanto livelli discreti, tipicamente due (`0` e `1`). Finché il rumore accumulato resta entro il margine di sicurezza tra i livelli, ogni porta logica ricostruisce il valore esatto rigenerando il segnale pulito.
 
 <Callout type="tip" title="Prospettiva Pratica: Perché il digitale domina ma la fisica resta analogica">
 
-Il successo dell'elettronica digitale nasce da un vantaggio decisivo: finché il disturbo resta entro i margini di rumore, ogni porta logica **rigenera il segnale** pulendolo dal rumore accumulato. Nelle memorie Flash moderne (MLC, TLC, QLC) si usano anche più livelli discreti nella stessa cella per memorizzare 2, 3 o 4 bit nello spazio di un solo transistore; stringere i livelli riduce però i margini e richiede comunque circuiti analogici di lettura molto precisi.
+Il successo dell'elettronica digitale nasce proprio dalla capacità di rigenerare il segnale a ogni stadio eliminando il rumore entro i margini. Nelle memorie Flash moderne ad alta densità si usano anche più livelli discreti nella stessa cella per memorizzare 2, 3 o 4 bit nello spazio di un solo transistore; avvicinare tra loro questi livelli riduce però i margini di sicurezza e richiede comunque circuiti analogici di lettura molto precisi.
 
 </Callout>
 
 #### Notazione a Quattro Livelli
 
-I dispositivi elettronici come diodi e MOSFET non sono lineari. Per usarli come amplificatori, prima li portiamo in un punto di lavoro stazionario con tensioni e correnti continue (**polarizzazione DC**), poi sovrapponiamo le piccole variazioni del segnale (**piccolo segnale AC**). Per non confondere mai queste quantità, si usa una convenzione standard basata su maiuscole e minuscole:
+I dispositivi a semiconduttore come diodi e transistori hanno caratteristiche non lineari. Per usarli come amplificatori lineari, li portiamo prima in un punto di lavoro stazionario (**polarizzazione DC**) e poi sovrapponiamo oscillazioni sufficientemente piccole (**piccolo segnale AC**). La convenzione standard distingue le quattro quantità tramite maiuscole e minuscole del simbolo e del pedice:
 
 | Componente del Segnale | Simbolo della Variabile | Simbolo del Pedice | Forma Analitica | Esempio Tipico |
 | :--- | :--- | :--- | :--- | :--- |
@@ -65,316 +48,291 @@ I dispositivi elettronici come diodi e MOSFET non sono lineari. Per usarli come 
 | **Totale Istantaneo** | Minuscola | Maiuscolo | $v_A(t)$, $i_A(t)$ | $v_{GS}(t) = V_{GS} + v_{gs}(t)$ |
 | **Fasore / Trasformata** | Maiuscola | Minuscolo | $V_a(j\omega)$, $I_a(s)$ | $V_{gs} = 5\angle 0^\circ\text{ mV}$ |
 
-In sintesi, ogni grandezza totale istantanea $s_A(t)$ attorno al punto di lavoro $Q$ è la somma della componente statica più la variazione dinamica:
+Ogni grandezza totale istantanea $s_A(t)$ attorno al punto di lavoro $Q$ è quindi la somma della componente statica e della variazione dinamica:
 
 $$
 s_A(t) = S_A + s_a(t)
 $$
 
-Finché l'ampiezza del segnale AC $s_a(t)$ rimane molto piccola rispetto alle tensioni di polarizzazione DC, le curve dei componenti si comportano come rette e possiamo risolvere il circuito con le normali leggi dei circuiti lineari.
+Finché l'ampiezza di $s_a(t)$ rimane piccola rispetto alle tensioni di polarizzazione, la curva del componente attorno a $Q$ si confonde con la sua retta tangente e possiamo risolvere la parte AC con l'analisi dei circuiti lineari.
 
 #### Leggi di Kirchhoff
 
-Nei circuiti elettronici ordinari, le dimensioni fisiche sono molto piccole rispetto alla lunghezza d'onda dei segnali: possiamo quindi trascurare i ritardi di propagazione e usare le due leggi fondamentali di Kirchhoff:
+Nei circuiti elettronici ordinari le dimensioni fisiche sono molto minori della lunghezza d'onda dei segnali, quindi possiamo trascurare i ritardi di propagazione lungo i collegamenti e applicare le due leggi a parametri concentrati:
 
-1. **Prima Legge (KCL — Legge ai Nodi):** In ogni istante, la somma algebrica delle correnti che entrano ed escono da un nodo è nulla ($\sum i_k(t) = 0$). Esprime la **conservazione della carica**: in un nodo non si accumula né si crea carica, quindi tutta la corrente che entra deve uscire.
-2. **Seconda Legge (KVL — Legge alle Maglie):** In ogni istante, la somma algebrica delle tensioni lungo qualsiasi percorso chiuso è nulla ($\sum v_k(t) = 0$). Esprime il fatto che il campo elettrostatico è **conservativo**: facendo un giro completo e tornando al punto di partenza, il dislivello totale di potenziale è zero.
+* **Legge di Kirchhoff alle correnti (KCL):** in ogni istante la somma algebrica delle correnti che convergono in un nodo è nulla ($\sum i_k(t) = 0$). Esprime la **conservazione della carica**: in un nodo ideale non si accumula carica, quindi tutta la corrente entrante deve uscire.
+* **Legge di Kirchhoff alle tensioni (KVL):** in ogni istante la somma algebrica delle tensioni lungo qualsiasi maglia chiusa è nulla ($\sum v_k(t) = 0$). Esprime il fatto che il campo elettrostatico è **conservativo**: tornando al nodo di partenza il dislivello netto di potenziale è nullo.
 
 #### Partitori di Tensione e Corrente
 
-Combinando Kirchhoff e legge di Ohm si ricavano le due scorciatoie più usate nell'analisi circuitale ([la figura](#fig-partitori-tensione-corrente)):
+Combinando Kirchhoff e legge di Ohm si ricavano le due relazioni di ripartizione fondamentali ([la figura](#fig-partitori-tensione-corrente)):
 
-* **Partitore di Tensione:** Con due resistori $R_1$ e $R_2$ in serie alimentati da $v_{in}$ (e nessuna corrente prelevata dal nodo centrale), entrambi sono percorsi dalla stessa corrente $i = \frac{v_{in}}{R_1 + R_2}$. La tensione su $R_2$ vale quindi:
-  $$
-  v_{out} = v_{in} \frac{R_2}{R_1 + R_2}
-  $$
-  La regola intuitiva è semplice: sul resistore più grande cade la frazione maggiore della tensione.
-* **Partitore di Corrente:** Nel caso duale di due resistori $R_1$ e $R_2$ in parallelo sottoposti alla stessa tensione, una corrente entrante $i_{in}$ si divide in modo inversamente proporzionale alle resistenze:
-  $$
-  i_2 = i_{in} \frac{R_1}{R_1 + R_2}
-  $$
-  Attenzione al numeratore: compare la resistenza dell'**altro** ramo ($R_1$), perché la corrente preferisce scorrere dove trova meno opposizione.
-
-<Divider label="2 · Teoremi di Thévenin/Norton ed Effetto di Carico" />
-
-### Esempio — Generatore di Prova con Pilotato ed Effetto di Carico
-
-Calcoliamo la resistenza d'uscita di Thévenin $R_{TH}$ e la tensione trasferita a un carico $R_L = 400\,\Omega$ ([la figura](#fig-thevenin-loading)) per un buffer attivo: un circuito in cui un generatore di corrente pilotato $i_d = g_m v_1$ (con $g_m = 8\,\text{mS}$) è in parallelo a una resistenza $R_D = 500\,\Omega$, e a ingresso spento risulta $v_1 = -v_x$:
-
-<figure id="fig-thevenin-loading" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/elettronica/fig-thevenin-loading.svg" alt="Circuiti equivalenti di Thévenin connesso a un carico resistivo R_L, evidenziante la caduta interna su R_TH." />
-  <figcaption>Circuiti equivalenti di Thévenin connesso a un carico resistivo $R_L$, evidenziante la caduta interna su $R_{TH}$.</figcaption>
+<figure id="fig-partitori-tensione-corrente" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-partitori-tensione-corrente.svg" alt="Schemi canonici del partitore di tensione (a) e del partitore di corrente (b)." />
+  <figcaption>Schemi canonici del partitore di tensione (a) e del partitore di corrente (b).</figcaption>
 </figure>
 
-1. **Calcolo di $R_{TH}$ con il generatore di prova $(v_x, i_x)$:**
-   Spento l'ingresso indipendente, applichiamo all'uscita una tensione di prova $v_x$. Il generatore pilotato $g_m v_1$ **non si spegne**: poiché $v_1 = -v_x$, richiama una corrente $g_m v_x$ che si somma a quella in $R_D$:
+* **Partitore di tensione:** con due resistori $R_1$ e $R_2$ in serie alimentati da $v_{in}$ e nessuna corrente prelevata dal nodo intermedio, entrambi i resistori sono percorsi dalla stessa corrente $i = \frac{v_{in}}{R_1 + R_2}$. Applicando la legge di Ohm su $R_2$, la tensione di uscita vale:
 
 $$
-i_x = \frac{v_x}{R_D} + g_m v_x = v_x\left(\frac{1}{500\,\Omega} + 8\,\text{mS}\right) = v_x\,(2\,\text{mS} + 8\,\text{mS}) = 10\,\text{mS} \cdot v_x
+v_{out} = v_{in} \frac{R_2}{R_1 + R_2}
 $$
 
-   Il rapporto tra tensione e corrente di prova ci dà subito $R_{TH}$:
+Poiché la corrente è unica, sul resistore di valore più grande cade la quota maggiore della tensione totale. Ad esempio, se una sonda con $R_1 = R_s = 50\,\text{k}\Omega$ eroga $v_{in} = 10\,\text{mV}$ su un amplificatore con $R_2 = R_{in} = 950\,\text{k}\Omega$, all'ingresso giunge $v_{out} = 10\,\text{mV} \cdot \frac{950}{50 + 950} = 9.5\,\text{mV}$, mentre con $R_{in} = 50\,\text{k}\Omega$ metà segnale andrebbe persa sulla resistenza della sonda.
+
+* **Partitore di corrente:** nel caso duale di due resistori $R_1$ e $R_2$ in parallelo sottoposti alla stessa tensione $v = i_{in}(R_1 \parallel R_2)$, la corrente entrante $i_{in}$ si divide in proporzione inversa alle resistenze. La quota che scorre in $R_2$ vale:
 
 $$
-R_{TH} = \frac{v_x}{i_x} = \frac{1}{10\,\text{mS}} = 100\,\Omega
+i_2 = \frac{v}{R_2} = i_{in} \frac{R_1}{R_1 + R_2}
 $$
 
-   Grazie al generatore pilotato, la resistenza d'uscita è scesa da $500\,\Omega$ a soli $100\,\Omega$.
+Al numeratore compare la resistenza dell'**altro** ramo ($R_1$), perché la corrente si concentra dove incontra meno opposizione.
 
-2. **Effetto di carico su $R_L = 400\,\Omega$:**
-   Se la tensione a vuoto del buffer è $V_{TH} = 2.0\,\text{V}$, collegando $R_L = 400\,\Omega$ ([la figura](#fig-thevenin-loading)) sul carico arriva:
+<StepCheck client:load lang="it" mode="choice" prompt="Per leggere quasi integralmente la tensione a vuoto generata da un sensore avente resistenza interna $R_{sig}$, quale relazione deve soddisfare la resistenza d'ingresso $R_{in}$ dello stadio successivo?" options={["$R_{in} \\ll R_{sig}$, così tutta la corrente entra nell'amplificatore", "$R_{in} = R_{sig}$, così il partitore divide esattamente a metà", "$R_{in} \\gg R_{sig}$, così la corrente assorbita e la caduta interna su $R_{sig}$ diventano trascurabili", "Il valore di $R_{in}$ è indifferente perché $v_{in}$ non dipende dalla corrente"]} correctIndex={2} explanation="Per il partitore di tensione $v_{in} = v_{sig}\frac{R_{in}}{R_{sig} + R_{in}}$: solo quando $R_{in} \gg R_{sig}$ la frazione si avvicina a $1$ e quasi nessuna tensione cade sulla resistenza interna del sensore." />
 
-$$
-v_L = V_{TH} \cdot \frac{R_L}{R_{TH} + R_L} = 2.0\,\text{V} \cdot \frac{400\,\Omega}{100\,\Omega + 400\,\Omega} = 1.60\,\text{V} \quad (A_v = 0.80\,\text{V/V})
-$$
+<Divider label="2 · Thévenin, Norton ed Effetto di Carico" />
 
-   Senza l'aiuto del generatore pilotato ($R_{TH} = 500\,\Omega$), la tensione sul carico sarebbe crollata a $0.89\,\text{V}$.
+Quando colleghiamo un componente o uno stadio di carico a una rete lineare complessa, non serve risolvere ogni volta tutti i nodi interni della rete a monte. Visti da una coppia di morsetti, qualsiasi circuito lineare si riduce a un generatore ideale abbinato a una sola resistenza interna; il segnale effettivamente trasferito nasce poi dal confronto tra questa resistenza equivalente e quella del carico collegato.
 
-<StepCheck client:load lang="it" mode="choice" prompt="Nel calcolo di $R_{TH}$ in una rete contenente un generatore pilotato $g_m v_1$, quali generatori vanno spenti?" options={["Tutti i generatori, sia indipendenti sia dipendenti", "Solo i generatori indipendenti, applicando un generatore di prova $(v_x, i_x)$ alla porta", "Solo i generatori di corrente indipendenti e dipendenti", "Nessuno: si divide direttamente la tensione a vuoto $V_{TH}$ per $g_m$"]} correctIndex={1} explanation="I generatori dipendenti dipendono dalle variabili interne della rete e non vanno mai spenti: si spengono solo le sorgenti indipendenti e si applica un generatore di prova $(v_x, i_x)$." />
+### Esempio — Semplificare una Scatola Chiusa
 
-### Teoria — Equivalenti di Thévenin/Norton, Generatore di Prova ed Effetto di Carico
+Immaginiamo un circuito contenuto dentro una scatola sigillata da cui escono soltanto due morsetti. A vuoto, cioè senza nulla collegato all'esterno, ai morsetti misuriamo una tensione ben definita; appena colleghiamo una lampadina o un resistore che assorbe corrente, la tensione ai morsetti cala perché una parte della spinta interna viene dissipata lungo il percorso dentro la scatola.
 
-Quando un componente (come un diodo o un carico) è collegato a una rete piena di resistori e generatori lineari, non serve risolvere ogni volta tutta la rete. I teoremi di Thévenin e Norton permettono di sostituire l'intera rete vista da due morsetti con un circuito equivalente semplicissimo:
+Per conoscere l'entità di questa caduta non serve aprire la scatola: basta misurare quanta tensione c'è a vuoto e quanto velocemente la tensione scende al crescere della corrente prelevata. Se però dentro la scatola è presente un meccanismo attivo che reagisce alle variazioni di tensione ai morsetti, come accade negli amplificatori, spegnere l'alimentazione del segnale non elimina questa reazione interna: per misurare la resistenza equivalente vista dai morsetti occorre applicare una piccola spinta di prova dall'esterno e osservare la corrente che ne risulta.
 
-* **Equivalente di Thévenin:** Un generatore di tensione $V_{TH}$ (la **tensione a circuito aperto** ai morsetti) in serie a una resistenza equivalente $R_{TH}$.
-* **Equivalente di Norton:** Un generatore di corrente $I_N$ (la **corrente di cortocircuito** tra i morsetti) in parallelo alla stessa resistenza $R_N = R_{TH}$.
+### Teoria — Equivalenti di Thévenin/Norton ed Effetto di Carico
 
-I due modelli sono intercambiabili in qualsiasi momento tramite la relazione:
+I teoremi di Thévenin e Norton garantiscono che ogni rete lineare tempo-invariante vista da una porta a due morsetti è equivalente a uno di questi due schemi a due componenti:
+
+* **Equivalente di Thévenin:** un generatore di tensione $V_{TH}$, pari alla **tensione a circuito aperto** ai morsetti, in serie a una resistenza equivalente $R_{TH}$.
+* **Equivalente di Norton:** un generatore di corrente $I_N$, pari alla **corrente di cortocircuito** tra i morsetti, in parallelo alla stessa resistenza equivalente $R_N = R_{TH}$.
+
+I due modelli descrivono esattamente la stessa relazione tensione-corrente ai morsetti e sono sempre convertibili tramite la relazione:
 
 $$
 V_{TH} = I_N \cdot R_{TH}
 $$
 
-#### Metodo del Generatore di Prova per $R_{TH}$
+#### Metodo del Generatore di Prova
 
-Se la rete contiene **generatori dipendenti** (come $g_m v_{gs}$ nei modelli dei transistori), non possiamo trovare $R_{TH}$ combinando solo serie e paralleli, perché una tensione esterna attiva il generatore pilotato. La procedura sicura in 4 passi è:
-1. Spegni tutti i soli generatori **indipendenti** (tensione $\to$ cortocircuito; corrente $\to$ circuito aperto), lasciando accesi i generatori dipendenti.
-2. Collega ai morsetti un generatore di prova $v_x$ (o $i_x$).
-3. Usa Kirchhoff per trovare la corrente $i_x$ assorbita in funzione di $v_x$.
-4. Calcola $R_{TH} = \frac{v_x}{i_x}$.
+Quando una rete contiene soltanto resistori e sorgenti indipendenti, $R_{TH}$ si ottiene spegnendo tutte le sorgenti indipendenti e combinando i resistori in serie e parallelo. Nei circuiti elettronici con transistori compaiono invece **generatori dipendenti** (come $g_m v_{gs}$), la cui uscita dipende da una tensione o corrente interna che cambia quando applichiamo un segnale ai morsetti. Poiché un generatore dipendente non può essere spento arbitrariamente, la procedura generale per determinare $R_{TH}$ è la seguente:
+
+1. Spegni tutti i soli generatori **indipendenti** (un generatore di tensione diventa un cortocircuito; un generatore di corrente diventa un circuito aperto), lasciando attivi tutti i generatori dipendenti.
+2. Collega alla porta un generatore di prova esterno di tensione $v_x$ (oppure di corrente $i_x$).
+3. Risolvi le leggi di Kirchhoff sulla rete così ottenuta per esprimere $i_x$ in funzione di $v_x$.
+4. Calcola la resistenza equivalente come rapporto $R_{TH} = \frac{v_x}{i_x}$.
+
+Consideriamo come verifica un generatore pilotato $i_d = g_m v_1$ (con $g_m = 8\,\text{mS}$) in parallelo a un resistore $R_D = 500\,\Omega$, dove a ingresso indipendente spento vale $v_1 = -v_x$. Applicando $v_x$ all'uscita, il generatore pilotato assorbe $g_m v_x$ in parallelo alla corrente in $R_D$:
+
+$$
+i_x = \frac{v_x}{R_D} + g_m v_x = v_x \left(\frac{1}{500\,\Omega} + 8\,\text{mS}\right) = (10\,\text{mS}) \cdot v_x \implies R_{TH} = \frac{v_x}{i_x} = 100\,\Omega
+$$
+
+Grazie all'azione del generatore pilotato, la resistenza d'uscita scende da $500\,\Omega$ a $100\,\Omega$.
 
 #### Effetto di Carico
 
-Quando colleghiamo uno stadio (equivalente a $V_{TH}, R_{TH}$) a un carico $R_L$ ([la figura](#fig-thevenin-loading)), il carico assorbe corrente e fa cadere parte della tensione su $R_{TH}$ (**effetto di carico**). Dal partitore di tensione:
+Collegando la rete equivalente di Thévenin a un carico esterno $R_L$ ([la figura](#fig-thevenin-loading)), la corrente assorbita dal carico attraversa $R_{TH}$ provocando una caduta interna nota come **effetto di carico**.
+
+<figure id="fig-thevenin-loading" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-thevenin-loading.svg" alt="Circuito equivalente di Thévenin connesso a un carico resistivo R_L, evidenziante la caduta interna su R_TH." />
+  <figcaption>Circuito equivalente di Thévenin connesso a un carico resistivo $R_L$, evidenziante la caduta interna su $R_{TH}$.</figcaption>
+</figure>
+
+Dal partitore di tensione ai capi di $R_L$ si ricava la tensione trasferita al carico, mentre dal partitore di corrente sull'equivalente di Norton si ottiene la corrente trasferita:
 
 $$
-v_L = V_{TH} \cdot \frac{R_L}{R_{TH} + R_L}
+v_L = V_{TH} \frac{R_L}{R_{TH} + R_L}, \qquad i_L = I_N \frac{R_N}{R_N + R_L}
 $$
 
-Da qui seguono due regole d'oro opposte:
-* **Per trasferire tensione** ($v_L \approx V_{TH}$): serve $R_L \gg R_{TH}$. Un amplificatore di tensione ideale ha resistenza d'ingresso altissima ($R_{in} \to \infty$) e resistenza d'uscita bassissima ($R_{out} \to 0$).
-* **Per trasferire corrente** ($i_L \approx I_N$): serve $R_L \ll R_N$, in modo che tutta la corrente preferisca entrare nel carico anziché restare nella resistenza interna.
+Queste due espressioni fissano due criteri progettuali opposti: per trasferire **tensione** senza attenuazione ($v_L \approx V_{TH}$) occorre $R_L \gg R_{TH}$; per trasferire **corrente** ($i_L \approx I_N$) occorre invece $R_L \ll R_N$, affinché quasi tutta la corrente preferisca entrare nel carico anziché richiudersi nella resistenza interna.
 
-<Callout type="tip" title="Vantaggio Circuitale: Perché il Gate del MOSFET è così comodo in ingresso">
+<Callout type="tip" title="Vantaggio Circuitale: Perché il Gate del MOSFET semplifica gli stadi in cascata">
 
-Quando colleghiamo più stadi in cascata o leggiamo un sensore reale (che spesso può erogare correnti piccolissime, dell'ordine dei microampere), avere uno stadio con resistenza d'ingresso altissima ($R_{in} \to \infty$) ha un vantaggio pratico immediato: non carica il circuito a monte. Tutta la tensione generata dal sensore arriva intatta all'ingresso dell'amplificatore senza cadere sulla resistenza interna della sorgente.
+Quando colleghiamo più stadi in cascata o leggiamo un sensore reale ad alta impedenza interna, uno stadio con resistenza d'ingresso molto elevata ($R_{in} \to \infty$) non assorbe corrente e non provoca effetto di carico sullo stadio a monte. Tutta la tensione generata dal sensore giunge così intatta all'ingresso dell'amplificatore.
 
 </Callout>
 
-<Divider label="3 · Generatori Dipendenti e Amplificazione Differenziale" />
+<StepCheck client:load lang="it" mode="choice" prompt="Nel calcolo di $R_{TH}$ di una rete che contiene un generatore pilotato $g_m v_1$, perché non si possono spegnere tutti i generatori?" options={["Perché il generatore pilotato fissa direttamente la tensione a vuoto $V_{TH}$", "Perché il generatore pilotato reagisce alla tensione o corrente di prova applicata ai morsetti modificando la corrente assorbita", "Perché le leggi di Kirchhoff non valgono in presenza di generatori pilotati", "Perché in presenza di un generatore pilotato l'equivalente di Norton non esiste"]} correctIndex={1} explanation="Si spengono solo le sorgenti indipendenti; i generatori dipendenti restano attivi perché la loro erogazione è determinata dalla variabile di controllo eccitata dal generatore di prova $(v_x, i_x)$." />
 
-### Esempio — Reiezione di un Disturbo a 50 Hz in un Front-End ECG (CMRR)
+<Divider label="3 · Generatori Dipendenti e Stadi Differenziali" />
 
-Un elettrocardiografo (ECG) legge il segnale del cuore tramite due elettrodi collegati agli ingressi $v_1$ e $v_2$ di un amplificatore differenziale ($A_d = 100\,\text{V/V}$, $A_c = 0.01\,\text{V/V}$). La rete elettrica a $50\,\text{Hz}$ induce su entrambi i fili un disturbo comune di $100\,\text{mV}$, mentre il segnale cardiaco tra i due elettrodi è di appena $2\,\text{mV}$:
+I componenti passivi (resistori e condensatori) possono soltanto attenuare o filtrare un segnale. Per ottenere guadagno di potenza o di tensione servono dispositivi attivi modellabili tramite **generatori dipendenti**, i quali permettono anche di realizzare stadi **differenziali** capaci di amplificare la differenza tra due ingressi rigettando i disturbi identici presenti su entrambi i fili.
 
-$$
-v_1 = 100\,\text{mV} + 1\,\text{mV} = 101\,\text{mV}, \qquad v_2 = 100\,\text{mV} - 1\,\text{mV} = 99\,\text{mV}
-$$
+### Esempio — Due Elettrodi nello Stesso Rumore
 
-1. **Modo differenziale e modo comune:**
-   Calcoliamo la differenza e la media dei due ingressi:
+Immaginiamo di dover misurare un segnale biologico piccolissimo mediante due elettrodi collegati tramite due cavi paralleli. I cavi attraversano un ambiente pieno di interferenze elettromagnetiche alla frequenza di rete ($50\,\text{Hz}$), che inducono su entrambi i fili lo stesso identico disturbo, molto più ampio del segnale utile.
 
-$$
-v_{id} = v_1 - v_2 = 2\,\text{mV}, \qquad v_{ic} = \frac{v_1 + v_2}{2} = 100\,\text{mV}
-$$
+Se collegassimo un solo filo a un amplificatore ordinario riferito a massa, l'amplificatore ingrandirebbe sia il segnale utile sia il disturbo di rete, saturando quasi subito. Uno stadio differenziale guarda invece soltanto lo squilibrio tra i due fili: poiché il disturbo entra allo stesso modo su entrambi i cavi, la differenza lo cancella quasi del tutto, mentre le oscillazioni opposte del segnale utile si sommano e vengono amplificate pulite verso l'uscita.
 
-   In ingresso il disturbo ($100\,\text{mV}$) è $50$ volte più grande del battito cardiaco ($2\,\text{mV}$): un amplificatore normale saturerebbe subito amplificando il ronzio a $50\,\text{Hz}$.
+### Teoria — Generatori Pilotati e Reiezione di Modo Comune
 
-2. **Uscita differenziale e CMRR:**
-   L'amplificatore amplifica di $A_d = 100$ la differenza e di appena $A_c = 0.01$ la media:
+In regime di piccolo segnale, il comportamento lineare di un amplificatore attivo attorno al suo punto di lavoro si rappresenta con uno dei quattro **generatori dipendenti** canonici:
 
-$$
-v_o = \underbrace{100 \cdot 2\,\text{mV}}_{\text{Segnale } = 200\,\text{mV}} + \underbrace{0.01 \cdot 100\,\text{mV}}_{\text{Disturbo } = 1\,\text{mV}} = 201\,\text{mV}
-$$
+* **VCVS (Generatore di tensione controllato in tensione):** $v_o = A_v v_i$, modello naturale dell'amplificatore di tensione, dove $A_v$ è un guadagno adimensionale.
+* **VCCS (Generatore di corrente controllato in tensione):** $i_o = g_m v_i$, modello fisico del transistore MOSFET in saturazione, dove la transconduttanza $g_m$ si misura in Siemens ($\text{S}$).
+* **CCCS (Generatore di corrente controllato in corrente):** $i_o = A_i i_i$, modello degli amplificatori di corrente e degli specchi di corrente, con $A_i$ adimensionale.
+* **CCVS (Generatore di tensione controllato in corrente):** $v_o = r_m i_i$, modello degli amplificatori a transresistenza usati ad esempio con i fotodiodi, dove la transresistenza $r_m$ si misura in $\Omega$.
 
-   Il segnale utile ora domina di $200$ a $1$ sul disturbo, grazie a un **CMRR** pari a:
+#### Modo Differenziale e Modo Comune
+
+Sia un amplificatore a due ingressi $v_1$ e $v_2$. È sempre possibile scomporre la coppia di ingressi nella loro **componente differenziale** $v_{id}$ (ciò che cambia tra i due morsetti) e nella loro **componente di modo comune** $v_{ic}$ (la media condivisa da entrambi):
 
 $$
-\text{CMRR} = \left|\frac{A_d}{A_c}\right| = \frac{100}{0.01} = 10^4 \implies \text{CMRR}_{\text{dB}} = 20\log_{10}(10^4) = 80\,\text{dB}
+v_{id} = v_1 - v_2, \qquad v_{ic} = \frac{v_1 + v_2}{2}
 $$
 
-<StepCheck client:load lang="it" prompt="Se un amplificatore differenziale presenta guadagno differenziale $A_d = 500\,\text{V/V}$ e $\text{CMRR}_{\text{dB}} = 100\,\text{dB}$, quanto vale il guadagno di modo comune $|A_c|$ (in $\text{V/V}$)?" expected={0.005} tolerance={0.0005} unit="V/V" explanation="$\text{CMRR} = 10^{100/20} = 10^5$, quindi $|A_c| = A_d / \text{CMRR} = 500 / 10^5 = 0.005\,\text{V/V}$." />
+Invertendo questo sistema lineare si esprimono i singoli ingressi come deviazioni simmetriche attorno al valore medio:
 
-### Teoria — I Quattro Generatori Dipendenti e il CMRR
+$$
+v_1 = v_{ic} + \frac{v_{id}}{2}, \qquad v_2 = v_{ic} - \frac{v_{id}}{2}
+$$
 
-Resistori e condensatori possono solo attenuare o filtrare. Per amplificare servono dispositivi attivi (come i transistori), che in piccolo segnale si modellano con uno di questi quattro generatori pilotati:
-
-1. **VCVS (Tensione controllata in tensione):** $v_o = A_v v_i$, modello dell'amplificatore di tensione ($A_v$ adimensionale).
-2. **VCCS (Corrente controllata in tensione):** $i_o = g_m v_i$, modello del MOSFET in saturazione ($g_m$ in Siemens $\text{S}$).
-3. **CCCS (Corrente controllata in corrente):** $i_o = A_i i_i$, modello degli specchi di corrente ($A_i$ adimensionale).
-4. **CCVS (Tensione controllata in corrente):** $v_o = r_m i_i$, modello degli amplificatori a transresistenza, usati ad esempio con i fotodiodi ($r_m$ in $\Omega$).
-
-#### Amplificazione Differenziale, Modo Comune e CMRR
-
-I segnali dei sensori viaggiano spesso su coppie di fili esposte a disturbi ambientali identici su entrambi i conduttori. Per salvare il segnale utile e scartare il disturbo, l'amplificatore differenziale separa:
-* Il **modo differenziale** $v_{id} = v_1 - v_2$ (la differenza utile).
-* Il **modo comune** $v_{ic} = \frac{v_1 + v_2}{2}$ (la media, cioè il disturbo condiviso).
-
-Riscrivendo i due ingressi come $v_1 = v_{ic} + \frac{v_{id}}{2}$ e $v_2 = v_{ic} - \frac{v_{id}}{2}$, l'uscita di un amplificatore reale vale:
+Per linearità, l'uscita $v_o$ di un amplificatore differenziale reale risponde a entrambe le componenti:
 
 $$
 v_o = A_d v_{id} + A_c v_{ic}
 $$
 
-dove $A_d$ è il **guadagno differenziale** desiderato e $A_c$ è il piccolo **guadagno di modo comune** parassita. La capacità di rigettare il disturbo comune si misura con il **CMRR**:
+dove $A_d$ è il **guadagno differenziale** desiderato e $A_c$ è il piccolo **guadagno di modo comune** parassita dovuto alle inevitabili asimmetrie circuitali.
+
+#### Rapporto di Reiezione di Modo Comune (CMRR)
+
+La capacità dello stadio di privilegiare il segnale differenziale rispetto al disturbo condiviso si quantifica tramite il **Common-Mode Rejection Ratio** (**CMRR**), definito come rapporto tra i moduli dei due guadagni ed espresso di norma in decibel:
 
 $$
 \text{CMRR} = \left| \frac{A_d}{A_c} \right|, \qquad \text{CMRR}_{\text{dB}} = 20 \log_{10} \left| \frac{A_d}{A_c} \right|
 $$
 
-Un amplificatore ideale avrebbe $A_c = 0$ ($\text{CMRR} \to \infty$); quelli integrati reali arrivano tipicamente a $80\text{--}120\,\text{dB}$.
+Si usa il fattore $20$ (e non $10$, riservato ai rapporti di potenza) perché la potenza su uno stesso carico è proporzionale al quadrato della tensione. Un amplificatore ideale avrebbe $A_c = 0$ e quindi $\text{CMRR} \to \infty$; negli stadi integrati reali un valore tipico di $80\text{--}100\,\text{dB}$ corrisponde a un'attenuazione relativa del modo comune di $10^4\text{--}10^5$ volte. Ad esempio, con $A_d = 100\,\text{V/V}$ e $A_c = 0.01\,\text{V/V}$ ($\text{CMRR}_{\text{dB}} = 80\,\text{dB}$), un segnale differenziale di $2\,\text{mV}$ immerso in un disturbo comune di $100\,\text{mV}$ produce in uscita $200\,\text{mV}$ di segnale utile contro appena $1\,\text{mV}$ di disturbo residuo.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Un amplificatore differenziale ha guadagno differenziale $A_d = 100\,\text{V/V}$ e $\text{CMRR}_{\text{dB}} = 80\,\text{dB}$. Se ai suoi due ingressi è applicato un puro segnale di modo comune ($v_1 = v_2 = 100\,\text{mV}$), cosa compare in uscita?" options={["Un segnale nullo perché $v_{id} = 0$ e il CMRR è finito ma irrilevante", "Un residuo di modo comune pari a $1\\,\\text{mV}$ dovuto al guadagno finito $|A_c| = 0.01\\,\\text{V/V}$", "Un segnale di $10\\,\\text{V}$ perché $v_{ic}$ viene moltiplicato per $A_d$", "Un segnale di $100\\,\\text{mV}$ perché il modo comune passa con guadagno unitario"]} correctIndex={1} explanation="Con $v_1 = v_2 = 100\,\text{mV}$ risulta $v_{id} = 0$ e $v_{ic} = 100\,\text{mV}$. Poiché $\text{CMRR} = 10^{80/20} = 10^4$, il guadagno di modo comune vale $|A_c| = 100 / 10^4 = 0.01\,\text{V/V}$, quindi $v_o = A_c v_{ic} = 1\,\text{mV}$." />
 
 <Divider label="4 · Filtri Passivi RC del Primo Ordine" />
 
-### Esempio — Dimensionamento delle Frequenze di Taglio Passa-Alto e Passa-Basso
+Nessun circuito elettronico reale amplifica allo stesso modo a qualunque frequenza. La risposta in banda è sempre delimitata da capacità: alcune vengono inserite apposta per bloccare la componente continua tra uno stadio e l'altro (creando un limite alle basse frequenze), altre sono capacità parassite inevitabili verso massa che cortocircuitano il segnale quando oscilla troppo velocemente (creando un limite alle alte frequenze).
 
-In un preamplificatore audio vogliamo bloccare la componente continua DC in ingresso lasciando passare la voce sopra $f_L \approx 16\,\text{Hz}$ (cella **passa-alto** RC, [la figura](#fig-rc-highpass)(a)), e tagliare il rumore ad alta frequenza sopra $f_H \approx 159\,\text{kHz}$ (cella **passa-basso** RC, [la figura](#fig-rc-highpass)(b)):
+### Esempio — Bloccare la Continua e Tagliare i Fruscii
+
+Immaginiamo un collegamento audio tra due stadi amplificatori. Il primo stadio lavora a una certa tensione continua di riposo che non deve entrare nello stadio successivo, ma deve comunque lasciare passare le vibrazioni della voce. Inserendo un condensatore in serie lungo il filo di collegamento, la tensione continua trova la strada sbarrata, mentre le oscillazioni rapide della voce attraversano il condensatore tanto più agevolmente quanto più alta è la loro frequenza.
+
+Al contrario, verso l'uscita del circuito le piste e i dispositivi presentano sempre una piccola capacità parassita collegata verso massa. Quando il segnale varia lentamente, questa capacità rimane praticamente invisibile; quando invece arrivano disturbi o segnali ad altissima frequenza, la capacità offre una scorciatoia diretta verso massa e scarica a terra le oscillazioni più rapide, lasciando passare soltanto la banda lenta utile.
+
+### Teoria — Celle Passa-Alto, Passa-Basso e Funzioni di Trasferimento
+
+Nel dominio di Laplace ($s = j\omega$ in regime sinusoidale), un condensatore di capacità $C$ ha impedenza $Z_C(s) = \frac{1}{sC}$, il cui modulo vale $|Z_C(j\omega)| = \frac{1}{\omega C}$: tende a infinito per $\omega \to 0$ (circuito aperto in DC) e tende a zero per $\omega \to \infty$ (cortocircuito ad alta frequenza).
+
+Combinando una resistenza $R$ e una capacità $C$ secondo le due topologie di [la figura](#fig-rc-highpass), si definiscono in entrambi i casi la **pulsazione di taglio** $\omega_p$ e la **frequenza di taglio** a $-3\,\text{dB}$ $f_p$:
+
+$$
+\omega_p = \frac{1}{R C} \implies f_p = \frac{1}{2\pi R C}
+$$
+
+Esattamente alla frequenza $f = f_p$, la reattanza capacitiva uguaglia la resistenza ($|Z_C| = R$) e il modulo della funzione di trasferimento scende a $\frac{1}{\sqrt{2}} \approx 0.707$, pari a un'attenuazione di $-3\,\text{dB}$.
 
 <figure id="fig-rc-highpass" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-rc-highpass.svg" alt="Circuiti delle celle passive RC del primo ordine: filtro passa-alto (a) e filtro passa-basso (b)." />
   <figcaption>Circuiti delle celle passive RC del primo ordine: filtro passa-alto (a) e filtro passa-basso (b).</figcaption>
 </figure>
 
-1. **Cella Passa-Alto d'ingresso ([la figura](#fig-rc-highpass)(a)):**
-   Con $R_{HP} = 100\,\text{k}\Omega$ e un condensatore di accoppiamento $C_{HP} = 100\,\text{nF}$, la costante di tempo vale $\tau_{HP} = R_{HP} C_{HP} = 10\,\text{ms}$ e la frequenza di taglio inferiore a $-3\,\text{dB}$ risulta:
+#### Cella Passa-Alto
+
+Quando l'ingresso alimenta la serie di $C$ ed $R$ e preleviamo l'uscita ai capi del resistore $R$ ([la figura](#fig-rc-highpass)(a)), il partitore di impedenza fornisce la funzione di trasferimento:
 
 $$
-f_L = \frac{1}{2\pi R_{HP} C_{HP}} = \frac{1}{2\pi \cdot 0.010\,\text{s}} \approx 15.9\,\text{Hz}
+H_{HP}(s) = \frac{R}{R + \frac{1}{sC}} = \frac{sRC}{1 + sRC} = \frac{s}{s + \omega_p}
 $$
 
-   In continua ($f = 0$) il condensatore è aperto e blocca la DC; a $1\,\text{kHz}$ (molto sopra $f_L$) la sua impedenza è trascurabile ($\approx 1.6\,\text{k}\Omega \ll 100\,\text{k}\Omega$) e il segnale passa quasi intatto.
+In continua ($s = 0$) il numeratore si annulla e il guadagno è zero: il condensatore blocca completamente la DC. Al crescere della frequenza sopra $f_p$ (indicata spesso come $f_L$, frequenza di taglio inferiore), $|Z_C|$ diventa trascurabile rispetto a $R$ e il segnale passa quasi inalterato ($|H_{HP}| \to 1$, $0\,\text{dB}$). A $f = f_L$ lo sfasamento vale $+45^\circ$. Questa topologia modella tutti i **condensatori di accoppiamento e bypass** che fissano il limite inferiore della banda passante.
 
-2. **Cella Passa-Basso d'uscita ([la figura](#fig-rc-highpass)(b)):**
-   Con resistenza d'uscita $R_{LP} = 10\,\text{k}\Omega$ e capacità verso massa $C_{LP} = 100\,\text{pF}$, la costante di tempo è $\tau_{LP} = 1.0\,\mu\text{s}$ e la frequenza di taglio superiore vale:
+#### Cella Passa-Basso
 
-$$
-f_H = \frac{1}{2\pi R_{LP} C_{LP}} = \frac{1}{2\pi \cdot 10^{-6}\,\text{s}} \approx 159\,\text{kHz}
-$$
-
-   Esattamente a $f = f_H$, l'ampiezza in uscita scende a $1/\sqrt{2} \approx 0.707$ ($-3\,\text{dB}$) e lo sfasamento è di $-45^\circ$.
-
-<StepCheck client:load lang="it" prompt="Se nella cella passa-basso con $R_{LP} = 10\,\text{k}\Omega$ la capacità parassita verso massa raddoppia a $C_{LP} = 200\,\text{pF}$, a quale valore scende la frequenza di taglio superiore $f_H$ (in $\text{kHz}$)?" expected={79.58} tolerance={0.5} unit="kHz" explanation="$f_H = \frac{1}{2\pi \cdot 10^4 \cdot 200\times 10^{-12}} \approx 79.58\,\text{kHz}$ (la metà di $159.15\,\text{kHz}$)." />
-
-### Teoria — Cella Passa-Alto, Passa-Basso e Funzioni di Trasferimento
-
-Nessun amplificatore funziona a tutte le frequenze: la sua banda passante è sempre limitata da due tipi di condensatori:
-1. **Condensatori di Accoppiamento e Bypass (bassa frequenza):** Messi in serie per bloccare la DC tra uno stadio e l'altro. A frequenze molto basse la loro impedenza $|Z_C| = \frac{1}{\omega C}$ diventa grande e attenua il segnale, creando un filtro **passa-alto** che fissa la frequenza di taglio inferiore $f_L$.
-2. **Capacità Parassite e di Carico (alta frequenza):** Presenti verso massa nei transistori e nelle piste. Ad alte frequenze la loro impedenza crolla e cortocircuita il segnale a massa, creando un filtro **passa-basso** che fissa la frequenza di taglio superiore $f_H$.
-
-Per entrambi i casi, la pulsazione e la frequenza di taglio dipendono dalla resistenza equivalente $R$ vista dal condensatore a sorgenti indipendenti spente:
+Scambiando i due componenti e prelevando l'uscita ai capi del condensatore $C$ ([la figura](#fig-rc-highpass)(b)), il partitore di impedenza restituisce:
 
 $$
-\omega_p = \frac{1}{RC} \implies f_p = \frac{1}{2\pi RC}
+H_{LP}(s) = \frac{\frac{1}{sC}}{R + \frac{1}{sC}} = \frac{1}{1 + sRC} = \frac{1}{1 + s/\omega_p}
 $$
 
-#### Funzioni di Trasferimento
+In continua il condensatore è aperto e non assorbe corrente, quindi l'intera tensione d'ingresso arriva in uscita ($H_{LP}(0) = 1$). Oltre la frequenza di taglio superiore $f_p = f_H$, l'impedenza del condensatore cala inversamente con la frequenza cortocircuitando progressivamente il nodo d'uscita verso massa: il guadagno scende con una pendenza asintotica di $-20\,\text{dB/decade}$ e a $f = f_H$ presenta uno sfasamento di $-45^\circ$. Ad esempio, con $R = 10\,\text{k}\Omega$ e $C = 100\,\text{pF}$ la costante di tempo è $\tau = RC = 1\,\mu\text{s}$ e la banda si ferma a $f_H = \frac{1}{2\pi \cdot 10^{-6}} \approx 159\,\text{kHz}$.
 
-Usando l'impedenza $Z_C(s) = \frac{1}{sC}$ nel partitore di tensione, otteniamo subito le due funzioni di trasferimento ([la figura](#fig-rc-highpass)):
-
-* **Passa-Alto** (uscita su $R$):
-  $$
-  H_{HP}(s) = \frac{sRC}{1 + sRC} = \frac{s}{s + \omega_p}
-  $$
-  In continua ($s = 0$) il guadagno è nullo (blocca la DC); oltre $\omega_p$ tende a $1$ ($0\,\text{dB}$); a $\omega = \omega_p$ vale $1/\sqrt{2}$ ($-3\,\text{dB}$).
-
-* **Passa-Basso** (uscita su $C$):
-  $$
-  H_{LP}(s) = \frac{1}{1 + sRC} = \frac{1}{1 + s/\omega_p}
-  $$
-  In continua il guadagno vale $1$; a $\omega = \omega_p$ scende a $-3\,\text{dB}$; oltre $\omega_p$ cala di $-20\,\text{dB/decade}$.
+<StepCheck client:load lang="it" mode="choice" prompt="In una rete RC passa-basso collegata a un nodo d'uscita, perché una capacità parassita $C$ più grande verso massa riduce la frequenza di taglio superiore $f_H$?" options={["Perché aumenta la costante di tempo $\\tau = RC$, quindi il condensatore richiede più tempo per caricarsi e inizia ad attenuare a frequenze più basse", "Perché un condensatore più grande ha un'impedenza più alta alle alte frequenze", "Perché il condensatore blocca anche la componente continua DC in ingresso", "Perché aumenta il guadagno in banda passante sopra $0\\,\\text{dB}$"]} correctIndex={0} explanation="Poiché $|Z_C| = \frac{1}{\omega C}$ e $f_H = \frac{1}{2\pi R C}$, raddoppiare $C$ dimezza l'impedenza a ogni frequenza: la capacità cortocircuita il nodo verso massa prima, dimezzando $f_H$." />
 
 <Divider label="5 · Sintesi" />
 
-### Tabella di Riferimento Rapido
+### Tabella di Riferimento
 
 | Strumento / Grandezza | Formula Canonica | Condizione Operativa |
 | :--- | :--- | :--- |
-| **Partitore di Tensione / Corrente** | $v_{out} = v_{in}\frac{R_2}{R_1+R_2},\; i_2 = i_{in}\frac{R_1}{R_1+R_2}$ | Nessuna corrente prelevata dal nodo intermedio (tensione) |
-| **Equivalenza Thévenin / Norton** | $V_{TH} = I_N \cdot R_{TH},\; R_N = R_{TH} = \frac{v_x}{i_x}$ | Generatori indipendenti spenti, pilotati attivi |
-| **Trasferimento Tensione / Corrente** | $A_v = \frac{1}{1 + R_{TH}/R_L},\; A_i = \frac{1}{1 + R_L/R_N}$ | Massimo trasferimento in tensione per $R_L \gg R_{TH}$ |
-| **CMRR (Lineare e dB)** | $\text{CMRR} = \left\lvert\frac{A_d}{A_c}\right\rvert,\; \text{CMRR}_{\text{dB}} = 20\log_{10}\left\lvert\frac{A_d}{A_c}\right\rvert$ | $v_{id} = v_1 - v_2,\; v_{ic} = (v_1 + v_2)/2$ |
-| **Celle RC del Primo Ordine** | $\omega_p = \frac{1}{R_{eq}C},\; f_p = \frac{1}{2\pi R_{eq}C}$ | $H_{HP}(s) = \frac{sRC}{1+sRC},\; H_{LP}(s) = \frac{1}{1+sRC}$ |
+| **Partitore di tensione / corrente** | $v_{out} = v_{in}\frac{R_2}{R_1+R_2},\; i_2 = i_{in}\frac{R_1}{R_1+R_2}$ | Nessuna corrente prelevata al nodo intermedio (tensione) |
+| **Equivalenza Thévenin / Norton** | $V_{TH} = I_N \cdot R_{TH},\; R_N = R_{TH} = \frac{v_x}{i_x}$ | Sorgenti indipendenti spente, generatori pilotati attivi |
+| **Trasferimento tensione / corrente** | $\frac{v_L}{V_{TH}} = \frac{R_L}{R_{TH}+R_L},\; \frac{i_L}{I_N} = \frac{R_N}{R_N+R_L}$ | Tensione: $R_L \gg R_{TH}$; corrente: $R_L \ll R_N$ |
+| **CMRR (lineare e dB)** | $\text{CMRR} = \left\lvert\frac{A_d}{A_c}\right\rvert,\; \text{CMRR}_{\text{dB}} = 20\log_{10}\left\lvert\frac{A_d}{A_c}\right\rvert$ | $v_{id} = v_1 - v_2,\; v_{ic} = (v_1 + v_2)/2$ |
+| **Celle RC del primo ordine** | $\omega_p = \frac{1}{R_{eq}C},\; f_p = \frac{1}{2\pi R_{eq}C}$ | $H_{HP}(s) = \frac{sRC}{1+sRC},\; H_{LP}(s) = \frac{1}{1+sRC}$ |
 
 ### Procedura di Analisi
 
-1. **Separazione DC / AC:** scomporre ogni grandezza totale $x_T(t) = X + x(t)$ annullando le sorgenti DC per il piccolo segnale e aprendo i condensatori in DC.
-2. **Equivalente di Thévenin ($V_{TH}, R_{TH}$):** aprire il carico per trovare $V_{TH}$; spegnere i generatori **indipendenti** (mai quelli dipendenti!) e applicare un generatore di prova $v_x$ ai morsetti per calcolare $R_{TH} = v_x / i_x$.
-3. **Effetto di carico in cascata:** moltiplicare tre fattori: partitore d'ingresso $\frac{R_{in}}{R_{sig} + R_{in}}$, guadagno a vuoto $A_{vo}$ e partitore d'uscita $\frac{R_L}{R_o + R_L}$.
-4. **Frequenza di taglio RC:** per reti del primo ordine, $f_c = \frac{1}{2\pi R_{eq} C}$ dove $R_{eq}$ è la resistenza vista dal condensatore a generatori indipendenti spenti.
-
-### Dimostrazioni Chiave
-
-* **Resistenza equivalente con generatori pilotati:** determinazione di $R_{TH} = v_x / i_x$ azzerando le sole sorgenti indipendenti e lasciando attivi i generatori controllati.
-* **Scomposizione differenziale e di modo comune:** derivazione di $v_1 = v_{ic} + v_{id}/2$ e $v_2 = v_{ic} - v_{id}/2$ a partire dalle definizioni di $v_{id}$ e $v_{ic}$.
-* **Funzioni di trasferimento RC:** ricavo di $H_{HP}(s)$ e $H_{LP}(s)$ mediante partitore di impedenza con $Z_C(s) = 1/(sC)$ e verifica dell'attenuazione a $-3\,\text{dB}$ in $\omega_p = 1/(RC)$.
+1. **Separazione DC / AC:** scomporre ogni grandezza totale in componente statica e piccolo segnale, annullando i generatori DC indipendenti nell'analisi AC.
+2. **Equivalente di Thévenin:** aprire il carico per ricavare $V_{TH}$; spegnere le sole sorgenti indipendenti lasciando attivi i generatori pilotati, quindi applicare un generatore di prova $(v_x, i_x)$ per calcolare $R_{TH} = v_x / i_x$.
+3. **Effetto di carico in cascata:** moltiplicare il partitore d'ingresso $\frac{R_{in}}{R_{sig} + R_{in}}$, il guadagno a vuoto e il partitore d'uscita $\frac{R_L}{R_o + R_L}$.
+4. **Frequenze di taglio RC:** per ogni cella del primo ordine determinare la resistenza equivalente $R_{eq}$ vista dal condensatore a sorgenti indipendenti spente e valutare $f_p = \frac{1}{2\pi R_{eq} C}$.
 
 <Callout type="warning" title="Errori Comuni">
 
-Quando si calcola la resistenza equivalente di Thévenin o Norton, non bisogna **mai spegnere i pilotati** ($g_m v_{gs}$, $\mu v_1$): occorre sempre collegare un generatore di prova esterno $(v_x, i_x)$ alla porta d'uscita. Inoltre, ricorda che per i guadagni di tensione e il CMRR in decibel si usa il fattore $20\log_{10}(\cdot)$ (e non $10\log_{10}$ riservato alle potenze), e che per la frequenza di taglio $f_p = \frac{1}{2\pi R C}$ va sempre incluso il fattore $2\pi$ rispetto alla pulsazione $\omega_p = \frac{1}{RC}$.
+Nel calcolo della resistenza equivalente di Thévenin o Norton non bisogna mai spegnere i generatori dipendenti ($g_m v_{gs}$, $A_v v_i$): vanno azzerati solo i generatori indipendenti, usando sempre un generatore di prova esterno ai morsetti. Ricorda inoltre che per i rapporti di tensione e il CMRR in decibel si usa il fattore $20\log_{10}(\cdot)$ (e non $10\log_{10}$), e che nella conversione tra pulsazione $\omega_p = \frac{1}{RC}$ e frequenza $f_p = \frac{1}{2\pi RC}$ occorre sempre dividere per $2\pi$.
 
 </Callout>
 
 <Divider label="6 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-1-1" title="Esercizio 1.1 — Cascata Amplificatore con Effetto di Carico" level="Base" hint="Calcola prima la tensione effettiva in ingresso $v_{in}$ con il partitore tra $R_s$ e $R_{in}$, poi applica il partitore in uscita tra $R_o$ e $R_L$.">
+<Exercise client:load lang="it" id="ex-1-1" title="Esercizio 1.1 — Effetto di Carico e Calcolo di R_TH" level="Base" hint="Distinguere tra trasferimento in tensione e in corrente, e ricordare quali generatori restano accesi durante il test con $(v_x, i_x)$.">
 
-Una sorgente di segnale con $V_s = 12\,\text{V}$ e resistenza interna $R_s = 2\,\text{k}\Omega$ pilota un amplificatore caratterizzato da $R_{in} = 10\,\text{k}\Omega$, guadagno a vuoto $A_{vo} = 20\,\text{V/V}$ e resistenza d'uscita $R_o = 500\,\Omega$, connesso a un carico $R_L = 2\,\text{k}\Omega$.
+Un sensore con resistenza interna elevata deve pilotare il primo stadio di un amplificatore che contiene al suo interno un generatore pilotato di transconduttanza $g_m v_1$.
 
-<StepCheck client:load lang="it" prompt="Calcola la tensione $v_{in}$ ai capi dell'ingresso dell'amplificatore:" expected={10.0} tolerance={0.05} unit="V" explanation="$v_{in} = 12 \cdot \frac{10}{2 + 10} = 10.0\,\text{V}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola il guadagno complessivo dalla sorgente $A_{vs} = v_{out} / V_s$:" expected={13.33} tolerance={0.1} unit="V/V" explanation="$A_{vs} = \frac{10}{12} \cdot 20 \cdot \frac{2000}{2500} = 13.33\,\text{V/V}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Quale coppia di condizioni caratterizza un buon trasferimento di tensione dal sensore all'amplificatore e un corretto calcolo di $R_{TH}$ in presenza di $g_m v_1$?" options={["$R_{in} \\ll R_{sig}$, spegnendo sia le sorgenti indipendenti sia $g_m v_1$", "$R_{in} \\gg R_{sig}$, spegnendo solo le sorgenti indipendenti e lasciando attivo $g_m v_1$ durante il test con $(v_x, i_x)$", "$R_{in} \\gg R_{sig}$, spegnendo $g_m v_1$ e lasciando accesa la tensione di alimentazione", "$R_{in} = R_{sig}$, perché il partitore rende massimo il guadagno in tensione"]} correctIndex={1} explanation="Per trasferire la tensione senza perdite sul partitore d'ingresso serve $R_{in} \gg R_{sig}$; per calcolare $R_{TH}$ si spengono solo i generatori indipendenti perché il generatore pilotato $g_m v_1$ dipende dalle variabili interne eccitate da $(v_x, i_x)$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Partitore d'ingresso:** La sorgente $V_s$ forma una maglia con $R_s$ e $R_{in}$. La corrente d'ingresso vale $i_{in} = \frac{12\,\text{V}}{2\,\text{k}\Omega + 10\,\text{k}\Omega} = 1.0\,\text{mA}$, quindi ai morsetti d'ingresso giunge:
-   $$
-   v_{in} = V_s \frac{R_{in}}{R_s + R_{in}} = 12 \cdot \frac{10\,\text{k}\Omega}{2\,\text{k}\Omega + 10\,\text{k}\Omega} = 10.0\,\text{V}
-   $$
-2. **Stadio interno e partitore d'uscita:** Il generatore controllato interno genera a vuoto una tensione $A_{vo} v_{in} = 20 \cdot 10.0\,\text{V} = 200\,\text{V}$. Questa si ripartisce tra $R_o = 500\,\Omega$ e il carico $R_L = 2000\,\Omega$:
-   $$
-   v_{out} = A_{vo} v_{in} \frac{R_L}{R_o + R_L} = 200 \cdot \frac{2000}{500 + 2000} = 200 \cdot 0.8 = 160\,\text{V}
-   $$
-3. **Guadagno complessivo dalla sorgente:**
-   $$
-   A_{vs} = \frac{v_{out}}{V_s} = \frac{160\,\text{V}}{12\,\text{V}} \approx 13.33\,\text{V/V}
-   $$
+1. **Effetto di carico in ingresso:** La tensione effettivamente trasferita ai morsetti dell'amplificatore vale $v_{in} = v_{sig} \frac{R_{in}}{R_{sig} + R_{in}}$. Se $R_{in}$ è molto maggiore di $R_{sig}$, la corrente assorbita dallo stadio è trascurabile, quindi sulla resistenza interna del sensore non cade quasi nulla e $v_{in} \approx v_{sig}$. (Al contrario, per trasferire una corrente servirebbe $R_{in} \ll R_{sig}$.)
+2. **Resistenza equivalente con generatori dipendenti:** Quando una rete contiene generatori controllati come $g_m v_1$, il loro contributo cambia non appena si applica una tensione ai morsetti. Per trovare $R_{TH}$ si spengono quindi **solo i generatori indipendenti** (cortocircuitando quelli di tensione e aprendo quelli di corrente), si lascia attivo il generatore pilotato, si applica un generatore di prova $(v_x, i_x)$ alla porta e si ricava $R_{TH} = v_x / i_x$ tramite Kirchhoff.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-1-2" title="Esercizio 1.2 — Frequenza di Taglio Filtro Passa-Basso RC" level="Livello Esame" hint="Usa $f_c = \frac{1}{2\pi R C}$ esprimendo $R$ in $\Omega$ e $C$ in $\text{F}$.">
+<Exercise client:load lang="it" id="ex-1-2" title="Esercizio 1.2 — Celle Passa-Alto e Passa-Basso RC" level="Intermedio" hint="Confronta l'impedenza $|Z_C| = 1/(\omega C)$ a bassa e alta frequenza nelle due posizioni del condensatore.">
 
-Un filtro passa-basso RC del primo ordine utilizza $R = 10\,\text{k}\Omega$ e $C = 15.9\,\text{nF}$.
+Nel percorso di un amplificatore compaiono sia un condensatore di accoppiamento in serie tra due stadi, sia una capacità parassita verso massa sul nodo di uscita.
 
-<StepCheck client:load lang="it" prompt="Determina la frequenza di taglio a $-3\,\text{dB}$ ($f_c$) in $\text{Hz}$:" expected={1000.97} tolerance={5.0} unit="Hz" explanation="$f_c = \frac{1}{2\pi \cdot 10\times 10^3 \cdot 15.9\times 10^{-9}} \approx 1001\,\text{Hz}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Come influiscono questi due condensatori sulla risposta in frequenza dell'amplificatore?" options={["Il condensatore in serie limita le alte frequenze ($f_H$), mentre la capacità verso massa blocca la continua ($f_L$)", "Il condensatore in serie forma un filtro passa-alto che blocca la DC e fissa $f_L$, mentre la capacità verso massa forma un passa-basso che fissa $f_H$", "Entrambi formano filtri passa-basso perché il segnale attraversa sempre il condensatore", "Nessuno dei due altera la banda se il guadagno DC è maggiore di $1$"]} correctIndex={1} explanation="In serie al segnale il condensatore apre il circuito in continua e lascia passare le frequenze sopra $f_L$ (passa-alto); verso massa invece lascia passare i segnali lenti e cortocircuita a terra le alte frequenze oltre $f_H$ (passa-basso)." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Conversione nelle unità SI fondamentali:**
-   $$
-   R = 10\,\text{k}\Omega = 10 \times 10^3\,\Omega, \qquad C = 15.9\,\text{nF} = 15.9 \times 10^{-9}\,\text{F}
-   $$
-2. **Calcolo della costante di tempo e della pulsazione di taglio:**
-   $$
-   \tau = RC = (10 \times 10^3)(15.9 \times 10^{-9}) = 1.59 \times 10^{-4}\,\text{s} \implies \omega_c = \frac{1}{\tau} \approx 6289.3\,\text{rad/s}
-   $$
-3. **Conversione in frequenza ($f_c = \omega_c / 2\pi$):**
-   $$
-   f_c = \frac{1}{2\pi R C} = \frac{1}{2\pi \cdot 1.59 \times 10^{-4}} \approx 1001\,\text{Hz}
-   $$
+1. **Ruolo fisico di $|Z_C| = \frac{1}{\omega C}$:** In continua e alle bassissime frequenze il condensatore presenta un'impedenza elevatissima (tende a un circuito aperto); alle alte frequenze la sua impedenza crolla (tende a un cortocircuito).
+2. **Condensatore di accoppiamento in serie ($f_L$):** Poiché l'uscita viene prelevata dopo il condensatore ai capi della resistenza di ingresso dello stadio successivo, alle basse frequenze l'impedenza del condensatore blocca la componente continua DC e attenua il segnale: si ottiene la cella **passa-alto** $H_{HP}(s) = \frac{sRC}{1+sRC}$ con frequenza di taglio inferiore $f_L = \frac{1}{2\pi R_{eq}C}$.
+3. **Capacità parassita verso massa ($f_H$):** Qui l'uscita coincide con i capi del condensatore verso massa. In continua il condensatore è aperto e non disturba, ma oltre $f_H = \frac{1}{2\pi R_{eq}C}$ la sua impedenza diventa più piccola della resistenza equivalente e devia il segnale verso massa: si ottiene la cella **passa-basso** $H_{LP}(s) = \frac{1}{1+sRC}$ con pendenza $-20\,\text{dB/decade}$.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-1-3" title="Esercizio 1.3 — Verifica del Partitore di Tensione" level="Base" hint="Applica $v_{in} = V_s \frac{R_{in}}{R_s + R_{in}}$ con unità coerenti.">
+
+Un generatore di segnale con ampiezza a vuoto $V_s = 12\,\text{mV}$ e resistenza interna $R_s = 10\,\text{k}\Omega$ è collegato all'ingresso di uno stadio con resistenza d'ingresso $R_{in} = 50\,\text{k}\Omega$.
+
+<StepCheck client:load lang="it" prompt="Calcola la tensione $v_{in}$ che giunge effettivamente ai morsetti d'ingresso dell'amplificatore (in $\text{mV}$):" expected={10.0} tolerance={0.1} unit="mV" explanation="$v_{in} = 12\,\text{mV} \cdot \frac{50}{10 + 50} = 10.0\,\text{mV}$." />
+
+<details className="dc-solution">
+<summary>Mostra Risposta Orale Modello</summary>
+
+La sorgente $V_s$, la resistenza interna $R_s$ e la resistenza d'ingresso $R_{in}$ formano un'unica maglia in serie. Applicando la formula del partitore di tensione, la quota di segnale che cade su $R_{in}$ vale:
+
+$$
+v_{in} = V_s \frac{R_{in}}{R_s + R_{in}} = 12\,\text{mV} \cdot \frac{50\,\text{k}\Omega}{10\,\text{k}\Omega + 50\,\text{k}\Omega} = 12\,\text{mV} \cdot \frac{5}{6} = 10.0\,\text{mV}
+$$
+
+I restanti $2.0\,\text{mV}$ cadono sulla resistenza interna $R_s$ della sorgente per effetto di carico.
 
 </details>
 

@@ -10,15 +10,27 @@ import Divider from "@components/Divider.astro";
 
 ## Introduzione
 
-Dopo aver studiato l'Op-Amp come scatola nera ad alte prestazioni, la Parte IV scende a livello di **silicio analogico** per scoprire come sono fatti gli stadi amplificatori fondamentali a singolo transistore MOSFET e come si concatenano per ottenere esattamente l'impedenza d'ingresso, il guadagno e la banda passante desiderati.
+Dopo aver trattato l'amplificatore operazionale come blocco ideale nella Parte III, la Parte IV scende a livello di **silicio analogico** per mostrare come si costruiscono gli stadi amplificatori elementari a singolo transistore MOSFET e come si determina la loro banda passante utile.
 
-Le tre topologie canoniche—**Common Source (CS)**, **Common Drain (CD)** e **Common Gate (CG)**—sono l'equivalente di tre ingranaggi complementari: nessuna topologia vince su tutto da sola, ma combinandole con **specchi di corrente** (che sostituiscono i resistori ingombranti sui chip) e valutando i poli tramite i metodi **SCTC** e **OCTC** si progetta qualsiasi catena analogica integrata.
+Ogni amplificatore a singolo transistore nasce collegando uno dei tre terminali principali (Source, Drain o Gate) a **massa per il segnale alternato (AC)** e usando gli altri due come ingresso e uscita. Nessuna delle tre configurazioni vince su tutte le metriche da sola: ciascuna scambia guadagno di tensione, resistenza d'ingresso, resistenza d'uscita e banda passante secondo un compromesso preciso.
 
-### Esempi Pratici nel Mondo Reale
+### Tassonomia delle Tre Topologie Base
 
-- **Architettura Interna di un Op-Amp o Amplificatore Audio:** Uno stadio Common Source fornisce alto guadagno di tensione, uno specchio di corrente funge da carico attivo ad altissima resistenza ($g_m r_o$), e uno stadio Common Drain (Source Follower) finale abbassa $R_{out}$ per pilotare altoparlanti o carichi pesanti.
-- **Ricevitori RF e Antenne (Common Gate & Cascode):** Nei front-end a radiofrequenza, la bassa impedenza d'ingresso del Common Gate ($\approx 1/g_m \approx 50\,\Omega$) adatta direttamente il cavo coassiale d'antenna eliminando l'effetto Miller su $C_{gd}$.
-- **Dimensionamento della Banda Passante:** I condensatori esterni di accoppiamento fissano il taglio inferiore $f_L$ (metodo SCTC), mentre le capacità interne fF/pF del MOSFET determinano il limite superiore $f_H$ (metodo OCTC).
+| Topologia | Terminale Comune (AC) | Ingresso / Uscita | Guadagno di Tensione $A_v$ | Resistenza $R_{in}$ | Resistenza $R_{out}$ | Ruolo Tipico |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Common Source (CS)** | Source | Gate / Drain | Alto e invertente ($A_v \lt 0$) | Alta ($R_1 \parallel R_2$) | Media-alta ($R_D \parallel r_o$) | Stadio di guadagno principale |
+| **Common Drain (CD)** | Drain | Gate / Source | Quasi unitario, in fase ($0 \lt A_v \lt 1$) | Alta ($R_1 \parallel R_2$) | Bassa ($\approx 1/g_m$) | Buffer adattatore verso carichi piccoli |
+| **Common Gate (CG)** | Gate | Source / Drain | Medio-alto, in fase ($A_v \gt 0$) | Bassa ($\approx 1/g_m$) | Media-alta ($R_D \parallel r_o$) | Adattamento a bassa impedenza e larga banda |
+
+### Sistema Guida della Parte IV
+
+Per collegare i cinque capitoli seguiremo un **front-end analogico di acquisizione** completo, affrontando di volta in volta uno specifico problema di progetto:
+
+* **Amplificazione del segnale debole ([Capitolo 13](/dynamic-courses/elettronica/04-amplificatori-frequenza/13-common-source/)):** un sensore genera pochi millivolt con corrente trascurabile; lo stadio **Common Source** amplifica la tensione senza caricare la sorgente e, con la degenerazione di Source $R_S$, guadagna linearità.
+* **Pilotaggio di un carico pesante ([Capitolo 14](/dynamic-courses/elettronica/04-amplificatori-frequenza/14-common-drain/)):** collegando direttamente un Common Source a un carico da poche centinaia di ohm il guadagno crolla; lo stadio **Common Drain** (*Source Follower*) interpone un buffer ad alta $R_{in}$ e bassissima $R_{out}$.
+* **Interfacce a bassa impedenza e cascate ([Capitolo 15](/dynamic-courses/elettronica/04-amplificatori-frequenza/15-common-gate-multistadio/)):** quando la sorgente è una linea coassiale da $50\,\Omega$ o serve eliminare l'effetto Miller, interviene il **Common Gate**, da solo o impilato sopra un Common Source nello stadio **Cascode**.
+* **Polarizzazione e carichi su silicio ([Capitolo 16](/dynamic-courses/elettronica/04-amplificatori-frequenza/16-specchi-corrente/)):** nei circuiti integrati i grandi resistori vengono sostituiti da **specchi di corrente** che copiano correnti di riferimento e fungono da carichi attivi compatti ad altissima resistenza AC.
+* **Banda passante reale ([Capitolo 17](/dynamic-courses/elettronica/04-amplificatori-frequenza/17-risposta-frequenza/)):** i condensatori esterni di accoppiamento e bypass fissano il taglio inferiore $f_L$ (metodo **SCTC**), mentre le capacità parassite interne del MOSFET fissano il taglio superiore $f_H$ (Teorema di **Miller** e metodo **OCTC**).
 
 <Divider />
 

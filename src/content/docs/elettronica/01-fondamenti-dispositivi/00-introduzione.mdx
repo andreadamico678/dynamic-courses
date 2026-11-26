@@ -10,21 +10,32 @@ import Divider from "@components/Divider.astro";
 
 ## Introduzione
 
-Come passa l'elettronica dalle leggi astratte delle reti elettriche a un componente reale capace di condurre corrente in un solo verso, stabilizzare una tensione o trasformare la corrente alternata di rete in alimentazione continua? La Parte I costruisce questo ponte dal basso verso l'alto: si ripassano gli strumenti circuitali essenziali (Thévenin, Norton, effetti di carico), si entra dentro il reticolo cristallino del silicio per capire come il drogaggio moduli la conducibilità e si arriva al primo mattone attivo a stato solido, la **giunzione p-n**.
+L'elettronica a stato solido nasce da una domanda concreta: come si passa dalle leggi generali delle reti elettriche a un componente reale capace di far scorrere corrente in un solo verso, stabilizzare una tensione o convertire la corrente alternata di rete in alimentazione continua? La Parte I costruisce questo ponte dal basso verso l'alto: prima consolida gli strumenti circuitali lineari (partitori, equivalenti di Thévenin e Norton, risposta in frequenza di base), poi entra nel reticolo cristallino del silicio per spiegare come il drogaggio moduli la conduzione elettrica, e infine ricava il comportamento del primo mattone attivo a stato solido, la **giunzione p-n**.
 
-L'obiettivo mentale di questa parte è collegare sempre **microfisica** e **comportamento circuitale**: quando vedrai l'equazione esponenziale del diodo o la pendenza di una curva di carico, saprai riconoscere il moto di diffusione ed effetto barriera che avviene su scala micrometrica dentro il silicio.
+Lungo tutti i quattro capitoli il filo conduttore è il legame diretto tra **microfisica** e **modello circuitale**. Ogni equazione usata su carta — dalla pendenza della retta di carico alla resistenza differenziale di piccolo segnale — riflette un meccanismo fisico preciso su scala micrometrica dentro il silicio.
 
-### Esempi Pratici nel Mondo Reale
+### Tassonomia della Parte I
 
-- **Alimentatori USB-C e Caricabatterie:** Ogni alimentatore da parete converte i $230\,\text{V}$ alternati in continua tramite raddrizzatori a ponte di diodi e condensatori di filtro (Cap. 4), spesso affiancati da **diodi Schottky** nei convertitori *switching* ad alta frequenza per azzerare il ritardo di spegnimento.
-- **Sensori Termici Integrati nei Processori (PTAT):** La sensibilità termica della tensione diretta del diodo ($\approx -2\,\text{mV/}^\circ\text{C}$, Cap. 3) permette di integrare termometri precisissimi dentro le CPU per il *thermal throttling*.
-- **Protezione ESD e Riferimenti di Tensione:** Diodi **Zener** attorno a $5.6\,\text{V}$ proteggono gli ingressi dei microcontrollori e creano tensioni di riferimento stabili in temperatura.
+La progressione dei quattro capitoli separa nettamente tre livelli di analisi:
+
+1. **Astrazione circuitale lineare (Capitolo 1):** segnali continui e variabili, partitori, riduzione di reti con Thévenin/Norton, amplificazione differenziale e filtri RC del primo ordine.
+2. **Fisica del semiconduttore omogeneo (Capitolo 2):** legami covalenti nel silicio, drogaggio N e P, legge dell'azione di massa, trasporto per deriva e diffusione, bande di energia e livello di Fermi.
+3. **Dispositivo a giunzione e modelli circuitali (Capitoli 3 e 4):** formazione della zona di carica spaziale, equazione di Shockley, breakdown e capacità dinamiche, fino ai modelli approssimati del diodo e ai circuiti raddrizzatori e regolatori Zener.
+
+### Sistema Guida: Caricabatterie USB-C e Riferimento Termico
+
+Per vedere come i quattro capitoli si innestano l'uno sull'altro, teniamo presente un unico sistema reale presente in ogni dispositivo portatile: un **alimentatore USB-C con protezione e sensore termico integrato**.
+
+* Nel **Capitolo 1** analizziamo come la tensione di uscita dell'alimentatore cambia quando colleghiamo un carico reale (effetto di carico ed equivalente di Thévenin) e come un condensatore riduce i disturbi ad alta frequenza.
+* Nel **Capitolo 2** scendiamo dentro il silicio di cui sono fatti i componenti dell'alimentatore per capire perché pochi atomi droganti trasformano un isolante quasi perfetto in una regione conduttiva controllabile.
+* Nel **Capitolo 3** uniamo una regione P e una regione N per ottenere la valvola unidirezionale alla base dei raddrizzatori, dei **diodi Schottky** ad alta velocità, dei riferimenti **Zener** a bassa deriva termica e dei sensori di temperatura integrati **PTAT**.
+* Nel **Capitolo 4** sostituiamo la complessa legge esponenziale della giunzione con modelli circuitali maneggevoli (ideale, CVD, piccolo segnale $r_d$) per dimensionare il ponte raddrizzatore con filtro capacitivo e il regolatore shunt Zener.
 
 <Divider />
 
 ## Mappa dei Capitoli
 
-1. **[1. Teoria Circuitale Elementare](/dynamic-courses/elettronica/01-fondamenti-dispositivi/01-teoria-circuitale/)** — Richiami operativi su partitori, generatori equivalenti di Thévenin/Norton, effetto di carico e reti RC.
+1. **[1. Teoria Circuitale Elementare](/dynamic-courses/elettronica/01-fondamenti-dispositivi/01-teoria-circuitale/)** — Richiami operativi su partitori, generatori equivalenti di Thévenin/Norton, effetto di carico, CMRR e reti RC.
 2. **[2. Fisica dello Stato Solido](/dynamic-courses/elettronica/01-fondamenti-dispositivi/02-fisica-stato-solido/)** — Silicio cristallino, drogaggio N/P, legge dell'azione di massa, deriva, diffusione e bande di energia.
-3. **[3. Giunzione p-n e Diodo](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn/)** — Formazione della SCR, potenziale di contatto $V_0$, equazione di Shockley, breakdown Zener/Valanga, capacità e Schottky.
+3. **[3. Giunzione p-n e Diodo](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn/)** — Formazione della SCR, potenziale di contatto $V_0$, equazione di Shockley, breakdown Zener/Valanga, capacità dinamiche e diodo Schottky.
 4. **[4. Modelli Circuitali del Diodo](/dynamic-courses/elettronica/01-fondamenti-dispositivi/04-modelli-diodo/)** — Retta di carico, modello ideale e CVD, piccolo segnale $r_d$, raddrizzatori a ponte e regolatore Zener.

@@ -13,219 +13,185 @@ import DiodeRectifierExplorer from "@components/DiodeRectifierExplorer.tsx";
 
 ## Introduzione
 
-L'equazione esponenziale di Shockley vista nel [Capitolo 3](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn) è precisa ma scomoda da usare a mano in un circuito: porta a equazioni che non si risolvono con l'algebra elementare. Per progettare davvero su carta — dai raddrizzatori AC-DC ai regolatori Zener — usiamo di volta in volta il modello più semplice adatto al caso: l'**interruttore ideale**, la **batteria costante CVD** ($0.7\,\text{V}$) oppure la **resistenza differenziale** $r_d$ per i piccoli segnali.
+L'equazione esponenziale di Shockley ricavata nel [Capitolo 3](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn) descrive con fedeltà la fisica della giunzione, ma in un circuito genera equazioni trascendenti impossibili da risolvere a mano con l'algebra lineare. Per analizzare e progettare su carta — dai raddrizzatori AC-DC ai regolatori Zener — sostituiamo il diodo con il modello lineare più adatto al regime di lavoro: l'**interruttore ideale** o la **batteria costante (CVD)** per i grandi segnali, e la **resistenza differenziale** $r_d$ per le piccole oscillazioni attorno al punto di riposo.
 
 <Divider label="1 · Modelli in Grande Segnale: Retta di Carico, CVD e Ideale" />
 
-### Esempio — Punto di Lavoro $Q$ tramite Retta di Carico e Modello CVD
+Quando la tensione applicata al circuito varia ampiamente tra conduzione e interdizione, non serve inseguire ogni millivolt della curva esponenziale. Poiché in diretta la corrente del diodo cresce di dieci volte ogni $60\,\text{mV}$, la sua caduta di tensione in conduzione resta quasi bloccata attorno a un valore caratteristico: possiamo quindi rappresentare il diodo acceso come un interruttore chiuso (eventualmente in serie a una piccola batteria fissa) e il diodo spento come un circuito aperto.
 
-Consideriamo una maglia semplice con generatore DC $V_{DD} = 5\,\text{V}$, resistore $R = 1\,\text{k}\Omega$ e diodo al silicio ([la figura](#fig-load-line)):
+### Esempio — La Valvola a Soglia Fissa
+
+Immaginiamo una valvola di non ritorno tenuta chiusa da una molla tarata su una piccola pressione di apertura. Finché la pressione a monte non raggiunge quella soglia, la valvola resta sigillata e non lascia passare nulla; appena la pressione supera la soglia, la valvola si apre e la caduta di pressione attraverso di essa rimane praticamente fissa qualunque sia la portata.
+
+Se la pompa a monte lavora a pressioni molto più elevate rispetto alla forza della molla, possiamo persino ignorare quella piccola soglia iniziale e considerare la valvola come un passaggio perfetto senza caduta. Quando in un impianto compaiono più valvole insieme, prima si ipotizza quali siano aperte e quali chiuse, poi si verifica che il flusso calcolato spinga davvero nel verso consentito attraverso quelle supposte aperte.
+
+### Teoria — Retta di Carico, Modello CVD e Metodo delle Ipotesi
+
+Consideriamo un diodo collegato in serie a un generatore $V_{DD}$ e a un resistore $R$ ([la figura](#fig-load-line)(a)). A seconda della precisione richiesta e delle tensioni in gioco, disponiamo di tre strumenti di analisi in grande segnale.
 
 <figure id="fig-load-line" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-load-line.svg" alt="Circuito elementare serie generatore-resistore-diodo (a) e metodo grafico della retta di carico per l'individuazione del punto di lavoro stazionario Q (b)." />
   <figcaption>Circuito elementare serie generatore-resistore-diodo (a) e metodo grafico della retta di carico per l'individuazione del punto di lavoro stazionario $Q$ (b).</figcaption>
 </figure>
 
-1. **Risoluzione rapida con il Modello a Caduta Costante (CVD, $V_{on} = 0.7\,\text{V}$):**
-   Supponiamo che il diodo sia acceso (ON) e sostituiamolo con una batteria fissa $V_{on} = 0.7\,\text{V}$. Dalla KVL lungo la maglia ($V_{DD} - R I_{DQ} - V_{on} = 0$) ricaviamo subito:
+#### Retta di Carico e Punto di Lavoro $Q$
 
-$$
-I_{DQ} = \frac{V_{DD} - V_{on}}{R} = \frac{5\,\text{V} - 0.7\,\text{V}}{1\,\text{k}\Omega} = 4.3\,\text{mA}
-$$
-
-   Poiché la corrente è positiva ($4.3\,\text{mA} > 0$), l'ipotesi che il diodo sia acceso è corretta.
-
-2. **Confronto con la curva esatta e con il Diodo Ideale:**
-   Se usassimo l'equazione esponenziale esatta troveremmo $V_{DQ} \approx 0.69\,\text{V}$ e $I_{DQ} \approx 4.31\,\text{mA}$: l'errore del modello CVD è appena dello $0.2\%$, quindi nella pratica non serve mai fare di più! Con il **diodo ideale** ($V_{on} = 0\,\text{V}$) avremmo invece $I_{DQ} = 5\,\text{mA}$ (errore del $16\%$ a $5\,\text{V}$, ma trascurabile se alimentiamo a $50\,\text{V}$).
-
-<StepCheck client:load lang="it" prompt="Se nello stesso circuito con $R = 1.0\,\text{k}\Omega$ la batteria viene invertita a $V_{DD} = -5.0\,\text{V}$, quanto vale la tensione $v_D$ ai capi del diodo usando il modello CVD (in $\text{V}$)?" expected={-5.0} tolerance={0.05} unit="V" explanation="Con $V_{DD} = -5.0\,\text{V} < V_{on} = 0.7\,\text{V}$ il diodo è interdetto (OFF, circuito aperto): la corrente è $i_D = 0$, la caduta su $R$ è nulla e tutta la tensione cade sul diodo ($v_D = -5.0\,\text{V}$)." />
-
-### Teoria — Retta di Carico, Modello CVD e Metodo delle Ipotesi ON/OFF
-
-Poiché la legge di Shockley ($i_D = I_S (e^{v_D/(\eta V_T)} - 1)$) è esponenziale, a seconda della precisione che ci serve scegliamo uno di questi tre modelli.
-
-#### Retta di Carico
-
-Nel circuito serie di [la figura](#fig-load-line)(a), la KVL ($V_{DD} - R i_D - v_D = 0$) lega corrente e tensione lungo una retta nel piano $(v_D, i_D)$:
+Applicando la KVL lungo la maglia serie ($V_{DD} - R i_D - v_D = 0$), il circuito esterno impone un vincolo lineare tra corrente e tensione sul diodo:
 
 $$
 i_D = -\frac{1}{R} v_D + \frac{V_{DD}}{R}
 $$
 
-Questa è la **retta di carico** ([la figura](#fig-load-line)(b)): taglia l'asse orizzontale a $V_{DD}$ (circuito aperto) e quello verticale a $V_{DD}/R$ (cortocircuito), con pendenza $-1/R$. Il punto di lavoro **$Q(V_{DQ}, I_{DQ})$** è l'incrocio tra questa retta e la curva del diodo.
+Nel piano $(v_D, i_D)$ questa equazione disegna la **retta di carico** ([la figura](#fig-load-line)(b)), individuata da due punti immediati: l'intercetta orizzontale a corrente nulla ($v_D = V_{DD}$) e l'intercetta verticale a tensione nulla ($i_D = V_{DD}/R$), collegate con pendenza $-1/R$. Il **punto di lavoro stazionario $Q(V_{DQ}, I_{DQ})$** è l'unica intersezione tra la retta di carico e la curva caratteristica reale del diodo.
 
 #### Modello a Caduta di Tensione Costante (CVD)
 
-Siccome la corrente di un diodo al silicio cresce di $10$ volte ogni $\sim 60\,\text{mV}$, in conduzione la sua tensione resta quasi inchiodata intorno a $0.7\,\text{V}$. Il **Modello CVD** approssima quindi il diodo con due soli stati:
+Poiché la legge di Shockley sale quasi verticalmente attorno a $0.6\text{--}0.8\,\text{V}$ nel silicio, il **Modello CVD** (*Constant Voltage Drop*, [la figura](#fig-modelli-diodo-cvd-ac)(b)) approssima la caratteristica esponenziale con due tratti rettilinei:
 
 $$
-v_D = V_{on} \approx 0.7\,\text{V} \quad (\text{stato ON, } i_D > 0), \qquad i_D = 0 \quad (\text{stato OFF, } v_D < V_{on})
+\text{Stato ON: } v_D = V_{on} \approx 0.7\,\text{V} \; (i_D > 0), \qquad \text{Stato OFF: } i_D = 0 \; (v_D < V_{on})
 $$
 
-Da acceso è una batteria da $0.7\,\text{V}$; da spento è un circuito aperto.
+Da acceso il diodo equivale a una batteria costante da $0.7\,\text{V}$ (oppure $0.3\text{--}0.4\,\text{V}$ per un diodo Schottky); da spento equivale a un circuito aperto. Ad esempio, nel circuito di [la figura](#fig-load-line)(a) con $V_{DD} = 5\,\text{V}$ e $R = 1\,\text{k}\Omega$, ipotizzando il diodo acceso si ottiene subito $I_{DQ} = \frac{5\,\text{V} - 0.7\,\text{V}}{1\,\text{k}\Omega} = 4.3\,\text{mA} > 0$ (uno scarto inferiore allo $0.3\%$ rispetto alla soluzione numerica esatta di Shockley). Se invece invertiamo la batteria a $V_{DD} = -5\,\text{V}$, il diodo è interdetto ($i_D = 0$) e tutta la tensione cade ai suoi capi ($v_D = -5\,\text{V} < V_{on}$).
 
-#### Diodo Ideale e Metodo delle Ipotesi ON/OFF
+#### Modello del Diodo Ideale
 
-Quando le tensioni in gioco sono molto più grandi di $0.7\,\text{V}$ (ad esempio $15\text{--}50\,\text{V}$), possiamo trascurare $V_{on}$ e usare il **diodo ideale**, che funziona come un interruttore perfetto: cortocircuito in ON ($v_D = 0, i_D > 0$) e circuito aperto in OFF ($i_D = 0, v_D \le 0$).
+Quando le tensioni di alimentazione sono molto maggiori di $0.7\,\text{V}$ (ad esempio decine di Volt nei raddrizzatori ad alta tensione), possiamo porre $V_{on} = 0\,\text{V}$ ottenendo il **diodo ideale** ([la figura](#fig-modelli-diodo-cvd-ac)(a)): un interruttore perfetto che chiude in cortocircuito per correnti dirette ($v_D = 0, i_D > 0$) e apre il circuito per tensioni inverse ($i_D = 0, v_D \le 0$).
 
-In un circuito con più diodi, procediamo per ipotesi e verifica:
-1. Ipotizziamo lo stato (ON oppure OFF) di ciascun diodo.
-2. Sostituiamo ogni diodo con il suo modello lineare e risolviamo il circuito.
-3. Verifichiamo che le ipotesi reggano: ogni diodo supposto ON deve avere corrente positiva ($i_D > 0$), e ogni diodo supposto OFF deve avere tensione sotto soglia ($v_D < V_{on}$). Se anche un solo diodo contraddice l'ipotesi, cambiamo combinazione e ricalcoliamo.
+#### Metodo delle Ipotesi ON/OFF
+
+Nei circuiti lineari a tratti con $N$ diodi (ciascuno in grado di assumere $2$ stati, ON oppure OFF), si procede per ipotesi e verifica:
+
+1. **Ipotizza** uno stato (ON o OFF) per ciascun diodo del circuito.
+2. **Sostituisci** ogni diodo con il modello corrispondente (batteria $V_{on}$ o cortocircuito per ON; circuito aperto per OFF) e risolvi la rete lineare risultante.
+3. **Verifica la consistenza** di tutti i diodi contemporaneamente: ogni diodo supposto ON deve risultare percorso da corrente positiva ($i_D > 0$), e ogni diodo supposto OFF deve presentare ai suoi capi una tensione inferiore alla soglia ($v_D < V_{on}$). Se anche un solo diodo contraddice l'ipotesi, occorre scartare la combinazione e provarne un'altra.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Applicando il metodo delle ipotesi ON/OFF con modello CVD ($V_{on} = 0.7\,\text{V}$), quando un'ipotesi di lavoro su un circuito a più diodi va scartata?" options={["Quando la corrente calcolata in un diodo supposto ON risulta negativa ($i_D < 0$) oppure la tensione su un diodo supposto OFF supera $V_{on}$", "Quando la corrente in un diodo ON supera $1\\,\\text{mA}$", "Quando la tensione su un diodo OFF risulta negativa ($v_D < 0$)", "Quando due diodi nel circuito conducono contemporaneamente"]} correctIndex={0} explanation="Un diodo reale può condurre solo dall'anodo al catodo ($i_D > 0$ in ON) e resta spento finché la tensione diretta non raggiunge la soglia ($v_D < V_{on}$ in OFF): violare una qualsiasi di queste disuguaglianze invalida l'ipotesi." />
 
 <Divider label="2 · Modello Differenziale di Piccolo Segnale (r_d)" />
 
-### Esempio — Attenuazione di un Disturbo AC tramite la Resistenza Differenziale $r_d$
+Quando una piccola oscillazione AC si sovrappone a un punto di lavoro continuo stazionario $Q$, il diodo esplora un arco talmente corto della curva esponenziale da comportarsi esattamente come una normale resistenza lineare, il cui valore dipende dalla corrente DC di polarizzazione.
 
-Riprendiamo il circuito di prima polarizzato nel punto $Q$ ($I_{DQ} = 4.30\,\text{mA}$, $R = 1.0\,\text{k}\Omega$, $\eta = 1$, $V_T = 25.85\,\text{mV}$), e immaginiamo che alla tensione continua $V_{DD}$ si sommi un piccolo disturbo sinusoidale $v_s(t) = 10\sin(\omega t)\,\text{mV}$ ([la figura](#fig-modelli-diodo-cvd-ac)):
+### Esempio — La Pendenza nel Punto di Lavoro
+
+Osservando al microscopio un tratto minuscolo di una curva liscia, l'arco appare praticamente indistinguibile da un segmento rettilineo tangente alla curva stessa. Se abbiamo già fissato il diodo in un punto di lavoro stazionario, una piccola vibrazione di tensione attorno a quel punto produce una variazione proporzionale di corrente proprio come in un resistore. Più alta è la corrente continua che scorre nel diodo, più ripida diventa la curva in quel punto e quindi più piccola appare questa resistenza equivalente per il segnale alternato.
+
+### Teoria — Conduttanza Differenziale e Linearizzazione
+
+Sia polarizzato un diodo nel punto di lavoro statico $Q(V_{DQ}, I_{DQ})$ mediante una sorgente DC, e sovrapponiamo una piccola variazione temporale $v_d(t)$ tale che la tensione totale valga $v_D(t) = V_{DQ} + v_d(t)$ ([la figura](#fig-modelli-diodo-cvd-ac)(c)).
 
 <figure id="fig-modelli-diodo-cvd-ac" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-modelli-diodo-cvd-ac.svg" alt="Modelli circuitali equivalenti del diodo: (a) modello ideale (cortocircuito in ON, circuito aperto in OFF); (b) modello a caduta di tensione costante CVD in conduzione (v_D = V_on); (c) modello differenziale di piccolo segnale attorno al punto di lavoro Q." />
   <figcaption>Modelli circuitali equivalenti del diodo: (a) modello ideale (cortocircuito in ON, circuito aperto in OFF); (b) modello a caduta di tensione costante CVD in conduzione ($v_D = V_{on}$); (c) modello differenziale di piccolo segnale attorno al punto di lavoro $Q$.</figcaption>
 </figure>
 
-1. **Resistenza differenziale $r_d$ nel punto $Q$:**
-   Per piccole oscillazioni attorno a $Q$, sostituiamo la curva del diodo con la sua retta tangente ([la figura](#fig-modelli-diodo-cvd-ac)(c)), che equivale a una semplice resistenza:
+Sviluppando l'equazione di Shockley in serie di Taylor attorno a $Q$:
 
 $$
-r_d = \frac{\eta V_T}{I_{DQ}} = \frac{1 \cdot 25.85\,\text{mV}}{4.30\,\text{mA}} \approx 6.01\,\Omega
+i_D(t) = I_{DQ} \exp\left( \frac{v_d(t)}{\eta V_T} \right) \approx I_{DQ} \left[ 1 + \frac{v_d(t)}{\eta V_T} + \frac{1}{2}\left(\frac{v_d(t)}{\eta V_T}\right)^2 + \dots \right]
 $$
 
-2. **Partitore AC:**
-   Nel circuito di piccolo segnale spegniamo la batteria $V_{DD}$ (cortocircuito a massa) e sostituiamo il diodo con $r_d \approx 6\,\Omega$. Tra $R = 1000\,\Omega$ e $r_d$ si forma un partitore di tensione, quindi ai capi del diodo arriva appena:
+Se l'ampiezza dell'oscillazione è abbastanza piccola da rendere trascurabile il termine quadratico rispetto al termine lineare ($\lvert v_d(t) \rvert \ll 2\eta V_T \approx 52\,\text{mV}$ per $\eta = 1$, cioè nella pratica $\lvert v_d \rvert \lesssim 5\text{--}10\,\text{mV}$), la componente AC della corrente diventa proporzionale a $v_d(t)$:
 
 $$
-v_d(t) = v_s(t) \frac{r_d}{R + r_d} = 10\sin(\omega t)\,\text{mV} \cdot \frac{6.01}{1000 + 6.01} \approx 60\sin(\omega t)\,\mu\text{V}
+i_d(t) \approx \frac{I_{DQ}}{\eta V_T} v_d(t) = \frac{v_d(t)}{r_d}
 $$
 
-   Il disturbo è stato attenuato di oltre **$167$ volte**! Essendo $|v_d| \approx 0.06\,\text{mV}$ molto sotto i $\sim 50\,\text{mV}$, la linearizzazione è validissima.
-
-<StepCheck client:load lang="it" prompt="Calcola la resistenza differenziale di piccolo segnale $r_d$ nel punto $Q$ ($I_{DQ} = 4.3\,\text{mA}$, $\eta = 1$, $V_T = 25.85\,\text{mV}$) in $\Omega$:" expected={6.01} tolerance={0.15} unit="$\Omega$" explanation="$r_d = \frac{25.85\,\text{mV}}{4.3\,\text{mA}} \approx 6.01\,\Omega$." />
-
-### Teoria — Conduttanza Differenziale e Linearizzazione
-
-Quando un piccolo segnale AC $v_d(t)$ si sovrappone alla tensione continua $V_{DQ}$, il diodo lavora in un tratto cortissimo della sua curva esponenziale, che può essere trattato come una retta tangente. In AC il diodo si comporta quindi come una **resistenza differenziale** $r_d$ ([la figura](#fig-modelli-diodo-cvd-ac)(c)):
+In regime di piccolo segnale il diodo polarizzato in diretta equivale quindi alla **resistenza differenziale** $r_d$:
 
 $$
-r_d = \frac{\eta V_T}{I_{DQ}}
+r_d = \left(\left. \frac{di_D}{dv_D} \right|_Q \right)^{-1} = \frac{\eta V_T}{I_{DQ}}
 $$
 
-La regola è intuitiva: più corrente continua $I_{DQ}$ facciamo scorrere nel diodo, più la curva è ripida e più piccola diventa $r_d$ (ad esempio $26\,\Omega$ a $1\,\text{mA}$, e appena $2.6\,\Omega$ a $10\,\text{mA}$).
+La dipendenza inversa dalla corrente continua è immediata: a $I_{DQ} = 1\,\text{mA}$ (con $\eta = 1$, $V_T = 25.85\,\text{mV}$) risulta $r_d \approx 25.9\,\Omega$, mentre a $I_{DQ} = 10\,\text{mA}$ scende a $r_d \approx 2.6\,\Omega$. Per calcolare la risposta AC di un circuito completo, si trova prima $I_{DQ}$ spegnendo le sorgenti AC (usando ad esempio il modello CVD), si valuta $r_d$, e poi si risolve la rete di piccolo segnale sostituendo il diodo con $r_d$ e spegnendo i generatori DC indipendenti. Ad esempio, nel circuito di [la figura](#fig-load-line)(a) con $R = 1\,\text{k}\Omega$ e $I_{DQ} = 4.30\,\text{mA}$ ($r_d \approx 6.01\,\Omega$), un disturbo sinusoidale di $10\,\text{mV}$ sovrapposto all'alimentazione subisce il partitore tra $R$ ed $r_d$, attenuandosi ai capi del diodo fino a $10\,\text{mV} \cdot \frac{6.01}{1006} \approx 60\,\mu\text{V}$. Alle alte frequenze vanno poi aggiunte in parallelo a $r_d$ le capacità dinamiche $C_d$ e $C_j$ introdotte nel [Capitolo 3](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn).
 
-Sviluppando la legge esponenziale in serie di Taylor, si vede che i termini non lineari restano trascurabili finché $|v_d(t)| \ll 2\eta V_T \approx 52\,\text{mV}$ (in pratica per segnali sotto i $5\text{--}10\,\text{mV}$). Alle alte frequenze, in parallelo a $r_d$ si aggiungono le capacità $C_d$ e $C_j$ viste nel [Capitolo 3](/dynamic-courses/elettronica/01-fondamenti-dispositivi/03-giunzione-pn).
+<StepCheck client:load lang="it" mode="choice" prompt="Se la corrente continua di polarizzazione $I_{DQ}$ attraverso un diodo raddoppia, come cambia la sua resistenza differenziale $r_d$ e perché?" options={["Raddoppia, perché aumenta la caduta di tensione $V_{DQ}$", "Si dimezza, perché la curva esponenziale diventa due volte più ripida nel nuovo punto di lavoro", "Resta costante perché $r_d$ dipende solo da $V_T$", "Si quadruplica a causa della capacità di diffusione $C_d$"]} correctIndex={1} explanation="Poiché $r_d = \frac{\eta V_T}{I_{DQ}}$ ed è l'inverso della pendenza della caratteristica esponenziale ($di_D/dv_D = I_{DQ}/(\eta V_T)$), raddoppiare $I_{DQ}$ raddoppia la pendenza e dimezza $r_d$." />
 
 <Divider label="3 · Circuiti Raddrizzatori e Filtro Capacitivo" />
 
-### Esempio — Confronto tra Singola Semionda e Ponte di Graetz con Filtro Capacitivo
+I **raddrizzatori** convertono una tensione alternata sinusoidale $v_s(t) = V_p \sin(\omega t)$ in una tensione di segno costante sfruttando la conduzione unidirezionale del diodo. Aggiungendo un condensatore in parallelo al carico, il circuito accumula energia sui picchi della sinusoide e mantiene l'uscita quasi continua tra una ricarica e l'altra.
 
-Progettiamo un alimentatore AC-DC partendo da una sinusoide di picco $V_p = 15\,\text{V}$ a $f = 50\,\text{Hz}$ ($T = 20\,\text{ms}$), su un carico $R_L = 1\,\text{k}\Omega$ con condensatore di livellamento $C = 470\,\mu\text{F}$ e diodi al silicio ($V_{on} = 0.7\,\text{V}$, [la figura](#fig-half-wave-rectifier) e [la figura](#fig-bridge-rectifier)):
+### Esempio — Riempire un Serbatoio a Impulsi
+
+Immaginiamo una pompa alternativa che spinge l'acqua avanti e indietro collegata a un serbatoio con un foro sul fondo da cui esce un flusso continuo verso il carico. Se mettiamo una sola valvola di non ritorno lungo il tubo, l'acqua entra soltanto nella fase di spinta in avanti; senza serbatoio, sul carico il flusso si azzera per metà del tempo.
+
+Con un grande serbatoio di accumulo, il livello dell'acqua sale fino al picco della pompata e poi, mentre la valvola si richiude durante la fase di ritorno, il serbatoio continua a rifornire il carico scendendo pochissimo. Poco prima del picco successivo la valvola si apre per un breve istante giusto per rabboccare quanto si è svuotato: per compensare in un attimo tutta l'acqua uscita durante l'intero ciclo, in quell'istante la valvola deve sopportare una portata di picco molto più grande del flusso medio. Se invece usiamo quattro valvole disposte a ponte per sfruttare sia l'andata sia il ritorno della pompa, rabbocchiamo il serbatoio con frequenza doppia dimezzando l'oscillazione del livello.
+
+### Teoria — Raddrizzatori, Filtro Capacitivo e PIV
+
+#### Raddrizzatore a Singola Semionda e Filtro Capacitivo
+
+Collegando un solo diodo in serie al carico resistivo $R_L$ ([la figura](#fig-half-wave-rectifier)(a)), il diodo conduce solo durante la semionda positiva quando $v_s(t) > V_{on}$, fornendo $v_o(t) = v_s(t) - V_{on}$, e rimane spento ($v_o = 0$) per tutta la semionda negativa. La tensione inversa massima ai capi del diodo spento (**PIV**, *Peak Inverse Voltage*) è pari a $V_p$.
 
 <figure id="fig-half-wave-rectifier" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-half-wave-rectifier.svg" alt="Topologie dei circuiti raddrizzatori: (a) raddrizzatore a singola semionda su carico resistivo; (b) raddrizzatore a singola semionda con condensatore di livellamento C; (c) raddrizzatore a doppia semionda con trasformatore a presa centrale (*Center-Tap*)." />
   <figcaption>Topologie dei circuiti raddrizzatori: (a) raddrizzatore a singola semionda su carico resistivo; (b) raddrizzatore a singola semionda con condensatore di livellamento $C$; (c) raddrizzatore a doppia semionda con trasformatore a presa centrale (*Center-Tap*).</figcaption>
 </figure>
 
+Inserendo un grande condensatore di livellamento $C$ in parallelo a $R_L$ con costante di tempo $R_L C \gg T = 1/f$ ([la figura](#fig-half-wave-rectifier)(b)), il condensatore si carica fino al valore massimo $V_{dc} = V_p - V_{on}$. Appena la sinusoide scende sotto $V_{dc}$, il diodo si interdice e il condensatore si scarica lentamente su $R_L$ alimentando il carico quasi a corrente costante $I_{dc} \approx V_{dc} / R_L$. Trascurando il breve intervallo di ricarica rispetto all'intero periodo $T$, la caduta lineare di tensione sul condensatore fornisce l'ondulazione picco-picco (**ripple**) per la singola semionda:
+
+$$
+V_{r,\text{HW}} \approx \frac{I_{dc} T}{C} = \frac{I_{dc}}{f C}
+$$
+
+Poiché il diodo si riaccende solo in un breve intervallo angolare $\theta_c \approx \sqrt{\frac{2 V_r}{V_p}}$ vicino al picco, deve trasferire in quel brevissimo tempo l'intera carica persa dal condensatore durante tutto il periodo $T$: la corrente di picco nei diodi risulta quindi molto superiore alla corrente media sul carico ($I_P \gg I_{dc}$). Inoltre, nella semionda negativa il condensatore mantiene il catodo a $+V_{dc}$ mentre l'anodo scende a $-V_p$, raddoppiando lo stress inverso sul diodo:
+
+$$
+\text{PIV}_{\text{HW}} = V_{dc} + V_p = 2V_p - V_{on} \approx 2V_p
+$$
+
+#### Raddrizzatori a Doppia Semionda: Presa Centrale e Ponte di Graetz
+
+Per ridurre il ripple e sfruttare entrambe le semionde, ricarichiamo il condensatore **due volte per periodo** (a frequenza $2f = 100\,\text{Hz}$ per la rete a $50\,\text{Hz}$), dimezzando l'intervallo di scarica e quindi dimezzando il ripple per entrambe le topologie:
+
+$$
+V_{r,\text{FW}} \approx \frac{I_{dc}}{2 f C}
+$$
+
+Le due realizzazioni a doppia semionda differiscono però per struttura, caduta diretta e PIV:
+
+* **Raddrizzatore a Presa Centrale (*Center-Tap*, [la figura](#fig-half-wave-rectifier)(c)):** impiega $2$ diodi e un trasformatore con doppio avvolgimento secondario a presa centrale. Ogni semionda attraversa un solo diodo ($V_{dc} = V_p - V_{on}$), ma mentre un diodo conduce portando il nodo d'uscita a $V_p - V_{on}$, l'altro avvolgimento spinge l'anodo del secondo diodo a $-V_p$, mantenendo ancora $\text{PIV} = 2V_p - V_{on} \approx 2V_p$.
+* **Ponte di Graetz ([la figura](#fig-bridge-rectifier)):** impiega $4$ diodi collegati a ponte e un normale trasformatore a singolo secondario. In ciascuna semionda conducono due diodi in serie, perdendo due soglie ($V_{dc} = V_p - 2V_{on}$); in compenso, ogni diodo spento si trova collegato in parallelo al secondario meno la caduta di un diodo acceso, dimezzando la tensione inversa massima a $\text{PIV}_{\text{Graetz}} = V_p - V_{on} \approx V_p$.
+
 <figure id="fig-bridge-rectifier" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-bridge-rectifier.svg" alt="Raddrizzatore a doppia semionda a ponte di Graetz con filtro capacitivo C e carico R_L." />
   <figcaption>Raddrizzatore a doppia semionda a ponte di Graetz con filtro capacitivo $C$ e carico $R_L$.</figcaption>
 </figure>
 
-1. **Singola Semionda ([la figura](#fig-half-wave-rectifier)(b)):**
-   Un solo diodo ricarica $C$ una volta ogni $20\,\text{ms}$ ($f = 50\,\text{Hz}$). Il picco d'uscita vale $V_{dc} = 15 - 0.7 = 14.3\,\text{V}$ ($I_{dc} \approx 14.3\,\text{mA}$), e l'ondulazione residua (**ripple**) picco-picco è:
+<Callout type="tip" title="Vantaggio Circuitale: Perché il Ponte di Graetz è lo standard industriale">
 
-$$
-V_{r,\text{HW}} \approx \frac{I_{dc}}{f C} = \frac{14.3\,\text{mA}}{50\,\text{Hz} \times 470\,\mu\text{F}} \approx 0.61\,\text{V}
-$$
-
-   Quando la sinusoide scende a $-15\,\text{V}$ mentre $C$ resta a $+14.3\,\text{V}$, il diodo deve reggere una tensione inversa doppia: $\text{PIV}_{\text{HW}} = 14.3 + 15.0 = 29.3\,\text{V} \approx 2V_p$.
-
-2. **Ponte di Graetz ([la figura](#fig-bridge-rectifier)):**
-   I quattro diodi lavorano a coppie alterne ricaricando $C$ **due volte per periodo** ($2f = 100\,\text{Hz}$). Si perdono due cadute diodo ($V_{dc} = 15 - 1.4 = 13.6\,\text{V}$, $I_{dc} \approx 13.6\,\text{mA}$), ma sia il ripple sia la PIV si dimezzano:
-
-$$
-V_{r,\text{Graetz}} \approx \frac{I_{dc}}{2 f C} = \frac{13.6\,\text{mA}}{100\,\text{Hz} \times 470\,\mu\text{F}} \approx 0.29\,\text{V}, \qquad \text{PIV}_{\text{Graetz}} = V_p - V_{on} = 14.3\,\text{V} \approx V_p
-$$
-
-   Poiché il condensatore si ricarica solo in brevi istanti attorno al picco ($\theta_c \approx \sqrt{2V_r/V_p} \approx 0.20\,\text{rad}$), la corrente di picco nei diodi è molto più alta di quella media ($I_P \approx 435\,\text{mA}$).
-
-Regola qui sotto la topologia del raddrizzatore (singola semionda vs ponte di Graetz), la capacità di filtro $C$ e il carico $R_L$ per visualizzare dal vivo il ripple $V_r$ e gli impulsi di corrente nei diodi:
-
-<DiodeRectifierExplorer client:load />
-
-<StepCheck client:load lang="it" mode="choice" prompt="Confrontando un raddrizzatore a singola semionda e un ponte di Graetz a parità di carico $R_L$, capacità $C$ e tensione di picco $V_p \gg V_{on}$, quale affermazione è corretta?" options={["Il ponte di Graetz ha ripple doppio e PIV uguale a $2V_p$", "Il ponte di Graetz dimezza sia il ripple $V_r$ sia la PIV richiesta sui diodi", "Il ponte di Graetz richiede un condensatore doppio per avere lo stesso ripple", "La tensione d'uscita del ponte di Graetz perde una sola caduta $V_{on}$"]} correctIndex={1} explanation="Nel ponte di Graetz la frequenza di ricarica raddoppia ($2f$, quindi $V_r$ si dimezza) e ogni diodo spento sopporta $\text{PIV} = V_p - V_{on} \approx V_p$ anziché $2V_p$." />
-
-### Teoria — Raddrizzatori, Filtro Capacitivo e PIV
-
-I **raddrizzatori** trasformano la tensione alternata di rete $v_s(t) = V_p \sin(\omega t)$ in una tensione unidirezionale ([la figura](#fig-half-wave-rectifier)).
-
-#### Raddrizzatore a Singola Semionda e Filtro Capacitivo
-
-Con un solo diodo in serie al carico ([la figura](#fig-half-wave-rectifier)(a)), passa solo la semionda positiva ($v_o = v_s - V_{on}$), mentre in quella negativa il diodo si spegne ($v_o = 0$).
-
-Aggiungendo un grande condensatore $C$ in parallelo a $R_L$ ([la figura](#fig-half-wave-rectifier)(b)), il condensatore si carica fino al picco $V_{dc} = V_p - V_{on}$ e poi, mentre il diodo è spento, alimenta lui il carico scaricandosi lentamente (se $R_L C \gg T$). Poco prima del picco successivo, il diodo si riaccende per un attimo e ricarica $C$.
-
-Con un po' di approssimazione lineare della scarica ($e^{-T/(R_L C)} \approx 1 - \frac{T}{R_L C}$), si ricavano le formule chiave per la singola semionda:
-* **Ripple picco-picco:** $V_r \approx \frac{I_{dc}}{f C}$ (dove $I_{dc} = V_{dc}/R_L$).
-* **Angolo di conduzione e corrente di picco:** il diodo conduce solo per un breve angolo $\theta_c \approx \sqrt{\frac{2V_r}{V_p}}$, quindi deve sopportare impulsi di corrente molto intensi ($I_P \gg I_{dc}$) per reintegrare in un attimo la carica persa in tutto il periodo.
-* **Tensione inversa di picco (PIV):** mentre $C$ tiene il catodo a $+V_{dc}$, l'ingresso scende a $-V_p$, quindi il diodo vede ai suoi capi $\text{PIV} \approx 2V_p$.
-
-#### Doppia Semionda: Presa Centrale e Ponte di Graetz
-
-Per dimezzare il ripple si sfruttano entrambe le semionde, ricaricando $C$ a frequenza $2f = 100\,\text{Hz}$:
-* **Presa Centrale (*Center-Tap*, [la figura](#fig-half-wave-rectifier)(c)):** usa $2$ diodi e un trasformatore speciale a doppio secondario. Perde una sola $V_{on}$, ma ha ancora $\text{PIV} \approx 2V_p$.
-* **Ponte di Graetz ([la figura](#fig-bridge-rectifier)):** usa $4$ diodi a ponte e un normale trasformatore singolo. Si perdono due soglie ($V_{dc} = V_p - 2V_{on}$), ma la tensione inversa su ogni diodo si dimezza a $\text{PIV} = V_p - V_{on} \approx V_p$.
-
-Per entrambi i raddrizzatori a doppia semionda, il ripple si dimezza:
-
-$$
-V_r \approx \frac{I_{dc}}{2 f C}
-$$
-
-<Callout type="tip" title="Vantaggio Circuitale: Perché il Ponte di Graetz è lo standard assoluto">
-
-Confrontando le tre configurazioni, il **ponte di Graetz** vince su tutta la linea nella pratica industriale:
-1. **Capacità di filtro dimezzata:** Rispetto al semionda, raddoppia la frequenza di ricarica ($100\,\text{Hz}$ anziché $50\,\text{Hz}$), permettendo di usare un condensatore di filtro grande la metà.
-2. **PIV dimezzata:** Elimina il trasformatore con doppio avvolgimento secondario e dimezza la tensione inversa di picco ($\text{PIV} \approx V_p$ anziché $2V_p$) su ciascun diodo.
+Rispetto alla singola semionda, il ponte di Graetz raddoppia la frequenza di ricarica ($2f$) dimezzando a parità di ripple la capacità di filtro richiesta, elimina il costoso trasformatore a presa centrale e dimezza la tensione inversa di picco su ciascun diodo ($\text{PIV} \approx V_p$ anziché $2V_p$). Ad esempio, con $V_p = 15\,\text{V}$ a $50\,\text{Hz}$, $R_L = 1\,\text{k}\Omega$ e $C = 470\,\mu\text{F}$, si passa da $V_{r,\text{HW}} \approx 0.61\,\text{V}$ ($\text{PIV} = 29.3\,\text{V}$) della singola semionda a $V_{r,\text{Graetz}} \approx 0.29\,\text{V}$ ($\text{PIV} = 14.3\,\text{V}$) nel ponte.
 
 </Callout>
 
+Seleziona qui sotto la topologia del raddrizzatore (singola semionda o ponte di Graetz), la capacità di filtro $C$ e il carico $R_L$ per osservare in tempo reale l'ampiezza del ripple $V_r$ e i picchi impulsivi di corrente nei diodi attorno al massimo della sinusoide:
+
+<DiodeRectifierExplorer client:load />
+
+<StepCheck client:load lang="it" mode="choice" prompt="Confrontando un raddrizzatore a singola semionda e un ponte di Graetz dotati dello stesso condensatore $C$, carico $R_L$ e tensione di picco $V_p \gg V_{on}$, quale affermazione è corretta?" options={["Il ponte di Graetz ha ripple doppio e $\\text{PIV} \\approx 2V_p$", "Il ponte di Graetz dimezza sia il ripple $V_r$ sia la $\\text{PIV}$ richiesta sui diodi, al costo di due cadute dirette $2V_{on}$", "Il ponte di Graetz richiede un trasformatore a presa centrale e perde una sola $V_{on}$", "Nel ponte di Graetz i diodi conducono per l'intero semiperiodo anche con un grande condensatore $C$"]} correctIndex={1} explanation="Il ponte di Graetz ricarica $C$ a frequenza $2f$ (dimezzando $V_r$), sottopone ciascun diodo spento a $\text{PIV} = V_p - V_{on} \approx V_p$, e in conduzione attraversa sempre due diodi in serie ($V_{dc} = V_p - 2V_{on}$)." />
+
 <Divider label="4 · Regolatore di Tensione Shunt a Diodo Zener" />
 
-### Esempio — Progetto Worst-Case di $R_{\text{serie}}$ e Regolazione di Linea/Carico
+Anche dopo il filtro capacitivo resta un ripple residuo e la tensione di rete può oscillare. Per ottenere una tensione continua stabile ai capi di un carico si utilizza un **regolatore shunt a diodo Zener**, che sfrutta la pendenza quasi verticale della regione di breakdown (Capitolo 3) insieme a un resistore serie $R_{\text{serie}}$ per assorbire le variazioni della sorgente e del carico.
 
-Progettiamo un regolatore shunt ([la figura](#fig-zener-regulator)) con un diodo Zener da $V_Z = 5.0\,\text{V}$ ($r_z = 5\,\Omega$), corrente minima $I_{Z,\min} = 5\,\text{mA}$ e potenza massima $P_{Z,\max} = 500\,\text{mW}$ ($I_{Z,\max} = 100\,\text{mA}$). La sorgente varia tra $V_S \in [10\,\text{V}, 14\,\text{V}]$ e il carico assorbe $I_L \in [0, 35\,\text{mA}]$:
+### Esempio — Lo Sfioratore di Sicurezza
+
+Immaginiamo un canale d'acqua dotato di una strozzatura all'ingresso e di uno sfioratore laterale tarato a un livello fisso, posto subito prima del campo da irrigare. Finché attraverso la strozzatura arriva abbastanza acqua da soddisfare il campo e far traboccare almeno un filo d'acqua nello sfioratore, il livello disponibile per il campo resta inchiodato all'altezza dello sfioratore.
+
+Il dimensionamento della strozzatura è però vincolato da due estremi opposti. Se la strozzatura è troppo stretta, quando la pressione a monte è al minimo e il campo assorbe la massima portata lo sfioratore resta a secco e il livello crolla; se invece la strozzatura è troppo larga, quando la pressione a monte è al massimo e il campo chiude il prelievo tutta l'acqua si riversa nello sfioratore rischiando di farlo straripare.
+
+### Teoria — Regolatore Shunt Zener
+
+Nel circuito regolatore shunt di [la figura](#fig-zener-regulator), il diodo Zener lavora in polarizzazione inversa nella regione di breakdown ed è modellato linearmente a tratti da una batteria $V_{Z0}$ in serie alla piccola resistenza incrementale $r_z$ ($V_Z = V_{Z0} + r_z I_Z$).
 
 <figure id="fig-zener-regulator" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-zener-regulator.svg" alt="Circuito regolatore di tensione parallelo con diodo Zener." />
   <figcaption>Circuito regolatore di tensione parallelo con diodo Zener.</figcaption>
 </figure>
 
-1. **Limite superiore $R_{\text{serie},\max}$ (per non spegnere lo Zener):**
-   Il caso peggiore è ingresso al minimo ($10\,\text{V}$) e carico al massimo ($35\,\text{mA}$): nello Zener devono restare almeno $5\,\text{mA}$ (totale $40\,\text{mA}$):
+#### Principio di Funzionamento e Carico Minimo
 
-$$
-R_{\text{serie},\max} = \frac{V_{S,\min} - V_Z}{I_{Z,\min} + I_{L,\max}} = \frac{10 - 5}{0.005 + 0.035} = 125\,\Omega
-$$
-
-2. **Limite inferiore $R_{\text{serie},\min}$ (per non bruciare lo Zener):**
-   Il caso peggiore è ingresso al massimo ($14\,\text{V}$) e carico scollegato ($I_L = 0$): tutta la corrente va nello Zener e non deve superare $100\,\text{mA}$:
-
-$$
-R_{\text{serie},\min} = \frac{V_{S,\max} - V_Z}{I_{Z,\max}} = \frac{14 - 5}{0.100} = 90\,\Omega
-$$
-
-   Scegliamo un valore commerciale dentro la finestra $[90\,\Omega, 125\,\Omega]$, ad esempio $R_{\text{serie}} = 100\,\Omega$.
-
-3. **Regolazione di Linea e di Carico ($R_{\text{serie}} = 100\,\Omega, r_z = 5\,\Omega$):**
-   In piccolo segnale il partitore tra $R_{\text{serie}}$ ed $r_z$ riduce l'oscillazione di $4\,\text{V}$ in ingresso a appena $\Delta V_o \approx \frac{5}{100+5} \cdot 4\,\text{V} \approx 190\,\text{mV}$ in uscita.
-
-<StepCheck client:load lang="it" prompt="Nel regolatore dell'esempio con $R_{\text{serie}} = 100\,\Omega$, $V_Z = 5.0\,\text{V}$ e $V_S = 10.0\,\text{V}$, quale resistenza di carico minima $R_{L,\min}$ può essere collegata prima che lo Zener si spenga completamente ($I_Z = 0$) in $\Omega$?" expected={100} tolerance={1.0} unit="$\Omega$" explanation="$R_{L,\min} = \frac{R_{\text{serie}}}{V_S / V_Z - 1} = \frac{100}{10/5 - 1} = 100\,\Omega$." />
-
-### Teoria — Regolatore Shunt Zener, Progetto Worst-Case e Modello Incrementale
-
-Per stabilizzare la tensione dopo il filtro capacitivo si usa un **regolatore shunt a diodo Zener** con un resistore limitatore $R_{\text{serie}}$ ([la figura](#fig-zener-regulator)). In breakdown lo Zener equivale a una batteria $V_{Z0}$ in serie a una piccola resistenza $r_z$ ($V_Z = V_{Z0} + r_z I_Z$).
-
-Nel caso ideale ($r_z = 0$), la corrente che passa in $R_{\text{serie}}$ si divide tra Zener e carico: $I_{\text{serie}} = I_Z + I_L$. Affinché lo Zener non si spenga ($I_Z > 0$), il carico non deve assorbire troppo, cioè deve valere:
+Applicando la KCL al nodo d'uscita, la corrente proveniente dal resistore limitatore $R_{\text{serie}}$ si divide tra lo Zener e il carico: $I_{\text{serie}} = \frac{V_S - V_Z}{R_{\text{serie}}} = I_Z + I_L$. Finché lo Zener rimane in breakdown ($I_Z > 0$), la tensione d'uscita resta ancorata attorno a $V_Z$. Se però la resistenza di carico $R_L$ scende troppo, il carico assorbe tutta la corrente disponibile portando a zero la corrente dello Zener ($I_Z = 0$): la soglia limite oltre la quale lo Zener si spegne (nel modello ideale $r_z = 0$) si ricava imponendo che il partitore tra $R_{\text{serie}}$ e $R_L$ raggiunga esattamente $V_Z$:
 
 $$
 R_L > R_{L,\min} = \frac{R_{\text{serie}}}{\frac{V_S}{V_Z} - 1}
@@ -233,107 +199,119 @@ $$
 
 #### Progetto Worst-Case di $R_{\text{serie}}$
 
-Quando ingresso e carico variano, $R_{\text{serie}}$ va scelta tra due limiti opposti:
+Quando la tensione d'ingresso varia nell'intervallo $[V_{S,\min}, V_{S,\max}]$ e la corrente di carico varia in $[0, I_{L,\max}]$, la scelta di $R_{\text{serie}}$ deve soddisfare simultaneamente i due casi peggiori:
+
+* **Limite superiore $R_{\text{serie},\max}$ (per non spegnere lo Zener):** la condizione più critica per mantenere acceso lo Zener si verifica con tensione d'ingresso minima ($V_{S,\min}$) e corrente di carico massima ($I_{L,\max}$), imponendo che nello Zener scorra almeno la corrente minima di mantenimento $I_{Z,\min}$.
+* **Limite inferiore $R_{\text{serie},\min}$ (per non danneggiare lo Zener):** la condizione più critica per la potenza dissipata si verifica con tensione d'ingresso massima ($V_{S,\max}$) e carico scollegato ($I_L = 0$), situazione in cui tutta la corrente attraversa lo Zener e non deve superare $I_{Z,\max} = P_{Z,\max} / V_Z$.
+
+Combinando le due disuguaglianze si ottiene la finestra di progetto ammissibile:
 
 $$
 \frac{V_{S,\max} - V_Z}{I_{Z,\max}} \le R_{\text{serie}} \le \frac{V_{S,\min} - V_Z}{I_{Z,\min} + I_{L,\max}}
 $$
 
-* **Limite superiore ($R_{\text{serie},\max}$):** garantisce che a tensione minima ($V_{S,\min}$) e carico massimo ($I_{L,\max}$) resti nello Zener almeno $I_{Z,\min}$.
-* **Limite inferiore ($R_{\text{serie},\min}$):** garantisce che a tensione massima ($V_{S,\max}$) e carico staccato ($I_L = 0$) non si superi $I_{Z,\max} = P_{Z,\max}/V_Z$.
+Ad esempio, con $V_Z = 5.0\,\text{V}$, $I_{Z,\min} = 5\,\text{mA}$, $I_{Z,\max} = 100\,\text{mA}$, $V_S \in [10\,\text{V}, 14\,\text{V}]$ e $I_L \in [0, 35\,\text{mA}]$, risulta $R_{\text{serie},\min} = \frac{14 - 5}{0.100} = 90\,\Omega$ e $R_{\text{serie},\max} = \frac{10 - 5}{0.040} = 125\,\Omega$, dentro cui si può scegliere il valore commerciale $R_{\text{serie}} = 100\,\Omega$.
 
 #### Regolazione di Linea e di Carico
 
-In piccolo segnale $V_{Z0}$ è costante (cortocircuito a massa), quindi resta solo $r_z$:
-* **Regolazione di Linea** (come varia l'uscita al variare di $V_S$): $\frac{\Delta V_o}{\Delta V_S} \approx \frac{r_z}{R_{\text{serie}}}$ (partitore tra $R_{\text{serie}}$ ed $r_z$).
-* **Regolazione di Carico** (come varia l'uscita al variare di $I_L$): $\frac{\Delta V_o}{\Delta I_L} = -(r_z \parallel R_{\text{serie}}) \approx -r_z$.
+In piccolo segnale attorno al punto di breakdown, il generatore ideale costante $V_{Z0}$ equivale a un cortocircuito verso massa, quindi lo Zener si riduce alla sola resistenza $r_z$:
+
+* **Regolazione di Linea** (sensibilità dell'uscita alle variazioni $\Delta V_S$ dell'ingresso): per il partitore resistivo tra $R_{\text{serie}}$ ed $r_z$, si ha $\frac{\Delta V_o}{\Delta V_S} = \frac{r_z}{R_{\text{serie}} + r_z} \approx \frac{r_z}{R_{\text{serie}}}$.
+* **Regolazione di Carico** (caduta di tensione all'aumentare della corrente assorbita $\Delta I_L$): la resistenza equivalente vista dal carico è il parallelo tra $r_z$ ed $R_{\text{serie}}$, quindi $\frac{\Delta V_o}{\Delta I_L} = -(r_z \parallel R_{\text{serie}}) \approx -r_z$.
 
 <Callout type="tip" title="Realtà Progettuale: Quando Usare lo Zener Shunt e Quando Passare a un Regolatore LDO">
 
-Questa configurazione a Zener parallelo (*shunt regulator*) è ideale quando serve generare un riferimento di tensione locale a bassissima corrente o proteggere un pin d'ingresso da sovratensioni con soli due componenti. Tuttavia, non appena il carico richiede correnti elevate, il regolatore shunt diventa energeticamente inefficiente perché a carico staccato ($I_L = 0$) lo Zener deve dissipare in calore l'intera corrente massima destinata al carico. Nelle applicazioni di potenza si usa lo Zener solo come riferimento a micro-corrente per pilotare un regolatore serie (LDO) o *switching*.
+Il regolatore shunt a Zener è semplicissimo ed economico per generare riferimenti di tensione a bassa corrente o proteggere un ingresso da sovratensioni. Per alimentare carichi di potenza elevata diventa però inefficiente, perché a carico scollegato ($I_L = 0$) lo Zener e $R_{\text{serie}}$ continuano a dissipare in calore l'intera corrente massima di progetto: in quei casi lo Zener si usa soltanto come riferimento di precisione per un regolatore serie (LDO) o *switching*.
 
 </Callout>
 
+<StepCheck client:load lang="it" mode="choice" prompt="Nel dimensionamento di $R_{\text{serie}}$ di un regolatore shunt Zener, quale combinazione rappresenta il caso peggiore per il rischio di spegnimento dello Zener?" options={["$V_S = V_{S,\\max}$ e carico scollegato ($I_L = 0$)", "$V_S = V_{S,\\min}$ e carico alla corrente massima ($I_L = I_{L,\\max}$)", "$V_S = V_{S,\\max}$ e carico alla corrente massima ($I_L = I_{L,\\max}$)", "$V_S = V_{S,\\min}$ e carico scollegato ($I_L = 0$)"]} correctIndex={1} explanation="Quando l'ingresso è al minimo ($V_{S,\min}$), $R_{\text{serie}}$ fornisce la minima corrente totale; se contemporaneamente il carico preleva $I_{L,\max}$, nello Zener rimane la quota minima $I_Z$, rischiando l'uscita dalla regione di breakdown." />
+
 <Divider label="5 · Sintesi" />
 
-### Tabella di Riferimento Rapido
+### Tabella di Riferimento
 
-| Topologia / Modello | Tensione d'uscita / Relazione | Ripple approssimato $V_r$ / Piccolo Segnale | PIV / Vincolo |
+| Topologia / Modello | Relazione / Uscita | Ripple $V_r$ / Piccolo Segnale | PIV / Vincolo Operativo |
 | :--- | :--- | :--- | :--- |
-| **Modello CVD e AC** | $v_D = V_{on} \approx 0.7\,\text{V}$ (ON) | $r_d = \frac{\eta V_T}{I_{DQ}}$ | Consistenza: $i_D > 0$ (ON), $v_D < V_{on}$ (OFF) |
-| **Singola semionda + filtro $C$** | $V_{out,\max} = V_p - V_{D,\text{on}}$ | $V_r \approx \frac{V_{out,\max}}{f R_L C}$ | $\text{PIV} = 2 V_p - V_{on} \approx 2V_p$ |
-| **Presa centrale + filtro $C$** | $V_{out,\max} = V_p - V_{D,\text{on}}$ | $V_r \approx \frac{V_{out,\max}}{2 f R_L C}$ | $\text{PIV} = 2 V_p - V_{on} \approx 2V_p$ |
-| **Ponte di Graetz + filtro $C$** | $V_{out,\max} = V_p - 2 V_{D,\text{on}}$ | $V_r \approx \frac{V_{out,\max}}{2 f R_L C}$ | $\text{PIV} = V_p - V_{on} \approx V_p$ |
-| **Regolatore Zener** | $V_Z = V_{Z0} + r_z I_Z$ | $\frac{\Delta V_o}{\Delta V_S} \approx \frac{r_z}{R_{\text{serie}}},\; \frac{\Delta V_o}{\Delta I_L} \approx -r_z$ | $R_{\text{serie},\min} \le R_{\text{serie}} \le R_{\text{serie},\max}$ |
+| **Modello CVD e AC** | $v_D = V_{on} \approx 0.7\,\text{V}$ (ON) | $r_d = \frac{\eta V_T}{I_{DQ}}$ ($\lvert v_d \rvert \ll 2\eta V_T$) | Verifica: $i_D > 0$ (ON), $v_D < V_{on}$ (OFF) |
+| **Singola semionda + $C$** | $V_{dc} = V_p - V_{on}$ | $V_r \approx \frac{I_{dc}}{f C}$ | $\text{PIV} = 2V_p - V_{on} \approx 2V_p$ |
+| **Presa centrale + $C$** | $V_{dc} = V_p - V_{on}$ | $V_r \approx \frac{I_{dc}}{2 f C}$ | $\text{PIV} = 2V_p - V_{on} \approx 2V_p$ |
+| **Ponte di Graetz + $C$** | $V_{dc} = V_p - 2V_{on}$ | $V_r \approx \frac{I_{dc}}{2 f C}$ | $\text{PIV} = V_p - V_{on} \approx V_p$ |
+| **Regolatore Zener** | $V_Z = V_{Z0} + r_z I_Z$ | $\frac{\Delta V_o}{\Delta V_S} \approx \frac{r_z}{R_{\text{serie}}},\; \frac{\Delta V_o}{\Delta I_L} \approx -r_z$ | $\frac{V_{S,\max}-V_Z}{I_{Z,\max}} \le R_{\text{serie}} \le \frac{V_{S,\min}-V_Z}{I_{Z,\min}+I_{L,\max}}$ |
 
 ### Procedura di Analisi
 
-1. **Circuiti a più diodi (CVD/Ideale):** ipotizzare ON/OFF per ciascun diodo, risolvere e verificare che $i_D > 0$ per quelli ON e $v_D < V_{on}$ per quelli OFF.
-2. **Piccolo segnale del diodo:** trovare $I_{DQ}$ in DC, calcolare $r_d = \frac{\eta V_T}{I_{DQ}}$ e sostituire il diodo con $r_d$ in AC.
-3. **Raddrizzatori con filtro $C$:** calcolare $V_{dc}$, il ripple $V_r$ (usando $f$ per semionda o $2f$ per doppia semionda) e la PIV.
-4. **Regolatore Zener:** scegliere $R_{\text{serie}}$ rispettando i due casi peggiori ($V_{S,\min}, I_{L,\max}$ per non spegnere lo Zener; $V_{S,\max}, I_L = 0$ per non bruciarlo).
-
-### Dimostrazioni Chiave
-
-* **Limite di piccolo segnale:** $|v_d| \ll 2\eta V_T \approx 52\,\text{mV}$ dallo sviluppo di Taylor dell'esponenziale.
-* **Ripple capacitivo:** approssimazione lineare della scarica di $C$ su $R_L$ durante il periodo $T$.
-* **Disequazioni *worst-case* dello Zener:** ricavo di $R_{\text{serie},\min}$ e $R_{\text{serie},\max}$ tramite KCL al nodo di uscita.
+1. **Circuiti a più diodi (CVD o Ideale):** ipotizzare gli stati ON/OFF, sostituire batterie $V_{on}$ o circuiti aperti, risolvere la rete e verificare sempre $i_D > 0$ per tutti i diodi ON e $v_D < V_{on}$ per tutti i diodi OFF.
+2. **Piccolo segnale AC:** determinare prima la corrente DC $I_{DQ}$, calcolare $r_d = \frac{\eta V_T}{I_{DQ}}$, spegnere le sorgenti DC e sostituire il diodo con $r_d$.
+3. **Raddrizzatori con filtro $C$:** valutare $V_{dc}$ sottraendo una o due cadute $V_{on}$, calcolare $V_r$ usando $f$ (singola semionda) o $2f$ (doppia semionda) e verificare la PIV sui diodi spenti.
+4. **Regolatore shunt Zener:** determinare $R_{\text{serie},\max}$ a $(V_{S,\min}, I_{L,\max})$ ed $R_{\text{serie},\min}$ a $(V_{S,\max}, I_L = 0)$, quindi valutare la regolazione di linea e di carico tramite $r_z$.
 
 <Callout type="warning" title="Errori Comuni">
 
-Senza condensatore di filtro, il diodo in un raddrizzatore a semionda vede al massimo $V_p$. Con il condensatore $C$, il catodo rimane carico a $+V_p$ mentre l'anodo scende a $-V_p$ nella semionda negativa: la tensione inversa sul diodo raddoppia a $\text{PIV} \ge 2V_p$. Inoltre, nei circuiti con più diodi non bisogna mai accettare un'ipotesi ON/OFF senza aver prima controllato il segno delle correnti dei diodi supposti accesi e delle tensioni ai capi di quelli supposti spenti.
+Senza condensatore di filtro, il diodo di un raddrizzatore a singola semionda sopporta al massimo una tensione inversa pari a $V_p$; aggiungendo il condensatore $C$, il catodo resta carico a $+V_{dc} \approx +V_p$ mentre l'anodo scende a $-V_p$, raddoppiando la tensione inversa sul diodo a $\text{PIV} \approx 2V_p$. Inoltre, nei circuiti con più diodi non va mai accettata una combinazione ON/OFF senza aver controllato entrambe le disuguaglianze di consistenza su tutti i diodi.
 
 </Callout>
 
 <Divider label="6 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-4-1" title="Esercizio 4.1 — Raddrizzatore a Singola Semionda con Filtro $C$" level="Base" hint="Usa il modello CVD ($V_{D,\text{on}} = 0.7\,\text{V}$), $V_r \approx \frac{V_{out,\max}}{f R_L C}$ e $\text{PIV} = 2 V_p$.">
+<Exercise client:load lang="it" id="ex-4-1" title="Esercizio 4.1 — Modelli del Diodo e PIV nel Raddrizzatore" level="Base" hint="Collega $r_d$ alla linearizzazione attorno al punto $Q$ e confronta la tensione ai capi del diodo durante la semionda negativa.">
 
-Un raddrizzatore a singola semionda è alimentato da una sinusoide con ampiezza di picco $V_p = 15\,\text{V}$ a $f = 50\,\text{Hz}$, e pilota un carico $R_L = 1\,\text{k}\Omega$ in parallelo a un condensatore di filtro $C = 100\,\mu\text{F}$ ($V_{D,\text{on}} = 0.7\,\text{V}$).
+Un circuito con diodo lavora prima con un piccolo segnale AC sovrapposto alla polarizzazione DC e poi in un raddrizzatore a singola semionda con filtro capacitivo.
 
-<StepCheck client:load lang="it" prompt="Calcola il valore massimo di uscita $V_{out,\max}$ (in $\text{V}$):" expected={14.3} tolerance={0.05} unit="V" explanation="$V_{out,\max} = V_p - V_{D,\text{on}} = 15 - 0.7 = 14.3\,\text{V}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola la tensione di ripple picco-picco approssimata $V_r$ (in $\text{V}$):" expected={2.86} tolerance={0.1} unit="V" explanation="$V_r \approx \frac{14.3}{50 \cdot 1000 \cdot 100\times 10^{-6}} = \frac{14.3}{5} = 2.86\,\text{V}$." />
-
-<StepCheck client:load lang="it" prompt="Qual è la $\text{PIV}$ minima richiesta al diodo (in $\text{V}$)?" expected={30} tolerance={0.5} unit="V" explanation="Con filtro capacitivo a singola semionda, $\text{PIV} \approx 2 V_p = 30\,\text{V}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Perché il modello di piccolo segnale $r_d$ vale solo per oscillazioni molto piccole attorno a $Q$, e perché il condensatore $C$ raddoppia la PIV nel raddrizzatore a singola semionda?" options={["$r_d$ vale finché $|v_d| \\ll 2\\eta V_T$ così da rendere trascurabili i termini non lineari di Taylor; la PIV raddoppia perché $C$ blocca il catodo a $+V_p$ mentre la sorgente scende a $-V_p$", "$r_d$ vale per qualsiasi segnale purché sia sinusoidale; la PIV raddoppia perché il diodo conduce anche nella semionda negativa", "$r_d$ vale solo quando il diodo è spento; la PIV raddoppia per colpa della resistenza di carico $R_L$", "$r_d$ dipende dall'ampiezza del segnale AC; la PIV raddoppia perché il trasformatore inverte la fase"]} correctIndex={0} explanation="Lo sviluppo di Taylor dell'esponenziale di Shockley resta lineare finché $|v_d| \ll 2\eta V_T \approx 52\,\text{mV}$; nel raddrizzatore con filtro $C$, durante la semionda negativa il catodo resta a $+V_{dc} \approx +V_p$ mentre l'anodo scende a $-V_p$, imponendo $\text{PIV} \approx 2V_p$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Valore massimo di uscita ($V_{out,\max}$):** Durante la conduzione il diodo sottrae una caduta $V_{D,\text{on}} = 0.7\,\text{V}$ al picco della sinusoide:
-   $$
-   V_{out,\max} = V_p - V_{D,\text{on}} = 15\,\text{V} - 0.7\,\text{V} = 14.3\,\text{V}
-   $$
-2. **Tensione di ripple ($V_r$):** La corrente media sul carico vale $I_{dc} \approx \frac{V_{out,\max}}{R_L} = \frac{14.3\,\text{V}}{1\,\text{k}\Omega} = 14.3\,\text{mA}$. Applicando la formula del raddrizzatore a singola semionda ($f = 50\,\text{Hz}$, $C = 100 \times 10^{-6}\,\text{F}$):
-   $$
-   V_r \approx \frac{I_{dc}}{f C} = \frac{V_{out,\max}}{f R_L C} = \frac{14.3}{50 \cdot 10^3 \cdot 10^{-4}} = \frac{14.3}{5} = 2.86\,\text{V}
-   $$
-3. **Tensione inversa di picco ($\text{PIV}$):** Quando l'ingresso scende al minimo negativo $-V_p = -15\,\text{V}$, il condensatore mantiene il catodo a $+14.3\,\text{V}$, sicché il diodo sopporta $\text{PIV} = V_{out,\max} - (-V_p) = 14.3 + 15 = 29.3\,\text{V} \approx 2V_p = 30\,\text{V}$.
+1. **Validità del modello a resistenza differenziale $r_d$:** Espandendo $i_D = I_{DQ} e^{v_d/(\eta V_T)}$ in serie di Taylor, il termine quadratico $\frac{1}{2}(v_d / (\eta V_T))^2$ resta trascurabile rispetto al termine lineare solo quando $\lvert v_d \rvert \ll 2\eta V_T \approx 52\,\text{mV}$ (tipicamente sotto $5\text{--}10\,\text{mV}$). In quel tratto la curva coincide con la retta tangente di pendenza $1/r_d = I_{DQ}/(\eta V_T)$.
+2. **Raddoppio della PIV col filtro capacitivo:** Senza condensatore, durante la semionda negativa il catodo è a massa tramite $R_L$ e il diodo vede al massimo $V_p$. Con il condensatore $C$ carico al picco $+V_{dc} = V_p - V_{on}$, quando l'ingresso raggiunge il picco negativo $-V_p$ la differenza di potenziale tra catodo e anodo sale a $V_{dc} - (-V_p) = 2V_p - V_{on} \approx 2V_p$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-4-2" title="Esercizio 4.2 — Dimensionamento Worst-Case di un Regolatore Zener" level="Livello Esame" hint="Il limite superiore $R_{\text{serie},\max}$ si calcola a $V_S = V_{S,\min}$ e $I_L = I_{L,\max}$ imponendo $I_Z = I_{Z,\min}$.">
+<Exercise client:load lang="it" id="ex-4-2" title="Esercizio 4.2 — Regolatore Shunt Zener e Ruolo di r_z" level="Intermedio" hint="Sostituisci lo Zener con $V_{Z0} + r_z I_Z$ e annulla le sorgenti DC costanti per studiare le variazioni $\Delta V_o$.">
 
-Progettare la resistenza limitatrice $R_{\text{serie}}$ di un regolatore Zener ($V_{Z0} = 5.1\,\text{V}$, $r_z = 10\,\Omega$, $I_{Z,\min} = 5\,\text{mA}$) alimentato da $V_S \in [9\,\text{V}, 12\,\text{V}]$ con corrente di carico $I_L \in [0, 20\,\text{mA}]$.
+In un regolatore shunt a diodo Zener ($V_Z = V_{Z0} + r_z I_Z$), si vuole stabilizzare la tensione su un carico variabile a fronte di oscillazioni della tensione di ingresso $V_S$.
 
-<StepCheck client:load lang="it" prompt="Calcola la tensione sul diodo Zener nella condizione di corrente minima $I_Z = 5\,\text{mA}$ (in $\text{V}$):" expected={5.15} tolerance={0.02} unit="V" explanation="$V_Z = V_{Z0} + r_z I_{Z,\min} = 5.1 + 10 \cdot 0.005 = 5.15\,\text{V}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola il valore massimo ammissibile $R_{\text{serie},\max}$ per garantire la regolazione (in $\Omega$):" expected={154} tolerance={1.5} unit="$\Omega$" explanation="$R_{\text{serie},\max} = \frac{9.0 - 5.15}{0.020 + 0.005} = \frac{3.85}{0.025} = 154\,\Omega$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Perché una resistenza incrementale $r_z$ più piccola migliora sia la regolazione di linea sia la regolazione di carico?" options={["Perché aumenta la caduta costante $V_{Z0}$ dello Zener", "Perché in piccolo segnale $V_{Z0}$ è un cortocircuito, quindi $r_z$ forma il ramo verso massa del partitore di linea ($\\Delta V_o/\\Delta V_S \\approx r_z/R_{\\text{serie}}$) e fissa l'impedenza d'uscita ($\\Delta V_o/\\Delta I_L \\approx -r_z$)", "Perché $r_z$ più piccola riduce la corrente assorbita dal carico $I_L$", "Perché annulla la potenza massima dissipata quando $I_L = 0$"]} correctIndex={1} explanation="Per le variazioni attorno al punto di lavoro la batteria ideale $V_{Z0}$ ha variazione nulla (cortocircuito a massa): tanto minore è $r_z$, tanto meglio il ramo shunt assorbe disturbi di ingresso e variazioni di corrente sul carico mantenendo quasi piatta $V_o$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Individuazione del caso peggiore per la regolazione:** Lo Zener rischia di spegnersi quando la sorgente fornisce la minima tensione ($V_{S,\min} = 9\,\text{V}$) e il carico assorbe la massima corrente ($I_{L,\max} = 20\,\text{mA}$). Imponiamo che in questa condizione la corrente residua nello Zener non scenda sotto $I_{Z,\min} = 5\,\text{mA}$.
-2. **Tensione sullo Zener a $I_Z = I_{Z,\min}$:**
-   $$
-   V_Z = V_{Z0} + r_z I_{Z,\min} = 5.1\,\text{V} + (10\,\Omega)(0.005\,\text{A}) = 5.1 + 0.05 = 5.15\,\text{V}
-   $$
-3. **Calcolo di $R_{\text{serie},\max}$ tramite KCL al nodo d'uscita:** La corrente totale che attraversa $R_{\text{serie}}$ vale $I_{\text{serie}} = I_{L,\max} + I_{Z,\min} = 20\,\text{mA} + 5\,\text{mA} = 25\,\text{mA} = 0.025\,\text{A}$. Applicando la legge di Ohm ai capi del resistore serie:
-   $$
-   R_{\text{serie},\max} = \frac{V_{S,\min} - V_Z}{I_{L,\max} + I_{Z,\min}} = \frac{9.0\,\text{V} - 5.15\,\text{V}}{0.025\,\text{A}} = \frac{3.85}{0.025} = 154\,\Omega
-   $$
+1. **Modello incrementale dello Zener:** In regione di breakdown $V_Z = V_{Z0} + r_z I_Z$. Quando valutiamo piccole variazioni di ingresso ($\Delta V_S$) o di carico ($\Delta I_L$), la tensione fissa $V_{Z0}$ non varia e si comporta come un cortocircuito verso massa, lasciando il solo resistore $r_z$ in parallelo al nodo di uscita.
+2. **Regolazione di linea:** Le fluttuazioni $\Delta V_S$ subiscono il partitore formato da $R_{\text{serie}}$ ed $r_z$, attenuandosi in uscita secondo $\frac{\Delta V_o}{\Delta V_S} \approx \frac{r_z}{R_{\text{serie}} + r_z} \approx \frac{r_z}{R_{\text{serie}}}$.
+3. **Regolazione di carico:** Una variazione $\Delta I_L$ assorbita dal carico vede verso massa la resistenza equivalente $r_z \parallel R_{\text{serie}} \approx r_z$, provocando una variazione d'uscita $\frac{\Delta V_o}{\Delta I_L} \approx -r_z$. Una $r_z$ più bassa rende quindi la tensione regolata più rigida e insensibile ai disturbi.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-4-3" title="Esercizio 4.3 — Verifica CVD e Resistenza Differenziale" level="Base" hint="Calcola prima $I_{DQ}$ tramite la KVL col modello CVD ($V_{on} = 0.7\,\text{V}$), poi applica $r_d = \frac{\eta V_T}{I_{DQ}}$.">
+
+Nel circuito serie di [la figura](#fig-load-line)(a) sono collegati $V_{DD} = 5.0\,\text{V}$, $R = 1.0\,\text{k}\Omega$ e un diodo al silicio ($\eta = 1$, $V_T = 25.85\,\text{mV}$, modello CVD con $V_{on} = 0.7\,\text{V}$).
+
+<StepCheck client:load lang="it" prompt="Calcola la corrente continua $I_{DQ}$ nel diodo usando il modello CVD (in $\text{mA}$):" expected={4.3} tolerance={0.05} unit="mA" explanation="$I_{DQ} = \frac{V_{DD} - V_{on}}{R} = \frac{5.0 - 0.7}{1.0\,\text{k}\Omega} = 4.3\,\text{mA}$." />
+
+<StepCheck client:load lang="it" prompt="Calcola la resistenza differenziale di piccolo segnale $r_d$ in tale punto di lavoro (in $\Omega$):" expected={6.01} tolerance={0.15} unit="$\Omega$" explanation="$r_d = \frac{\eta V_T}{I_{DQ}} = \frac{25.85\,\text{mV}}{4.3\,\text{mA}} \approx 6.01\,\Omega$." />
+
+<details className="dc-solution">
+<summary>Mostra Risposta Orale Modello</summary>
+
+1. **Analisi DC col modello CVD:** Supponendo il diodo acceso e sostituendolo con una caduta costante $V_{on} = 0.7\,\text{V}$, la legge di Kirchhoff alle maglie fornisce:
+
+$$
+I_{DQ} = \frac{V_{DD} - V_{on}}{R} = \frac{5.0\,\text{V} - 0.7\,\text{V}}{1.0\,\text{k}\Omega} = 4.3\,\text{mA}
+$$
+
+   Poiché $I_{DQ} > 0$, l'ipotesi di conduzione è verificata.
+2. **Resistenza di piccolo segnale attorno a $Q$:**
+
+$$
+r_d = \frac{\eta V_T}{I_{DQ}} = \frac{1 \cdot 25.85\,\text{mV}}{4.3\,\text{mA}} \approx 6.01\,\Omega
+$$
+
+   Per piccole oscillazioni AC, il diodo si comporta dunque come un resistore da circa $6\,\Omega$.
 
 </details>
 

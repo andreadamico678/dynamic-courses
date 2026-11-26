@@ -13,308 +13,271 @@ import SingleStageExplorer from "@components/SingleStageExplorer.tsx";
 
 ## Introduzione
 
-Quando un sensore o un microfono genera appena pochi millivolt, serve uno stadio capace di moltiplicare la tensione senza assorbire corrente dalla sorgente. L'**amplificatore Common Source** (CS) è il blocco analogico fondamentale a MOSFET per ottenere un **elevato guadagno invertente** con un'impedenza d'ingresso altissima sul Gate, sfruttando il modello linearizzato del [Capitolo 7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/) attorno al punto di lavoro fissato dalla rete di polarizzazione del [Capitolo 9](/dynamic-courses/elettronica/02-transistori-mos/09-polarizzazione-dc/). Vedremo prima la versione base con Source a massa AC e poi l'aggiunta di un resistore di **degenerazione di Source** $R_S$ per rendere il guadagno più lineare e aumentare la resistenza d'uscita.
+Quando un sensore o un microfono genera appena pochi millivolt senza poter erogare corrente, serve uno stadio capace di moltiplicare la tensione senza disturbare la sorgente. L'**amplificatore Common Source** (CS) realizza esattamente questa funzione: sfrutta il terminale isolato di Gate per leggere la tensione d'ingresso a corrente nulla e modula la corrente di canale sul Drain per produrre una tensione d'uscita amplificata e invertita rispetto all'ingresso.
 
-<Divider label="1 · Common Source a Carico Resistivo" />
+In tutte le varianti Common Source l'ingresso è applicato al Gate e l'uscita è prelevata dal Drain. Ciò che distingue le due configurazioni fondamentali è il comportamento del terminale di Source rispetto al segnale alternato (AC): nella versione **base**, un condensatore di bypass $C_S$ ancora dinamicamente il Source a massa AC; nella versione **degenerata**, l'assenza di $C_S$ lascia attiva la resistenza $R_S$ anche per il segnale, introducendo una retroazione negativa locale che riduce il guadagno ma migliora linearità e resistenza d'uscita.
 
-### Esempio — Stadio Common Source a Centro Banda
+<Divider label="1 · Common Source Base" />
 
-Consideriamo lo stadio Common Source di [la figura](#fig-cs-amplifier) e il corrispondente circuito equivalente di piccolo segnale di [la figura](#fig-cs-small-signal). Il MOSFET è polarizzato in saturazione nel punto $Q$ con $g_m = 2.5\,\text{mA/V}$ e $r_o = 40\,\text{k}\Omega$. La rete esterna usa $R_1 = 600\,\text{k}\Omega$, $R_2 = 300\,\text{k}\Omega$, $R_D = 10\,\text{k}\Omega$, un carico esterno $R_L = 10\,\text{k}\Omega$, una sorgente con resistenza interna $R_{sig} = 5\,\text{k}\Omega$ e il condensatore di bypass $C_S$ collegato.
+Nella configurazione base, l'intera tensione di segnale applicata al Gate cade direttamente tra Gate e Source perché quest'ultimo è mantenuto fermo a potenziale di riferimento AC.
+
+### Esempio Concettuale — La Valvola Comandata a Pressione
+
+Immagina un rubinetto idraulico collegato a un serbatoio in pressione attraverso un tubo con una strozzatura. La manopola del rubinetto ruota senza opporre attrito e senza consumare acqua dal comando: basta una pressione minima della mano (il segnale sul Gate) per aprire o chiudere il passaggio.
+
+Quando apri leggermente la manopola, il flusso d'acqua verso lo scarico aumenta; poiché l'acqua deve prima attraversare la strozzatura a monte (il resistore di Drain), una portata maggiore provoca una caduta di pressione più forte lungo la strozzatura e quindi fa **scendere** la pressione misurata subito sotto di essa (la tensione di Drain). Una piccolissima variazione sul comando produce così una variazione molto più ampia, e di segno opposto, all'uscita.
+
+### Teoria — Modello, Impedenze e Guadagno
+
+#### Ruolo della Polarizzazione e dei Condensatori
+
+Per amplificare segnali alternati senza distorcerli, il MOSFET deve lavorare stabilmente in **regione di saturazione** attorno a un punto di riposo DC $Q$, fissato dalla rete a quattro resistori ($R_1, R_2, R_D, R_S$) studiata nel [Capitolo 9](/dynamic-courses/elettronica/02-transistori-mos/09-polarizzazione-dc/). Come mostrato nella [figura seguente](#fig-cs-amplifier), la separazione tra regime continuo e regime alternato è affidata a tre condensatori esterni di capacità elevata (tipicamente nell'ordine dei $\mu\text{F}$):
+
+* **Condensatori di accoppiamento ($C_G$ e $C_D$):** in continua si comportano come circuiti aperti, impedendo alla tensione di polarizzazione del Gate o del Drain di riversarsi sulla sorgente $v_{sig}$ o sul carico $R_L$; a **centro banda** (cioè alle frequenze di lavoro intermedie), la loro reattanza è trascurabile ed essi lasciano passare integralmente il segnale alternato.
+* **Condensatore di bypass ($C_S$):** in continua è aperto, lasciando che la corrente di riposo $I_D$ attraversi $R_S$ per stabilizzare il punto di lavoro contro le variazioni termiche e di soglia $V_{th}$; a centro banda, invece, $C_S$ cortocircuita $R_S$ verso massa, fissando il Source a zero volt in AC ($v_s = 0$).
 
 <figure id="fig-cs-amplifier" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cs-amplifier.svg" alt="Circuito completo dell'amplificatore Common Source alimentato a singola alimentazione con polarizzazione a 4 resistori e condensatori di accoppiamento (C_G, C_D) e bypass (C_S)." />
   <figcaption>Circuito completo dell'amplificatore Common Source alimentato a singola alimentazione con polarizzazione a 4 resistori e condensatori di accoppiamento ($C_G, C_D$) e bypass ($C_S$).</figcaption>
 </figure>
 
+Per passare dal circuito completo al **modello equivalente di piccolo segnale** a centro banda ([figura seguente](#fig-cs-small-signal)), si applicano tre passaggi sistematici: si spegne l'alimentazione costante $V_{DD}$ sostituendola con una **massa AC** (una tensione costante ha variazione nulla nel tempo), si cortocircuitano $C_G, C_D, C_S$ e si sostituisce il MOSFET con il modello linearizzato del [Capitolo 7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/) formato dal generatore controllato $g_m v_{gs}$ in parallelo alla resistenza di modulazione di canale $r_o = 1/(\lambda I_D)$.
+
 <figure id="fig-cs-small-signal" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cs-small-signal.svg" alt="Circuito equivalente di piccolo segnale a centro banda dello stadio Common Source base (con Source bypassato a massa AC)." />
   <figcaption>Circuito equivalente di piccolo segnale a centro banda dello stadio Common Source base (con Source bypassato a massa AC).</figcaption>
 </figure>
 
-A **centro banda**, i condensatori $C_G, C_D, C_S$ si comportano come cortocircuiti per il segnale alternato (AC), mentre l'alimentazione costante $V_{DD}$ funge da **massa AC**. Troviamo le prestazioni dello stadio in tre passi:
+#### Resistenza d'Ingresso e Partitore di Sorgente
 
-1. **Partitore d'ingresso:** attraverso $C_G$ il segnale vede il Gate isolato ($i_g = 0$) e i due resistori di polarizzazione $R_1$ ed $R_2$ in parallelo verso massa AC. La resistenza d'ingresso e la frazione di segnale che arriva al Gate valgono:
-
-$$
-R_{in} = R_1 \parallel R_2 = 600\,\text{k}\Omega \parallel 300\,\text{k}\Omega = 200\,\text{k}\Omega, \qquad \frac{v_i}{v_{sig}} = \frac{R_{in}}{R_{sig} + R_{in}} = \frac{200}{5 + 200} \approx 0.976
-$$
-
-   Grazie a $R_1$ ed $R_2$ molto grandi, quasi il $98\%$ della tensione di sorgente raggiunge il Gate.
-
-2. **Resistenza d'uscita e carico equivalente al Drain:** poiché $C_S$ cortocircuita $R_S$ a massa AC, il Source è fermo a zero volt in alternata ($v_s = 0$, quindi $v_{gs} = v_i$). Spegnendo l'ingresso ($v_i = 0$) e guardando nel Drain senza $R_L$, la resistenza d'uscita è $R_{out} = R_D \parallel r_o = 10\,\text{k}\Omega \parallel 40\,\text{k}\Omega = 8.0\,\text{k}\Omega$. Collegando anche il carico $R_L = 10\,\text{k}\Omega$, sul Drain si trovano tre resistenze in parallelo:
-
-$$
-R_L' = R_D \parallel r_o \parallel R_L = 10\,\text{k}\Omega \parallel 40\,\text{k}\Omega \parallel 10\,\text{k}\Omega = 5\,\text{k}\Omega \parallel 40\,\text{k}\Omega \approx 4.44\,\text{k}\Omega
-$$
-
-3. **Guadagno di tensione:** la corrente di canale $g_m v_{gs}$ scorre dal Drain verso massa, quindi risale attraverso $R_L'$ generando una tensione negativa (invertita di $180^\circ$):
-
-$$
-A_v = \frac{v_{out}}{v_i} = -g_m R_L' = -(2.5\,\text{mA/V})(4.44\,\text{k}\Omega) \approx -11.1\,\text{V/V}
-$$
-
-   Moltiplicando per il partitore d'ingresso si ottiene il guadagno complessivo dalla sorgente:
-
-$$
-A_{vs} = \frac{v_{out}}{v_{sig}} = 0.976 \cdot (-11.1) \approx -10.8\,\text{V/V}
-$$
-
-Nel simulatore interattivo qui sotto confronta **Common Source** e **CS + Degenerazione**: prova a variare $g_m$, $R_D$ e il resistore di Source $R_S$ per osservare come la degenerazione riduca $|A_v|$ ma aumenti nettamente $R_{out}$ e la banda $f_H$.
-
-<SingleStageExplorer client:load />
-
-<StepCheck client:load lang="it" prompt="Nel circuito dell'esempio, se il carico esterno $R_L$ viene scollegato ($R_L \to \infty$), quanto vale il guadagno intrinseco a vuoto $A_{vo}$?" expected={-20.0} tolerance={0.2} unit="$\text{V/V}$" explanation="Senza $R_L$, il carico al Drain è $R_D \parallel r_o = 10 \parallel 40 = 8.0\,\text{k}\Omega$, quindi $A_{vo} = -2.5 \cdot 8.0 = -20.0\,\text{V/V}$." />
-
-### Teoria — Guadagno e Impedenze del Common Source Base
-
-#### Architettura e Modello di Piccolo Segnale
-
-Lo stadio Common Source ([la figura](#fig-cs-amplifier)) si chiama così perché, per il segnale alternato (AC), il terminale di Source funge da riferimento comune a massa tra ingresso (Gate-Source) e uscita (Drain-Source). Il circuito unisce due funzioni:
-* **Polarizzazione DC:** i quattro resistori $R_1, R_2, R_D, R_S$ fissano il punto di lavoro $Q$ in saturazione, stabile contro le variazioni di temperatura e di soglia $V_{th}$ ([Capitolo 9](/dynamic-courses/elettronica/02-transistori-mos/09-polarizzazione-dc/)).
-* **Accoppiamento e bypass AC:** i condensatori esterni $C_G$ e $C_D$ bloccano la componente continua lasciando passare solo il segnale AC verso il Gate e verso il carico $R_L$. Il condensatore di bypass $C_S$ in parallelo a $R_S$, invece, è aperto in continua (così $R_S$ stabilizza la corrente $I_D$) ma a centro banda cortocircuita dinamicamente il Source a massa AC.
-
-Per passare al circuito equivalente a centro banda ([la figura](#fig-cs-small-signal)) bastano tre regole:
-1. L'alimentazione costante $V_{DD}$ non varia nel tempo ($v_{dd} = 0$) e diventa una **massa AC**.
-2. I condensatori esterni ($C_G, C_D, C_S$) hanno reattanza trascurabile e diventano **cortocircuiti**.
-3. Il MOSFET in saturazione è sostituito dal suo modello lineare ([Capitolo 7](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/)): il generatore di corrente $g_m v_{gs}$ in parallelo a $r_o = 1/(\lambda I_D)$.
-
-#### Resistenza d'Ingresso e Tensione sul Gate
-
-Poiché l'ossido di Gate isola il terminale dal canale ($i_g = 0$), il MOSFET non assorbe corrente. Guardando oltre $C_G$, la sorgente vede quindi soltanto i due resistori di polarizzazione $R_1$ (verso $V_{DD}$, massa AC) ed $R_2$ (verso massa) in parallelo:
+L'ossido isolante sotto il Gate impedisce qualsiasi passaggio di corrente in bassa e media frequenza ($i_g = 0$). Tuttavia, dal punto di vista della sorgente $v_{sig}$, il segnale attraversa $C_G$ e incontra i due resistori di polarizzazione: $R_1$ collegato verso $V_{DD}$ (massa AC) e $R_2$ collegato verso massa. Di conseguenza, la resistenza d'ingresso dello stadio coincide con il loro parallelo:
 
 $$
 R_{in} = R_1 \parallel R_2
 $$
 
-Per non attenuare il segnale della sorgente $v_{sig}$ (che ha resistenza interna $R_{sig}$), in progetto si scelgono $R_1$ ed $R_2$ molto grandi affinché $R_{in} \gg R_{sig}$. Con il Source a massa AC ($v_s = 0$), la tensione di comando $v_{gs}$ coincide con la tensione sul Gate $v_i$:
+Poiché il Source è a massa AC ($v_s = 0$), la tensione di comando $v_{gs}$ del MOSFET coincide con la tensione $v_i$ presente sul Gate, determinata dal partitore tra la resistenza interna del generatore $R_{sig}$ e $R_{in}$:
 
 $$
 v_{gs} = v_i = v_{sig} \cdot \frac{R_{in}}{R_{sig} + R_{in}}
 $$
 
+Per non attenuare il segnale prima ancora di amplificarlo, in fase di progetto si scelgono $R_1$ ed $R_2$ molto maggiori di $R_{sig}$, così che quasi tutta la tensione di sorgente raggiunga il Gate.
+
 #### Guadagno di Tensione e Fattore Intrinseco
 
-Sul nodo di Drain ([la figura](#fig-cs-small-signal)) confluiscono il generatore di corrente $g_m v_{gs}$ e tre resistori collegati verso massa AC: $r_o$, $R_D$ e $R_L$. Raccogliendoli in un unico carico equivalente $R_L'$:
+Sul nodo di Drain confluiscono il generatore di corrente $g_m v_{gs}$ e tre rami resistivi collegati verso massa AC: la resistenza interna $r_o$, il resistore di Drain $R_D$ e il carico esterno $R_L$. Raccogliendoli in un'unica resistenza equivalente di carico $R_L'$:
 
 $$
 R_L' = R_D \parallel r_o \parallel R_L
 $$
 
-La corrente $g_m v_{gs}$ viene richiamata dal Drain verso massa, quindi deve risalire da massa attraverso $R_L'$. Questo fa scendere la tensione di Drain ogni volta che $v_i$ sale, producendo un **guadagno invertente** (segno meno, sfasamento di $180^\circ$):
+Il meccanismo che genera l'amplificazione e l'inversione di fase è diretto: quando la tensione d'ingresso $v_i = v_{gs}$ aumenta, il generatore $g_m v_{gs}$ richiama una corrente maggiore dal nodo di Drain verso massa. Poiché questa corrente deve scendere da massa AC attraverso $R_L'$, sul nodo di Drain si produce una caduta di tensione negativa rispetto a massa ($v_{out} = -g_m v_{gs} R_L'$). Il **guadagno di tensione intrinseco** dello stadio vale dunque:
 
 $$
 A_v = \frac{v_{out}}{v_i} = -g_m R_L' = -g_m (R_D \parallel r_o \parallel R_L)
 $$
 
-Moltiplicando $A_v$ per l'attenuazione del partitore d'ingresso si ottiene il **guadagno complessivo dalla sorgente**:
+Il segno meno indica uno sfasamento di $180^\circ$ tra ingresso e uscita. Moltiplicando $A_v$ per il partitore d'ingresso si ottiene il **guadagno complessivo dalla sorgente**:
 
 $$
-A_{vs} = \frac{v_{out}}{v_{sig}} = -\left( \frac{R_{in}}{R_{sig} + R_{in}} \right) g_m (R_D \parallel r_o \parallel R_L)
+A_{vs} = \frac{v_{out}}{v_{sig}} = \left(\frac{R_{in}}{R_{sig} + R_{in}}\right) A_v = -\left(\frac{R_{in}}{R_{sig} + R_{in}}\right) g_m (R_D \parallel r_o \parallel R_L)
 $$
 
-Se scolleghiamo il carico ($R_L \to \infty$) e sostituiamo $R_D$ con un carico ideale infinito, resta solo $r_o$ al Drain: si raggiunge così il massimo guadagno ottenibile da un singolo MOSFET, detto **fattore di amplificazione intrinseco** $\mu_f = g_m r_o$ (tipicamente $20\text{--}100\,\text{V/V}$ nei processi CMOS).
+Se si scollega il carico ($R_L \to \infty$) e si immagina di sostituire $R_D$ con un carico ideale a resistenza infinita, l'unica resistenza sul Drain resta $r_o$. Si raggiunge allora il limite fisico massimo ottenibile da un singolo transistore, noto come **fattore di amplificazione intrinseco**:
+
+$$
+|\mu_f| = g_m r_o
+$$
+
+Nei processi CMOS tipici $\mu_f$ è compreso tra $20$ e $100\,\text{V/V}$.
 
 #### Resistenza d'Uscita
 
-Per trovare la resistenza d'uscita $R_{out}$ vista dal carico $R_L$, scolleghiamo $R_L$ e spegniamo la sorgente ($v_{sig} = 0$). Con ingresso nullo anche $v_{gs} = 0$, quindi il generatore controllato $g_m v_{gs}$ si spegne (circuito aperto) e al Drain restano solo $R_D$ ed $r_o$ in parallelo:
+Per determinare la resistenza d'uscita $R_{out}$ vista dal carico $R_L$, si scollega $R_L$ e si spegne il generatore di segnale ($v_{sig} = 0$). Con ingresso nullo, sul partitore d'ingresso cade $v_i = 0$ e quindi $v_{gs} = 0$: il generatore controllato $g_m v_{gs}$ si annulla diventando un circuito aperto. Guardando dentro il morsetto di uscita rimangono perciò soltanto $R_D$ e $r_o$ in parallelo verso massa AC:
 
 $$
 R_{out} = R_D \parallel r_o
 $$
 
-Poiché $R_D$ è di solito dell'ordine dei chilo-ohm per avere un buon guadagno, il Common Source ha una resistenza d'uscita piuttosto alta: se collegato direttamente a carichi $R_L$ piccoli, il guadagno crolla.
+Poiché per avere un guadagno elevato occorre scegliere $R_D$ grande (spesso diversi chilo-ohm), lo stadio Common Source presenta una resistenza d'uscita relativamente alta. Se lo si collega direttamente a un carico $R_L$ piccolo rispetto a $R_D$, il parallelo $R_D \parallel r_o \parallel R_L$ crolla vicino a $R_L$ e il guadagno si riduce drasticamente.
 
-<StepCheck client:load lang="it" mode="choice" prompt="Perché nello stadio Common Source con condensatore $C_S$ collegato il terminale di Source si trova a massa AC?" options={["Perché l'alimentazione $V_{DD}$ è cortocircuitata a massa", "Perché a centro banda $C_S$ ha reattanza trascurabile e cortocircuita $R_S$", "Perché la corrente di Drain è nulla in AC", "Perché il Gate è collegato a massa"]} correctIndex={1} explanation="A centro banda ($f \gg f_L$), l'impedenza di $C_S$ è molto minore di $R_S$ e ancora dinamicamente il Source a massa AC." />
+A titolo di verifica numerica immediata, con $g_m = 2.5\,\text{mA/V}$, $R_D = 10\,\text{k}\Omega$, $r_o = 40\,\text{k}\Omega$ e $R_L = 10\,\text{k}\Omega$, la resistenza d'uscita vale $R_{out} = 10 \parallel 40 = 8.0\,\text{k}\Omega$, il carico equivalente scende a $R_L' = 8.0 \parallel 10 \approx 4.44\,\text{k}\Omega$ e il guadagno vale $A_v = -2.5 \cdot 4.44 \approx -11.1\,\text{V/V}$ (che salirebbe a $-20.0\,\text{V/V}$ a vuoto).
+
+<StepCheck client:load lang="it" mode="choice" prompt="Perché nello stadio Common Source con condensatore $C_S$ collegato il guadagno $A_v$ risulta invertente ($A_v < 0$)?" options={["Perché l'alimentazione $V_{DD}$ ha segno negativo in AC", "Perché un aumento di $v_{gs}$ fa crescere la corrente richiamata dal Drain verso massa attraverso $R_L'$, abbassando $v_{out}$", "Perché il Gate assorbe una corrente negativa dal generatore", "Perché il condensatore $C_D$ inverte la fase del segnale"]} correctIndex={1} explanation="Quando $v_i = v_{gs}$ sale, il generatore $g_m v_{gs}$ richiama più corrente dal nodo di Drain verso massa AC; tale corrente scende da massa attraverso $R_L'$ creando una tensione negativa $v_{out} = -g_m v_{gs} R_L'$." />
 
 <Divider label="2 · Common Source con Degenerazione di Source" />
 
-### Esempio — Stadio Common Source Degenerato con $R_S$
+Rimuovendo il condensatore di bypass $C_S$, il resistore $R_S$ resta inserito nel percorso del segnale alternato e trasforma profondamente le prestazioni dello stadio.
 
-Riprendiamo lo stadio dell'esempio precedente ($g_m = 2.5\,\text{mA/V}$, $r_o = 40\,\text{k}\Omega$, $R_D = 10\,\text{k}\Omega$, $R_L = 10\,\text{k}\Omega$), ma togliamo il condensatore di bypass $C_S$ lasciando inserito tra Source e massa un resistore $R_S = 1.2\,\text{k}\Omega$ ([la figura](#fig-cs-degenerated)).
+### Esempio Concettuale — Retroazione sul Punto d'Appoggio
+
+Immagina ora che il pavimento su cui poggia chi aziona una leva sia montato su una molla. Quando spingi la leva verso il basso per amplificare un movimento, una parte della tua spinta comprime la molla facendo abbassare il pavimento sotto i tuoi piedi: la corsa effettiva tra la tua mano e il fulcro si riduce.
+
+Anche se ottieni uno spostamento finale minore rispetto al caso con pavimento rigido, questo meccanismo automatico ha due conseguenze preziose: l'azione diventa molto più dolce e proporzionale alla spinta (si riduce la distorsione), e dall'uscita il meccanismo appare molto più rigido e difficile da perturbare dall'esterno.
+
+### Teoria — Transconduttanza Equivalente e Moltiplicazione di Resistenza
+
+#### Meccanismo di Retroazione Negativa Locale
+
+Quando si omette $C_S$ ([figura seguente](#fig-cs-degenerated)), il terminale di Source non è più bloccato a massa AC ma è collegato a massa tramite $R_S$. Si instaura così una **retroazione negativa locale** tra uscita in corrente e maglia d'ingresso: se la tensione al Gate $v_i$ tende ad aumentare, la corrente di canale $i_d$ cresce; scorrendo in $R_S$, questa corrente alza il potenziale del Source di $v_s = R_S i_d$, riducendo la tensione effettiva di controllo $v_{gs} = v_i - v_s$. Questa riduzione frena l'incremento iniziale di $i_d$ e rende l'intero stadio meno sensibile alle non linearità del transistore.
 
 <figure id="fig-cs-degenerated" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cs-degenerated.svg" alt="Modello di piccolo segnale dell'amplificatore Common Source con degenerazione di Source R_S." />
   <figcaption>Modello di piccolo segnale dell'amplificatore Common Source con degenerazione di Source $R_S$.</figcaption>
 </figure>
 
-Vediamo cosa cambia per effetto della retroazione introdotta da $R_S$:
+#### Transconduttanza Equivalente e Linearizzazione
 
-1. **Transconduttanza efficace ($r_o \to \infty$):** quando il Gate sale di $v_i$, la corrente $i_d$ attraversa $R_S$ facendo salire anche il Source di $v_s = R_S i_d$. La tensione effettiva $v_{gs} = v_i - v_s$ si riduce del fattore:
-
-$$
-1 + g_m R_S = 1 + (2.5\,\text{mA/V})(1.2\,\text{k}\Omega) = 4.0
-$$
-
-   Di conseguenza la transconduttanza efficace scende di $4$ volte:
+Per cogliere l'effetto principale sul guadagno, trascuriamo inizialmente $r_o$ ($r_o \to \infty$). Poiché il Gate non assorbe corrente ($i_g = 0$), l'intera corrente di Drain $i_d = g_m v_{gs}$ scende attraverso $R_S$ creando la tensione $v_s = R_S i_d$. Applicando la legge di Kirchhoff alle tensioni (KVL) sulla maglia Gate-Source-massa si ottiene:
 
 $$
-G_m = \frac{g_m}{1 + g_m R_S} = \frac{2.5\,\text{mA/V}}{4.0} = 0.625\,\text{mA/V}
+v_i = v_{gs} + R_S i_d = v_{gs} + g_m R_S v_{gs} = v_{gs}(1 + g_m R_S) \implies v_{gs} = \frac{v_i}{1 + g_m R_S}
 $$
 
-2. **Guadagno linearizzato:** mandando $i_d = G_m v_i$ nel carico al Drain $R_D \parallel R_L = 10\,\text{k}\Omega \parallel 10\,\text{k}\Omega = 5.0\,\text{k}\Omega$, otteniamo:
+La frazione di tensione d'ingresso che effettivamente controlla il canale viene dunque divisa per il **fattore di retroazione** $(1 + g_m R_S)$. Sostituendo nella legge della corrente di canale $i_d = g_m v_{gs}$, definiamo la **transconduttanza equivalente** dello stadio degenerato $G_m = i_d / v_i$:
 
 $$
-A_v \approx -G_m (R_D \parallel R_L) = -(0.625\,\text{mA/V})(5.0\,\text{k}\Omega) \approx -3.13\,\text{V/V}
+G_m = \frac{g_m}{1 + g_m R_S}
 $$
 
-   Il modulo del guadagno scende da $11.1$ a $3.13$, ma in compenso il segnale d'ingresso può essere $4$ volte più ampio prima di distorcere.
-
-3. **Resistenza vista al Drain molto più alta:** includendo $r_o = 40\,\text{k}\Omega$, $R_S$ moltiplica la resistenza vista guardando dentro il Drain per lo stesso fattore $(1 + g_m R_S) = 4.0$:
+Mandando questa corrente nel carico parallelo al Drain ($R_D \parallel R_L$), il guadagno di tensione diventa:
 
 $$
-R_{out,drain} = r_o(1 + g_m R_S) + R_S = 40\,\text{k}\Omega \cdot 4.0 + 1.2\,\text{k}\Omega = 161.2\,\text{k}\Omega
+A_v = \frac{v_{out}}{v_i} = -G_m (R_D \parallel R_L) = -\frac{g_m (R_D \parallel R_L)}{1 + g_m R_S}
 $$
 
-   La resistenza d'uscita dello stadio completo diventa $R_{out} = R_D \parallel R_{out,drain} = 10\,\text{k}\Omega \parallel 161.2\,\text{k}\Omega \approx 9.42\,\text{k}\Omega$, quasi uguale a $R_D$.
-
-<StepCheck client:load lang="it" prompt="Se nello stadio dell'esempio ($g_m = 2.5\,\text{mA/V}$, $r_o = 40\,\text{k}\Omega$) aumentiamo il resistore di Source a $R_S = 2.0\,\text{k}\Omega$, quanto vale la nuova resistenza vista nel Drain $R_{out,drain}$ (in $\text{k}\Omega$)?" expected={242.0} tolerance={1.0} unit="$\text{k}\Omega$" explanation="$1 + g_m R_S = 1 + 2.5 \cdot 2.0 = 6.0$; quindi $R_{out,drain} = 40 \cdot 6.0 + 2.0 = 242.0\,\text{k}\Omega$." />
-
-### Teoria — Transconduttanza Equivalente e Moltiplicazione di $r_o$
-
-Quando omettiamo $C_S$, il resistore $R_S$ rimane attivo anche in alternata ([la figura](#fig-cs-degenerated)), introducendo una **retroazione negativa locale**: se $v_i$ prova ad aumentare la corrente $i_d$, la caduta $v_s = R_S i_d$ alza il potenziale del Source e riduce $v_{gs} = v_i - v_s$, frenando la variazione di corrente.
-
-#### Transconduttanza Equivalente e Guadagno
-
-Trascurando inizialmente $r_o$ ($r_o \to \infty$), la corrente che scende in $R_S$ è tutta $i_d = g_m v_{gs}$. Applicando la KVL sulla maglia Gate-Source-massa:
-
-$$
-v_i = v_{gs} + R_S i_d = v_{gs}(1 + g_m R_S) \implies v_{gs} = \frac{v_i}{1 + g_m R_S}
-$$
-
-Sostituendo in $i_d = g_m v_{gs}$ troviamo la **transconduttanza equivalente** $G_m = i_d / v_i$ e il guadagno sul carico $R_D \parallel R_L$:
-
-$$
-G_m = \frac{g_m}{1 + g_m R_S}, \qquad A_v = \frac{v_{out}}{v_i} = -G_m (R_D \parallel R_L) = -\frac{g_m (R_D \parallel R_L)}{1 + g_m R_S}
-$$
-
-Se dimensioniamo $R_S$ grande rispetto a $1/g_m$ ($g_m R_S \gg 1$), il termine $1$ a denominatore diventa trascurabile e $g_m$ si semplifica:
+Questa relazione mostra chiaramente il compromesso di progetto: il modulo del guadagno diminuisce di un fattore $(1 + g_m R_S)$, ma in compenso la tensione di segnale applicabile in ingresso prima di distorcere (mantenendo $v_{gs}$ nel regime lineare di piccolo segnale) cresce esattamente dello stesso fattore $(1 + g_m R_S)$. Inoltre, se si sceglie $R_S$ abbastanza grande da avere $g_m R_S \gg 1$, il termine $1$ a denominatore diventa trascurabile e $g_m$ si semplifica:
 
 $$
 A_v \approx -\frac{R_D \parallel R_L}{R_S}
 $$
 
-In questo regime il guadagno dipende solo dal rapporto tra due resistori passivi, diventando molto lineare e stabile rispetto alla temperatura e alle tolleranze del MOSFET.
+In questo regime il guadagno dipende soltanto dal rapporto tra resistori passivi, risultando altamente lineare e immune alle derive termiche e tecnologiche di $g_m$.
 
-#### Resistenza Vista al Drain
+#### Moltiplicazione della Resistenza al Drain
 
-La degenerazione di Source aumenta anche la resistenza interna vista guardando dentro il Drain ($R_{out,drain}$). Per ricavarla con $r_o$ finita, spegniamo l'ingresso ($v_g = 0$), scolleghiamo $R_D$ ed $R_L$ e applichiamo al Drain un generatore di prova $v_x$ che inietta la corrente $i_x$ ([la figura](#fig-cs-degenerated)):
+Oltre a linearizzare il guadagno, $R_S$ modifica profondamente la resistenza vista guardando direttamente dentro il terminale di Drain ($R_{out,drain}$) quando $r_o$ è finita. Per ricavarla analiticamente, spegniamo la sorgente al Gate ($v_g = 0$), scolleghiamo $R_D$ e $R_L$ e applichiamo al Drain un generatore di tensione di prova $v_x$ che inietta una corrente entrante $i_x$:
 
-1. Poiché il Gate non assorbe corrente ($i_g = 0$), tutta la corrente $i_x$ esce dal Source e attraversa $R_S$, fissando $v_s = R_S i_x$ e quindi $v_{gs} = v_g - v_s = -R_S i_x$.
-2. Al nodo di Drain, la corrente entrante $i_x$ si somma al contributo del generatore dipendente (che con $v_{gs}$ negativa spinge corrente verso l'alto), costringendo in $r_o$ la corrente $i_{ro} = i_x - g_m v_{gs} = i_x(1 + g_m R_S)$.
-3. Sommando la caduta su $r_o$ e quella su $R_S$ otteniamo $v_x = r_o i_{ro} + v_s = [r_o(1 + g_m R_S) + R_S]i_x$, da cui:
+1. Poiché il Gate è isolato ($i_g = 0$), l'intera corrente $i_x$ entrata nel Drain deve uscire dal Source e scendere verso massa attraverso $R_S$. Questo fissa il potenziale del Source a $v_s = R_S i_x$ e impone una tensione Gate-Source negativa:
+
+$$
+v_{gs} = v_g - v_s = 0 - R_S i_x = -R_S i_x
+$$
+
+2. Con $v_{gs}$ negativa, il generatore controllato $g_m v_{gs} = -g_m R_S i_x$ spinge corrente **verso l'alto** (dal Source verso il Drain), opponendosi alla corrente $i_x$ che cerca di scendere. Applicando la KCL al nodo di Drain, tutta la corrente che non può scendere nel generatore controllato è costretta a passare attraverso la sola resistenza $r_o$:
+
+$$
+i_{ro} = i_x - g_m v_{gs} = i_x - g_m(-R_S i_x) = i_x (1 + g_m R_S)
+$$
+
+3. Poiché in $r_o$ scorre una corrente $(1 + g_m R_S)$ volte maggiore di $i_x$, la caduta di tensione ai capi di $r_o$ risulta amplificata dello stesso fattore. Sommando la caduta su $r_o$ alla caduta $v_s = R_S i_x$ su $R_S$, la tensione totale di prova vale $v_x = r_o i_{ro} + v_s = [r_o(1 + g_m R_S) + R_S] i_x$, da cui:
 
 $$
 R_{out,drain} = \frac{v_x}{i_x} = r_o(1 + g_m R_S) + R_S \approx r_o(1 + g_m R_S)
 $$
 
-In pratica $R_S$ **moltiplica** la resistenza intrinseca $r_o$ per il fattore $(1 + g_m R_S)$, mentre la resistenza d'uscita dello stadio completo resta $R_{out} = R_D \parallel R_{out,drain}$.
+La degenerazione di Source **moltiplica** dunque la resistenza intrinseca $r_o$ per il fattore $(1 + g_m R_S)$, avvicinando il transistore a un generatore di corrente ideale. La resistenza d'uscita complessiva dello stadio resta il parallelo con il resistore di Drain:
 
-<Callout type="tip" title="Vantaggi della Degenerazione">
+$$
+R_{out} = R_D \parallel R_{out,drain} = R_D \parallel [r_o(1 + g_m R_S) + R_S]
+$$
 
-Sacrificare parte del guadagno con $R_S$ offre tre benefici decisivi:
-1. **Guadagno lineare e stabile:** per $g_m R_S \gg 1$, $A_v \approx -(R_D \parallel R_L)/R_S$ dipende solo da rapporti resistivi ed estende la dinamica lineare d'ingresso di $(1 + g_m R_S)$.
-2. **Estensione della banda:** riducendo il guadagno tra Gate e Drain, si abbatte la moltiplicazione capacitiva di Miller su $C_{gd}$.
-3. **Alta impedenza d'uscita:** moltiplicare $r_o$ per $(1 + g_m R_S)$ avvicina il MOSFET a un generatore di corrente ideale (principio alla base dello stadio Cascode).
+Poiché $R_{out,drain}$ diventa molto maggiore di $R_D$, la resistenza d'uscita dello stadio si avvicina a $R_D$.
+
+<Callout type="tip" title="Benefici della Degenerazione di Source">
+
+Rinunciare a una parte del guadagno tramite $R_S$ offre tre vantaggi strutturali nella progettazione analogica:
+1. **Linearità e stabilità:** per $g_m R_S \gg 1$, $A_v \approx -(R_D \parallel R_L)/R_S$ dipende solo da rapporti resistivi e la dinamica lineare d'ingresso cresce di $(1 + g_m R_S)$.
+2. **Maggiore banda passante:** un guadagno ridotto attenua la moltiplicazione capacitiva di Miller su $C_{gd}$ (come vedremo nel [Capitolo 17](/dynamic-courses/elettronica/04-amplificatori-frequenza/17-risposta-frequenza/)).
+3. **Alta impedenza vista al Drain:** la moltiplicazione $r_o(1 + g_m R_S)$ è il principio fisico su cui si basano lo stadio Cascode e gli specchi di corrente ad alta impedenza.
 
 </Callout>
+
+Nel simulatore interattivo qui sotto confronta **Common Source** e **CS + Degenerazione**: prova a variare $g_m$, $R_D$ e il resistore $R_S$ per verificare come la degenerazione riduca $|A_v|$ ma aumenti nettamente $R_{out}$ e la banda superiore $f_H$.
+
+<SingleStageExplorer client:load />
+
+<StepCheck client:load lang="it" mode="choice" prompt="Perché la degenerazione di Source $R_S$ aumenta la resistenza vista guardando nel Drain $R_{out,drain}$ fino a circa $r_o(1 + g_m R_S)$?" options={["Perché $R_S$ si somma in serie a $R_D$ al Drain", "Perché la corrente di prova $i_x$ alza $v_s = R_S i_x$, rende $v_{gs} = -R_S i_x$ negativo e il generatore $g_m v_{gs}$ si oppone alla corrente entrante costringendo $(1 + g_m R_S)i_x$ in $r_o$", "Perché senza $C_S$ la resistenza $r_o$ fisica del silicio aumenta", "Perché il Gate va in conduzione e assorbe parte di $i_x$"]} correctIndex={1} explanation="Alzando $v_s$, la tensione $v_{gs} = -R_S i_x$ diventa negativa: il generatore $g_m v_{gs}$ spinge corrente verso il Drain opponendosi a $i_x$, così in $r_o$ scorre $i_x(1 + g_m R_S)$ generando una caduta di tensione molto più grande a parità di $i_x$." />
 
 <Divider label="3 · Sintesi" />
 
 | Grandezza | CS Base ($C_S$ presente) | CS con Degenerazione ($R_S$ attivo) |
 | :--- | :--- | :--- |
 | **Resistenza d'ingresso $R_{in}$** | $R_1 \parallel R_2$ | $R_1 \parallel R_2$ |
+| **Transconduttanza efficace $G_m$** | $g_m$ | $\frac{g_m}{1 + g_m R_S}$ |
 | **Guadagno $A_v = v_{out}/v_i$** | $-g_m (R_D \parallel r_o \parallel R_L)$ | $-\frac{g_m (R_D \parallel R_L)}{1 + g_m R_S}$ (con $r_o \to \infty$) |
 | **Resistenza al Drain $R_{out,drain}$** | $r_o$ | $r_o(1 + g_m R_S) + R_S$ |
 | **Resistenza d'uscita $R_{out}$** | $R_D \parallel r_o$ | $R_D \parallel [r_o(1 + g_m R_S) + R_S] \approx R_D$ |
 
 ### Procedura di Analisi
 
-1. **Circuito di piccolo segnale:** cortocircuitare $V_{DD}$ e tutti i condensatori di accoppiamento/bypass ($C_G, C_D$; inoltre $C_S$ solo se presente), sostituendo il MOS con $(g_m v_{gs}, r_o)$.
-2. **Partitore d'ingresso:** calcolare $R_{in} = R_1 \parallel R_2$ e il fattore di attenuazione della sorgente $\frac{R_{in}}{R_{sig} + R_{in}}$.
+1. **Circuito di piccolo segnale:** cortocircuitare $V_{DD}$ e tutti i condensatori esterni ($C_G, C_D$; inoltre $C_S$ solo se presente), sostituendo il MOSFET con $(g_m v_{gs}, r_o)$.
+2. **Partitore d'ingresso:** calcolare $R_{in} = R_1 \parallel R_2$ e il fattore di attenuazione $\frac{R_{in}}{R_{sig} + R_{in}}$.
 3. **Resistenza d'uscita e carico:** determinare $R_{out}$ con $v_{sig} = 0$, poi calcolare il parallelo complessivo al Drain $R_L' = R_{out} \parallel R_L$.
-4. **Guadagno totale:** calcolare $A_v = -G_m R_L'$ (con $G_m = g_m$ se $C_S$ cortocircuita $R_S$, oppure $G_m = \frac{g_m}{1 + g_m R_S}$) e moltiplicare per il partitore d'ingresso per ottenere $A_{vs}$.
-
-### Dimostrazioni Chiave
-
-* **Guadagno CS base:** KCL al nodo di Drain sul carico equivalente $R_L' = R_D \parallel r_o \parallel R_L$ che porta a $A_v = -g_m R_L'$.
-* **Transconduttanza degenerata:** KVL sulla maglia Gate-Source con $v_s = R_S i_d$, ottenendo $G_m = \frac{g_m}{1 + g_m R_S}$.
-* **Resistenza al Drain degenerata:** generatore di prova $v_x$ al Drain con $v_g = 0 \implies v_{gs} = -R_S i_x$, da cui $R_{out,drain} = r_o(1 + g_m R_S) + R_S$.
+4. **Guadagno totale:** valutare $A_v = -G_m R_L'$ (con $G_m = g_m$ nel CS base oppure $G_m = \frac{g_m}{1 + g_m R_S}$ nel CS degenerato) e moltiplicare per il partitore d'ingresso per ottenere $A_{vs}$.
 
 <Callout type="warning" title="Errori Comuni">
 
 * **Confondere $A_v$ con $A_{vs}$:** il guadagno intrinseco $A_v = v_{out}/v_i$ ignora la caduta su $R_{sig}$. Per il guadagno dalla sorgente occorre sempre moltiplicare per $\frac{R_{in}}{R_{sig} + R_{in}}$.
-* **Dimenticare $R_1 \parallel R_2$ in $R_{in}$:** anche se il Gate isolato non assorbe corrente ($i_g = 0$), il generatore vede comunque verso massa AC il partitore di polarizzazione $R_1 \parallel R_2$.
+* **Dimenticare $R_1 \parallel R_2$ in $R_{in}$:** anche se l'ossido di Gate isola il terminale ($i_g = 0$), il generatore vede comunque verso massa AC i resistori di polarizzazione $R_1 \parallel R_2$.
+* **Applicare $R_{out} = R_D \parallel r_o$ senza $C_S$:** quando $R_S$ non è bypassata, $r_o$ viene moltiplicata per $(1 + g_m R_S)$ al Drain, facendo salire $R_{out}$ quasi fino a $R_D$.
 
 </Callout>
 
 <Divider label="4 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-13-1" title="Esercizio 13.1 — Common Source Base e Degenerato" level="Livello Esame" hint="$R_{out} = R_D \parallel r_o$; $R_L' = R_{out} \parallel R_L$; $A_v = -g_m R_L'$. Con $R_S$ non bypassata ($r_o \to \infty$): $A_v = -g_m(R_D \parallel R_L)/(1 + g_m R_S)$.">
+<Exercise client:load lang="it" id="ex-13-1" title="Esercizio 13.1 — Resistenza d'Ingresso e Segno del Guadagno" level="Base" hint="Ricorda che $i_g = 0$, ma i resistori di polarizzazione $R_1$ ed $R_2$ sono collegati al nodo di Gate verso $V_{DD}$ e massa.">
 
-Un amplificatore Common Source ha $g_m = 4\,\text{mA/V}$, $r_o = 50\,\text{k}\Omega$, $R_D = 5\,\text{k}\Omega$, $R_L = 10\,\text{k}\Omega$, $R_1 \parallel R_2 = 100\,\text{k}\Omega$ e $R_{sig} = 2\,\text{k}\Omega$.
+In uno stadio Common Source polarizzato con rete a quattro resistori ($R_1, R_2, R_D, R_S$) e condensatore di bypass $C_S$ collegato, si vuole verificare l'effetto dei resistori esterni su $R_{in}$ e sulla fase di $v_{out}$.
 
-<StepCheck client:load lang="it" prompt="Calcola la resistenza d'uscita $R_{out}$ dello stadio base (in $\text{k}\Omega$):" expected={4.545} tolerance={0.05} unit="$\text{k}\Omega$" explanation="$R_{out} = 50 \parallel 5 = 250 / 55 \approx 4.55\,\text{k}\Omega$." />
-
-<StepCheck client:load lang="it" prompt="Calcola il guadagno complessivo $A_{vs}$ dello stadio base (con segno):" expected={-12.255} tolerance={0.15} unit="$\text{V/V}$" explanation="$R_L' = 4.55 \parallel 10 = 3.125\,\text{k}\Omega$; $A_v = -4 \cdot 3.125 = -12.5$; $A_{vs} = -12.5 \cdot (100/102) \approx -12.26\,\text{V/V}$." />
-
-<StepCheck client:load lang="it" prompt="Se si rimuove $C_S$ lasciando $R_S = 500\,\Omega$ (trascurando $r_o$), quanto vale il nuovo guadagno $A_v$?" expected={-4.444} tolerance={0.08} unit="$\text{V/V}$" explanation="$A_v = -4 \cdot (5 \parallel 10) / (1 + 4 \cdot 0.5) = -13.33 / 3 \approx -4.44\,\text{V/V}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Se l'ossido di Gate isola perfettamente il terminale ($i_g = 0$), perché la resistenza d'ingresso $R_{in}$ dello stadio non è infinita ma vale $R_1 \parallel R_2$?" options={["Perché $R_D$ compare in parallelo al Gate", "Perché in AC l'alimentazione $V_{DD}$ è a massa, quindi $R_1$ ed $R_2$ collegano il Gate verso massa AC in parallelo tra loro", "Perché $C_G$ cortocircuita il Gate a massa in DC", "Perché $r_o$ collega il Gate al Source"]} correctIndex={1} explanation="Nel modello di piccolo segnale $V_{DD}$ è una massa AC: il segnale proveniente da $C_G$ vede il Gate aperto in parallelo ai due rami $R_1$ (verso $V_{DD}$) e $R_2$ (verso massa)." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Resistenza d'uscita base:** spegnendo $v_{sig} = 0$, $v_{gs} = 0$ e restano in parallelo al Drain $R_D$ e $r_o$:
-
-$$
-R_{out} = R_D \parallel r_o = \frac{5 \cdot 50}{5 + 50}\,\text{k}\Omega \approx 4.55\,\text{k}\Omega
-$$
-
-2. **Carico e guadagno $A_v$:** includendo $R_L = 10\,\text{k}\Omega$ in parallelo:
-
-$$
-R_L' = R_{out} \parallel R_L = 4.55 \parallel 10 = 3.125\,\text{k}\Omega \implies A_v = -g_m R_L' = -4 \cdot 3.125 = -12.5\,\text{V/V}
-$$
-
-3. **Guadagno dalla sorgente $A_{vs}$:** con $R_{in} = 100\,\text{k}\Omega$ e $R_{sig} = 2\,\text{k}\Omega$:
-
-$$
-A_{vs} = A_v \cdot \frac{R_{in}}{R_{sig} + R_{in}} = -12.5 \cdot \frac{100}{102} \approx -12.26\,\text{V/V}
-$$
-
-4. **Stadio con degenerazione** ($R_S = 0.5\,\text{k}\Omega$, $r_o \to \infty$): il fattore di retroazione vale $(1 + g_m R_S) = 1 + 4 \cdot 0.5 = 3$, mentre $R_D \parallel R_L = 5 \parallel 10 \approx 3.33\,\text{k}\Omega$:
-
-$$
-A_v = -\frac{g_m (R_D \parallel R_L)}{1 + g_m R_S} = -\frac{4 \cdot 3.33}{3} \approx -4.44\,\text{V/V}
-$$
+1. **Resistenza d'ingresso:** sebbene la corrente assorbita dal Gate del MOSFET sia nulla ($i_g = 0$) grazie all'ossido isolante $\text{SiO}_2$, il terminale di Gate è collegato alla rete di polarizzazione formata da $R_1$ (verso $V_{DD}$) e $R_2$ (verso massa). Nel circuito equivalente di piccolo segnale l'alimentazione costante $V_{DD}$ diventa una massa AC, per cui il generatore di segnale vede $R_1$ ed $R_2$ in parallelo verso massa: $R_{in} = R_1 \parallel R_2$.
+2. **Inversione di fase:** quando la tensione di segnale $v_i$ sul Gate aumenta, con il Source ancorato a massa AC tramite $C_S$ cresce $v_{gs} = v_i$ e quindi cresce la corrente $i_d = g_m v_{gs}$ richiamata dal Drain verso massa. Tale corrente scorre da massa attraverso $R_L' = R_D \parallel r_o \parallel R_L$, provocando una caduta negativa $v_{out} = -g_m v_{gs} R_L'$ (sfasamento di $180^\circ$).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-13-2" title="Esercizio 13.2 — Resistenza d'Uscita con Degenerazione" level="Intermedio" hint="Calcola prima $R_{out,drain} = r_o(1 + g_m R_S) + R_S$, poi fai il parallelo con $R_D$.">
+<Exercise client:load lang="it" id="ex-13-2" title="Esercizio 13.2 — Effetti della Degenerazione di Source" level="Intermedio" hint="Segui la catena causale: aumento di $i_d$ -> variazione di $v_s$ -> effetto su $v_{gs}$ e $G_m$, e poi verifica cosa succede con un carico esterno $R_L$ molto piccolo.">
 
-Uno stadio Common Source con degenerazione di Source (senza $C_S$) impiega un MOSFET con $g_m = 3\,\text{mA/V}$ e $r_o = 20\,\text{k}\Omega$, insieme a $R_S = 1\,\text{k}\Omega$ e $R_D = 10\,\text{k}\Omega$ ($g_{mb} = 0$).
+Considera due modifiche sullo stadio Common Source: prima si rimuove il condensatore di bypass $C_S$ lasciando $R_S$ attiva in AC; poi si collega direttamente all'uscita un carico resistivo molto piccolo ($R_L \ll R_D$).
 
-<StepCheck client:load lang="it" prompt="Calcola la resistenza vista guardando nel Drain $R_{out,drain}$ (in $\text{k}\Omega$):" expected={81.0} tolerance={0.5} unit="$\text{k}\Omega$" explanation="$R_{out,drain} = 20(1 + 3 \cdot 1) + 1 = 80 + 1 = 81.0\,\text{k}\Omega$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Cosa accade al modulo del guadagno $|A_v|$ e alla linearità quando si rimuove $C_S$ in modo che $g_m R_S \gg 1$?" options={["$|A_v|$ aumenta e la distorsione cresce", "$|A_v|$ si riduce avvicinandosi a $(R_D \\parallel R_L)/R_S$, rendendo il guadagno più lineare e indipendente da $g_m$", "$|A_v|$ diventa positivo (non invertente)", "La resistenza d'uscita $R_{out}$ scende a $1/g_m$"]} correctIndex={1} explanation="La caduta $v_s = R_S i_d$ introduce retroazione negativa riducendo $v_{gs}$ di $(1 + g_m R_S)$: il guadagno diventa $A_v = -\frac{g_m(R_D \parallel R_L)}{1 + g_m R_S} \approx -\frac{R_D \parallel R_L}{R_S}$, molto lineare." />
 
-<StepCheck client:load lang="it" prompt="Calcola la resistenza d'uscita complessiva dello stadio $R_{out} = R_D \parallel R_{out,drain}$ (in $\text{k}\Omega$):" expected={8.901} tolerance={0.08} unit="$\text{k}\Omega$" explanation="$R_{out} = 10 \parallel 81 = 810 / 91 \approx 8.90\,\text{k}\Omega$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Perché collegando un carico molto piccolo $R_L \ll R_D$ direttamente al Drain di un CS il guadagno $|A_v|$ crolla?" options={["Perché $R_L$ mette in cortocircuito il Gate", "Perché $R_L$ finisce in parallelo a $R_{out} = R_D \\parallel r_o$, abbattendo la resistenza equivalente $R_L'$ su cui la corrente $g_m v_{gs}$ sviluppa tensione", "Perché $R_L$ spegne il transistore in interdizione", "Perché $R_L$ annulla $R_{in}$"]} correctIndex={1} explanation="Il CS ha una $R_{out}$ relativamente elevata: $R_L$ si pone in parallelo a $R_D$ e $r_o$, facendo crollare $R_L' \approx R_L$ e quindi $|A_v| = g_m R_L'$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Fattore di retroazione:** con $g_m = 3\,\text{mA/V}$ e $R_S = 1\,\text{k}\Omega$, risulta $(1 + g_m R_S) = 1 + 3 = 4$.
-2. **Resistenza verso il Drain:**
+1. **Ruolo di $R_S$ non bypassata:** togliendo $C_S$, la corrente di segnale $i_d$ attraversa $R_S$ generando $v_s = R_S i_d$. La tensione effettiva sul canale scende a $v_{gs} = v_i - v_s = v_i / (1 + g_m R_S)$, quindi la transconduttanza efficace diventa $G_m = g_m / (1 + g_m R_S)$. Per $g_m R_S \gg 1$, $g_m$ si semplifica e $A_v \approx -(R_D \parallel R_L)/R_S$: il guadagno cala in modulo ma diventa lineare e insensibile alle tolleranze del MOSFET. Inoltre $R_{out,drain}$ cresce fino a $r_o(1 + g_m R_S) + R_S$.
+2. **Limite su carichi piccoli:** nel CS la resistenza d'uscita $R_{out} = R_D \parallel r_o$ è elevata. Poiché $A_v = -G_m (R_{out} \parallel R_L)$, un carico piccolo ($R_L \ll R_{out}$) domina il parallelo e fa crollare $R_L' \approx R_L$, riducendo drasticamente la tensione d'uscita. Per pilotare carichi piccoli occorre interporre un buffer a bassa resistenza d'uscita.
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-13-3" title="Esercizio 13.3 — Verifica Rapida su Guadagno e Degenerazione" level="Base" hint="Applica $R_L' = R_D \parallel r_o \parallel R_L$ per il CS base, e $G_m = g_m / (1 + g_m R_S)$ con $r_o \to \infty$ per il CS degenerato.">
+
+Uno stadio Common Source ha $g_m = 4\,\text{mA/V}$, $r_o = 50\,\text{k}\Omega$, $R_D = 5\,\text{k}\Omega$ e $R_L = 10\,\text{k}\Omega$.
+
+<StepCheck client:load lang="it" prompt="Con $C_S$ collegato (CS base), quanto vale il guadagno di tensione $A_v$ (con segno)?" expected={-12.5} tolerance={0.2} unit="$\text{V/V}$" explanation="$R_{out} = 5 \parallel 50 \approx 4.55\,\text{k}\Omega$, quindi $R_L' = 4.55 \parallel 10 = 3.125\,\text{k}\Omega$ e $A_v = -4 \cdot 3.125 = -12.5\,\text{V/V}$." />
+
+<StepCheck client:load lang="it" mode="choice" prompt="Se ora rimuoviamo $C_S$ inserendo $R_S = 500\,\Omega$, che cosa succede alla resistenza vista dentro il Drain $R_{out,drain}$?" options={["Rimane uguale a $r_o = 50\\,\\text{k}\\Omega$", "Scende a $r_o / 3 \\approx 16.7\\,\\text{k}\\Omega$", "Triplica fino a $r_o(1 + g_m R_S) + R_S = 150.5\\,\\text{k}\\Omega$", "Si annulla"]} correctIndex={2} explanation="Con $g_m R_S = 4\,\text{mA/V} \cdot 0.5\,\text{k}\Omega = 2$, il fattore moltiplicativo è $(1 + g_m R_S) = 3$, quindi $R_{out,drain} = 50 \cdot 3 + 0.5 = 150.5\,\text{k}\Omega$." />
+
+<details className="dc-solution">
+<summary>Mostra Risposta Orale Modello</summary>
+
+1. **CS base ($C_S$ presente):** il carico complessivo sul Drain vale $R_L' = R_D \parallel r_o \parallel R_L = 5\,\text{k}\Omega \parallel 50\,\text{k}\Omega \parallel 10\,\text{k}\Omega = 3.125\,\text{k}\Omega$, da cui $A_v = -g_m R_L' = -4 \cdot 3.125 = -12.5\,\text{V/V}$.
+2. **Effetto di $R_S = 500\,\Omega$ su $R_{out,drain}$:** con ingresso spento ($v_g = 0$), una corrente di prova $i_x$ entrante nel Drain attraversa $R_S$ generando $v_{gs} = -R_S i_x$. Il fattore di retroazione vale $1 + g_m R_S = 1 + 4 \cdot 0.5 = 3$, per cui la resistenza vista nel Drain cresce a:
 
 $$
-R_{out,drain} = r_o (1 + g_m R_S) + R_S = 20 \cdot 4 + 1 = 81.0\,\text{k}\Omega
+R_{out,drain} = r_o(1 + g_m R_S) + R_S = 50 \cdot 3 + 0.5 = 150.5\,\text{k}\Omega
 $$
-
-3. **Resistenza d'uscita complessiva:** in parallelo a $R_D = 10\,\text{k}\Omega$:
-
-$$
-R_{out} = R_D \parallel R_{out,drain} = \frac{10 \cdot 81}{10 + 81} \approx 8.90\,\text{k}\Omega
-$$
-
-   Qui $R_{out}$ è ormai dominata da $R_D$, perché $R_{out,drain}$ è stata quadruplicata.
 
 </details>
 

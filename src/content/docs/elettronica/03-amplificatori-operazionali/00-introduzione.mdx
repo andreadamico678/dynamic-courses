@@ -10,20 +10,26 @@ import Divider from "@components/Divider.astro";
 
 ## Introduzione
 
-Un singolo transistore MOSFET ha un guadagno sensibile a temperatura, tolleranze di processo e carico. Gli **Amplificatori Operazionali (Op-Amp)** rovesciano il paradigma progettuale: invece di costruire un amplificatore da zero, si prende un blocco integrato con guadagno differenziale enorme ad anello aperto e si chiude intorno a esso una **retroazione negativa** esterna fatta di semplici resistori o condensatori di precisione.
+Un singolo transistore MOSFET ha un guadagno sensibile a temperatura, tolleranze di processo e carico. Gli **Amplificatori Operazionali (Op-Amp)** rovesciano il paradigma progettuale: invece di progettare l'amplificatore a partire dai parametri incerti dei singoli transistori, si utilizza un blocco integrato con guadagno differenziale ad anello aperto enorme ($A_0 \to \infty$) e si chiude intorno a esso una **retroazione negativa** esterna fatta di componenti passivi di precisione.
 
-Grazie al principio del **corto circuito virtuale**, il comportamento del circuito cessa di dipendere dai parametri incerti dei transistori interni ed è governato quasi interamente dai rapporti passivi esterni—permettendo non solo di amplificare, ma anche di sommare, sottrarre, integrare e filtrare segnali con estrema linearità. La Parte III parte dall'astrazione ideale fino alle non-idealità fisiche reali che limitano i circuiti su scheda.
+Grazie al meccanismo del **corto circuito virtuale**, la funzione di trasferimento cessa di dipendere dal silicio interno e viene fissata dai rapporti tra resistori e condensatori esterni. La Parte III organizza lo studio degli Op-Amp in tre livelli progressivi:
 
-### Esempi Pratici nel Mondo Reale
+1. **Modello ideale e topologie fondamentali ([Capitolo 10](/dynamic-courses/elettronica/03-amplificatori-operazionali/10-opamp-ideale/)):** principio della retroazione negativa, corto circuito virtuale e architetture base (invertente, transresistenza, non invertente e buffer).
+2. **Circuiti computazionali ([Capitolo 11](/dynamic-courses/elettronica/03-amplificatori-operazionali/11-circuiti-computazionali/)):** estensione delle regole ideali a somme pesate, conversione digitale-analogica ($R\text{-}2R$), sottrazione differenziale, integrazione e derivazione.
+3. **Limiti dell'Op-Amp reale ([Capitolo 12](/dynamic-courses/elettronica/03-amplificatori-operazionali/12-non-idealita-opamp/)):** separazione tra imperfezioni **statiche DC** (guadagno finito $A_0$, tensione di offset $V_{OS}$, correnti di bias $I_B$, $CMRR$) e limiti **dinamici** (banda di piccolo segnale $GBW$ e *Slew-Rate* $SR$ di grande segnale).
 
-- **Condizionamento di Sensori (Celle di Carico, ECG, Termocoppie):** Un ponte di Wheatstone o una coppia di elettrodi medici produce pochi millivolt differenziali immersi in disturbi di rete a $50\,\text{Hz}$ di modo comune: l'amplificatore differenziale estrae la differenza utile respingendo il rumore comune.
-- **Conversione Digitale-Analogica (DAC a Scala $R\text{-}2R$):** I sommatore pesati e le reti $R\text{-}2R$ trasformano parole binarie provenienti da un microcontrollore in tensioni analogiche continue per attuatori e audio.
-- **Limiti di Banda e Velocità in Datasheet reali (OP184/TL081):** Sapere che $A_{CL} \times f_{-3\text{dB}} = \text{GBW}$ e distinguere lo *Slew Rate* dall'offset in continua evita che un amplificatore saturi o distorga segnali ad alta ampiezza e frequenza.
+### Sistema di Riferimento: Front-End per Sensore Differenziale
+
+Per collegare i tre capitoli seguiamo il percorso di un segnale reale proveniente da un **sensore a ponte resistivo** (o da elettrodi biomedicali ECG):
+
+- **Adattamento d'impedenza e primo guadagno (Cap. 10):** il sensore eroga pochi millivolt con elevata resistenza interna; un buffer o uno stadio non invertente preleva la tensione senza caricarla, mentre uno stadio invertente o di transresistenza gestisce sorgenti a bassa impedenza o in corrente (come i fotodiodi).
+- **Estrazione del segnale e filtraggio (Cap. 11):** i due fili del sensore raccolgono un disturbo comune di rete a $50\,\text{Hz}$; l'amplificatore differenziale estrae la sola differenza utile scartando il modo comune, mentre reti sommatrici, convertitori DAC $R\text{-}2R$ e integratori smorzati calibrano e filtrano il segnale nel tempo.
+- **Verifica dei limiti fisici su datasheet (Cap. 12):** sul dispositivo reale occorre infine verificare che l'offset $V_{OS}$ e le correnti di bias $I_B$ non falsino la lettura in continua, che il prodotto guadagno-banda $GBW$ lasci passare lo spettro del segnale e che lo *Slew-Rate* $SR$ non introduca distorsione triangolare sulle ampiezze elevate.
 
 <Divider />
 
 ## Mappa dei Capitoli
 
-1. **[10. Amplificatore Operazionale Ideale](/dynamic-courses/elettronica/03-amplificatori-operazionali/10-opamp-ideale/)** — Modello ideale, corto circuito virtuale in retroazione negativa, configurazione invertente, non invertente e buffer.
-2. **[11. Circuiti Computazionali ad Op-Amp](/dynamic-courses/elettronica/03-amplificatori-operazionali/11-circuiti-computazionali/)** — Sommatore pesato, DAC a pesi binari vs scala $R\text{-}2R$, amplificatore differenziale, integratore e derivatore.
-3. **[12. Non-Idealità dell'Op-Amp Reale](/dynamic-courses/elettronica/03-amplificatori-operazionali/12-non-idealita-opamp/)** — Errore di guadagno finito, tensione di offset $V_{OS}$, correnti di bias $I_B$ con compensazione $R_3$, prodotto $GBW$ e *Slew Rate*.
+1. **[10. Amplificatore Operazionale Ideale](/dynamic-courses/elettronica/03-amplificatori-operazionali/10-opamp-ideale/)** — Modello ideale, meccanismo della retroazione negativa, corto circuito virtuale, configurazione invertente, transresistenza, non invertente e buffer.
+2. **[11. Circuiti Computazionali ad Op-Amp](/dynamic-courses/elettronica/03-amplificatori-operazionali/11-circuiti-computazionali/)** — Sommatore pesato, DAC a pesi binari vs scala $R\text{-}2R$, amplificatore differenziale, integratore di Miller smorzato e derivatore.
+3. **[12. Non-Idealità dell'Op-Amp Reale](/dynamic-courses/elettronica/03-amplificatori-operazionali/12-non-idealita-opamp/)** — Errore di guadagno finito, prodotto $GBW$, tensione di offset $V_{OS}$, correnti di bias $I_B$ con compensazione $R_3$, $CMRR$ e *Slew-Rate* $SR$.

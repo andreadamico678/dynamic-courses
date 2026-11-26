@@ -110,9 +110,13 @@ export default function StepCheck(props: StepCheckProps) {
       )}
       {status === 'err' && (
         <div className="dc-feedback dc-feedback-err">
-          {isIt
-            ? '✕ Risposta errata — ricontrolla segni, unità di misura o formule e riprova.'
-            : '✕ Not quite — double check your signs, corner order, or units and try again.'}
+          {props.mode === 'choice'
+            ? isIt
+              ? '✕ Risposta errata — ripensa al meccanismo e riprova.'
+              : '✕ Not quite — rethink the underlying mechanism and try again.'
+            : isIt
+              ? '✕ Risposta errata — ricontrolla segni, unità di misura o formule e riprova.'
+              : '✕ Not quite — double check your signs, corner order, or units and try again.'}
         </div>
       )}
     </div>

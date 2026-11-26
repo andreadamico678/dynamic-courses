@@ -10,15 +10,21 @@ import Divider from "@components/Divider.astro";
 
 ## Introduzione
 
-Il **MOSFET** è il componente più fabbricato nella storia umana: miliardi di copie identiche vivono dentro ogni processore, memoria o circuito integrato analogico. A differenza del diodo (che ha due terminali e non amplifica), il MOSFET introduce un elettrodo isolato di controllo—il **Gate**—capace di modulare con un campo elettrico la corrente che scorre tra Source e Drain senza assorbire corrente statica di comando.
+Il **MOSFET** è il componente elettronico più fabbricato della storia: miliardi di copie identiche costituiscono i blocchi elementari di microprocessori, memorie e circuiti integrati analogici. A differenza del diodo a giunzione p-n (dispositivo passivo a due terminali), il MOSFET introduce un elettrodo di controllo isolato—il **Gate**—capace di modulare tramite un campo elettrico la corrente che scorre tra Source e Drain senza assorbire corrente statica di comando.
 
-In questa Parte affronterai un cambio di prospettiva fondamentale in due fasi: prima capirai il dispositivo nel regime completo a **grandi segnali** (interruttore ON/OFF per il digitale, curva quadratica per l'analogico), poi imparerai a **linearizzarlo attorno a un punto di lavoro statico $Q$** per trasformare un oggetto non lineare in un amplificatore lineare maneggevole a piccoli segnali.
+In questa Parte affronterai il dispositivo seguendo una progressione unitaria in cinque passi:
+1. **Fisica del canale e soglia:** come il condensatore MOS crea il canale conduttivo oltre $V_{th}$ e come il substrato ne sposta la soglia (**effetto Body**).
+2. **Regimi statici a grandi segnali:** come la tensione $V_{DS}$ divide il funzionamento tra **triodo** (resistore controllato per il digitale) e **saturazione** (generatore di corrente per l'analogico), con comportamento duale tra NMOS e PMOS.
+3. **Linearizzazione a piccolo segnale:** come trasformare una legge quadratica in un modello lineare ($g_m, r_o, g_{mb}$) attorno a un punto di lavoro statico $Q$.
+4. **Limiti dinamici ad alta frequenza:** come le capacità parassite di ossido e di giunzione fissano la **frequenza di transizione** $f_T \propto 1/L^2$.
+5. **Polarizzazione DC:** come progettare reti resistive stabili contro le tolleranze di processo per mantenere il punto $Q$ in saturazione.
 
-### Esempi Pratici nel Mondo Reale
+### Esempio Trasversale nel Mondo Reale
 
-- **Controllo di Potenza in Motori e Droni (MOSFET come Switch):** Nei driver PWM di motori brushless e convertitori DC-DC, il MOSFET lavora tra interdizione e triodo profondo con resistenza di canale $R_{on}$ di pochi milliohm per minimizzare la dissipazione di calore.
-- **Front-End Analogici e Sensori Audio (MOSFET in Saturazione):** Un microfono MEMS o un sensore biomedico genera microvolt o millivolt: polarizzando il MOSFET al punto $Q$ in saturazione, la sua transconduttanza $g_m$ converte piccole fluttuazioni di tensione sul Gate in segnali amplificati fedelmente.
-- **Legge di Scalamento dei Chip ($f_T \propto 1/L^2$):** Ridurre la lunghezza di canale $L$ da micron a pochi nanometri abbatte le capacità parassite di Gate e moltiplica la frequenza limite intrinseca $f_T$ di CPU e stadi RF.
+Pensa a un **front-end audio integrato** accoppiato a un microfono MEMS e a uno stadio di potenza su un unico sistema elettronico:
+- **Sensore e amplificatore lineare (Saturazione e Piccolo Segnale):** il microfono produce variazioni di pochi millivolt; polarizzando il MOSFET al punto $Q$ in saturazione tramite una rete a 4 resistori, il transistore converte piccole oscillazioni sul Gate in variazioni di corrente proporzionali a $g_m$.
+- **Interruttore di potenza (Interdizione e Triodo):** nello stadio di uscita o nei convertitori DC-DC, lo stesso principio fisico viene sfruttato agli estremi opposti, portando il dispositivo tra interdizione e triodo profondo a bassissima resistenza $R_{on}$.
+- **Velocità e miniaturizzazione ($f_T \propto 1/L^2$):** ridurre la lunghezza di canale $L$ abbatte contemporaneamente le capacità parassite di Gate e accorcia il cammino dei portatori, moltiplicando la banda operativa disponibile.
 
 <Divider />
 
@@ -28,4 +34,4 @@ In questa Parte affronterai un cambio di prospettiva fondamentale in due fasi: p
 2. **[6. Caratteristiche Statiche di Corrente](/dynamic-courses/elettronica/02-transistori-mos/06-caratteristiche-corrente/)** — Derivazione di $I_D$ in triodo e saturazione (*pinch-off*), resistenza d'uscita $r_o$ e dualità PMOS.
 3. **[7. Modello di Piccolo Segnale](/dynamic-courses/elettronica/02-transistori-mos/07-modello-piccolo-segnale/)** — Separazione DC/AC, formule equivalenti di $g_m$, modello a $\pi$ ibrido, modello a T e guadagno intrinseco $\mu_f$.
 4. **[8. Capacità Parassite del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/08-capacita-parassite/)** — Capacità di sovrapposizione, ripartizione nel canale, giunzioni di substrato e frequenza di transizione $f_T$.
-5. **[9. Polarizzazione DC del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/09-polarizzazione-dc/)** — Confronto tra rete a 3 resistori e rete a 4 resistori stabilizzata da retroazione su $R_S$.
+5. **[9. Polarizzazione DC del MOSFET](/dynamic-courses/elettronica/02-transistori-mos/09-polarizzazione-dc/)** — Confronto tra rete a 3 resistori, rete a 4 resistori stabilizzata da $R_S$ e polarizzazione Drain-Gate (*self-biasing*).

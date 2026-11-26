@@ -12,272 +12,261 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Introduzione
 
-Un singolo invertitore nega un bit, ma per costruire un processore servono porte **NAND**, **NOR**, porte complesse **AOI / OAI**, multiplexer a **Pass-Transistor** e **Transmission Gate**. Estendendo l'architettura del [Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/) con una rete di NMOS verso massa (**PDN**) e una rete duale di PMOS verso $V_{DD}$ (**PUN**), possiamo realizzare qualunque funzione logica mantenendo consumo statico quasi nullo, escursione completa tra $0\,\text{V}$ e $V_{DD}$ e la stessa velocità dell'invertitore di riferimento.
+Un singolo invertitore nega un bit, ma qualsiasi sistema digitale richiede porte **NAND**, **NOR**, funzioni composte **AOI / OAI** e interruttori di instradamento come i **Transmission Gate**. La logica combinatoria CMOS statica generalizza direttamente la struttura dell'[invertitore del Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/): sostituisce il singolo NMOS con una rete di NMOS verso massa (**PDN**) e il singolo PMOS con una rete duale di PMOS verso $V_{DD}$ (**PUN**). Poiché le due reti sono complementari per costruzione, a regime non esistono mai percorsi diretti tra alimentazione e massa e l'uscita oscilla sempre tra $0\,\text{V}$ e $V_{DD}$. Vediamo come sintetizzare la topologia di porte qualsiasi, come dimensionarle rispetto all'invertitore di riferimento e perché gli interruttori bidirezionali richiedano l'accoppiamento parallelo di un NMOS e un PMOS.
 
-<Divider label="1 · Reti Duali PDN/PUN, Porte NAND/NOR e Dimensionamento" />
+<Divider label="1 · Reti Duali PDN/PUN, Porte NAND e NOR" />
 
-### Esempio — Sintesi, Dimensionamento di Caso Peggiore e Sforzo Logico di NAND2 e NOR2
+### Serie, Parallelo e Dualità Intuitiva
 
-Progettiamo una porta **NAND a due ingressi** ($Y = \overline{A \cdot B}$) e una **NOR a due ingressi** ($Y = \overline{A + B}$, [la figura](#fig-nand-nor-schematics)) in modo che abbiano, nel **caso peggiore**, gli stessi ritardi dell'invertitore simmetrico del [Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/), dove $(W/L)_n = 2$ e $(W/L)_p = 5$ ($\mu_n / \mu_p = 2.5$):
+Per passare dall'invertitore a porte con più ingressi basta pensare a come combinare più interruttori idraulici tra il nodo di uscita, il serbatoio superiore ($V_{DD}$) e lo scarico inferiore ($0\,\text{V}$). Se vogliamo svuotare l'uscita soltanto quando **entrambi** i comandi $A$ e $B$ sono attivi (una condizione AND nello scarico), dobbiamo mettere due valvole **in serie** lungo lo stesso tubo; perché la rete di riempimento superiore faccia esattamente l'opposto — cioè riempia l'uscita non appena **almeno uno** dei due comandi si spegne — le sue due valvole vanno disposte **in parallelo**.
+
+Mettere più interruttori in serie lungo un unico tubo aumenta però la resistenza incontrata dal flusso: per mantenere la stessa portata di una singola valvola di riferimento, ciascuna delle valvole messe in serie deve essere costruita proporzionalmente più larga. Al contrario, le valvole in parallelo lavorano in percorsi indipendenti e possono restare della dimensione base.
+
+### Teoria — Dualità di De Morgan, Dimensionamento e Sforzo Logico
+
+#### Regole di Dualità tra PDN e PUN
+
+Ogni porta logica CMOS statica è costituita da due reti complementari collegate al morsetto di uscita $Y$:
+
+* **Pull-Down Network (PDN):** è composta esclusivamente da transistori NMOS connessi tra $Y$ e massa. Poiché gli NMOS trasferiscono senza perdite lo `'0'`, la PDN ha il compito di tirare l'uscita a massa quando la funzione booleana diretta vale `'1'`.
+* **Pull-Up Network (PUN):** è composta esclusivamente da transistori PMOS connessi tra $V_{DD}$ e $Y$. Poiché i PMOS trasferiscono senza perdite l'`'1'`, la PUN porta l'uscita a $V_{DD}$ quando la funzione diretta vale `'0'`.
+
+Poiché la PDN attiva l'uscita bassa ($Y = 0$) quando gli ingressi verificano la condizione $f = 1$, ogni singolo stadio CMOS realizza naturalmente **funzioni invertenti** del tipo $Y = \overline{f}$ (come NAND, NOR, AOI e OAI); per ottenere una AND o una OR non invertenti si aggiunge semplicemente un invertitore in uscita.
+
+La sintesi topologica delle due reti discende direttamente dall'algebra booleana e dai teoremi di De Morgan ($\overline{A \cdot B} = \overline{A} + \overline{B}$ e $\overline{A + B} = \overline{A} \cdot \overline{B}$):
+
+1. **Nella PDN (NMOS):** l'operazione prodotto (**AND**, $A \cdot B$) si realizza mettendo i transistori **in serie** (entrambi devono condurre per chiudere il ramo verso massa); l'operazione somma (**OR**, $A + B$) si realizza mettendoli **in parallelo** (basta che conduca uno solo).
+2. **Nella PUN (PMOS):** poiché i PMOS conducono quando il loro gate è a `'0'` ($\overline{A}, \overline{B}$), per il principio di dualità di De Morgan la PUN è esattamente il **grafo duale della PDN**: ogni ramo **serie** della PDN diventa un ramo **parallelo** nella PUN, e ogni **parallelo** della PDN diventa una **serie** nella PUN.
+
+Questa costruzione duale garantisce che per qualunque combinazione di ingressi esattamente una delle due reti sia chiusa e l'altra aperta: l'uscita non resta mai flottante ad alta impedenza e non si crea mai un cortocircuito statico tra $V_{DD}$ e massa.
+
+#### Dimensionamento di Caso Peggiore: NAND2 vs. NOR2
+
+Nel progettare una porta logica, vogliamo che la sua capacità di guida nel **caso peggiore** (la combinazione di ingressi più sfavorevole per la carica o per la scarica) uguagli almeno quella dell'invertitore simmetrico di riferimento del [Capitolo 19](/dynamic-courses/elettronica/05-logica-cmos/19-invertitore-cmos/), caratterizzato dalle larghezze base $W_{n,\text{inv}}$ e $W_{p,\text{inv}} \approx 2.5\,W_{n,\text{inv}}$ (con uguale lunghezza $L$).
+
+La regola di dimensionamento segue il modello resistivo del canale:
+* **Ramo con $k$ transistori identici in serie:** le resistenze si sommano dando $k\,R_{\text{singolo}}$. Poiché la resistenza del MOSFET è inversamente proporzionale alla larghezza $W$, per riportare la resistenza equivalente del ramo al valore dell'invertitore di riferimento occorre moltiplicare per $k$ la larghezza di **ciascun** transistore della serie ($W_{\text{serie},k} = k\,W_{\text{rif}}$).
+* **Rami in parallelo:** nel caso peggiore conduce un solo ramo per volta, quindi ogni transistore mantiene la dimensione unitaria di riferimento ($1 \cdot W_{\text{rif}}$).
+
+Applichiamo questo principio alle due porte fondamentali ([la figura](#fig-nand-nor-schematics)):
 
 <figure id="fig-nand-nor-schematics" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-nand-nor-schematics.svg" alt="Schemi circuitali delle porte fondamentali complementari CMOS: (a) NAND a due ingressi e (b) NOR a due ingressi." />
   <figcaption>Schemi circuitali delle porte fondamentali complementari CMOS: (a) NAND a due ingressi e (b) NOR a due ingressi.</figcaption>
 </figure>
 
-1. **Porta NAND2 ($Y = \overline{A \cdot B}$, [la figura](#fig-nand-nor-schematics)a):**
-   - **Topologia:** l'uscita va a `0` solo quando $A = 1$ e $B = 1$, quindi nella **PDN** mettiamo $2$ NMOS **in serie** ($M_{nA}, M_{nB}$). Per dualità, nella **PUN** mettiamo $2$ PMOS **in parallelo** ($M_{pA}, M_{pB}$).
-   - **Dimensionamento:** nella scarica ($A=B=1$) la corrente attraversa entrambi gli NMOS in serie; per non raddoppiare la resistenza rispetto all'invertitore di riferimento, dobbiamo **raddoppiare** il rapporto di ciascun NMOS:
+* **Porta NAND a 2 ingressi ($Y = \overline{A \cdot B}$, [la figura](#fig-nand-nor-schematics)a):**
+  * *PDN (NMOS):* $M_{nA}$ ed $M_{nB}$ sono **in serie**, quindi ciascuno va raddoppiato ($W_n = 2\,W_{n,\text{inv}}$).
+  * *PUN (PMOS):* $M_{pA}$ ed $M_{pB}$ sono **in parallelo**, quindi restano alla dimensione unitaria ($W_p = W_{p,\text{inv}}$).
+* **Porta NOR a 2 ingressi ($Y = \overline{A + B}$, [la figura](#fig-nand-nor-schematics)b):**
+  * *PDN (NMOS):* $M_{nA}$ ed $M_{nB}$ sono **in parallelo**, quindi restano unitari ($W_n = W_{n,\text{inv}}$).
+  * *PUN (PMOS):* $M_{pA}$ ed $M_{pB}$ sono **in serie**, quindi entrambi vanno raddoppiati ($W_p = 2\,W_{p,\text{inv}}$).
 
-$$
-\left(\frac{W}{L}\right)_{n,\text{NAND2}} = 2 \times 2 = 4
-$$
+#### Sforzo Logico e Limite di Fan-In
 
-     In carica invece, nel caso peggiore conduce un solo PMOS alla volta, quindi i due PMOS in parallelo restano alla dimensione base: $(W/L)_{p,\text{NAND2}} = 5$.
-   - **Area e sforzo logico:** la somma dei rapporti vale $2(4) + 2(5) = 18$. Ogni ingresso pilota un NMOS da $4$ e un PMOS da $5$ (contro $2 + 5 = 7$ nell'invertitore): lo sforzo logico è quindi $g_{\text{NAND2}} = (4 + 5)/7 = 9/7 \approx 1.29$.
-
-2. **Porta NOR2 ($Y = \overline{A + B}$, [la figura](#fig-nand-nor-schematics)b):**
-   - **Topologia e dimensionamento:** qui i $2$ NMOS nella PDN sono **in parallelo** (mantengono $(W/L)_{n,\text{NOR2}} = 2$), mentre i $2$ PMOS nella PUN sono **in serie** e vanno entrambi raddoppiati:
-
-$$
-\left(\frac{W}{L}\right)_{p,\text{NOR2}} = 2 \times 5 = 10
-$$
-
-   - **Area e sforzo logico:** la somma dei rapporti sale a $2(2) + 2(10) = 24$, e lo sforzo logico per ingresso raggiunge $g_{\text{NOR2}} = (2 + 10)/7 = 12/7 \approx 1.71$. La NOR2 occupa più area e carica di più lo stadio precedente rispetto alla NAND2.
-
-<StepCheck client:load lang="it" prompt="Nella porta NAND2 dell'esempio con $(W/L)_n = 2$ e $(W/L)_p = 5$ di riferimento, qual è la somma totale dei rapporti $(W/L)$ di tutti e $4$ i transistori?" expected={18} tolerance={0.1} explanation="Due NMOS da $(W/L)=4$ ciascuno ($8$) più due PMOS da $(W/L)=5$ ciascuno ($10$) danno un totale di $18$ (pari a $9\,(W/L)_n$)." />
-
-### Teoria — Dualità di De Morgan, Dimensionamento Serie/Parallelo e Sforzo Logico
-
-Ogni porta logica CMOS statica è formata da due reti complementari collegate all'uscita $Y$:
-
-- **Pull-Down Network (PDN):** solo transistori NMOS tra $Y$ e massa. Gli NMOS conducono bene lo `'0'`; la PDN si chiude quando la funzione diretta $f$ vale `'1'`, portando l'uscita a `0`.
-- **Pull-Up Network (PUN):** solo transistori PMOS tra $V_{DD}$ e $Y$. I PMOS conducono bene l'`'1'`; la PUN si chiude quando $f = 0$, portando l'uscita a `1`.
-
-Poiché la PDN tira l'uscita a zero quando $f = 1$, ogni singolo stadio CMOS realizza naturalmente **funzioni invertenti** ($Y = \overline{f}$): per ottenere AND o OR si aggiunge semplicemente un invertitore in uscita. A regime, una sola delle due reti è chiusa: così l'uscita non resta mai flottante e non c'è mai un corto diretto tra $V_{DD}$ e massa.
-
-Come si costruiscono le due reti a partire dall'espressione booleana?
-- **Nella PDN (NMOS):** la connessione **in serie** realizza l'**AND** ($A \cdot B$), mentre la connessione **in parallelo** realizza l'**OR** ($A + B$).
-- **Nella PUN (PMOS):** per i teoremi di De Morgan ($\overline{A \cdot B} = \overline{A} + \overline{B}$ e $\overline{A + B} = \overline{A} \cdot \overline{B}$), la PUN è semplicemente la **rete duale** della PDN: ogni serie di NMOS diventa un parallelo di PMOS, e ogni parallelo di NMOS diventa una serie di PMOS.
-
-Per mantenere nel caso peggiore gli stessi ritardi dell'invertitore di riferimento ($W_n$ per l'NMOS, $W_p \approx 2.5\,W_n$ per il PMOS), basta applicare una regola pratica molto semplice:
-- **Ramo con $k$ transistori in serie:** la resistenza totale sarebbe $k$ volte maggiore, quindi moltiplichiamo per $k$ la larghezza di ciascun transistore della serie ($W_{\text{serie},k} = k\,W_{\text{rif}}$).
-- **Rami in parallelo:** nel caso peggiore conduce un solo ramo, quindi ogni transistore mantiene la larghezza base ($1 \cdot W_{\text{rif}}$).
-
-Il peso capacitivo che ogni ingresso della porta scarica sullo stadio precedente si misura con lo **sforzo logico** (*Logical Effort*, $g$), definito come il rapporto tra la capacità d'ingresso della porta e quella dell'invertitore di riferimento:
+Allargare i transistori in serie preserva la resistenza d'uscita della porta, ma aumenta la capacità di gate presentata agli stadi precedenti. Per quantificare questo carico d'ingresso rispetto all'invertitore di riferimento si definisce lo **sforzo logico** (*Logical Effort*, $g$):
 
 $$
 g = \frac{C_{in,\text{porta}}}{C_{in,\text{inv}}} = \frac{W_{n,\text{in}} + W_{p,\text{in}}}{W_{n,\text{inv}} + W_{p,\text{inv}}}
 $$
 
-Infine, in pratica non si mettono mai più di $3\div 4$ transistori in serie: le capacità interne dei nodi intermedi ([Capitolo 8](/dynamic-courses/elettronica/02-transistori-mos/08-capacita-parassite/)) e l'effetto body ([Capitolo 5](/dynamic-courses/elettronica/02-transistori-mos/05-struttura-fisica-mos/)) rallenterebbero troppo la commutazione, quindi le porte con molti ingressi si spezzano su più livelli.
+Confrontiamo ad esempio una NAND2 e una NOR2 rispetto all'invertitore simmetrico $(W/L)_n = 2$, $(W/L)_p = 5$ (somma d'ingresso $2 + 5 = 7$):
+* nella **NAND2** ogni ingresso pilota $(W/L)_n = 4$ e $(W/L)_p = 5$, dando somma totale dei quattro transistori pari a $2(4) + 2(5) = 18$ e sforzo logico $g_{\text{NAND2}} = \frac{4 + 5}{7} = \frac{9}{7} \approx 1.29$;
+* nella **NOR2** ogni ingresso pilota $(W/L)_n = 2$ e $(W/L)_p = 10$, facendo salire la somma totale a $2(2) + 2(10) = 24$ e lo sforzo logico a $g_{\text{NOR2}} = \frac{2 + 10}{7} = \frac{12}{7} \approx 1.71$.
+
+Inoltre, nella progettazione reale non si impilano mai più di $3\text{--}4$ transistori in serie nello stesso ramo: oltre quel limite, le capacità parassite dei nodi interni tra i transistori ([Capitolo 8](/dynamic-courses/elettronica/02-transistori-mos/08-capacita-parassite/)) e l'effetto body sui dispositivi superiori della pila ([Capitolo 5](/dynamic-courses/elettronica/02-transistori-mos/05-struttura-fisica-mos/)) degradano velocità e soglia, per cui le porte ad alto *fan-in* si scompongono su più stadi.
 
 <Callout type="tip" title="Preferenza per le Porte NAND">
 
-A parità di ingressi, una NAND è sempre più piccola e veloce di una NOR: nella NOR i PMOS (già $2.5\text{--}3$ volte più larghi degli NMOS) vanno messi in serie e moltiplicati ulteriormente, gonfiando area e capacità d'ingresso. Per questo nei circuiti reali si preferisce convertire la logica in porte NAND.
+A parità di numero di ingressi, una porta NAND è sempre più compatta e veloce di una NOR: nella NOR i transistori messi in serie sono i PMOS, che partono già $2.5\text{--}3$ volte più larghi degli NMOS e vengono ulteriormente moltiplicati per il numero di ingressi, gonfiando area di silicio e capacità d'ingresso.
 
 </Callout>
 
+<StepCheck client:load lang="it" mode="choice" prompt="Perché, a parità di ingressi e di ritardi di caso peggiore, una porta NOR CMOS richiede più area di silicio e presenta uno sforzo logico $g$ maggiore rispetto a una NAND?" options={["Perché nella NOR i PMOS (già più larghi per la bassa mobilità delle lacune) sono in serie e vanno moltiplicati per $k$", "Perché nella NOR gli NMOS sono in serie e quindi raddoppiano di larghezza", "Perché nella NOR manca la rete complementare PMOS"]} correctIndex={0} explanation="Nella NOR la PUN è composta da $k$ PMOS in serie: poiché il PMOS di riferimento è già circa $2.5\times$ più largo dell'NMOS, moltiplicarlo ulteriormente per $k$ aumenta molto di più area e capacità di gate rispetto a scalare gli NMOS nella NAND." />
+
 <Divider label="2 · Porte Complesse AOI e OAI" />
 
-### Esempio — Sintesi Topologica e Dimensionamento Asimmetrico della Porta AOI21
+### Un Solo Stadio per Espressioni Composte
 
-Progettiamo in un unico stadio la porta complessa **AOI21** (*AND-OR-Invert*) che calcola $Y = \overline{(A \cdot B) + C}$ ([la figura](#fig-aoi21-schematic)), prendendo come riferimento l'invertitore simmetrico con $(W/L)_n = 2$ e $(W/L)_p = 5$:
+Spesso un circuito combinatorio deve calcolare espressioni a due livelli logici, come $\overline{(A \cdot B) + C}$. Costruirla collegando in cascata una NAND2, un invertitore e una NOR2 richiede tre stadi distinti, dieci transistori e la carica di due nodi intermedi. Sfruttando la stessa regola serie/parallelo della PDN e la sua duale nella PUN, possiamo invece fondere l'intera espressione booleana in un **unico stadio CMOS** più piccolo, veloce ed efficiente.
+
+### Teoria — Sintesi e Cammini Critici nelle Celle AOI / OAI
+
+#### Costruzione Topologica da Espressioni a Due Livelli
+
+Le porte **AOI** (*AND-OR-Invert*) e **OAI** (*OR-AND-Invert*) implementano in un solo blocco funzioni booleane invertenti a due livelli. La procedura sistematica vale per qualsiasi espressione:
+
+1. **Sintesi della PDN (NMOS):** si legge la funzione sotto la barra di negazione dall'interno verso l'esterno, traducendo ogni prodotto ($\cdot$) in una **serie** e ogni somma ($+$) in un **parallelo** di NMOS.
+2. **Sintesi della PUN (PMOS):** si costruisce il duale della PDN, trasformando ogni serie in un parallelo di PMOS e ogni parallelo in una serie di PMOS.
+3. **Dimensionamento per cammino critico:** si isola ogni percorso di conduzione verso massa (nella PDN) o verso $V_{DD}$ (nella PUN). Se nel caso peggiore un transistore appartiene a un cammino composto da $k$ dispositivi in serie, la sua larghezza va moltiplicata per $k$ (scegliendo il valore maggiore se appartiene a più percorsi di lunghezza diversa).
+
+#### Confronto tra Cella AOI21 e Cella OAI21
+
+Applichiamo il metodo in modo rigoroso alle due celle classiche a tre ingressi, evidenziando come il dimensionamento diventi asimmetrico tra i diversi ingressi:
+
+* **Cella AOI21 ($Y = \overline{(A \cdot B) + C}$, [la figura](#fig-aoi21-schematic)):**
+  * *PDN (NMOS):* il prodotto $(A \cdot B)$ dispone $M_{nA}$ ed $M_{nB}$ **in serie** su un ramo, mentre $+ C$ pone $M_{nC}$ **in parallelo** su un secondo ramo indipendente. Sul primo ramo la scarica attraversa $2$ NMOS in serie, quindi $W_{nA} = W_{nB} = 2\,W_{n,\text{inv}}$; sul secondo ramo $M_{nC}$ scarica da solo verso massa, quindi resta unitario ($W_{nC} = W_{n,\text{inv}}$).
+  * *PUN (PMOS duale):* il parallelo $(M_{pA} \parallel M_{pB})$ è connesso **in serie** con $M_{pC}$. Nel caso peggiore di carica (ad esempio $A=0, B=1, C=0$), la corrente attraversa uno solo dei due PMOS in parallelo insieme a $M_{pC}$, incontrando sempre **$2$ PMOS in serie**. Poiché tutti e tre i PMOS possono far parte di un percorso critico di lunghezza $2$, vanno tutti raddoppiati: $W_{pA} = W_{pB} = W_{pC} = 2\,W_{p,\text{inv}}$.
+  * *Verifica numerica:* rispetto all'invertitore $(W/L)_n = 2, (W/L)_p = 5$, la cella AOI21 usa solo $6$ transistori con $(W/L)_{nA,B} = 4$, $(W/L)_{nC} = 2$ e $(W/L)_{pA,B,C} = 10$: l'ingresso $C$ presenta sforzo logico $g_C = (2 + 10)/7 = 12/7$, minore rispetto agli ingressi $A$ e $B$ ($g_{A,B} = (4 + 10)/7 = 2$).
 
 <figure id="fig-aoi21-schematic" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-aoi21-schematic.svg" alt="Schema circuitale della porta logica complessa AOI21 (Y = overlineAcdot B + C)." />
   <figcaption>Schema circuitale della porta logica complessa AOI21 ($Y = \overline{A\cdot B + C}$).</figcaption>
 </figure>
 
-1. **PDN (NMOS) e dimensionamento asimmetrico:**
-   Leggendo $f = (A \cdot B) + C$, il prodotto $A \cdot B$ mette $M_{nA}$ e $M_{nB}$ **in serie**, mentre la somma $+ C$ mette questo ramo in **parallelo** con $M_{nC}$:
-   - Sul ramo sinistro ci sono $2$ NMOS in serie, quindi li raddoppiamo: $(W/L)_{nA} = (W/L)_{nB} = 2 \times 2 = 4$.
-   - Sul ramo destro $M_{nC}$ è da solo, quindi resta alla dimensione base: $(W/L)_{nC} = 2$.
-
-2. **PUN (PMOS) duale e cammino critico:**
-   Per dualità, la serie $(A \cdot B)$ diventa il parallelo $(M_{pA} \parallel M_{pB})$, collegato **in serie** con $M_{pC}$.
-   Nel caso peggiore di carica (es. $A=0, B=1, C=0$), conduce un solo PMOS del parallelo superiore insieme a $M_{pC}$, formando sempre un percorso da $2$ PMOS in serie. Poiché tutti e tre i PMOS fanno parte di un cammino serie di lunghezza $2$, vanno tutti raddoppiati:
-
-$$
-\left(\frac{W}{L}\right)_{pA} = \left(\frac{W}{L}\right)_{pB} = \left(\frac{W}{L}\right)_{pC} = 2 \times 5 = 10
-$$
-
-   L'intera cella AOI21 usa solo $6$ transistori (somma dei rapporti $4 + 4 + 2 + 10 + 10 + 10 = 40$) e introduce il ritardo di un solo stadio.
-
-<StepCheck client:load lang="it" prompt="Nella porta AOI21 dell'esempio ($(W/L)_{nA,B}=4$, $(W/L)_{nC}=2$, $(W/L)_{pA,B,C}=10$ rispetto all'invertitore $2+5=7$), quanto vale lo sforzo logico $g_C$ visto dall'ingresso $C$?" expected={1.714} tolerance={0.02} explanation="L'ingresso $C$ pilota $M_{nC}$ ($(W/L)=2$) e $M_{pC}$ ($(W/L)=10$), quindi $g_C = (2 + 10) / (2 + 5) = 12 / 7 \approx 1.714$." />
-
-### Teoria — Sintesi su Due Livelli Booleani e Cammini Critici in Celle AOI / OAI
-
-Le porte **AOI** (*AND-OR-Invert*) e **OAI** (*OR-AND-Invert*) permettono di calcolare espressioni a due livelli logici in un unico stadio CMOS. La procedura generale vale per qualsiasi funzione:
-
-1. **Costruire la PDN:** si legge la funzione sotto la barra di negazione dall'interno verso l'esterno, traducendo i prodotti ($\cdot$) in **serie** di NMOS e le somme ($+$) in **paralleli** di NMOS.
-2. **Costruire la PUN:** si trasforma la PDN nel suo duale, scambiando ogni serie con un parallelo di PMOS e viceversa.
-3. **Dimensionare ogni cammino critico:** per ogni transistore si cerca il percorso minimo verso $V_{DD}$ o massa a cui appartiene; se lungo il caso peggiore ci sono $k$ transistori in serie, la sua larghezza va moltiplicata per $k$.
-
-Nella **OAI21** ($Y = \overline{(A + B) \cdot C}$), ad esempio, accade l'esatto opposto della AOI21: nella PDN il parallelo $(M_{nA} \parallel M_{nB})$ è in serie con $M_{nC}$, quindi tutti e tre gli NMOS vanno raddoppiati ($2\,W_n$); nella PUN la serie $(M_{pA}, M_{pB})$ è in parallelo con $M_{pC}$, quindi solo $M_{pA}$ e $M_{pB}$ raddoppiano ($2\,W_p$) mentre $M_{pC}$ resta unitario ($1\,W_p$).
+* **Cella OAI21 ($Y = \overline{(A + B) \cdot C}$):**
+  * *PDN (NMOS):* la somma $(A + B)$ mette $M_{nA}$ ed $M_{nB}$ in parallelo, collegati **in serie** a $M_{nC}$. Poiché ogni percorso verso massa attraversa $M_{nC}$ e uno tra $M_{nA}, M_{nB}$ ($2$ NMOS in serie), tutti e tre gli NMOS vanno raddoppiati ($W_{nA} = W_{nB} = W_{nC} = 2\,W_{n,\text{inv}}$).
+  * *PUN (PMOS duale):* la serie $(M_{pA}, M_{pB})$ è **in parallelo** con il singolo $M_{pC}$. Di conseguenza, $M_{pC}$ può caricare l'uscita da solo e resta unitario ($W_{pC} = W_{p,\text{inv}}$), mentre i due PMOS in serie raddoppiano ($W_{pA} = W_{pB} = 2\,W_{p,\text{inv}}$).
 
 <Callout type="tip" title="Vantaggi delle Celle AOI e OAI">
 
-Realizzare $Y = \overline{A\cdot B + C}$ con porte separate richiederebbe una NAND2, un invertitore e una NOR2 in cascata ($10$ transistori e $3$ ritardi di stadio). La cella AOI21 integrata usa solo $6$ transistori e un unico stadio, risparmiando area, energia e tempo.
+Realizzare $Y = \overline{A \cdot B + C}$ con porte elementari richiederebbe una NAND2, un invertitore e una NOR2 ($10$ transistori e $3$ ritardi di propagazione). La singola cella AOI21 usa soltanto $6$ transistori e commuta in un unico stadio, risparmiando area, capacità parassite e tempo.
 
 </Callout>
 
+<StepCheck client:load lang="it" mode="choice" prompt="Confrontando una cella AOI21 ($Y = \overline{A\cdot B + C}$) e una cella OAI21 ($Y = \overline{(A+B)\cdot C}$), quale transistore può rimanere alla dimensione unitaria di riferimento $1\times$?" options={["Nella AOI21 resta unitario $M_{pC}$; nella OAI21 resta unitario $M_{nC}$", "Nella AOI21 resta unitario $M_{nC}$; nella OAI21 resta unitario $M_{pC}$", "In entrambe le celle tutti e $6$ i transistori devono essere raddoppiati ($2\\times$)"]} correctIndex={1} explanation="Nella AOI21 il ramo $M_{nC}$ nella PDN scarica da solo verso massa ($1\times W_n$); nella OAI21 il ramo $M_{pC}$ nella PUN carica da solo da $V_{DD}$ ($1\times W_p$)." />
+
 <Divider label="3 · Pass-Transistor e Transmission Gate CMOS" />
 
-### Esempio — Degrado di Soglia nel Pass-Transistor e Resistenza del Transmission Gate
+### Interruttori Bidirezionali e Perdita di Soglia
 
-Confrontiamo come passano un `'1'` ($2.5\,\text{V}$) e uno `'0'` ($0\,\text{V}$) attraverso un singolo *pass-transistor* NMOS, un PMOS e un **Transmission Gate** ([la figura](#fig-cmos-transmission-gate)) con $V_{DD} = 2.5\,\text{V}$ e soglie $V_{tn} = |V_{tp}| = 0.6\,\text{V}$:
+Oltre alle porte statiche che collegano l'uscita ai binari fissi $V_{DD}$ e massa, i circuiti digitali usano spesso interruttori bidirezionali in serie al percorso del segnale per costruire multiplexer compatti, porte XOR e memorie latch. In questi interruttori, però, nessuno dei due terminali di conduzione è ancorato stabilmente all'alimentazione: la tensione sul nodo di uscita sale o scende insieme al segnale stesso.
+
+Immaginiamo una valvola a molla tenuta aperta da una pressione di comando fissa: quando la pressione a valle si avvicina troppo a quella di comando, la forza differenziale che tiene aperta la valvola si esaurisce e la valvola si richiude prematuramente prima che il serbatoio si sia riempito (o svuotato) del tutto. Accoppiando in parallelo due valvole complementari — una che eccelle vicino allo zero e l'altra che eccelle vicino a $V_{DD}$ — l'interruttore rimane aperto sull'intera escursione di tensione.
+
+### Teoria — Limiti dei Pass-Transistor e Porta di Trasmissione
+
+#### Singolo Pass-Transistor NMOS (`'0'` Forte, `'1'` Debole)
+
+Consideriamo un singolo MOSFET NMOS utilizzato come interruttore in serie al segnale, con tensione di controllo sul gate pari a $V_G = V_{DD}$:
+
+* **Trasmissione di uno `'0'` ($V_{in} = 0\,\text{V}$):** la corrente esce dall'uscita verso il nodo d'ingresso a $0\,\text{V}$, che funge quindi da **source** dell'NMOS. Poiché $V_S = 0\,\text{V}$ rimane fisso, la tensione gate-source vale costantemente $V_{GS} = V_{DD} \gg V_{tn}$: il canale resta aperto fino a scaricare completamente l'uscita a $V_{OL,\text{NMOS}} = 0\,\text{V}$ (**`'0'` forte**).
+* **Trasmissione di un `'1'` ($V_{in} = V_{DD}$):** ora il nodo di uscita (che parte scarico) riceve corrente da $V_{in}$, quindi funge da **source** dell'NMOS. Man mano che $V_{out}$ sale, la tensione gate-source si riduce secondo $V_{GS} = V_{DD} - V_{out}$. Appena l'uscita raggiunge $V_{DD} - V_{tn}$, risulta $V_{GS} = V_{tn}$ e il transistore si **interdice**, arrestando la carica a:
+
+$$
+V_{OH,\text{NMOS}} = V_{DD} - V_{tn}
+$$
+
+Questo valore massimo è un **`'1'` debole** (ulteriormente peggiorato dall'effetto body perché $V_{SB} = V_{out} > 0$ fa aumentare $V_{tn}$). Oltre a ridurre i margini di rumore, se questo livello degradato pilota un invertitore CMOS a valle, il PMOS successivo vede $V_{SGp} = V_{DD} - (V_{DD} - V_{tn}) = V_{tn}$ e può non spegnersi completamente, provocando una continua **corrente statica di perdita**.
+
+#### Singolo Pass-Transistor PMOS (`'1'` Forte, `'0'` Debole)
+
+Un singolo PMOS con gate collegato a massa ($V_G = 0\,\text{V}$) presenta il comportamento esattamente duale:
+
+* **Trasmissione di un `'1'` ($V_{in} = V_{DD}$):** il nodo d'ingresso a $V_{DD}$ funge da source ($V_{SG} = V_{DD}$ costante), quindi l'uscita viene caricata integralmente fino a $V_{OH,\text{PMOS}} = V_{DD}$ (**`'1'` forte**).
+* **Trasmissione di uno `'0'` ($V_{in} = 0\,\text{V}$):** il nodo d'uscita funge da source e la tensione $V_{SG} = V_{out}$ cala durante la scarica. Quando l'uscita scende alla soglia $|V_{tp}|$, il PMOS si spegne lasciando un **`'0'` debole**:
+
+$$
+V_{OL,\text{PMOS}} = |V_{tp}|
+$$
+
+#### Transmission Gate CMOS Complementare
+
+Per recuperare l'intera escursione logica da $0\,\text{V}$ a $V_{DD}$ si costruisce il **Transmission Gate** (**TG**, [la figura](#fig-cmos-transmission-gate)), collegando **in parallelo** un NMOS comandato dal segnale di abilitazione $C$ e un PMOS comandato dal segnale negato $\overline{C}$:
+
+* **Stato aperto ($C = 0$, $\overline{C} = V_{DD}$):** entrambi i transistori sono interdetti e l'interruttore isola ingresso e uscita (alta impedenza).
+* **Stato chiuso ($C = V_{DD}$, $\overline{C} = 0$):** i due dispositivi si coprono a vicenda lungo l'intera escursione. Per tensioni di uscita basse ($0 \le V_{out} < |V_{tp}|$) conduce l'NMOS; nella regione intermedia conducono entrambi in parallelo; vicino all'alimentazione ($V_{DD} - V_{tn} < V_{out} \le V_{DD}$) l'NMOS si spegne ma il PMOS completa la carica fino a $V_{DD}$ pieni.
+
+La resistenza equivalente dell'interruttore chiuso è il parallelo delle resistenze istantanee dei due rami:
+
+$$
+R_{eq,\text{TG}}(V_{out}) = R_n(V_{out}) \parallel R_p(V_{out}) = \frac{R_n(V_{out})\,R_p(V_{out})}{R_n(V_{out}) + R_p(V_{out})}
+$$
+
+Poiché quando una delle due resistenze diverge vicino al proprio limite di soglia l'altra rimane bassa, $R_{eq,\text{TG}}$ resta piccola e pressoché uniforme su tutto l'intervallo $[0, V_{DD}]$. Ad esempio, con $V_{DD} = 2.5\,\text{V}$ e $V_{tn} = |V_{tp}| = 0.6\,\text{V}$, un singolo NMOS si ferma a $1.9\,\text{V}$, mentre il TG raggiunge tutti i $2.5\,\text{V}$ e a metà escursione (se $R_n = R_p = 2.0\,\text{k}\Omega$) dimezza la resistenza equivalente a $1.0\,\text{k}\Omega$.
 
 <figure id="fig-cmos-transmission-gate" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cmos-transmission-gate.svg" alt="Porta di trasmissione CMOS (*Transmission Gate*): (a) connessione in parallelo di un NMOS (comandato da C) e di un PMOS (comandato da overlineC); (b) simbolo circuitale compatto." />
   <figcaption>Porta di trasmissione CMOS (*Transmission Gate*): (a) connessione in parallelo di un NMOS (comandato da $C$) e di un PMOS (comandato da $\overline{C}$); (b) simbolo circuitale compatto.</figcaption>
 </figure>
 
-1. **Singolo Pass-Transistor NMOS ($V_G = 2.5\,\text{V}$):**
-   - **Trasmissione di `'0'` ($V_{in} = 0\,\text{V}$):** l'uscita si scarica completamente fino a $V_{OL,\text{NMOS}} = 0\,\text{V}$ (**`'0'` forte**).
-   - **Trasmissione di `'1'` ($V_{in} = 2.5\,\text{V}$):** mentre l'uscita $V_{out}$ sale, funge da source dell'NMOS, quindi $V_{GSn} = 2.5\,\text{V} - V_{out}$ diminuisce. Appena $V_{out}$ raggiunge $V_{DD} - V_{tn} = 2.5 - 0.6 = 1.9\,\text{V}$, l'NMOS si spegne e l'uscita si blocca a $1.9\,\text{V}$ (**`'1'` debole**). Se questo segnale pilota un invertitore a valle, il PMOS successivo non si spegne del tutto e consuma corrente statica.
-
-2. **Singolo Pass-Transistor PMOS ($V_G = 0\,\text{V}$):**
-   Comportamento opposto: carica l'uscita fino a $2.5\,\text{V}$ (**`'1'` forte**), ma in scarica si spegne quando $V_{out}$ scende a $|V_{tp}| = 0.6\,\text{V}$ (**`'0'` debole**).
-
-3. **Transmission Gate complementare ($C = 2.5\,\text{V}$, $\overline{C} = 0\,\text{V}$):**
-   Mettendo NMOS e PMOS in parallelo ([la figura](#fig-cmos-transmission-gate)a), l'NMOS porta bene lo `'0'` e il PMOS porta bene l'`'1'`, recuperando l'intera escursione $[0\,\text{V}, 2.5\,\text{V}]$. A metà escursione ($1.25\,\text{V}$), se entrambi i canali hanno resistenza $R_n = R_p = 2.0\,\text{k}\Omega$, la resistenza equivalente dell'interruttore scende a:
-
-$$
-R_{eq,\text{TG}} = R_n \parallel R_p = \frac{2.0\,\text{k}\Omega \times 2.0\,\text{k}\Omega}{2.0\,\text{k}\Omega + 2.0\,\text{k}\Omega} = 1.0\,\text{k}\Omega
-$$
-
-<StepCheck client:load lang="it" prompt="Un singolo pass-transistor NMOS con gate collegato a $V_{DD} = 2.5\,\text{V}$ e soglia $V_{tn} = 0.6\,\text{V}$ deve trasferire un livello logico alto $V_{in} = 2.5\,\text{V}$. Quale tensione massima raggiunge l'uscita (in $\text{V}$)?" expected={1.9} tolerance={0.03} unit="$\text{V}$" explanation="L'NMOS si spegne quando $V_{GS} = V_{DD} - V_{out} = V_{tn}$, arrestando l'uscita a $V_{OH} = V_{DD} - V_{tn} = 2.5 - 0.6 = 1.9\,\text{V}$." />
-
-### Teoria — Limiti Fisici dei Pass-Transistor e Porta di Trasmissione Complementare
-
-Oltre alle porte statiche, in elettronica digitale si usano interruttori bidirezionali per costruire multiplexer, XOR e latch. Il motivo per cui si accoppiano sempre un NMOS e un PMOS in parallelo sta nel limite di soglia del singolo transistore:
-
-1. **Singolo Pass-Transistor NMOS (`'0'` forte, `'1'` debole):**
-   Quando carica l'uscita verso $V_{DD}$ (con gate a $V_{DD}$), il nodo di uscita funge da source e la tensione $V_{GS} = V_{DD} - V_{out}$ cala man mano che l'uscita sale. Appena $V_{GS}$ scende a $V_{tn}$, il canale si chiude e la carica si ferma a:
-
-$$
-V_{OH,\text{NMOS}} = V_{DD} - V_{tn}
-$$
-
-   Questa perdita di soglia (accentuata dall'effetto body) riduce i margini di rumore e impedisce di spegnere bene il PMOS dello stadio successivo. Al contrario, nello scaricare a `'0'`, il source resta fisso a $0\,\text{V}$ e l'uscita arriva fino a $0\,\text{V}$ esatti.
-
-2. **Singolo Pass-Transistor PMOS (`'1'` forte, `'0'` debole):**
-   All'opposto, il PMOS (con gate a $0\,\text{V}$) trasmette senza perdite l'`'1'` fino a $V_{DD}$, ma in scarica si spegne appena l'uscita (che fa da source) scende alla soglia $|V_{tp}|$:
-
-$$
-V_{OL,\text{PMOS}} = |V_{tp}|
-$$
-
-3. **Transmission Gate CMOS (TG):**
-   Collegando **in parallelo** un NMOS comandato da $C$ e un PMOS comandato da $\overline{C}$ ([la figura](#fig-cmos-transmission-gate)), si uniscono i punti di forza di entrambi:
-   - Quando $C = 0$ ($\overline{C} = V_{DD}$), entrambi sono spenti e il TG è aperto (alta impedenza).
-   - Quando $C = V_{DD}$ ($\overline{C} = 0$), per tensioni basse conduce soprattutto l'NMOS, nella zona centrale conducono entrambi, e vicino a $V_{DD}$ subentra il PMOS. La resistenza equivalente dell'interruttore è il parallelo:
-
-$$
-R_{eq,\text{TG}}(V_{out}) = R_n(V_{out}) \parallel R_p(V_{out}) = \frac{R_n(V_{out})\,R_p(V_{out})}{R_n(V_{out}) + R_p(V_{out})}
-$$
-
-   che rimane bassa e quasi costante su tutta l'escursione $[0, V_{DD}]$.
+<StepCheck client:load lang="it" mode="choice" prompt="Qual è il principale inconveniente di pilotare direttamente l'ingresso di una porta CMOS statica con l'uscita a livello alto di un singolo pass-transistor NMOS?" options={["L'uscita del pass-transistor sale oltre $V_{DD}$ danneggiando l'ossido", "L'uscita si ferma a $V_{DD} - V_{tn}$, impedendo lo spegnimento completo del PMOS successivo e causando consumo statico", "Il pass-transistor NMOS non riesce a trasmettere lo `'0'` logico fino a $0\\,\\text{V}$"]} correctIndex={1} explanation="Un pass-transistor NMOS trasmette uno `'0'` forte ($0\,\text{V}$), ma degrada l'`'1'` a $V_{DD} - V_{tn}$: nello stadio CMOS successivo il PMOS riceve $V_{SGp} \approx V_{tn}$ e resta parzialmente in conduzione." />
 
 <Divider label="4 · Sintesi" />
 
 ### Tabella di Sintesi e Dimensionamento
 
-| Porta Logica | Topologia PDN (NMOS) | Topologia PUN (PMOS) | Larghezze Equivalenti | Somma Larghezze |
+| Porta Logica | Topologia PDN (NMOS) | Topologia PUN (PMOS) | Dimensionamento Caso Peggiore | Sforzo / Proprietà |
 | :--- | :--- | :--- | :--- | :--- |
-| **NAND2** | $2$ in serie | $2$ in parallelo | $W_{n} \to 2 W_n$, $W_p \to W_p$ | $9 W_n$ ($g = 9/7$) |
-| **NOR2** | $2$ in parallelo | $2$ in serie | $W_{n} \to W_n$, $W_p \to 2 W_p$ | $12 W_n$ ($g = 12/7$) |
-| **AOI21** | $(A\cdot B) + C$ | $(A + B) \cdot C$ | $W_{nA,B}=2W_n, W_{nC}=W_n$; $W_{pA,B,C}=2W_p$ | $20 W_n$ |
-| **TG CMOS** | $1$ NMOS ($C$) | $1$ PMOS ($\overline{C}$) | Parallelo complementare $R_n \parallel R_p$ | Escursione $0\div V_{DD}$ |
+| **NAND2** | $2$ in serie | $2$ in parallelo | $W_n \to 2\,W_{n,\text{inv}}$, $W_p \to W_{p,\text{inv}}$ | $g = 9/7$ (con $W_p = 2.5\,W_n$) |
+| **NOR2** | $2$ in parallelo | $2$ in serie | $W_n \to W_{n,\text{inv}}$, $W_p \to 2\,W_{p,\text{inv}}$ | $g = 12/7$ (area e $C_{in}$ maggiori) |
+| **AOI21** | $(A \cdot B) + C$ | $(A + B) \cdot C$ | $W_{nA,B}=2\,W_n,\,W_{nC}=W_n$; $W_{pA,B,C}=2\,W_p$ | $6$ transistori, $1$ ritardo |
+| **OAI21** | $(A + B) \cdot C$ | $(A \cdot B) + C$ | $W_{nA,B,C}=2\,W_n$; $W_{pA,B}=2\,W_p,\,W_{pC}=W_p$ | $6$ transistori, $1$ ritardo |
+| **TG CMOS** | $1$ NMOS ($C$) | $1$ PMOS ($\overline{C}$) | Parallelo complementare $R_n \parallel R_p$ | Escursione piena $[0, V_{DD}]$ |
 
 ### Procedura di Progetto Logico
 
-1. **Ricavare la PDN:** partire dalla funzione negata $Y = \overline{f}$, traducendo **serie = AND** e **parallelo = OR** con gli NMOS.
-2. **Costruire la PUN duale:** trasformare ogni serie della PDN in un parallelo di PMOS e ogni parallelo della PDN in una serie di PMOS.
-3. **Dimensionare sul caso peggiore:** moltiplicare per $k$ la larghezza dei transistori che si trovano in serie lungo un cammino critico di lunghezza $k$; lasciare a $1\times$ i rami che conducono da soli.
-
-### Dimostrazioni Chiave
-
-- **Dualità di De Morgan tra PDN e PUN:** negando prodotti e somme ($\overline{A\cdot B} = \overline{A}+\overline{B}$), ogni serie diventa un parallelo e viceversa, evitando sia stati flottanti sia cortocircuiti statici.
-- **Dimensionamento di caso peggiore:** $k$ transistori uguali in serie hanno resistenza $k R_{\text{singolo}}$; per riportare la resistenza a $R_{\text{rif}}$ occorre moltiplicarne la larghezza $W$ per $k$.
-- **Perdita di soglia nei pass-transistor:** l'NMOS si ferma a $V_{OH} = V_{DD} - V_{tn}$; il PMOS si ferma a $V_{OL} = |V_{tp}|$.
+1. **Costruire la PDN:** riscrivere la funzione nella forma invertente $Y = \overline{f}$ e tradurre i prodotti ($\cdot$) in **serie** e le somme ($+$) in **paralleli** di NMOS.
+2. **Costruire la PUN duale:** trasformare ogni serie della PDN in un parallelo di PMOS e ogni parallelo in una serie di PMOS.
+3. **Dimensionare sui cammini critici:** per ogni transistore individuare il percorso di conduzione con il maggior numero $k$ di transistori in serie e moltiplicarne la larghezza base ($W_{n,\text{inv}}$ o $W_{p,\text{inv}}$) per $k$.
 
 <Callout type="warning" title="Errori Comuni">
 
-In una porta NOR a $k$ ingressi, i $k$ PMOS (già $2.5\text{--}3\times$ più larghi degli NMOS) sono **in serie** e vanno moltiplicati ulteriormente per $k$: area e sforzo logico crescono molto più in fretta che nella NAND. Inoltre, un singolo *pass-transistor* non dà mai un'escursione completa: per evitare perdite di soglia e consumi statici nello stadio successivo serve il *Transmission Gate* completo.
+In una porta NOR a $k$ ingressi sono i PMOS (già $2.5\text{--}3$ volte più larghi degli NMOS) a finire **in serie** e a essere moltiplicati per $k$: area e sforzo logico crescono molto più rapidamente che in una NAND. Inoltre, un singolo *pass-transistor* non fornisce mai un'escursione *rail-to-rail*: per evitare perdite di soglia ($V_{DD} - V_{tn}$ sull'NMOS, $|V_{tp}|$ sul PMOS) e dissipazione statica nello stadio a valle occorre un *Transmission Gate* completo.
 
 </Callout>
 
 <Divider label="5 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-20-1" title="Esercizio 20.1 — Dimensionamento NAND3 e NOR3" level="Base" hint="Moltiplica per $3$ la larghezza dei soli transistori in serie lungo il cammino critico.">
+<Exercise client:load lang="it" id="ex-20-1" title="Esercizio 20.1 — Dualità PDN/PUN e Vantaggio delle Porte NAND" level="Base" hint="Ricorda che la PUN è il duale della PDN per De Morgan e confronta quale tipo di transistore viene moltiplicato nelle serie di NAND e NOR.">
 
-Dato un invertitore CMOS simmetrico di riferimento con $(W/L)_n = 2$ e $(W/L)_p = 5$, dimensionare per uguali ritardi di caso peggiore una porta **NAND3** e una porta **NOR3**, calcolando anche lo sforzo logico $g$ di ciascun ingresso.
+Nel progetto di librerie *standard cell* si preferisce sintetizzare la logica combinatoria usando porte NAND anziché porte NOR.
 
-<StepCheck client:load lang="it" prompt="Qual è il rapporto $(W/L)$ di ciascun NMOS nella porta NAND3?" expected={6} tolerance={0.05} explanation="I $3$ NMOS sono in serie nella PDN della NAND3: $(W/L)_{n,\text{NAND3}} = 3 \cdot 2 = 6$." />
-
-<StepCheck client:load lang="it" prompt="Qual è il rapporto $(W/L)$ di ciascun PMOS nella porta NOR3?" expected={15} tolerance={0.05} explanation="I $3$ PMOS sono in serie nella PUN della NOR3: $(W/L)_{p,\text{NOR3}} = 3 \cdot 5 = 15$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Qual è il motivo fisico-circuitale per cui una porta NAND3 è più compatta e veloce di una porta NOR3 dimensionata per gli stessi ritardi di caso peggiore?" options={["Nella NAND3 i $3$ NMOS in serie si triplicano partendo da $W_n$ piccolo, mentre nella NOR3 i $3$ PMOS in serie si triplicano partendo da $W_p \\approx 2.5 W_n$", "Nella NAND3 i PMOS sono in serie ma non vanno dimensionati", "La NOR3 richiede un invertitore aggiuntivo in uscita per funzionare"]} correctIndex={0} explanation="Poiché $W_{p,\text{inv}} \approx 2.5\,W_{n,\text{inv}}$, triplicare i $3$ PMOS in serie nella NOR3 fa crescere larghezze, area e capacità d'ingresso molto più che triplicare i $3$ NMOS in serie nella NAND3." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Porta NAND3 ($Y = \overline{A \cdot B \cdot C}$):**
-   - I $3$ NMOS della PDN sono in serie: nel caso peggiore conducono tutti insieme, quindi ciascuno va triplicato: $(W/L)_{n,\text{NAND3}} = 3 \times 2 = 6$.
-   - I $3$ PMOS della PUN sono in parallelo: nel caso peggiore ne conduce uno solo, quindi restano a $(W/L)_{p,\text{NAND3}} = 5$.
-   - Lo sforzo logico per ingresso vale $g_{\text{NAND3}} = \frac{6 + 5}{2 + 5} = \frac{11}{7} \approx 1.57$.
-2. **Porta NOR3 ($Y = \overline{A + B + C}$):**
-   - I $3$ NMOS della PDN sono in parallelo: $(W/L)_{n,\text{NOR3}} = 2$.
-   - I $3$ PMOS della PUN sono in serie: vanno triplicati a $(W/L)_{p,\text{NOR3}} = 3 \times 5 = 15$.
-   - Lo sforzo logico sale a $g_{\text{NOR3}} = \frac{2 + 15}{2 + 5} = \frac{17}{7} \approx 2.43$.
+Ogni porta CMOS statica realizza $Y = \overline{f}$ abbinando una PDN di NMOS (serie = AND, parallelo = OR) e una PUN duale di PMOS. Per mantenere nel caso peggiore la stessa resistenza equivalente dell'invertitore di riferimento, ogni transistore inserito in una catena serie di lunghezza $k$ deve avere larghezza moltiplicata per $k$.
+
+Confrontando **NAND3** e **NOR3**:
+* nella **NAND3** sono in serie i $3$ NMOS ($3\,W_n$ ciascuno), mentre i $3$ PMOS sono in parallelo ($1\,W_p$);
+* nella **NOR3** accade l'opposto: sono in serie i $3$ PMOS ($3\,W_p$ ciascuno).
+
+Poiché nel silicio le lacune sono circa $2.5$ volte meno mobili degli elettroni, $W_p$ di partenza è già $2.5\,W_n$: moltiplicare per $3$ i PMOS nella NOR3 genera transistori enormi ($7.5\,W_n$ ciascuno), aumentando drasticamente l'area occupata, le capacità parassite di drain e lo sforzo logico $g$ scaricato sullo stadio precedente. Per questo le porte NAND sono molto più efficienti delle NOR.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-20-2" title="Esercizio 20.2 — Sintesi e Dimensionamento OAI21" level="Intermedio" hint="Per $Y = \overline{(A+B)\cdot C}$, la PDN pone il parallelo $(A,B)$ in serie a $C$; la PUN è duale.">
+<Exercise client:load lang="it" id="ex-20-2" title="Esercizio 20.2 — Cammini Critici in Celle AOI21 e OAI21" level="Intermedio" hint="Analizza i singoli percorsi verso massa e verso $V_{DD}$: un ramo in parallelo ad altri può condurre da solo, mentre un transistore in serie a un parallelo appartiene sempre a un cammino di lunghezza $2$.">
 
-Progettare la porta complessa CMOS **OAI21** ($Y = \overline{(A + B) \cdot C}$) utilizzando l'invertitore di riferimento $(W/L)_n = 2$ e $(W/L)_p = 5$.
+Considera le due celle complesse complementari **AOI21** ($Y = \overline{(A\cdot B) + C}$) e **OAI21** ($Y = \overline{(A + B) \cdot C}$), dimensionate per uguagliare nel caso peggiore i ritardi dell'invertitore di riferimento ($W_n, W_p$).
 
-<StepCheck client:load lang="it" prompt="Qual è il rapporto $(W/L)$ dei transistori NMOS $M_{nA}$, $M_{nB}$ ed $M_{nC}$ (tutti uguali nel caso peggiore)?" expected={4} tolerance={0.05} explanation="Ogni cammino di scarica attraversa $M_{nC}$ in serie con uno tra $M_{nA}$ o $M_{nB}$ ($2$ NMOS in serie): $(W/L)_n = 2 \cdot 2 = 4$." />
-
-<StepCheck client:load lang="it" prompt="Qual è il rapporto $(W/L)$ del PMOS $M_{pC}$ nella rete di pull-up?" expected={5} tolerance={0.05} explanation="Nella PUN duale, $M_{pC}$ è in parallelo al ramo serie $(M_{pA}, M_{pB})$: conduce da solo nel caso peggiore, quindi $(W/L)_{pC} = 5$ (mentre $M_{pA}, M_{pB}$ in serie hanno $(W/L)=10$)." />
+<StepCheck client:load lang="it" mode="choice" prompt="Nella porta AOI21, perché anche i due PMOS in parallelo ($M_{pA}$ ed $M_{pB}$) devono avere larghezza raddoppiata ($2\,W_p$) nonostante siano in parallelo tra loro?" options={["Perché nella PUN della AOI21 il parallelo $(M_{pA} \\parallel M_{pB})$ è in serie con $M_{pC}$, quindi nel caso peggiore conduce uno solo tra $M_{pA}$ e $M_{pB}$ insieme a $M_{pC}$", "Perché nella AOI21 tutti i PMOS devono sempre avere la stessa larghezza degli NMOS", "Perché i due PMOS in parallelo devono scaricare l'uscita verso massa"]} correctIndex={0} explanation="Nel caso peggiore di carica (es. $A=0, B=1, C=0$) è acceso $M_{pA}$ in serie a $M_{pC}$: il cammino di conduzione verso $V_{DD}$ attraversa sempre $2$ PMOS in serie, quindi tutti e tre i PMOS vanno raddoppiati." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **PDN (NMOS):** $(A + B)$ mette $M_{nA}$ e $M_{nB}$ in parallelo, il tutto in serie con $M_{nC}$. Ogni percorso di scarica attraversa $2$ NMOS in serie, quindi tutti e tre raddoppiano:
+La regola di dimensionamento non guarda solo se due transistori sono localmente in parallelo, ma conta quanti dispositivi si trovano **in serie lungo il cammino completo** tra l'uscita e il riferimento ($V_{DD}$ o massa) nel caso peggiore:
 
-   $$
-   \left(\frac{W}{L}\right)_{nA} = \left(\frac{W}{L}\right)_{nB} = \left(\frac{W}{L}\right)_{nC} = 2 \times 2 = 4
-   $$
-
-2. **PUN (PMOS duale):** $M_{pA}$ e $M_{pB}$ sono in serie tra loro, in parallelo al singolo $M_{pC}$. Quindi $M_{pC}$ conduce da solo e resta a $(W/L)_{pC} = 5$, mentre i due in serie raddoppiano: $(W/L)_{pA} = (W/L)_{pB} = 2 \times 5 = 10$.
+* Nella **AOI21** ($Y = \overline{A\cdot B + C}$): nella PDN $M_{nC}$ è da solo tra $Y$ e massa (quindi resta a $W_n$), mentre $M_{nA}$ ed $M_{nB}$ sono in serie ($2\,W_n$). Nella PUN duale, il blocco parallelo $(M_{pA} \parallel M_{pB})$ è in serie a $M_{pC}$: se si accende un solo ramo del parallelo (es. $A=0, B=1, C=0$), la corrente attraversa due PMOS in serie ($M_{pA}$ e $M_{pC}$). Per questo tutti e tre i PMOS devono essere dimensionati a $2\,W_p$.
+* Nella **OAI21** ($Y = \overline{(A+B)\cdot C}$): accade l'inverso: nella PDN tutti e tre gli NMOS partecipano a un cammino di lunghezza $2$ ($2\,W_n$), mentre nella PUN $M_{pC}$ collega direttamente $Y$ a $V_{DD}$ ($1\,W_p$) in parallelo al ramo serie $(M_{pA}, M_{pB})$ ($2\,W_p$).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-20-3" title="Esercizio 20.3 — Pass-Transistor in Cascata a Porta CMOS" level="Livello Esame" hint="Un NMOS pass-transistor trasmette al massimo $V_{DD} - V_{tn}$; confronta l'uscita degradata con la soglia del PMOS dello stadio a valle.">
+<Exercise client:load lang="it" id="ex-20-3" title="Esercizio 20.3 — Perdita di Soglia nel Pass-Transistor" level="Intermedio" hint="Individua quale terminale dell'NMOS funge da source durante la carica a `'1'` e calcola $V_{OH,\text{NMOS}} = V_{DD} - V_{tn}$.">
 
-Un segnale digitale a $V_{DD} = 1.8\,\text{V}$ attraversa un singolo *pass-transistor* NMOS ($V_{tn} = 0.5\,\text{V}$, $|V_{tp}| = 0.5\,\text{V}$) con gate fisso a $1.8\,\text{V}$, e pilota l'ingresso di una porta AOI21 dimensionata come nella teoria del capitolo rispetto all'invertitore di riferimento $(W/L)_n = 1.5$, $(W/L)_p = 3.75$.
+Un segnale logico a $V_{DD} = 1.8\,\text{V}$ attraversa un singolo *pass-transistor* NMOS con gate collegato a $1.8\,\text{V}$ e tensione di soglia $V_{tn} = 0.5\,\text{V}$, pilotando poi l'ingresso di un invertitore CMOS con $|V_{tp}| = 0.5\,\text{V}$.
 
-<StepCheck client:load lang="it" prompt="Quale tensione massima raggiunge il nodo d'ingresso della porta AOI21 quando il pass-transistor trasmette un `'1'` (in $\text{V}$)?" expected={1.3} tolerance={0.03} unit="$\text{V}$" explanation="$V_{in,\text{AOI}} = V_{DD} - V_{tn} = 1.8 - 0.5 = 1.3\,\text{V}$ (livello alto degradato di una soglia)." />
+<StepCheck client:load lang="it" prompt="Quale tensione massima raggiunge il nodo d'ingresso dell'invertitore quando il pass-transistor NMOS trasmette un `'1'` (in $\text{V}$)?" expected={1.3} tolerance={0.03} unit="$\text{V}$" explanation="Durante la carica verso $V_{DD}$, il nodo di uscita funge da source e l'NMOS si spegne quando $V_{GS} = V_{DD} - V_{out} = V_{tn}$, arrestandosi a $1.8 - 0.5 = 1.3\,\text{V}$." />
 
-<StepCheck client:load lang="it" prompt="Qual è il rapporto $(W/L)$ dei tre PMOS della porta AOI21 con questo riferimento?" expected={7.5} tolerance={0.1} explanation="Nella AOI21 ogni percorso nella PUN attraversa $2$ PMOS in serie, quindi $(W/L)_p = 2 \cdot 3.75 = 7.5$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Come si risolve alla radice questa degradazione di livello senza dover ricorrere a tensioni di gate superiori a $V_{DD}$?" options={["Sostituendo il pass-transistor NMOS con un singolo pass-transistor PMOS", "Affiancando in parallelo un PMOS comandato da $\\overline{C}$ per formare un Transmission Gate CMOS", "Riducendo l'alimentazione $V_{DD}$ dell'invertitore a valle"]} correctIndex={1} explanation="Un singolo PMOS degraderebbe invece lo `'0'` a $|V_{tp}|$; accoppiando NMOS ($C$) e PMOS ($\overline{C}$) in parallelo nel Transmission Gate, il PMOS completa la salita fino a $V_{DD}$ e l'NMOS completa la discesa fino a $0\,\text{V}$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Livello degradato dal pass-transistor NMOS:** l'NMOS si spegne quando $V_{GS} = V_{DD} - V_{in,\text{AOI}} = V_{tn}$, arrestando l'ingresso della AOI21 a:
+1. **Origine della perdita di soglia:** quando il pass-transistor NMOS trasmette un `'1'` ($V_{in} = 1.8\,\text{V}$), la corrente fluisce verso il nodo d'uscita, che assume il ruolo di source. Man mano che $V_{out}$ cresce, la tensione di pilotaggio $V_{GS} = V_{DD} - V_{out}$ si riduce finché non eguaglia $V_{tn}$: a quel punto il canale si interdice e la tensione si blocca a:
 
-   $$
-   V_{in,\text{AOI}} = 1.8\,\text{V} - 0.5\,\text{V} = 1.3\,\text{V}
-   $$
+$$
+V_{OH,\text{NMOS}} = V_{DD} - V_{tn} = 1.8\,\text{V} - 0.5\,\text{V} = 1.3\,\text{V}
+$$
 
-   Il PMOS della porta a valle riceve $V_{SGp} = 1.8 - 1.3 = 0.5\,\text{V} = |V_{tp}|$ e non si spegne nettamente, causando perdita statica. Con un *Transmission Gate* il nodo salirebbe a $1.8\,\text{V}$ pieni.
+   In realtà l'effetto body (poiché $V_{SB} = V_{out} > 0$) aumenta ulteriormente $V_{tn}$, peggiorando il degrado. L'invertitore CMOS a valle riceve quindi $V_{SGp} = 1.8 - 1.3 = 0.5\,\text{V} = |V_{tp}|$, rischiando di non spegnere nettamente il PMOS e di generare corrente statica di perdita.
 
-2. **Dimensionamento della porta AOI21 ($Y = \overline{A\cdot B + C}$):** nella PUN ogni percorso attraversa $M_{pC}$ in serie con uno tra $M_{pA}$ o $M_{pB}$ ($2$ PMOS in serie), quindi tutti e tre i PMOS valgono $2 \times 3.75 = 7.5$.
+2. **Soluzione con il Transmission Gate:** sostituendo il singolo NMOS con un **Transmission Gate** (NMOS pilotato da $C$ in parallelo a un PMOS pilotato da $\overline{C}$), vicino a $V_{DD}$ entra in gioco il PMOS (che trasmette senza perdite l'`'1'`), mentre vicino a massa conduce l'NMOS (che trasmette senza perdite lo `'0'`), restituendo l'intera escursione $[0, V_{DD}]$ con una bassa resistenza equivalente $R_n \parallel R_p$.
 
 </details>
 

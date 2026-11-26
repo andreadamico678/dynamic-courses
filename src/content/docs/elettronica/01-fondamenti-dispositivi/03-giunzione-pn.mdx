@@ -12,294 +12,261 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Introduzione
 
-Mettendo a contatto silicio drogato P e silicio drogato N nello stesso cristallo nasce una valvola elettrica naturale: la **giunzione p-n**. Al confine tra le due zone si crea spontaneamente una sottile fascia priva di cariche libere (la zona di carica spaziale, SCR) con una barriera di potenziale interna. Una tensione diretta abbassa questa barriera facendo crescere la corrente esponenzialmente, mentre una tensione inversa la allarga fino al breakdown, modulando anche le capacità parassite del diodo.
+Mettendo a contatto nello stesso cristallo di silicio una regione drogata P e una regione drogata N nasce una barriera elettrica naturale priva di cariche mobili—la **zona di carica spaziale (SCR)**—che trasforma la giunzione in una valvola unidirezionale: applicando una tensione diretta la barriera si abbassa liberando una corrente esponenziale, mentre una tensione inversa la allarga bloccando la conduzione fino al **breakdown** e modulando le capacità parassite interne. In questo capitolo ricaviamo la fisica della giunzione all'equilibrio, l'equazione di Shockley con la deriva termica, i meccanismi di breakdown Zener e Valanga, le capacità dinamiche e il funzionamento rapido del diodo Schottky.
 
 <Divider label="1 · Equilibrio, Potenziale di Contatto e Zona di Carica Spaziale" />
 
-### Esempio — Giunzione Asimmetrica $p^+$-$n$: Potenziale $V_0$ e Penetrazione della SCR
+Quando due regioni con portatori maggioritari opposti entrano in contatto dentro lo stesso reticolo cristallino, il forte squilibrio di concentrazione innesca una diffusione iniziale attraverso il confine. Questo flusso svuota una sottile fascia centrale scoprendo gli ioni fissi del reticolo e generando un campo elettrico interno che arresta spontaneamente la diffusione, stabilendo una barriera di potenziale di equilibrio.
 
-Consideriamo una giunzione asimmetrica $p^+$-$n$ in silicio a temperatura ambiente ($T = 300\,\text{K}$, $n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$, $V_T = 25.85\,\text{mV}$, $\varepsilon_s \approx 1.04 \times 10^{-12}\,\text{F/cm}$), con lato P molto drogato ($N_A = 10^{18}\,\text{cm}^{-3}$) e lato N più leggero ($N_D = 10^{16}\,\text{cm}^{-3}$, [la figura](#fig-pn-junction-physics)):
+### Esempio — La Diga Spontanea al Confine
+
+Immaginiamo due vasche affiancate colme di biglie di colore diverso: moltissime biglie rosse a sinistra e pochissime a destra, e viceversa per le biglie blu. Appena togliamo la parete divisoria, le biglie iniziano subito a mescolarsi attraversando la soglia da entrambi i lati.
+
+Supponiamo però che ogni biglia che attraversa la soglia lasci fissato sul pavimento della propria vasca di origine un magnete immobile di segno opposto. Man mano che le biglie attraversano e si annullano vicino al confine, lungo la striscia centrale non restano più biglie libere, ma soltanto due file affacciate di magneti fissi che creano una spinta contraria. Ben presto questa forza elettrica respinge le altre biglie esattamente quanto la pressione di mescolamento le spingeva avanti: il flusso netto si ferma da solo formando una barriera naturale. Inoltre, se i magneti sul lato destro sono molto più radi rispetto a quelli sul lato sinistro, per raccogliere la stessa carica totale la zona svuotata dovrà allargarsi molto di più nel lato meno denso.
+
+### Teoria — Equilibrio della Giunzione p-n
+
+Una **giunzione p-n** si realizza affiancando nello stesso monocristallo di silicio una regione P (drogata con accettori $N_A$) e una regione N (drogata con donori $N_D$). Riprendendo le concentrazioni ricavate nel [Capitolo 2](/dynamic-courses/elettronica/01-fondamenti-dispositivi/02-fisica-stato-solido), il lato P è ricchissimo di lacune e poverissimo di elettroni, mentre nel lato N avviene l'opposto.
+
+#### Formazione della Zona di Carica Spaziale
+
+Non appena le due regioni si toccano, l'enorme gradiente di concentrazione spinge le lacune a diffondere da P verso N e gli elettroni da N verso P. I portatori che attraversano il piano di giunzione si ricombinano rapidamente, lasciando scoperti nei pressi del confine gli atomi droganti ionizzati che sono fissi nel reticolo cristallino: **ioni accettori negativi ($N_A^-$)** sul lato P e **ioni donori positivi ($N_D^+$)** sul lato N.
+
+Si forma così una regione quasi completamente priva di portatori mobili, chiamata **Zona di Carica Spaziale** (*Space Charge Region*, **SCR**) o regione di svuotamento ([la figura](#fig-pn-junction-physics)). La separazione tra carica positiva fissa in N e carica negativa fissa in P genera un **campo elettrico interno** $\vec{\mathcal{E}}(x)$ diretto da N verso P, che esercita una forza di deriva contraria alla diffusione (spingendo eventuali lacune da N verso P ed elettroni da P verso N). All'equilibrio termodinamico ($V_D = 0$), deriva e diffusione si compensano punto per punto e la corrente netta ai morsetti è nulla ($I_D = 0$).
 
 <figure id="fig-pn-junction-physics" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-pn-junction-physics.svg" alt="Struttura fisica della giunzione p-n all'equilibrio termodinamico: distribuzione della densità di carica spaziale fissa rho(x) e andamento triangolare del campo elettrico interno controtendente mathcalE(x)." />
   <figcaption>Struttura fisica della giunzione p-n all'equilibrio termodinamico: distribuzione della densità di carica spaziale fissa $\rho(x)$ e andamento triangolare del campo elettrico interno controtendente $\mathcal{E}(x)$.</figcaption>
 </figure>
 
-1. **Potenziale di contatto (*built-in*) $V_0$:**
-   Appena le due zone vengono unite, lacune ed elettroni diffondono attraverso il confine lasciando scoperti gli ioni fissi, finché il campo elettrico interno non blocca il flusso creando una barriera spontanea $V_0$:
-
-$$
-V_0 = V_T \ln\left( \frac{N_A N_D}{n_i^2} \right) = 0.02585 \ln\left( \frac{10^{18} \cdot 10^{16}}{(1.5 \times 10^{10})^2} \right) \approx 0.812\,\text{V}
-$$
-
-2. **Penetrazione asimmetrica ($x_n \gg x_p$) e allargamento in inversa:**
-   Per la neutralità elettrica ($N_A x_p = N_D x_n$), siccome $N_A = 100\,N_D$, la zona svuotata si estende **100 volte di più nel lato meno drogato** ($x_n = 100\,x_p$). All'equilibrio ($V_D = 0$), la sua ampiezza totale vale:
-
-$$
-W(0) = \sqrt{\frac{2\varepsilon_s}{q}\left(\frac{1}{N_A} + \frac{1}{N_D}\right)V_0} \approx 0.33\,\mu\text{m}
-$$
-
-   Se applichiamo una tensione inversa $V_R = 5\,\text{V}$ ($V_D = -5\,\text{V}$), la barriera sale a $V_0 + V_R \approx 5.81\,\text{V}$ e la zona svuotata si allarga a $W(-5\,\text{V}) \approx 0.87\,\mu\text{m}$.
-
-<StepCheck client:load lang="it" prompt="Calcola il potenziale di contatto $V_0$ per la giunzione con $N_A = 10^{18}\,\text{cm}^{-3}$ e $N_D = 10^{16}\,\text{cm}^{-3}$ (in $\text{V}$):" expected={0.812} tolerance={0.015} unit="V" explanation="$V_0 = 0.02585 \ln\left(\frac{10^{34}}{2.25\times 10^{20}}\right) \approx 0.812\,\text{V}$." />
-
-### Teoria — Equilibrio della Giunzione, Derivazione di $V_0$ e Ampiezza SCR
-
-Una **giunzione p-n** nasce affiancando nello stesso cristallo di silicio una regione P (drogata con accettori $N_A$) e una regione N (drogata con donori $N_D$). Riprendendo i concetti del [Capitolo 2](/dynamic-courses/elettronica/01-fondamenti-dispositivi/02-fisica-stato-solido), in P abbiamo moltissime lacune e pochissimi elettroni, mentre in N accade esattamente l'opposto.
-
-Questo enorme dislivello spinge subito le lacune a diffondere da P verso N e gli elettroni da N verso P.
-
-#### Zona di Carica Spaziale (SCR)
-
-I portatori che attraversano il confine si ricombinano, lasciando scoperti gli atomi droganti ionizzati che sono bloccati nel reticolo: ioni negativi ($N_A^-$) sul lato P e ioni positivi ($N_D^+$) sul lato N.
-
-Si crea così una fascia svuotata di portatori mobili detta **Zona di Carica Spaziale** (*Space Charge Region*, SCR). Tra gli ioni positivi in N e quelli negativi in P nasce un **campo elettrico interno** $\vec{\mathcal{E}}(x)$ diretto da N verso P ([la figura](#fig-pn-junction-physics)), che spinge indietro le cariche per deriva finché non bilancia perfettamente la diffusione. All'equilibrio la corrente totale ai morsetti è nulla ($I_D = 0$).
-
 #### Potenziale di Contatto $V_0$
 
-Il campo elettrico interno crea un dislivello di tensione spontaneo tra il lato N e il lato P, detto **potenziale di contatto** (*built-in*) $V_0$:
+Il campo elettrico interno integrato attraverso la SCR produce una barriera spontanea di potenziale tra il lato N (a potenziale più alto) e il lato P, detta **potenziale di contatto** (*built-in*) $V_0$:
 
 $$
 V_0 = V_T \ln\left( \frac{N_A N_D}{n_i^2} \right)
 $$
 
-Questa formula si ricava imponendo che all'equilibrio la corrente totale di lacune sia nulla ($J_p = q p \mu_p \mathcal{E} - q D_p \frac{dp}{dx} = 0$). Usando $\mathcal{E} = -\frac{d\phi}{dx}$ e la relazione di Einstein ($D_p / \mu_p = V_T$), si ottiene $d\phi = -V_T \frac{dp}{p}$; integrando tra la regione P ($p \approx N_A$) e la regione N ($p = n_i^2 / N_D$) si arriva direttamente all'espressione di $V_0$.
+Questa relazione si dimostra imponendo l'annullamento della corrente totale di lacune all'equilibrio ($J_p = q p \mu_p \mathcal{E} - q D_p \frac{dp}{dx} = 0$). Sostituendo $\mathcal{E} = -\frac{d\phi}{dx}$ e applicando la relazione di Einstein ($D_p / \mu_p = V_T$), si ottiene $d\phi = -V_T \frac{dp}{p}$; integrando dal lato P neutro ($p \approx N_A$) al lato N neutro ($p = n_i^2 / N_D$) si ricava immediatamente $V_0 = \phi_N - \phi_P = V_T \ln\left(\frac{N_A N_D}{n_i^2}\right)$, che equivale alla somma dei due potenziali di Fermi $\phi_{Fp} + \phi_{Fn}$ visti nel [Capitolo 2](/dynamic-courses/elettronica/01-fondamenti-dispositivi/02-fisica-stato-solido). Ad esempio, per una giunzione asimmetrica $p^+$-$n$ a $300\,\text{K}$ ($V_T = 25.85\,\text{mV}$, $n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$) con $N_A = 10^{18}\,\text{cm}^{-3}$ e $N_D = 10^{16}\,\text{cm}^{-3}$, si ottiene $V_0 \approx 0.812\,\text{V}$.
 
-<Callout type="tip" title="Osservazione Pratica: Perché non possiamo misurare V_0 con un multimetro?">
+<Callout type="tip" title="Osservazione Pratica: Perché non possiamo misurare V_0 con un multimetro">
 
-Sebbene tra la regione P e la regione N esista una differenza di potenziale interna spontanea $V_0 \approx 0.75\text{ V}$, tale tensione non è misurabile collegando un voltmetro esterno ai terminali del diodo, né può alimentare una lampadina. Infatti, i puntali metallici del multimetro formano alle estremità del cristallo due ulteriori giunzioni metallo-semiconduttore ($V_{m-p}$ e $V_{m-n}$) le cui barriere di potenziale compensano esattamente $V_0$ lungo la maglia chiusa ($V_{misurata} = V_0 + V_{m-p} - V_{m-n} = 0$), evitando qualsiasi violazione del Secondo Principio della Termodinamica.
+Anche se tra le regioni neutre P ed N esiste una barriera interna $V_0 \approx 0.7\text{--}0.8\,\text{V}$, collegando un voltmetro ai terminali esterni del diodo si legge esattamente zero e non si può estrarre lavoro. I contatti metallici saldati alle due estremità del silicio formano infatti altre due giunzioni metallo-semiconduttore le cui tensioni di contatto si sommano lungo la maglia chiusa compensando esattamente $V_0$ all'equilibrio termico.
 
 </Callout>
 
-#### Ampiezza della SCR
+#### Ampiezza della Zona di Carica Spaziale
 
-Nell'approssimazione di svuotamento brusco, la carica fissa ai lati del confine deve bilanciarsi ($N_A x_p = N_D x_n$): la SCR penetra quindi molto più in profondità nel lato meno drogato. Integrando la carica fissa tramite l'equazione di Poisson si ottiene il profilo triangolare del campo elettrico mostrato in [la figura](#fig-pn-junction-physics), il cui picco all'interfaccia vale $|\mathcal{E}_{max}| = \frac{q N_A x_p}{\varepsilon_s}$.
+Nell'approssimazione di svuotamento brusco, le densità di carica fissa ai due lati della giunzione formano due gradini rettangolari ([la figura](#fig-pn-junction-physics)). Per la conservazione della carica globale, la carica negativa scoperta in P deve eguagliare quella positiva scoperta in N:
 
-Poiché l'area del triangolo di $|\mathcal{E}(x)|$ eguaglia la barriera di tensione totale $(V_0 - V_D)$, si ricava l'ampiezza della SCR in funzione della tensione applicata $V_D$:
+$$
+N_A x_p = N_D x_n
+$$
+
+Di conseguenza, in una giunzione asimmetrica (come $p^+$-$n$, dove $N_A \gg N_D$) la SCR penetra molto più in profondità nel lato meno drogato ($x_n \gg x_p$). Integrando la carica fissa tramite l'equazione di Poisson ($\frac{d\mathcal{E}}{dx} = \frac{\rho}{\varepsilon_s}$) si ottiene un profilo triangolare del campo elettrico con picco all'interfaccia pari a $\lvert\mathcal{E}_{\max}\rvert = \frac{q N_A x_p}{\varepsilon_s}$. Uguagliando l'area del triangolo di $\lvert\mathcal{E}(x)\rvert$ al salto di potenziale totale $(V_0 - V_D)$ in presenza di una tensione esterna applicata $V_D$, si ricava l'ampiezza totale $W(V_D) = x_p + x_n$:
 
 $$
 W(V_D) = \sqrt{\frac{2\varepsilon_s}{q} \left( \frac{1}{N_A} + \frac{1}{N_D} \right) (V_0 - V_D)}
 $$
 
-* In **polarizzazione diretta** ($V_D > 0$): la barriera scende a $V_0 - V_D$ e la SCR si **restringe**.
-* In **polarizzazione inversa** ($V_D = -V_R < 0$): la barriera sale a $V_0 + V_R$ e la SCR si **allarga**.
+In **polarizzazione diretta** ($V_D > 0$) la barriera si riduce a $V_0 - V_D$ e la SCR si **restringe**; in **polarizzazione inversa** ($V_D = -V_R < 0$) la barriera cresce a $V_0 + V_R$ e la SCR si **allarga** (ad esempio, nella giunzione $p^+$-$n$ vista sopra passa da $0.33\,\mu\text{m}$ all'equilibrio a $0.87\,\mu\text{m}$ a $V_D = -5\,\text{V}$).
+
+<StepCheck client:load lang="it" mode="choice" prompt="In una giunzione asimmetrica $p^+$-$n$ ($N_A \gg N_D$), dove si estende prevalentemente la Zona di Carica Spaziale e perché?" options={["Nel lato $p^+$, perché avendo più accettori $N_A$ attira più portatori mobili", "In parti uguali su entrambi i lati per simmetria geometrica del cristallo", "Nel lato $n$ meno drogato, perché serve un volume maggiore per esporre la stessa quantità di carica fissa presente nel lato $p^+$", "Solo lungo la linea di interfaccia senza penetrare in nessuna delle due regioni"]} correctIndex={2} explanation="Per la neutralità della SCR deve valere $N_A x_p = N_D x_n$: poiché $N_A \gg N_D$, l'estensione $x_n$ nel lato meno drogato deve essere proporzionalmente molto maggiore di $x_p$." />
 
 <Divider label="2 · Polarizzazione, Equazione di Shockley e Sensibilità Termica" />
 
-### Esempio — Corrente Diretta di Shockley, Pendenza Decadale e Sensore Termico PTAT
+Applicando una tensione esterna $V_D$ tra il terminale P (anodo) e il terminale N (catodo), rompiamo il pareggio dell'equilibrio modificando l'altezza della barriera nella SCR: abbassare la barriera libera una corrente di diffusione che cresce esponenzialmente, mentre alzarla blocca i maggioritari lasciando passare solo una minuscola corrente inversa di origine termica.
 
-Prendiamo un diodo al silicio ideale ($\eta = 1$, $V_T = 25.85\,\text{mV}$ a $300\,\text{K}$) con corrente di saturazione inversa $I_S = 10^{-14}\,\text{A}$:
+### Esempio — Abbassare o Alzare l'Argine
 
-1. **Conduzione diretta e regola dei $60\,\text{mV/decade}$:**
-   Applicando $V_D = 0.65\,\text{V}$, la corrente fornita dall'equazione di Shockley vale:
+La barriera interna $V_0$ agisce come un argine che trattiene i moltissimi portatori maggioritari pronti a diffondere da entrambi i lati. Se colleghiamo una tensione esterna che abbassa anche di poco l'altezza di questo argine, una frazione enormemente più grande di portatori possiede ora l'energia termica sufficiente per scavalcarlo e riversarsi nel lato opposto: la corrente cresce quindi con una rapidità vertiginosa al minimo aumento di spinta.
 
-$$
-I_D = I_S \left[\exp\left(\frac{V_D}{\eta V_T}\right) - 1\right] \approx 10^{-14} \cdot \exp\left(\frac{0.65}{0.02585}\right) \approx 0.83\,\text{mA}
-$$
+Se invece applichiamo la tensione nel verso opposto, l'argine si alza ancora di più e nessun portatore maggioritario riesce a superarlo: il flusso diretto si azzera e attraversa il confine soltanto il filo minuscolo e costante dei pochi portatori minoritari generati dal calore vicino alla soglia. Inoltre, se il dispositivo si scalda, l'energia termica media dei portatori cresce e permette loro di scavalcare l'argine più facilmente, riducendo la tensione diretta necessaria a mantenere la stessa corrente.
 
-   Per moltiplicare la corrente di $10$ volte ($I_{D2} \approx 8.3\,\text{mA}$), basta aumentare la tensione di appena:
-
-$$
-\Delta V_D = \eta V_T \ln(10) \approx 60\,\text{mV} \quad (V_{D2} \approx 0.71\,\text{V})
-$$
-
-2. **Deriva termica ($\approx -2\,\text{mV/}^\circ\text{C}$) e termometro PTAT:**
-   Se teniamo fissa la corrente $I_D$ e la temperatura sale di $+50\,^\circ\text{C}$, la tensione sul diodo scende di circa $2\,\text{mV/}^\circ\text{C}$, cioè cala di circa $100\,\text{mV}$ (da $0.65\,\text{V}$ a $\sim 0.55\,\text{V}$).
-   Affiancando invece due diodi identici con rapporto di correnti fisso $I_1 / I_2 = m = 10$, la differenza tra le loro tensioni elimina $I_S$ e genera una tensione **PTAT** (*Proportional To Absolute Temperature*):
-
-$$
-V_{\text{PTAT}} = V_{D1} - V_{D2} = V_T \ln(m) \approx 59.5\,\text{mV} \quad (\text{a } 300\,\text{K})
-$$
-
-<StepCheck client:load lang="it" prompt="Di quanti millivolt ($\Delta V_D$) aumenta la caduta diretta di un diodo ideale ($\eta = 1$, $V_T = 25.85\,\text{mV}$) se la sua corrente diretta viene moltiplicata di un fattore $100$?" expected={119.0} tolerance={1.0} unit="mV" explanation="$\Delta V_D = V_T \ln(100) = 25.85 \cdot 4.6052 \approx 119.0\,\text{mV}$ ($2\text{ decadi} \times 59.5\,\text{mV/decade}$)." />
-
-### Teoria — Iniezione Minoritaria, Equazione di Shockley e Deriva Termica
-
-Collegando una tensione esterna $V_D$, rompiamo l'equilibrio della giunzione e otteniamo due comportamenti opposti.
+### Teoria — Polarizzazione, Equazione di Shockley e Deriva Termica
 
 #### Polarizzazione Diretta ed Equazione di Shockley
 
-Applicando $V_D > 0$ (positivo su P, negativo su N), la barriera interna si abbassa a $V_0 - V_D$: moltissimi maggioritari riescono a superare il confine, diventando portatori minoritari in eccesso che diffondono e si ricombinano. Questo flusso produce una corrente che cresce esponenzialmente secondo l'**equazione di Shockley**:
+Quando applichiamo una tensione positiva sull'anodo rispetto al catodo ($V_D > 0$), la barriera di potenziale scende da $V_0$ a $V_0 - V_D$. La distribuzione energetica dei portatori segue la coda esponenziale di Boltzmann: abbassando la barriera di $V_D$, la concentrazione di portatori maggioritari che riescono a diffondere nella regione opposta (diventando **portatori minoritari in eccesso**) cresce di un fattore $\exp(V_D / V_T)$. Questi portatori diffondono allontanandosi dalla giunzione fino a ricombinarsi, sostenendo una corrente netta espressa dall'**equazione di Shockley**:
 
 $$
 I_D = I_S \left[ \exp\left( \frac{V_D}{\eta V_T} \right) - 1 \right]
 $$
 
-dove $V_T \approx 26\,\text{mV}$ è la tensione termica, $\eta$ è il **fattore di idealità** ($\eta \approx 1\text{--}2$) e $I_S$ è la minuscola **corrente di saturazione inversa** (tipicamente $10^{-15}\text{--}10^{-12}\,\text{A}$ nel silicio a $300\,\text{K}$, proporzionale a $n_i^2$).
+dove $V_T = k_B T / q \approx 25.85\,\text{mV}$ a $300\,\text{K}$, $\eta$ è il **fattore di idealità** ($\eta \in [1, 2]$, legato all'eventuale ricombinazione dentro la SCR) e $I_S$ è la **corrente di saturazione inversa** (tipicamente $10^{-15}\text{--}10^{-12}\,\text{A}$ nel silicio a $300\,\text{K}$, proporzionale all'area della giunzione e a $n_i^2$).
+
+In conduzione diretta ($\exp(V_D / (\eta V_T)) \gg 1$), per aumentare la corrente di un fattore $10$ (una decade) occorre un incremento fisso di tensione pari a:
+
+$$
+\Delta V_D = \eta V_T \ln(10) \approx 60\,\text{mV/decade} \quad (\text{per } \eta = 1)
+$$
+
+Ad esempio, con $I_S = 10^{-14}\,\text{A}$ e $\eta = 1$, a $V_D = 0.65\,\text{V}$ scorrono circa $0.83\,\text{mA}$, e salendo di appena $60\,\text{mV}$ a $0.71\,\text{V}$ la corrente sale di dieci volte fino a $8.3\,\text{mA}$.
 
 #### Polarizzazione Inversa
 
-Invertendo la tensione ($V_D < 0$), già oltre $-0.1\,\text{V}$ l'esponenziale si annulla e la corrente si blocca al valore minuscolo:
+Applicando una tensione inversa ($V_D < 0$), la barriera sale a $V_0 + \lvert V_D \rvert$ e impedisce ai portatori maggioritari di diffondere. Già per $V_D < -0.1\,\text{V}$ il termine esponenziale nell'equazione di Shockley diventa trascurabile rispetto a $-1$, e la corrente si attesta su un valore minuscolo pressoché costante:
 
 $$
 I_D \approx -I_S
 $$
 
-La barriera aumentata ($V_0 + |V_D|$) impedisce la diffusione dei maggioritari e lascia passare solo i pochissimi minoritari generati dal calore.
+Questa piccola corrente di perdita è dovuta esclusivamente ai portatori minoritari generati termicamente in prossimità della SCR, che vengono subito spazzati via dal forte campo elettrico interno.
 
-#### Sensibilità Termica ($dV_D / dT$)
+#### Sensibilità Termica e Principio PTAT
 
-Poiché $I_S \propto n_i^2(T)$ esplode al crescere della temperatura, se manteniamo costante la corrente $I_D$ il diodo richiede una tensione diretta $V_D$ via via più bassa:
+Al crescere della temperatura $T$, la concentrazione intrinseca $n_i^2(T)$ cresce esponenzialmente e fa esplodere la corrente inversa $I_S \propto T^3 \exp(-V_{G0} / V_T)$, dove $V_{G0} \approx 1.12\,\text{V}$ è il potenziale di bandgap del silicio. Se manteniamo **costante la corrente diretta $I_D$**, per compensare l'aumento di $I_S$ il diodo richiede una tensione diretta $V_D$ progressivamente più bassa. Invertendo l'equazione di Shockley ($V_D \approx \eta V_T \ln(I_D / I_S)$ per $\eta = 1$) e derivando rispetto a $T$ a $I_D$ costante si ricava il coefficiente termico della giunzione:
 
 $$
 \frac{dV_D}{dT} = \frac{V_D - V_{G0} - 3 V_T}{T} \approx -2\,\text{mV/}^\circ\text{C}
 $$
 
-dove $V_{G0} \approx 1.12\,\text{V}$ è il potenziale di bandgap del silicio. Questa formula si ottiene invertendo Shockley ($V_D = V_T \ln(I_D/I_S)$), ricordando che $I_S(T) \propto T^3 e^{-V_{G0}/V_T}$ e derivando rispetto a $T$ a corrente $I_D$ costante.
+A $T = 300\,\text{K}$ con $V_D \approx 0.65\,\text{V}$, la tensione diretta cala di circa $2\,\text{mV}$ per ogni grado centigrado di riscaldamento.
 
 <Callout type="tip" title="Applicazione Pratica: Termometri Integrati su Chip (PTAT)">
 
-Questa dipendenza dalla temperatura diventa una risorsa preziosa nei circuiti integrati: all'interno di qualsiasi microprocessore vengono inserite coppie di giunzioni polarizzate con correnti in rapporto fissato ($I_1 = m I_2$). La differenza tra le loro tensioni vale $V_{PTAT} = V_{D1} - V_{D2} = V_T \ln(m) = \frac{k_B \ln(m)}{q} T$: un termometro integrato compattissimo, privo di taratura e direttamente proporzionale alla temperatura assoluta, usato per attivare la protezione termica (*thermal throttling*) del processore.
+La dipendenza termica del diodo permette di realizzare sensori di temperatura precisissimi direttamente su silicio. Polarizzando due giunzioni identiche con un rapporto fisso di correnti ($I_1 = m I_2$), la differenza tra le due tensioni dirette elimina la dipendenza da $I_S$ e genera una tensione **PTAT** (*Proportional To Absolute Temperature*): $V_{\text{PTAT}} = V_{D1} - V_{D2} = V_T \ln(m) = \frac{k_B \ln(m)}{q} T$, direttamente proporzionale alla temperatura assoluta e usata nei microprocessori per attivare il *thermal throttling*.
 
 </Callout>
 
+<StepCheck client:load lang="it" mode="choice" prompt="Se un diodo al silicio è percorso da una corrente diretta costante $I_D$ e la temperatura del chip aumenta di $+30\,^\circ\text{C}$, come varia la tensione ai suoi capi $V_D$ e perché?" options={["Aumenta di circa $+60\\,\\text{mV}$ perché la mobilità dei portatori diminuisce", "Diminuisce di circa $-60\\,\\text{mV}$ perché $I_S \\propto n_i^2(T)$ cresce rapidamente con la temperatura e serve meno tensione per sostenere la stessa corrente", "Resta identica perché $I_D$ è mantenuta costante dal circuito esterno", "Crolla a zero perché la giunzione entra in breakdown termico"]} correctIndex={1} explanation="A corrente $I_D$ costante, l'aumento esponenziale di $I_S(T)$ riduce la caduta diretta di circa $-2\,\text{mV/}^\circ\text{C}$, quindi un incremento di $+30\,^\circ\text{C}$ produce $\Delta V_D \approx -60\,\text{mV}$." />
+
 <Divider label="3 · Breakdown Inverso, Capacità Dinamiche e Diodo Schottky" />
 
-### Esempio — Capacità Dinamiche ($C_j, C_d$), Tempo di Storage $\tau_s$ e Confronto Schottky
+Superando in polarizzazione inversa una soglia critica di tensione, la giunzione entra in **breakdown** lasciando passare grandi correnti a tensione quasi fissa grazie a due distinti meccanismi fisici. Inoltre il comportamento dinamico del diodo è regolato da due diverse capacità parassite a seconda del regime, e il ritardo di spegnimento dovuto alle cariche minoritarie può essere eliminato ricorrendo al **diodo Schottky** metallo-semiconduttore.
 
-Confrontiamo un normale diodo $pn$ ($V_0 = 0.80\,\text{V}$, $C_{j0} = 4.0\,\text{pF}$, $m = 0.5$, $\tau_T = 10\,\text{ns}$) con un **diodo Schottky** metallo-semiconduttore ([la figura](#fig-diodes-symbols-schottky)):
+### Esempio — Condensatori Nascosti e Spegnimento Rapido
+
+Un diodo reale non commuta mai istantaneamente tra acceso e spento. Quando è polarizzato inversamente, le due zone conduttive P ed N restano separate dalla fascia svuotata isolante, formando un piccolo condensatore naturale le cui armature si allontanano man mano che aumentiamo la tensione inversa.
+
+Quando invece il diodo $p$-$n$ conduce in diretta, lungo le regioni neutre viaggia una scorta di portatori minoritari in eccesso in attesa di ricombinarsi. Se proviamo a spegnere di colpo il diodo invertendo la tensione, questa scorta accumulata mantiene ancora aperto il passaggio per un breve istante finché non viene interamente svuotata. Sostituendo il lato P con un contatto metallico (il diodo Schottky), conducono soltanto gli elettroni maggioritari: non si accumula nessuna scorta minoritaria e lo spegnimento diventa praticamente istantaneo.
+
+### Teoria — Breakdown, Capacità e Diodo Schottky
+
+La [figura seguente](#fig-diodes-symbols-schottky) riassume i simboli circuitali e i modelli dei dispositivi trattati in questa sezione.
 
 <figure id="fig-diodes-symbols-schottky" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-diodes-symbols-schottky.svg" alt="Simboli circuitali e modelli fisici: (a) diodo a giunzione pn; (b) diodo Zener e modello lineare a tratti in regione di breakdown (V_Z + R_Z I_Z); (c) simbolo e struttura metallo-n-n^+ del diodo Schottky." />
   <figcaption>Simboli circuitali e modelli fisici: (a) diodo a giunzione $pn$; (b) diodo Zener e modello lineare a tratti in regione di breakdown ($V_Z + R_Z I_Z$); (c) simbolo e struttura metallo-$n$-$n^+$ del diodo Schottky.</figcaption>
 </figure>
 
-1. **In inversa (Varactor a $V_D = -7.2\,\text{V}$):**
-   La SCR si allarga e la **capacità di giunzione** $C_j$ scende da $4.0\,\text{pF}$ a:
+#### Breakdown Zener e Breakdown a Valanga
 
-$$
-C_j(-7.2\,\text{V}) = \frac{C_{j0}}{\left(1 - \frac{V_D}{V_0}\right)^{0.5}} = \frac{4.0\,\text{pF}}{\sqrt{1 + \frac{7.2}{0.80}}} = \frac{4.0\,\text{pF}}{\sqrt{10}} \approx 1.26\,\text{pF}
-$$
+Quando la tensione inversa raggiunge un valore critico $V_Z$ (tensione di breakdown), la corrente inversa cresce bruscamente mantenendo una tensione ai capi quasi costante, modellabile linearmente a tratti come $V_Z = V_{Z0} + r_z I_Z$ ([la figura](#fig-diodes-symbols-schottky)(b)). Se un resistore esterno limita la corrente entro la potenza massima dissipabile, il breakdown è del tutto reversibile e non danneggia la giunzione. Il fenomeno nasce da due meccanismi fisici distinti a seconda del livello di drogaggio:
 
-2. **In diretta ($I_F = 10\,\text{mA}$) e spegnimento ($t_{rr}$):**
-   Quando il diodo $pn$ conduce $10\,\text{mA}$, accumula una carica minoritaria $Q_d = \tau_T I_F = 100\,\text{pC}$, generando una grande **capacità di diffusione**:
+* **Effetto Zener ($\lvert V_Z \rvert < 5.6\,\text{V}$):** si verifica in giunzioni molto drogate, dove la SCR è estremamente sottile ($< 10\,\text{nm}$). Il campo elettrico altissimo supera i $10^6\,\text{V/cm}$ e strappa direttamente gli elettroni dai legami covalenti attraverso la barriera per **tunneling quantistico**. Poiché al crescere della temperatura il bandgap $E_g$ si restringe leggermente rendendo più facile il tunneling, la tensione di breakdown cala con la temperatura (**coefficiente termico negativo**, $TC_Z < 0$, circa $-1\,\text{mV/}^\circ\text{C}$).
+* **Effetto Valanga ($\lvert V_Z \rvert > 5.6\,\text{V}$):** si verifica in giunzioni moderatamente drogate, dove la SCR è più larga ($> 100\,\text{nm}$). I pochi portatori minoritari che attraversano la SCR vengono accelerati dal campo elettrico fino ad acquisire energia cinetica sufficiente a spezzare altri legami covalenti per **ionizzazione da impatto**, innescando una moltiplicazione a cascata di coppie elettrone-lacuna. Al crescere della temperatura aumentano le vibrazioni del reticolo: i portatori urtano più spesso prima di raggiungere l'energia critica, quindi serve una tensione più alta per sostenere la valanga (**coefficiente termico positivo**, $TC_Z > 0$, circa $+2\,\text{mV/}^\circ\text{C}$).
 
-$$
-C_d = \tau_T \frac{I_F}{\eta V_T} = \frac{10\,\text{ns} \times 10\,\text{mA}}{25.85\,\text{mV}} \approx 3.87\,\text{nF}
-$$
-
-   Se lo spegniamo di colpo estraendo $10\,\text{mA}$ inversi, il diodo resta bloccato in conduzione per un **tempo di storage** $\tau_s \approx \tau_T \ln(1 + |I_F|/|I_R|) \approx 6.9\,\text{ns}$ finché non si svuota. Con un **diodo Schottky** ([la figura](#fig-diodes-symbols-schottky)(c)), invece, conducono solo gli elettroni maggioritari: non c'è accumulo minoritario ($Q_d = 0, C_d = 0$), $\tau_s$ sparisce e la soglia scende a $V_{on} \approx 0.35\,\text{V}$.
-
-<StepCheck client:load lang="it" mode="choice" prompt="Perché i diodi Zener con tensione nominale intorno a $5.6\,\text{V}$ presentano la massima stabilità termica?" options={["Perché a $5.6\\,\\text{V}$ il potenziale di contatto $V_0$ si annulla", "Perché si compensano il coefficiente termico negativo dell'effetto Zener e quello positivo della valanga", "Perché a $5.6\\,\\text{V}$ la capacità di diffusione $C_d$ annulla le derive termiche", "Perché il silicio diventa intrinseco sopra i $5\\,\\text{V}$"]} correctIndex={1} explanation="Sotto $\sim 5.6\,\text{V}$ predomina il tunneling Zener ($TC_Z < 0$), sopra $\sim 5.6\,\text{V}$ predomina la ionizzazione a valanga ($TC_Z > 0$); attorno a $5.6\,\text{V}$ i due effetti si bilanciano." />
-
-### Teoria — Breakdown Zener e Valanga, Capacità Dinamiche e Diodo Schottky
-
-Superando in inversa una tensione critica detta **tensione di breakdown** ($V_Z$), la corrente cresce quasi verticalmente. Se un resistore esterno limita la corrente evitando il surriscaldamento, il fenomeno è reversibile: il **diodo Zener** mantiene ai suoi capi una tensione quasi fissa ($V_{Z0} + r_z I_Z$, [la figura](#fig-diodes-symbols-schottky)(b)).
-
-Il breakdown nasce da due meccanismi fisici opposti a seconda del drogaggio:
-
-| Caratteristica | Effetto Zener | Effetto Valanga (Avalanche) |
-| :--- | :--- | :--- |
-| **Soglia $V_Z$** | $\lvert V_Z \rvert < 5.6\,\text{V}$ | $\lvert V_Z \rvert > 5.6\,\text{V}$ |
-| **Drogaggio e SCR** | Drogaggio altissimo, SCR strettissima ($< 10\,\text{nm}$) | Drogaggio moderato, SCR larga ($> 100\,\text{nm}$) |
-| **Meccanismo** | **Tunneling quantistico:** il campo fortissimo strappa gli elettroni attraverso la barriera. | **Ionizzazione per impatto:** i portatori accelerati urtano il reticolo creando una valanga di coppie $e^--h^+$. |
-| **Effetto termico ($TC_Z$)** | **Negativo ($< 0$):** con il calore $V_Z$ scende ($\approx -1\,\text{mV/}^\circ\text{C}$). | **Positivo ($> 0$):** con il calore aumentano gli urti e serve più tensione ($\approx +2\,\text{mV/}^\circ\text{C}$). |
-
-Intorno a $V_Z \approx 5.6\,\text{V}$ i due effetti si compensano quasi esattamente, rendendo gli Zener da $5.6\,\text{V}$ i più stabili in temperatura.
+Attorno a $V_Z \approx 5.6\,\text{V}$ i due meccanismi coesistono con segni termici opposti e si compensano quasi esattamente, rendendo i diodi Zener da $5.6\,\text{V}$ i riferimenti più stabili in temperatura.
 
 #### Capacità di Giunzione $C_j$ e Capacità di Diffusione $C_d$
 
-Un diodo ha due capacità parassite diverse a seconda di come è polarizzato:
-1. **Capacità di Giunzione ($C_j$, domina in inversa):** la SCR priva di cariche fa da isolante tra le zone P ed N come un condensatore a facce piane. Allargando la SCR con la tensione inversa, $C_j$ diminuisce (principio dei diodi **varactor**):
-   $$
-   C_j(V_D) = \frac{C_{j0}}{\left( 1 - \frac{V_D}{V_0} \right)^m}
-   $$
-   dove $m = 0.5$ per giunzioni brusche e $m = 0.33$ per giunzioni graduali.
-2. **Capacità di Diffusione ($C_d$, domina in diretta):** in conduzione diretta si accumula una carica minoritaria $Q_d = \tau_T I_D$ (dove $\tau_T$ è il tempo di transito). Cresce linearmente con la corrente:
-   $$
-   C_d = \tau_T \frac{I_D}{\eta V_T}
-   $$
+Un diodo a giunzione presenta due effetti capacitivi distinti a seconda del regime operativo:
 
-#### Tempo di Recupero Inverso ($t_{rr}$) e Diodo Schottky
+* **Capacità di giunzione ($C_j$, domina in inversa):** nella SCR svuotata non ci sono portatori mobili; essa funge quindi da dielettrico di spessore $W(V_D)$ compreso tra le due armature conduttive P ed N ($C_j = \varepsilon_s A / W$). Aumentando la tensione inversa, $W$ cresce e $C_j$ diminuisce secondo la legge:
 
-Quando spegniamo di colpo un diodo $pn$ che stava conducendo, non si interdice subito: prima bisogna svuotare la carica minoritaria accumulata $Q_d$ (durante il **tempo di storage** $\tau_s$), poi caricare $C_j$ fino a $-V_R$ (tempo di transizione $t_t$). La somma $t_{rr} = \tau_s + t_t$ limita la velocità del diodo.
+$$
+C_j(V_D) = \frac{C_{j0}}{\left( 1 - \frac{V_D}{V_0} \right)^m}
+$$
 
-Per evitare questo ritardo si usa il **diodo Schottky** ([la figura](#fig-diodes-symbols-schottky)(c)), fatto da un metallo a contatto diretto con silicio N: conducendo solo con elettroni maggioritari, non accumula carica minoritaria ($\tau_s \approx 0$) e ha una soglia diretta dimezzata ($V_{on} \approx 0.3\text{--}0.4\,\text{V}$).
+dove $C_{j0}$ è la capacità all'equilibrio, $m = 0.5$ per giunzioni brusche e $m \approx 0.33$ per giunzioni graduali (principio sfruttato nei diodi **varactor** per sintonizzare oscillatori in frequenza). Ad esempio, per $V_0 = 0.80\,\text{V}$, $C_{j0} = 4.0\,\text{pF}$ ed $m = 0.5$, portando la tensione a $V_D = -7.2\,\text{V}$ la capacità scende a $4.0 / \sqrt{1 + 7.2/0.80} \approx 1.26\,\text{pF}$.
+
+* **Capacità di diffusione ($C_d$, domina in diretta):** in polarizzazione diretta i portatori minoritari iniettati formano una carica accumulata proporzionale alla corrente e al tempo medio di transito $\tau_T$, pari a $Q_d = \tau_T I_D$. Derivando $Q_d$ rispetto a $V_D$ lungo la caratteristica di Shockley si ottiene la capacità di diffusione:
+
+$$
+C_d = \frac{dQ_d}{dV_D} = \tau_T \frac{I_D}{\eta V_T}
+$$
+
+Poiché cresce linearmente con $I_D$, in conduzione diretta $C_d$ assume valori dell'ordine dei nanofarad (ad esempio $C_d \approx 3.87\,\text{nF}$ con $\tau_T = 10\,\text{ns}$ e $I_D = 10\,\text{mA}$), superando di mille volte $C_j$.
+
+#### Tempo di Recupero Inverso e Diodo Schottky
+
+Quando un diodo $p$-$n$ in conduzione diretta viene commutato bruscamente in polarizzazione inversa, non si interdice istantaneamente: prima la corrente inversa deve svuotare la carica minoritaria immagazzinata $Q_d$ durante il **tempo di storage** $\tau_s$, poi deve caricare la capacità di giunzione $C_j$ fino alla tensione inversa finale (tempo di transizione $t_t$). La somma $t_{rr} = \tau_s + t_t$ è il **tempo di recupero inverso** (*reverse recovery time*), che limita la massima frequenza di commutazione del diodo.
+
+Per eliminare questo ritardo si impiega il **diodo Schottky** ([la figura](#fig-diodes-symbols-schottky)(c)), realizzato ponendo un metallo a contatto diretto con silicio di tipo N leggermente drogato. Poiché la corrente è trasportata quasi interamente dagli **elettroni maggioritari** che passano dal silicio al metallo senza significativa iniezione minoritaria ($Q_d \approx 0$, $C_d \approx 0$), il tempo di storage $\tau_s$ si annulla. Inoltre la barriera metallo-semiconduttore è più bassa di quella $p$-$n$, riducendo la tensione di accensione a $V_{on} \approx 0.3\text{--}0.4\,\text{V}$.
 
 <Callout type="tip" title="Vantaggio Pratico: Quando si sceglie il Diodo Schottky">
 
-Negli alimentatori a commutazione (*switching*) e nei convertitori DC-DC ad alta frequenza, il diodo Schottky ha un doppio vantaggio pratico rispetto al normale diodo a giunzione $pn$: non avendo tempo di *reverse recovery* si spegne all'istante senza perdite di commutazione, e grazie alla caduta diretta dimezzata ($0.3\,\text{V}$ anziché $0.7\,\text{V}$) dimezza anche la potenza dissipata in calore ($P = V_{on} I_D$). Il prezzo da pagare è una corrente di perdita inversa $I_S$ più elevata e una tensione di breakdown inferiore.
+Negli alimentatori *switching* e nei convertitori DC-DC ad alta frequenza, il diodo Schottky offre un doppio vantaggio: azzera le perdite dovute al *reverse recovery* e, grazie alla caduta diretta dimezzata ($0.3\text{--}0.4\,\text{V}$ contro $0.7\,\text{V}$), dimezza la potenza dissipata in conduzione ($P = V_{on} I_D$). Di contro presenta una corrente inversa di perdita $I_S$ più alta e una tensione massima di breakdown inferiore rispetto a un diodo $p$-$n$.
 
 </Callout>
 
+<StepCheck client:load lang="it" mode="choice" prompt="Perché i diodi Zener con tensione nominale intorno a $5.6\,\text{V}$ presentano la migliore stabilità termica?" options={["Perché a $5.6\\,\\text{V}$ la carica immagazzinata $Q_d$ si annulla", "Perché si compensano il coefficiente termico negativo del tunneling Zener e quello positivo della ionizzazione a valanga", "Perché a $5.6\\,\\text{V}$ il potenziale di contatto $V_0$ diventa indipendente dalla temperatura", "Perché il silicio non subisce variazione di mobilità a quella tensione"]} correctIndex={1} explanation="Sotto $5.6\,\text{V}$ domina il tunneling Zener ($TC_Z < 0$), mentre sopra $5.6\,\text{V}$ domina la valanga ($TC_Z > 0$); attorno a $5.6\,\text{V}$ i due contributi opposti si bilanciano." />
+
 <Divider label="4 · Sintesi" />
 
-### Tabella di Riferimento Rapido
+### Tabella di Riferimento
 
-| Parametro / Grandezza | Formula Canonica | Regime / Note |
+| Parametro / Fenomeno | Formula o Caratteristica | Regime / Meccanismo Fisico |
 | :--- | :--- | :--- |
 | **Potenziale di contatto $V_0$** | $V_0 = V_T \ln\left(\frac{N_A N_D}{n_i^2}\right)$ | Equilibrio termodinamico ($0.65\text{--}0.85\,\text{V}$ nel Si) |
 | **Ampiezza SCR $W(V_D)$** | $W = \sqrt{\frac{2\varepsilon_s}{q}\left(\frac{1}{N_A}+\frac{1}{N_D}\right)(V_0 - V_D)}$ | Penetra nel lato meno drogato ($N_A x_p = N_D x_n$) |
-| **Equazione di Shockley** | $I_D = I_S\left[\exp\left(\frac{V_D}{\eta V_T}\right) - 1\right]$ | Diretta ($V_D > 0$) e inversa ($I_D \approx -I_S$) |
-| **Resistenza differenziale $r_d$** | $r_d = \frac{\eta V_T}{I_D}$ | Piccolo segnale attorno a $Q$ |
-| **Capacità dinamiche** | $C_j = \frac{C_{j0}}{(1 - V_D/V_0)^m},\; C_d = \tau_T \frac{I_D}{\eta V_T}$ | $C_j$ domina in inversa; $C_d$ domina in diretta |
+| **Equazione di Shockley** | $I_D = I_S\left[\exp\left(\frac{V_D}{\eta V_T}\right) - 1\right]$ | Diretta ($\sim 60\,\text{mV/dec}$ per $\eta=1$); inversa $I_D \approx -I_S$ |
 | **Sensibilità termica** | $\frac{dV_D}{dT} = \frac{V_D - V_{G0} - 3V_T}{T} \approx -2\,\text{mV/}^\circ\text{C}$ | A corrente $I_D$ costante |
+| **Breakdown Zener** | $\lvert V_Z \rvert < 5.6\,\text{V}$, SCR $< 10\,\text{nm}$, $TC_Z < 0$ | Tunneling quantistico in giunzioni molto drogate |
+| **Breakdown a Valanga** | $\lvert V_Z \rvert > 5.6\,\text{V}$, SCR $> 100\,\text{nm}$, $TC_Z > 0$ | Ionizzazione per impatto in giunzioni meno drogate |
+| **Capacità di giunzione $C_j$** | $C_j(V_D) = \frac{C_{j0}}{(1 - V_D/V_0)^m}$ | Domina in polarizzazione inversa (diodi varactor) |
+| **Capacità di diffusione $C_d$** | $C_d = \tau_T \frac{I_D}{\eta V_T}$ | Domina in diretta (assente nello Schottky) |
 
 ### Procedura di Analisi
 
-1. **Potenziale di contatto $V_0$:** calcolare $V_0 = V_T \ln\left(\frac{N_A N_D}{n_i^2}\right)$ con $V_T \approx 25.85\,\text{mV}$ a $300\,\text{K}$.
-2. **Ampiezza della SCR:** valutare $W(V_D) = \sqrt{\frac{2\varepsilon_s}{q}\left(\frac{1}{N_A}+\frac{1}{N_D}\right)(V_0 - V_D)}$ con $\varepsilon_s \approx 1.04 \times 10^{-12}\,\text{F/cm}$, verificando che la SCR penetri soprattutto nel lato meno drogato.
-3. **Polarizzazione e piccolo segnale:** da $I_D = I_S(e^{V_D/(\eta V_T)} - 1)$ ricavare la corrente di lavoro o la resistenza differenziale $r_d = \frac{\eta V_T}{I_D}$.
-4. **Breakdown e capacità:** distinguere effetto **Zener** ($|V_Z| < 5.6\,\text{V}$, $TC_Z < 0$) da effetto **Valanga** ($|V_Z| > 5.6\,\text{V}$, $TC_Z > 0$); associare $C_j$ alla polarizzazione inversa e $C_d$ (o l'assenza di $\tau_s$ nello Schottky) alla polarizzazione diretta.
-
-### Dimostrazioni Chiave
-
-* **Potenziale di contatto $V_0$:** integrazione di $J_p = 0$ attraverso la SCR usando $\mathcal{E} = -d\phi/dx$ e la relazione di Einstein $D_p/\mu_p = V_T$.
-* **Ampiezza SCR:** integrazione della carica fissa nella SCR e uguaglianza tra area del campo triangolare e barriera $(V_0 - V_D)$.
-* **Deriva termica $dV_D/dT$:** inversione di Shockley per $V_D(T)$ e derivazione rispetto a $T$ a $I_D$ costante.
-* **Tempo di recupero inverso $t_{rr}$:** svuotamento della carica minoritaria immagazzinata $Q_d = \tau_T I_D$ seguito dalla carica di $C_j$.
+1. **Equilibrio e SCR:** valutare $V_0$ dai drogaggi $N_A, N_D$ e verificare che $W(V_D)$ penetri prevalentemente nel lato meno drogato, restringendosi in diretta e allargandosi in inversa.
+2. **Regime statico:** usare l'equazione di Shockley per il legame $I_D\text{--}V_D$ e ricordare la pendenza di $\sim 60\,\text{mV/decade}$ (per $\eta = 1$) e la deriva di $-2\,\text{mV/}^\circ\text{C}$ a corrente fissa.
+3. **Regime di breakdown:** distinguere effetto Zener ($< 5.6\,\text{V}$, $TC_Z < 0$) da effetto Valanga ($> 5.6\,\text{V}$, $TC_Z > 0$).
+4. **Regime dinamico:** associare $C_j$ alla regione inversa e $C_d$ (con il ritardo $\tau_s$ di svuotamento dei minoritari) alla conduzione diretta del diodo $p$-$n$, sostituendo con lo Schottky quando si richiede commutazione rapida e bassa $V_{on}$.
 
 <Callout type="warning" title="Errori Comuni">
 
-Ricorda perché i diodi Zener intorno a $5.6\,\text{V}$ sono i più stabili termicamente: sotto $5\,\text{V}$ prevale l'**effetto Zener** (tunneling quantistico con coefficiente termico **negativo**), sopra $6\,\text{V}$ prevale la **valanga** (ionizzazione per urto con coefficiente termico **positivo**); a $5.6\,\text{V}$ i due effetti si compensano quasi esattamente. Attenzione anche a non confondere $C_j$ (inversa) con $C_d$ (diretta) e a ricordare che $V_0$ non è misurabile ai morsetti esterni con un multimetro.
+Non confondere la capacità di giunzione $C_j$ (che nasce dallo svuotamento della SCR e domina in polarizzazione inversa) con la capacità di diffusione $C_d$ (che nasce dall'accumulo di carica minoritaria in diretta ed è proporzionale a $I_D$). Ricorda inoltre che il potenziale di contatto $V_0$ non può mai essere misurato ai morsetti esterni con un voltmetro, perché viene compensato dalle tensioni di contatto ai terminali metallici, e che sotto $5.6\,\text{V}$ il coefficiente termico del breakdown è negativo (Zener), non positivo.
 
 </Callout>
 
 <Divider label="5 · Esercizi" />
 
-<Exercise client:load lang="it" id="ex-3-1" title="Esercizio 3.1 — Potenziale di Contatto e Ampiezza SCR all'Equilibrio" level="Base" hint="Usa $V_0 = V_T \ln\left(\frac{N_A N_D}{n_i^2}\right)$ e $W_0 = \sqrt{\frac{2\varepsilon_s}{q}\left(\frac{1}{N_A} + \frac{1}{N_D}\right)V_0}$.">
+<Exercise client:load lang="it" id="ex-3-1" title="Esercizio 3.1 — Equilibrio della Giunzione e Potenziale V_0" level="Base" hint="Ricorda il bilancio tra diffusione e deriva all'equilibrio e la conservazione della carica nella chiusura della maglia di misura.">
 
-Una giunzione $p^+$-$n$ in silicio a $T = 300\,\text{K}$ ($n_i = 1.5\times 10^{10}\,\text{cm}^{-3}$, $V_T = 25.85\,\text{mV}$, $\varepsilon_s = 1.036\times 10^{-12}\,\text{F/cm}$) presenta drogaggi $N_A = 10^{17}\,\text{cm}^{-3}$ e $N_D = 5\times 10^{15}\,\text{cm}^{-3}$.
+Una giunzione $p$-$n$ all'equilibrio termico sviluppa un potenziale di contatto $V_0 \approx 0.75\,\text{V}$ tra la regione N e la regione P.
 
-<StepCheck client:load lang="it" prompt="Calcola il potenziale di contatto $V_0$ (in $\text{V}$):" expected={0.735} tolerance={0.015} unit="V" explanation="$V_0 = 0.02585 \ln\left(\frac{5\times 10^{32}}{2.25\times 10^{20}}\right) \approx 0.735\,\text{V}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola la larghezza totale della SCR $W_0$ all'equilibrio (in $\mu\text{m}$):" expected={0.447} tolerance={0.02} unit="$\mu\text{m}$" explanation="$W_0 = \sqrt{\frac{2\cdot 1.036\times 10^{-12}}{1.602\times 10^{-19}}\left(\frac{1}{10^{17}} + \frac{1}{5\times 10^{15}}\right) 0.735} \approx 4.47\times 10^{-5}\,\text{cm} = 0.447\,\mu\text{m}$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Perché all'equilibrio non circola alcuna corrente esterna nonostante esista il potenziale interno $V_0$, e perché un multimetro collegato ai morsetti segna $0\,\text{V}$?" options={["Perché $V_0$ esiste solo quando si applica una tensione esterna; all'equilibrio gli ioni fissi sono neutralizzati", "Perché dentro la SCR il campo elettrico bilancia esattamente la diffusione ($I_D = 0$), e lungo la maglia del multimetro i potenziali dei contatti metallo-semiconduttore compensano esattamente $V_0$", "Perché la corrente di deriva scorre solo nei contatti metallici esterni", "Perché la resistenza del silicio neutro diventa infinita all'equilibrio"]} correctIndex={1} explanation="All'equilibrio la corrente di deriva prodotta dal campo interno compensa esattamente la diffusione attraverso la SCR; inoltre, chiudendo il circuito con i puntali del voltmetro, le tensioni di contatto alle interfacce metallo-semiconduttore annullano esattamente $V_0$." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Potenziale di contatto $V_0$:** Calcoliamo prima il prodotto dei drogaggi ($N_A N_D = 10^{17} \cdot 5 \times 10^{15} = 5 \times 10^{32}\,\text{cm}^{-6}$) e $n_i^2 = (1.5 \times 10^{10})^2 = 2.25 \times 10^{20}\,\text{cm}^{-6}$:
-   $$
-   V_0 = 0.02585 \ln\left(\frac{5 \times 10^{32}}{2.25 \times 10^{20}}\right) = 0.02585 \ln(2.222 \times 10^{12}) = 0.02585 \cdot 28.43 \approx 0.735\,\text{V}
-   $$
-2. **Ampiezza della SCR all'equilibrio ($V_D = 0$):** Calcoliamo il fattore inverso dei drogaggi $\frac{1}{N_A} + \frac{1}{N_D} = 10^{-17} + 2 \times 10^{-16} = 2.1 \times 10^{-16}\,\text{cm}^3$:
-   $$
-   W_0 = \sqrt{\frac{2 \cdot 1.036\times 10^{-12}}{1.602\times 10^{-19}} \cdot (2.1 \times 10^{-16}) \cdot 0.735} = \sqrt{1.997 \times 10^{-9}} \approx 4.47 \times 10^{-5}\,\text{cm} = 0.447\,\mu\text{m}
-   $$
+1. **Equilibrio interno ($I_D = 0$):** La diffusione iniziale di lacune da P verso N e di elettroni da N verso P lascia scoperti gli ioni fissi $N_A^-$ e $N_D^+$. Il campo elettrico interno $\vec{\mathcal{E}}(x)$ che ne risulta spinge i portatori in senso opposto per deriva finché le due componenti si pareggiano esattamente ($J_{drift} + J_{diff} = 0$).
+2. **Impossibilità di misurare $V_0$:** Se colleghiamo un voltmetro esterno ai terminali, i fili metallici formano due ulteriori giunzioni alle estremità delle zone P ed N. All'equilibrio termico la somma algebrica di tutte le barriere lungo la maglia chiusa è rigorosamente nulla, altrimenti si potrebbe estrarre corrente continua perpetua violando la termodinamica.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-3-2" title="Esercizio 3.2 — Equazione di Shockley e Resistenza Differenziale" level="Livello Esame" hint="Usa l'equazione esponenziale per $I_D$ e poi $r_d = \frac{\eta V_T}{I_D}$.">
+<Exercise client:load lang="it" id="ex-3-2" title="Esercizio 3.2 — Capacità Dinamiche e Confronto p-n / Schottky" level="Intermedio" hint="Collega $t_{rr}$ all'accumulo di carica minoritaria $Q_d = \tau_T I_D$ in polarizzazione diretta.">
 
-Un diodo al silicio con $I_S = 10^{-14}\,\text{A}$ e $\eta = 1$ è polarizzato a $V_D = 0.70\,\text{V}$ ($V_T = 25.85\,\text{mV}$). Successivamente viene fatto lavorare a corrente fissa $I_D = 2.0\,\text{mA}$.
+In un convertitore ad alta frequenza si confronta un normale diodo a giunzione $p$-$n$ con un diodo Schottky.
 
-<StepCheck client:load lang="it" prompt="Calcola la corrente $I_D$ a $V_D = 0.70\,\text{V}$ (in $\text{mA}$):" expected={5.76} tolerance={0.2} unit="mA" explanation="$I_D = 10^{-14} \left(\exp\left(\frac{0.70}{0.02585}\right) - 1\right) \approx 5.76\,\text{mA}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola la resistenza differenziale $r_d$ quando $I_D = 2.0\,\text{mA}$ (in $\Omega$):" expected={12.93} tolerance={0.2} unit="$\Omega$" explanation="$r_d = \frac{V_T}{I_D} = \frac{0.02585}{0.002} \approx 12.93\,\Omega$." />
+<StepCheck client:load lang="it" mode="choice" prompt="Quale meccanismo rallenta lo spegnimento del diodo $p$-$n$ rispetto al diodo Schottky quando si passa bruscamente dalla conduzione diretta alla polarizzazione inversa?" options={["Il diodo $p$-$n$ ha una capacità di giunzione $C_j$ che cresce all'infinito in inversa", "Il diodo $p$-$n$ deve prima svuotare la carica minoritaria accumulata $Q_d = \\tau_T I_D$ (tempo di storage $\\tau_s$), mentre nello Schottky conducono solo i maggioritari ($Q_d \\approx 0$)", "Lo Schottky ha un drogaggio più basso e quindi un tempo di storage maggiore", "Nel diodo $p$-$n$ la tensione di soglia $V_{on}$ impedisce il passaggio della corrente inversa"]} correctIndex={1} explanation="In conduzione diretta il diodo $p$-$n$ immagazzina una carica minoritaria $Q_d = \tau_T I_D$ che genera $C_d$ e richiede il tempo di storage $\tau_s$ per essere estratta allo spegnimento. Lo Schottky è un dispositivo a portatori maggioritari, quindi non accumula carica minoritaria e commuta molto più velocemente." />
 
 <details className="dc-solution">
-<summary>Mostra Soluzione Passo-Passo</summary>
+<summary>Mostra Risposta Orale Modello</summary>
 
-1. **Corrente diretta a $V_D = 0.70\,\text{V}$:** Calcoliamo l'esponente $\frac{V_D}{\eta V_T} = \frac{0.70}{1 \cdot 0.02585} \approx 27.079$. Poiché $e^{27.079} \approx 5.76 \times 10^{11} \gg 1$, possiamo trascurare il $-1$ nell'equazione di Shockley:
-   $$
-   I_D = 10^{-14}\left(e^{27.079} - 1\right) \approx 10^{-14} \cdot 5.76 \times 10^{11} = 5.76 \times 10^{-3}\,\text{A} = 5.76\,\text{mA}
-   $$
-2. **Resistenza differenziale a $I_D = 2.0\,\text{mA}$:**
-   $$
-   r_d = \frac{\eta V_T}{I_D} = \frac{1 \cdot 25.85\,\text{mV}}{2.0\,\text{mA}} = \frac{0.02585\,\text{V}}{0.002\,\text{A}} \approx 12.93\,\Omega
-   $$
+1. **Regime capacitivo del diodo $p$-$n$:** In polarizzazione inversa domina la capacità di giunzione $C_j$, dovuta alla SCR che funge da dielettrico variabile. In polarizzazione diretta domina invece la capacità di diffusione $C_d = \tau_T \frac{I_D}{\eta V_T}$, legata alla carica minoritaria in eccesso $Q_d = \tau_T I_D$ iniettata attraverso la giunzione.
+2. **Tempo di recupero inverso ($t_{rr}$):** Quando commutiamo bruscamente da ON a OFF, il diodo $p$-$n$ continua a condurre in inversa per un tempo di storage $\tau_s$ finché tutta la carica $Q_d$ non viene estratta o ricombinata, e solo dopo carica $C_j$ fino a $-V_R$.
+3. **Vantaggio del diodo Schottky:** Essendo una giunzione metallo-semiconduttore di tipo N, la corrente è sostenuta quasi esclusivamente dagli elettroni maggioritari: la carica minoritaria accumulata $Q_d$ e la capacità $C_d$ sono trascurabili ($\tau_s \approx 0$), consentendo commutazioni rapidissime e una soglia diretta dimezzata ($V_{on} \approx 0.3\text{--}0.4\,\text{V}$).
+
+</details>
+
+</Exercise>
+
+<Exercise client:load lang="it" id="ex-3-3" title="Esercizio 3.3 — Pendenza di Shockley e Breakdown Inverso" level="Base" hint="Ricorda i due meccanismi di breakdown (sotto e sopra $5.6\,\text{V}$) e la regola decadale di Shockley.">
+
+Un diodo al silicio ideale ($\eta = 1$, $V_T = 25.85\,\text{mV}$ a $300\,\text{K}$) lavora in conduzione diretta; successivamente si esamina una famiglia di diodi Zener con diverse tensioni di breakdown.
+
+<StepCheck client:load lang="it" mode="choice" prompt="Di quanto aumenta circa la tensione diretta $V_D$ di un diodo ideale per decuplicare la corrente $I_D$, e quale meccanismo di breakdown domina in uno Zener da $3.3\,\text{V}$?" options={["Aumenta di circa $0.7\\,\\text{V}$ per decade; a $3.3\\,\\text{V}$ domina la valanga con coefficiente termico positivo", "Aumenta di circa $60\\,\\text{mV}$ per decade; a $3.3\\,\\text{V}$ domina il tunneling Zener con coefficiente termico negativo", "Aumenta di circa $26\\,\\text{mV}$ per decade; a $3.3\\,\\text{V}$ domina il tunneling Zener con coefficiente termico positivo", "Diminuisce di $2\\,\\text{mV}$ per decade; a $3.3\\,\\text{V}$ si compensano Zener e valanga"]} correctIndex={1} explanation="Dall'equazione di Shockley con $\eta = 1$, $\Delta V_D = V_T \ln(10) \approx 60\,\text{mV/decade}$. Sotto $5.6\,\text{V}$ la SCR è sottilissima e domina il tunneling quantistico Zener, che ha coefficiente termico negativo ($TC_Z < 0$)." />
+
+<details className="dc-solution">
+<summary>Mostra Risposta Orale Modello</summary>
+
+1. **Variazione decadale di Shockley:** In conduzione diretta $I_D \approx I_S \exp\left(\frac{V_D}{\eta V_T}\right)$. Per moltiplicare $I_D$ di un fattore $10$ occorre aumentare $V_D$ di $\Delta V_D = \eta V_T \ln(10) \approx 25.85\,\text{mV} \cdot 2.3026 \approx 59.5\,\text{mV} \approx 60\,\text{mV}$ (con $\eta = 1$). È proprio questa pendenza ripidissima a giustificare l'approssimazione a tensione costante ($0.7\,\text{V}$) usata nel Capitolo 4.
+2. **Meccanismo di breakdown a $3.3\,\text{V}$:** Essendo $\lvert V_Z \rvert = 3.3\,\text{V} < 5.6\,\text{V}$, la giunzione è fortemente drogata con SCR strettissima ($< 10\,\text{nm}$): il campo elettrico strappa gli elettroni per **tunneling quantistico** (effetto Zener puro), con coefficiente termico negativo ($TC_Z < 0$).
 
 </details>
 

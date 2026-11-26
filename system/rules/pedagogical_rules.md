@@ -4,33 +4,61 @@ Every chapter page is designed for fast visual intuition, rigorous written/oral 
 
 ---
 
-### 1. Chapter & Part Structure (Invisible Pedagogy)
+### 1. Chapter & Part Structure (Invisible Pedagogy & Two-Track Flow)
 
-Teach via ordering and clarity, never by printing educational theory jargon on the student's page. **Never** use labels like *Why This Matters:*, *Toy Case*, *Derivation / Oral Proof:*, *Guided Lab:*, *Plain English:*, *Worked Archetype*, *Faded Completion*, *Interleaved Practice*, *Anchor System*, or parenthetical meta-tags like *(Conceptual)* or *(Oral Core)* in headings or prose. Keep every heading plain and direct (`2–5` words, no colon theatrics).
+Teach via ordering, conceptual isolation, and clear cause-and-effect prose—never by printing educational theory jargon on the student's page. **Never** use labels like *Why This Matters:*, *Toy Case*, *Derivation / Oral Proof:*, *Guided Lab:*, *Plain English:*, *Worked Archetype*, *Faded Completion*, *Interleaved Practice*, *Anchor System*, or parenthetical meta-tags like *(Conceptual)* or *(Oral Core)* in headings or prose. Keep every heading plain and direct (`2–5` words, no colon theatrics). Do **not** print redundant ASCII mind maps, `<MindMap />`, or TL;DR blocks—let the clean tree-like heading hierarchy carry the structure directly.
 
 * **Part Overview (`00-introduction.mdx` / `00-introduzione.mdx`, `sidebar.order: 0`):**
   Opens with `## Introduction` (`## Introduzione`), any cross-chapter taxonomy shared across the Part (never bury a Part-wide taxonomy inside one chapter), one shared running example revisited across the Part's chapters, and the chapter links.
 
-* **Chapter Page Structure:**
-  Opens with one concise motivating paragraph under a plain 2–4 word `##` heading, and four `<Divider />` sections:
+* **Choose One of Two Chapter Tracks (Never Mix Half-Example / Half-Theory):**
 
-1. **`<Divider label="1 · Example" />` (`"1 · Esempio"`):**
-   - Solve one concrete numerical system *first* with its diagram placed right next to the equations and clear physical meaning in normal prose.
-   - Include the interactive explorer (with a 1–2 line prompt on what to adjust) when applicable, plus one inline `<StepCheck>`.
-2. **`<Divider label="2 · Theory" />` (`"2 · Teoria"`):**
-   - **Connected Progression Required:** Never drop disconnected topic headings back-to-back. Open `2 · Theory` (or its first subsection) with 1–2 sentences stating *how the subsections relate* (e.g., general rule $\to$ specific hardware fixes, or baseline $\to$ optimization).
-   - **Complete Formula Closure:** Every formula, edge case, or variation tested in `4 · Exercises` MUST be explicitly stated and derived in `2 · Theory` (or explicitly linked back to the earlier chapter that derives it). Never spring an unexplained formula inside an exercise or solution.
-   - **No Duplication:** Never explain the same mechanism twice under different headings in the same chapter.
-   - **Multi-Circuit / Multi-Mechanism Micro-Cycles (`Esempio → Teoria`):** When a single chapter covers 2 or more distinct circuits or architectures that share a theme (e.g., Memory Architectures), organize each circuit as its own numbered `<Divider />` section containing a concrete `### Esempio — <Circuit>` immediately followed by its formal `### Teoria — <Circuit>`, without printing meta-terms like "micro-cicli".
-   - Include an inline `<StepCheck>` check after the core result.
-3. **`<Divider label="3 · Summary" />` (`"3 · Sintesi"`):**
-   - Keep this section strictly as a **lean exam reference**, never a repetitive prose recap of `2 · Theory` (students should synthesize prose summaries in their own words):
-     - One single-source lookup table (never duplicated in Theory).
-     - One numbered calculation / drafting procedure (including *Pencil-on-Paper* rules for graphical topics).
-     - `<Callout type="warning" title="Common Mistakes">` listing high-frequency exam/decoy traps.
-     - Omit repetitive bullet-list prose recaps (`### Key Mechanisms` / `### Concetti Chiave`). Only include a brief proof checklist if oral derivations are directly required by that course's exam.
-4. **`<Divider label="4 · Exercises" />` (`"4 · Esercizi"`):**
-   - Progress quietly from one complete worked problem (`Exercise N.1`), to a partially guided problem (`Exercise N.2`), to mixed cross-chapter problems (`Exercise N.3+`), using plain titles (`Exercise 15.1 — Unified Memory Versus Split Caches`).
+  #### Track A — Conceptual / Theory-Driven Chapters (e.g., *Elettronica*, architectural & physical-device chapters)
+  $$\text{Concept} \longrightarrow \text{Conceptual Example} \longrightarrow \text{Complete Structured Theory} \longrightarrow \text{Summary} \longrightarrow \text{Practice}$$
+
+  1. **Concept (Opening / Section Lead-In):**
+     - State the **plain mental model first** (1 short paragraph: what problem this solves, what it fundamentally is—eliminating any "oh wait, it's just X!" delayed realization).
+     - When a topic splits into sub-families (e.g., Mask ROM vs. Flash, SRAM vs. DRAM), state *only* what is 100% shared by all sub-families plus the **single criterion that divides them**.
+  2. **Conceptual Example (Intuition Only — Lightweight & Non-Technical):**
+     - Present one brief, intuitive concrete scenario (e.g., "1M wires vs. 2048 wires" or a high-level bit trace) that makes the core idea click *before* technical details.
+     - **Hard Boundary:** Keep the conceptual example light and jargon-free. **Never** cram transistor-level derivations, premature edge cases, or unintroduced formulas into it, and **never** use it to replace part of the Theory section.
+  3. **Complete Structured Theory (Starts Fresh, 100% Self-Contained):**
+     - Start fresh from the ground up and teach *every* concept, operating mode, physical cause-and-effect chain, and formula completely on its own.
+     - **Strict Conceptual Isolation (Tree-Like Hierarchy):** Mirror a clean conceptual tree directly in your headings (`###` / `####`) and nested prose—shared parent properties live in the parent block; branch-specific mechanisms live *exclusively* inside their own branch (e.g., Floating Gate and block erase belong strictly under Flash, never in the shared intro or Mask ROM).
+     - **Full Explanatory Prose, Not Cheat-Sheet Bullets:** Keep syllabus scope strictly unchanged (no extra out-of-scope content), but unpack every in-scope mechanism with explicit cause-and-effect reasoning (*why* A causes B causes C) so a student can learn directly from the page without consulting external sources.
+     - **Quantitative Plug-Ins:** If a conceptual chapter derives a formula (e.g., DRAM charge sharing $\Delta V_{BL}$, CMOS threshold $V_M$), place any concrete numerical check *after* deriving the formula (inside Theory or in Exercises), never unintroduced before Theory.
+     - Include diagrams (`<figure className="dc-svg-wrap">`), interactive explorers (when applicable), and inline `<StepCheck>` checks right where each mechanism lands.
+
+  #### Track B — Procedural / Exercise-Driven Chapters (e.g., *Systems Theory / Automatica*, quantitative calculation chapters)
+  $$\text{Concept} \longrightarrow \text{Worked Example} \longrightarrow \text{Complete Structured Theory} \longrightarrow \text{Summary} \longrightarrow \text{Exercises}$$
+
+  1. **Concept (Opening Framing):** One concise 1–2 paragraph opening introducing the plain mental model and what problem the method solves using prior-chapter vocabulary. Skip a separate conceptual example (redundant when a full worked example follows).
+  2. **`<Divider label="1 · Example" />` (`"1 · Esempio"`):**
+     - Solve one complete concrete numerical/modeling system *first* with its diagram placed right next to the equations and clear physical meaning in normal prose.
+     - Include the interactive explorer (with a 1–2 line prompt on what to adjust) when applicable, plus one inline `<StepCheck>`.
+  3. **`<Divider label="2 · Theory" />` (`"2 · Teoria"`):**
+     - **Starts Fresh & 100% Self-Contained:** Even though a worked example appeared above, Theory MUST stand completely on its own—open with 1–2 sentences framing how the subsections connect, then derive every general definition, rule, edge case, and formula cleanly in connected prose. Never omit a rule or mechanism because it was touched in `1 · Example`.
+     - Include an inline `<StepCheck>` check after the core result.
+
+* **Multi-Architecture / Comparative Chapters (e.g., Memory Architectures, Sequential Circuits):**
+  - Open with `## Introduzione` (`## Introduction`) stating the shared problem and the top-level taxonomy/split criterion separating the families.
+  - Dedicate one numbered `<Divider />` section to each family/architecture (without printing meta-terms like "micro-cicli"). Inside each `<Divider />` section, follow the chapter's track cleanly:
+    - **Track A:** *Shared Concept & Split Criterion → Brief Conceptual Example (when helpful; omit if trivial) → Complete, Tree-Isolated Theory (with diagrams + `<StepCheck>`)*.
+    - **Track B:** *Brief Concept → Worked Example → Complete Self-Contained Theory (with diagrams + `<StepCheck>`)*.
+
+* **Universal Theory & End-of-Chapter Rules (Both Tracks):**
+  - **Self-Contained Theory Litmus Test:** Mentally delete every Example block. If *any* definition, operating mode, physical reason, or formula is now missing, Theory is incomplete and must be fixed. ("No Duplication" means never repeating the same prose under two Theory headings or inside `Summary`; it is **never** an excuse to omit theory that was previewed in an Example.)
+  - **Complete Formula Closure:** Every formula, edge case, or variation tested in Exercises MUST be explicitly stated and derived in Theory (or explicitly linked back to the earlier chapter that derives it). Never spring an unexplained formula inside an exercise or solution.
+  - **`<Divider label="... · Summary" />` (`"... · Sintesi"`):**
+    Keep this section strictly as a **lean exam reference**, never a repetitive prose recap of Theory (now that the body teaches thoroughly, a crisp reference table works cleanly):
+    - One single-source comparison/formula lookup table (never duplicated in Theory).
+    - One numbered calculation / drafting procedure (including *Pencil-on-Paper* rules for graphical topics) when the chapter teaches a procedure.
+    - `<Callout type="warning" title="Common Mistakes">` listing high-frequency exam/decoy traps.
+    - Omit repetitive bullet-list prose recaps (`### Key Mechanisms` / `### Concetti Chiave`). Only include a brief proof checklist if oral derivations are directly required by that course's exam.
+  - **`<Divider label="... · Exercises" />` (`"... · Esercizi"` / `"... · Verifica"`):**
+    Match the practice style to the course's exam format (see `system/rules/exercise_rules.md`):
+    - **Track A (Conceptual / Oral-Exam Chapters, e.g. *Elettronica*):** Primarily **conceptual and theoretical** questions at **easy-to-medium difficulty** (no obscure edge cases), using `<StepCheck mode="choice">` and clear revealable oral-style explanations in `<details className="dc-solution">` to check genuine understanding. Keep numerical calculations minimal (0–1 simple core sanity check only where a formula is central).
+    - **Track B (Procedural / Written-Exam Chapters, e.g. *Systems Theory*):** Progress quietly from one complete worked problem (`Exercise N.1`), to a partially guided problem (`Exercise N.2`), to mixed cross-chapter problems (`Exercise N.3+`), using plain titles (`Exercise 15.1 — Unified Memory Versus Split Caches`).
 
 ---
 
