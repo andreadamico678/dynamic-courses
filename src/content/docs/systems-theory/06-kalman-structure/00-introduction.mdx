@@ -1,6 +1,6 @@
 ---
-title: "Part VI — Introduction: Kalman Structural Properties"
-description: "Conceptual overview and real-world framing for Part VI of Linear Systems Theory."
+title: "Part VI — Kalman Structure"
+description: "Conceptual overview, running system, and chapter roadmap for Part VI of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,23 +10,28 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Classical transfer functions $W(s)$ only tell you what happens between the input terminal and the sensor terminal—they silently discard internal physics whenever poles and zeros cancel. Before spending hours synthesizing a state-feedback controller or Kalman estimator, you must answer two structural questions about the plant matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C})$:
+Transfer functions $W(s)$ describe only the externally coupled channel from input to output and silently erase any mode that cancels. Before synthesizing a state-feedback controller or state estimator, an engineer must test two structural properties of $(\mathbf{A}, \mathbf{B}, \mathbf{C})$: whether actuators steer every state (**controllability**) and whether sensors reconstruct every state (**observability**).
 
-1. **Controllability:** Do your actuators actually reach and steer every internal state?
-2. **Observability:** Do your sensors let you reconstruct every internal state from output measurements?
+Part VI develops Kalman's matrix rank tests, eigenvector PBH criteria, the four-subspace **Kalman Canonical Decomposition**, and the operational conditions of **stabilizability** and **detectability**.
 
-Part VI develops Rudolf Kalman's rank criteria, the eigenvector PBH modal tests, and the **Kalman Canonical Decomposition** that splits any state space into four structural compartments—revealing which parts participate in $W(s)$ and establishing the weaker, real-world requirements of **stabilizability** and **detectability**.
+### Running Example
 
-### Practical Real-World Perspective
+Across Chapters 20–23, we examine a coupled 3-state LTI system ($\mathbf{A} \in \mathbb{R}^{3\times 3}$) whose third eigenmode $\lambda_3 = -1$ decouples from either input matrix $\mathbf{B}$ or output matrix $\mathbf{C}$:
 
-- **Motor Failure & Fault Tolerance:** If one motor fails on a hexacopter versus a quadcopter, recomputing $\operatorname{rank}(\mathcal{R})$ immediately tells the flight computer whether the remaining propellers still span all 3D attitude and altitude states or whether emergency landing is the only option.
-- **Hidden Gyro Bias Estimation:** An IMU gyroscope suffers from slow drift bias $b_g$ that has no direct sensor. Kalman observability proves that coupling an accelerometer angle measurement with rate integration makes the hidden bias observable so an EKF can estimate and cancel it automatically.
+$$\dot{\mathbf{x}}(t) = \begin{bmatrix} 0 & 1 & 0 \\ -2 & -3 & 1 \\ 0 & 0 & -1 \end{bmatrix}\mathbf{x}(t) + \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}u(t)$$
+
+Chapter 20 tests controllability rank $\operatorname{rank}(\mathcal{R}) = 2 < 3$, Chapter 21 dualizes the test to observability $\operatorname{rank}(\mathcal{O})$, Chapter 22 transforms coordinates to isolate the controllable/observable blocks, and Chapter 23 checks whether the decoupled mode is naturally stable.
+
+### Real-World Applications
+
+- **Actuator Fault Tolerance:** Recomputing $\operatorname{rank}(\mathcal{R})$ after a rotor failure shows whether remaining actuators retain full attitude and altitude control authority.
+- **Hidden State Estimation:** Proving full observability of coupled gyro-bias states guarantees that sensor fusion filters can estimate drift without a dedicated bias sensor.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[20. Kalman Controllability Criterion](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/)** — Test full state steering via $\operatorname{rank}(\mathcal{R}) = n$ and the left-eigenvector PBH condition.
-2. **[21. Kalman Observability Criterion](/dynamic-courses/systems-theory/06-kalman-structure/02-kalman-observability-matrix-rank-criterion/)** — Reconstruct initial states via $\operatorname{rank}(\mathcal{O}) = n$, right-eigenvector tests, and Kalman duality.
-3. **[22. Kalman Canonical Decomposition](/dynamic-courses/systems-theory/06-kalman-structure/03-kalman-canonical-subspace-decomposition/)** — Partition state space into $\mathcal{X}_{co}, \mathcal{X}_{c\bar{o}}, \mathcal{X}_{\bar{c}o}, \mathcal{X}_{\bar{c}\bar{o}}$ and extract minimal transfer realizations.
-4. **[23. Stabilizability and Detectability](/dynamic-courses/systems-theory/06-kalman-structure/04-uncontrollable-mode-stabilizability-verification/)** — Verify via PBH tests that any uncontrollable or unobservable modes are naturally stable.
+- [20. Kalman Controllability Criterion](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/) — Test full state reachability via $\operatorname{rank}(\mathcal{R}) = n$ and left-eigenvector PBH orthogonality.
+- [21. Kalman Observability Criterion](/dynamic-courses/systems-theory/06-kalman-structure/02-kalman-observability-matrix-rank-criterion/) — Reconstruct initial states via $\operatorname{rank}(\mathcal{O}) = n$, right-eigenvector tests, and Kalman duality.
+- [22. Kalman Canonical Decomposition](/dynamic-courses/systems-theory/06-kalman-structure/03-kalman-canonical-subspace-decomposition/) — Partition state space into $\mathcal{X}_{co}, \mathcal{X}_{c\bar{o}}, \mathcal{X}_{\bar{c}o}, \mathcal{X}_{\bar{c}\bar{o}}$ and extract minimal realizations.
+- [23. Stabilizability and Detectability](/dynamic-courses/systems-theory/06-kalman-structure/04-uncontrollable-mode-stabilizability-verification/) — Verify via PBH rank conditions whether uncontrollable or unobservable modes decay naturally.

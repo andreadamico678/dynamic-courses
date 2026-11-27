@@ -1,6 +1,6 @@
 ---
-title: "Part I — Introduction: Dynamic State Models"
-description: "Conceptual overview and real-world framing for Part I of Linear Systems Theory."
+title: "Part I — Dynamic State Models"
+description: "Conceptual overview, running system, and chapter roadmap for Part I of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,20 +10,28 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Before analyzing stability or designing controllers, an engineer must choose a mathematical language to describe how a physical system evolves over time. High-school and introductory physics courses model mechanical or electrical setups as a single high-order differential equation linking one input to one output. That input-output view breaks down as soon as a system has multiple actuators, multiple sensors, or internal energy-storing elements whose internal behavior matters even when the output looks quiet.
+Before analyzing stability or designing controllers, an engineer must choose a mathematical language to describe how a physical system evolves over time. High-level input-output differential equations break down as soon as a system has multiple actuators, multiple sensors, or internal energy-storing elements whose internal behavior matters even when the output appears stationary.
 
-Part I builds the universal **state-space representation**. Instead of tracking derivatives up to order $n$ of a single output, you pack the system's instantaneous memory—positions, velocities, capacitor voltages, inductor currents—into a vector $\mathbf{x}(t)$ and write every physical law as a clean system of coupled first-order differential equations $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$.
+Part I establishes the **state-space representation**. Instead of tracking derivatives up to order $n$ of a single output, you pack the system's instantaneous memory—positions, velocities, capacitor voltages, inductor currents—into a state vector $\mathbf{x}(t)$ governed by first-order equations $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$ and $\mathbf{y} = \mathbf{C}\mathbf{x} + \mathbf{D}\mathbf{u}$.
 
-### Practical Real-World Perspective
+### Running Example
 
-- **Suspension & Robotics:** A two-cart spring-damper bench or a flexible robotic joint stores potential energy in springs and kinetic energy in moving masses. Choosing position and velocity as states lets one $4 \times 4$ matrix model predict both oscillation and sensor output regardless of whether you bolt an accelerometer, tachometer, or encoder onto the hardware.
-- **Coordinate Frames in Drones:** An inertial measurement unit (IMU) measures angular rates in the drone's body frame, while navigation requires coordinates in the ground Earth frame. Similarity transformations $\mathbf{x} = \mathbf{T}\mathbf{z}$ formalize why rotating or rescaling internal coordinates leaves physical eigenvalues and input-output behavior completely unchanged.
-- **Modular Control Architecture:** Real flight stacks and industrial plants cascade motor drivers, gearboxes, sensors, and feedback compensators. Block diagram algebra turns those interconnected loops into a single clean operator for analysis.
+Across Chapters 1–3, we analyze a horizontal **coupled two-cart mechanical bench** of masses $m_1, m_2$, coupling spring $k$, wall damper $B_1$, and actuator force $u(t)$, assigning positions and velocities $\mathbf{x} = [p_1, \dot{p}_1, p_2, \dot{p}_2]^T \in \mathbb{R}^4$:
+
+$$\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}u(t), \qquad y(t) = \mathbf{C}\mathbf{x}(t) + Du(t)$$
+
+Chapter 1 derives $(\mathbf{A}, \mathbf{B}, \mathbf{C}, D)$ from Newton's laws, Chapter 2 shows how coordinate transformations $\mathbf{x} = \mathbf{T}\mathbf{z}$ diagonalize coupled dynamics while preserving physical eigenvalues, and Chapter 3 collapses interconnected block diagrams into equivalent transfer operators $W(s)$.
+
+### Real-World Applications
+
+- **Suspension & Robotics:** Choosing position and velocity states lets one matrix model predict structural oscillation regardless of whether sensors measure position, velocity, or spring stretch.
+- **Coordinate Frames:** Rotating IMU coordinates from body frame to Earth frame leaves physical system modes and input-output behavior completely invariant.
+- **Modular Feedback Architectures:** Cascades of motor drivers, actuators, sensors, and feedback loops simplify systematically via block diagram algebra.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[1. First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/)** — Define the minimal state vector, convert $n$-th order ODEs into companion form, and derive $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ matrices from Newton's laws.
-2. **[2. Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/)** — Transform state realizations via $\mathbf{x} = \mathbf{T}\mathbf{z}$, diagonalize modes, and prove which quantities remain physically invariant.
-3. **[3. Block Diagram Algebra Reduction](/dynamic-courses/systems-theory/01-state-models/03-block-diagram-algebra-reduction/)** — Collapse series, parallel, and multi-loop feedback architectures systematically without changing node signals.
+- [1. First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/) — Define the minimal state vector, convert $n$-th order ODEs into companion form, and derive $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ from physical laws.
+- [2. Coordinate Basis Similarity Transformations](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/) — Transform realizations via $\mathbf{x} = \mathbf{T}\mathbf{z}$, diagonalize modes, and prove physical invariants.
+- [3. Block Diagram Algebra Reduction](/dynamic-courses/systems-theory/01-state-models/03-block-diagram-algebra-reduction/) — Collapse series, parallel, and multi-loop feedback architectures systematically without altering external terminal signals.

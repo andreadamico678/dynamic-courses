@@ -18,7 +18,7 @@ The **Separation Principle** delivers the culminating structural guarantee of li
 
 <Divider label="1 · Example" />
 
-### Coupling Controller and Observer on a First-Order Plant
+### Coupled Controller and Observer
 
 Consider an unstable scalar plant $\dot{x}(t) = x(t) + u(t)$ ($a = 1, b = 1$) with measured output $y(t) = x(t)$ ($c = 1$). Because the open-loop pole sits in the right half-plane at $\lambda = +1 > 0$, the unforced plant is exponentially unstable. Suppose we design the state-feedback gain $k = 4$ to place the closed-loop controller eigenvalue at $a - bk = 1 - 4 = -3$, and we design the Luenberger observer gain $l = 9$ to place the observer error eigenvalue at $a - lc = 1 - 9 = -8$.
 
@@ -75,6 +75,8 @@ Notice that the internal pole of the standalone compensator $C(s)$ sits at $s = 
 
 <Divider label="2 · Theory" />
 
+Interconnecting a state-feedback controller $\mathbf{K}$ with a Luenberger observer $\mathbf{L}$ creates a $2n$-dimensional output-feedback system whose spectral structure appears coupled at first glance. This section forms the composite $(\mathbf{x}, \hat{\mathbf{x}})$ equations, applies the error-coordinate similarity transformation to prove the Separation Principle, and derives the standalone dynamic compensator transfer function $C(s)$.
+
 ### Interconnected State Equations
 
 In Part VII ([Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/)) we designed the state-feedback gain matrix $\mathbf{K} \in \mathbb{R}^{m \times n}$ assuming full state measurement, and in Chapter 27 ([Luenberger Observer Architecture](/dynamic-courses/systems-theory/08-observers-compensation/01-luenberger-state-observer-architecture/)) we designed the observer gain matrix $\mathbf{L} \in \mathbb{R}^{n \times p}$ to reconstruct the state estimate $\hat{\mathbf{x}}(t) \in \mathbb{R}^n$ from sensor measurements $\mathbf{y}(t) \in \mathbb{R}^p$.
@@ -117,11 +119,11 @@ $$
 
 Notice that multiplying $\mathbf{T}_{\text{sep}}$ by itself gives $\mathbf{T}_{\text{sep}}^2 = \begin{bmatrix} \mathbf{I}_n & \mathbf{0} \\ \mathbf{0} & \mathbf{I}_n \end{bmatrix} = \mathbf{I}_{2n}$, so $\mathbf{T}_{\text{sep}}$ is involutory ($\mathbf{T}_{\text{sep}}^{-1} = \mathbf{T}_{\text{sep}}$, equivalently $\hat{\mathbf{x}}(t) = \mathbf{x}(t) - \mathbf{e}(t)$). Let us compute the transformed dynamics in $(\mathbf{x}, \mathbf{e})$ coordinates both via differential equations and via direct block-matrix multiplication:
 
-1. **Plant state equation in $(\mathbf{x}, \mathbf{e})$:** Substituting $\hat{\mathbf{x}}(t) = \mathbf{x}(t) - \mathbf{e}(t)$ into the control law $\mathbf{u}(t) = -\mathbf{K}(\mathbf{x}(t) - \mathbf{e}(t)) + \mathbf{v}(t)$ rewrites $\dot{\mathbf{x}}(t)$ as the ideal full-state feedback dynamics plus a transient error injection $\mathbf{B}\mathbf{K}\mathbf{e}(t)$:
+1. **Plant Error Coupling:** Substituting $\hat{\mathbf{x}}(t) = \mathbf{x}(t) - \mathbf{e}(t)$ into the control law $\mathbf{u}(t) = -\mathbf{K}(\mathbf{x}(t) - \mathbf{e}(t)) + \mathbf{v}(t)$ rewrites $\dot{\mathbf{x}}(t)$ as the ideal full-state feedback dynamics plus a transient error injection $\mathbf{B}\mathbf{K}\mathbf{e}(t)$:
    $$
    \dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) - \mathbf{B}\mathbf{K}\left(\mathbf{x}(t) - \mathbf{e}(t)\right) + \mathbf{B}\mathbf{v}(t) = (\mathbf{A} - \mathbf{B}\mathbf{K})\mathbf{x}(t) + \mathbf{B}\mathbf{K}\mathbf{e}(t) + \mathbf{B}\mathbf{v}(t)
    $$
-2. **Error state equation in $(\mathbf{x}, \mathbf{e})$:** Subtracting $\dot{\hat{\mathbf{x}}}(t)$ from $\dot{\mathbf{x}}(t)$ cancels both $-\mathbf{B}\mathbf{K}\hat{\mathbf{x}}(t)$ and $+\mathbf{B}\mathbf{v}(t)$ identically:
+2. **Autonomous Error Dynamics:** Subtracting $\dot{\hat{\mathbf{x}}}(t)$ from $\dot{\mathbf{x}}(t)$ cancels both $-\mathbf{B}\mathbf{K}\hat{\mathbf{x}}(t)$ and $+\mathbf{B}\mathbf{v}(t)$ identically:
    $$
    \dot{\mathbf{e}}(t) = \dot{\mathbf{x}}(t) - \dot{\hat{\mathbf{x}}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\left(\mathbf{x}(t) - \hat{\mathbf{x}}(t)\right) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t)
    $$
@@ -145,7 +147,7 @@ This factorization establishes three foundational results known collectively as 
    \sigma(\mathbf{A}_{\text{total}}) = \sigma(\mathbf{A} - \mathbf{B}\mathbf{K}) \cup \sigma(\mathbf{A} - \mathbf{L}\mathbf{C})
    $$
    Inserting the observer into the state-feedback loop does *not* move a single controller eigenvalue, and closing the controller loop does *not* move a single observer eigenvalue. You can synthesize $\mathbf{K}$ (via Chapter 25) and $\mathbf{L}$ (via Chapter 28) completely independently.
-2. **Reference-to-Output Transfer Function Invariance:** Look at the input and output matrices in $(\mathbf{x}, \mathbf{e})$ coordinates: $\mathbf{B}_{\text{total}} = \begin{bmatrix} \mathbf{B} \\ \mathbf{0} \end{bmatrix}$ has zero entry into the error dynamics $\dot{\mathbf{e}}$, and $\mathbf{C}_{\text{total}} = \begin{bmatrix} \mathbf{C} & \mathbf{0} \end{bmatrix}$ reads only $\mathbf{x}$. By [Kalman Canonical Decomposition](/dynamic-courses/systems-theory/06-kalman-structure/03-kalman-canonical-subspace-decomposition/), the $n$ estimation error modes $\mathbf{e}(t)$ are completely **uncontrollable from the reference command $\mathbf{v}(t)$**! Consequently, all $n$ observer poles $p_o^*(s)$ cancel identically in the closed-loop transfer function matrix from $\mathbf{V}(s)$ to $\mathbf{Y}(s)$:
+2. **Reference-to-Output Transfer Function Invariance:** Look at the input and output matrices in $(\mathbf{x}, \mathbf{e})$ coordinates: $\mathbf{B}_{\text{total}} = \begin{bmatrix} \mathbf{B} \\ \mathbf{0} \end{bmatrix}$ has zero entry into the error dynamics $\dot{\mathbf{e}}$, and $\mathbf{C}_{\text{total}} = \begin{bmatrix} \mathbf{C} & \mathbf{0} \end{bmatrix}$ reads only $\mathbf{x}$. By [Kalman Canonical Decomposition](/dynamic-courses/systems-theory/06-kalman-structure/03-kalman-canonical-subspace-decomposition/), the $n$ estimation error modes $\mathbf{e}(t)$ are completely **uncontrollable** from the reference command $\mathbf{v}(t)$! Consequently, all $n$ observer poles $p_o^*(s)$ cancel identically in the closed-loop transfer function matrix from $\mathbf{V}(s)$ to $\mathbf{Y}(s)$:
    $$
    \mathbf{W}_{\text{CL}}(s) = \mathbf{C}_{\text{total}}(s\mathbf{I}_{2n} - \mathbf{A}_{\text{total}})^{-1}\mathbf{B}_{\text{total}} = \mathbf{C}\left(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K})\right)^{-1}\mathbf{B}
    $$
@@ -169,7 +171,7 @@ $$
 \left(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C})\right)\hat{\mathbf{X}}(s) = \mathbf{L}\mathbf{Y}(s) \implies \hat{\mathbf{X}}(s) = \left(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C})\right)^{-1}\mathbf{L}\mathbf{Y}(s)
 $$
 
-Substituting $\hat{\mathbf{X}}(s)$ into the feedback equation $\mathbf{U}(s) = -\mathbf{K}\hat{\mathbf{X}}(s)$ yields the negative-feedback relationship $\mathbf{U}(s) = -\mathbf{C}_{\text{comp}}(s)\mathbf{Y}(s)$, where the **$n$-th order dynamic compensator transfer function** (written $C(s)$ for SISO loops) is:
+Substituting $\hat{\mathbf{X}}(s)$ into the feedback equation $\mathbf{U}(s) = -\mathbf{K}\hat{\mathbf{X}}(s)$ yields the negative-feedback relationship $\mathbf{U}(s) = -\mathbf{C}_{\text{comp}}(s)\mathbf{Y}(s)$, where the **$n$-th order dynamic compensator** transfer function (written $C(s)$ for SISO loops) is:
 
 $$
 \boxed{C(s) = \mathbf{K}\left(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C})\right)^{-1} \mathbf{L}}
@@ -189,11 +191,11 @@ Note carefully that the poles of the standalone compensator $C(s)$ are the eigen
   explanation="Block upper-triangularity keeps eigenvalues strictly decoupled, while $\\mathbf{B}\\mathbf{K}\\mathbf{e}(t)$ perturbs the physical trajectory $\\mathbf{x}(t)$ until $\\mathbf{e}(t) \\to \\mathbf{0}$."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Modular ROS 2 Architecture and the Separation Principle">
+<Callout type="bridge" title="Modular Autonomy Architecture">
 
 Autonomous mobile robots and drones running ROS 2 (such as PX4 or Nav2) implement this mathematical boundary directly across separate software nodes:
 
-1. **State Estimation Node (`robot_localization` / EKF):** Subscribes to `/imu/data`, `/wheel_odometry`, and `/gps/fix` to compute $\hat{\mathbf{x}}$ using an estimator $(\mathbf{A} - \mathbf{L}\mathbf{C})$, independent of trajectory tracking gains.
+1. **State Estimation Node:** The estimator (`robot_localization` / EKF) subscribes to `/imu/data`, `/wheel_odometry`, and `/gps/fix` to compute $\hat{\mathbf{x}}$ using $(\mathbf{A} - \mathbf{L}\mathbf{C})$, independent of trajectory tracking gains.
 2. **Controller Node (`controller_server`):** Subscribes to `/odometry/filtered` ($\hat{\mathbf{x}}$) and commands $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}}$, independent of which sensors produced the estimate.
 
 Because the composite error matrix is block upper-triangular, an asymptotically stable estimator and an asymptotically stable controller guarantee overall closed-loop stability across decoupled nodes.
@@ -222,9 +224,9 @@ Because the composite error matrix is block upper-triangular, an asymptotically 
 - **Characteristic Factorization:** The determinant of any block upper-triangular matrix equals the product of its diagonal block determinants, giving $\det(s\mathbf{I}_{2n} - \mathbf{A}_{\text{total}}) = p_c^*(s) p_o^*(s)$.
 
 <Callout type="warning" title="Common Mistakes">
-1. **Confusing Compensator Poles with Closed-Loop Poles:** The eigenvalues of $\mathbf{A}_{\text{comp}} = \mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C}$ are the *open-loop poles of $C(s)$* (which can even be unstable!), **not** the closed-loop poles $\sigma(\mathbf{A}-\mathbf{B}\mathbf{K}) \cup \sigma(\mathbf{A}-\mathbf{L}\mathbf{C})$.
+1. **Compensator vs. Closed-Loop Poles:** The eigenvalues of $\mathbf{A}_{\text{comp}} = \mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C}$ are the *open-loop poles of $C(s)$* (which can even be unstable!), **not** the closed-loop poles $\sigma(\mathbf{A}-\mathbf{B}\mathbf{K}) \cup \sigma(\mathbf{A}-\mathbf{L}\mathbf{C})$.
 2. **Wrong Error Transformation Sign:** Define $\mathbf{e} = \mathbf{x} - \hat{\mathbf{x}}$ so $\hat{\mathbf{x}} = \mathbf{x} - \mathbf{e}$, giving upper-right block $+\mathbf{B}\mathbf{K}$ (not $-\mathbf{B}\mathbf{K}$).
-3. **Dropping Negative Feedback Sign in $C(s)$:** Because $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}}$, $C(s)$ includes the minus sign in $\mathbf{U}(s) = -C(s)\mathbf{Y}(s)$.
+3. **Negative Feedback Sign:** Because $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}}$, $C(s)$ includes the minus sign in $\mathbf{U}(s) = -C(s)\mathbf{Y}(s)$.
 </Callout>
 
 <Divider label="4 · Exercises" />
@@ -284,7 +286,7 @@ $$
    l_1 + 2 = 20 \implies l_1 = 18, \qquad 2(18) + l_2 = 100 \implies l_2 = 64 \implies \mathbf{L} = \begin{bmatrix} 18 \\ 64 \end{bmatrix}
    $$
 
-3. **Dynamic compensator state matrix $\mathbf{A}_{\text{comp}} = \mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C}$:**
+3. **Dynamic Compensator Matrix:**
    First compute the two $2 \times 2$ outer products $\mathbf{B}\mathbf{K}$ and $\mathbf{L}\mathbf{C}$:
    $$
    \mathbf{B}\mathbf{K} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \begin{bmatrix} 8 & 2 \end{bmatrix} = \begin{bmatrix} 0 & 0 \\ 8 & 2 \end{bmatrix}, \qquad \mathbf{L}\mathbf{C} = \begin{bmatrix} 18 \\ 64 \end{bmatrix} \begin{bmatrix} 1 & 0 \end{bmatrix} = \begin{bmatrix} 18 & 0 \\ 64 & 0 \end{bmatrix}
@@ -294,7 +296,7 @@ $$
    \mathbf{A}_{\text{comp}} = \begin{bmatrix} 0 & 1 \\ 0 & -2 \end{bmatrix} - \begin{bmatrix} 0 & 0 \\ 8 & 2 \end{bmatrix} - \begin{bmatrix} 18 & 0 \\ 64 & 0 \end{bmatrix} = \begin{bmatrix} -18 & 1 \\ -72 & -4 \end{bmatrix}
    $$
 
-4. **Compensator transfer function $C(s) = \mathbf{K}(s\mathbf{I}_2 - \mathbf{A}_{\text{comp}})^{-1}\mathbf{L}$:**
+4. **Compensator Transfer Function:**
    Form the compensator resolvent matrix and its determinant:
    $$
    s\mathbf{I}_2 - \mathbf{A}_{\text{comp}} = \begin{bmatrix} s + 18 & -1 \\ 72 & s + 4 \end{bmatrix}, \qquad \det(s\mathbf{I}_2 - \mathbf{A}_{\text{comp}}) = (s + 18)(s + 4) + 72 = s^2 + 22s + 144
@@ -345,7 +347,7 @@ Consider a linear plant $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ controlled via an
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Composite state-space equations in $(\mathbf{x}, \hat{\mathbf{x}})$:**
+1. **Composite State Equations:**
    Substituting the feedback control law $\mathbf{u}(t) = -\mathbf{K}\hat{\mathbf{x}}(t)$ and the output measurement $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$ into the plant and observer differential equations gives:
    $$
    \dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t) = \mathbf{A}\mathbf{x}(t) - \mathbf{B}\mathbf{K}\hat{\mathbf{x}}(t)
@@ -358,7 +360,7 @@ Consider a linear plant $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ controlled via an
    \begin{bmatrix} \dot{\mathbf{x}}(t) \\ \dot{\hat{\mathbf{x}}}(t) \end{bmatrix} = \begin{bmatrix} \mathbf{A} & -\mathbf{B}\mathbf{K} \\ \mathbf{L}\mathbf{C} & \mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C} \end{bmatrix} \begin{bmatrix} \mathbf{x}(t) \\ \hat{\mathbf{x}}(t) \end{bmatrix}
    $$
 
-2. **Coordinate transformation to the $(\mathbf{x}, \mathbf{e})$ error basis:**
+2. **Separation Coordinate Basis:**
    Define $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$, so that $\hat{\mathbf{x}}(t) = \mathbf{x}(t) - \mathbf{e}(t)$. The similarity transformation matrix $\mathbf{T}_{\text{sep}} = \begin{bmatrix} \mathbf{I}_n & \mathbf{0} \\ \mathbf{I}_n & -\mathbf{I}_n \end{bmatrix}$ satisfies $\mathbf{T}_{\text{sep}}^{-1} = \mathbf{T}_{\text{sep}}$. Substituting $\hat{\mathbf{x}}(t) = \mathbf{x}(t) - \mathbf{e}(t)$ into $\dot{\mathbf{x}}(t)$ gives:
    $$
    \dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) - \mathbf{B}\mathbf{K}\left(\mathbf{x}(t) - \mathbf{e}(t)\right) = (\mathbf{A} - \mathbf{B}\mathbf{K})\mathbf{x}(t) + \mathbf{B}\mathbf{K}\mathbf{e}(t)
@@ -383,7 +385,7 @@ Consider a linear plant $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ controlled via an
    $$
    confirming the **Separation Principle**: $\mathbf{K}$ and $\mathbf{L}$ can be synthesized independently without shifting each other's eigenvalues.
 
-4. **Physical role of the off-diagonal coupling block $\mathbf{B}\mathbf{K}$:**
+4. **Role of Coupling $\mathbf{B}\mathbf{K}$:**
    While the estimation error $\mathbf{e}(t) = e^{(\mathbf{A}-\mathbf{L}\mathbf{C})t}\mathbf{e}(0)$ evolves autonomously, the physical plant state satisfies the forced differential equation:
    $$
    \dot{\mathbf{x}}(t) = (\mathbf{A} - \mathbf{B}\mathbf{K})\mathbf{x}(t) + \mathbf{B}\mathbf{K}\mathbf{e}(t)

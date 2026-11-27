@@ -18,7 +18,7 @@ Converting a plant into Controllable Canonical Form by hand, solving for $\mathb
 
 <Divider label="1 · Example" />
 
-### Direct Gain Synthesis Without Canonical Conversion
+### Direct Ackermann Gain Synthesis
 
 Consider a non-companion second-order plant given by:
 
@@ -75,6 +75,8 @@ Because $\mathbf{A}_{\text{cl}}$ is lower triangular, its eigenvalues sit on the
 />
 
 <Divider label="2 · Theory" />
+
+Ackermann's formula computes the unique single-input pole-placement gain row vector $\mathbf{K}$ directly in original physical coordinates without constructing canonical transformations or open-loop polynomial coefficients. This section derives the formula via Cayley-Hamilton from the canonical gain mapping and provides left-multiplication rules for fast hand computation.
 
 ### Ackermann Gain Formula
 
@@ -165,17 +167,17 @@ Because $p^*(s)$ is the characteristic polynomial of $\mathbf{A}_{\text{cl}}$, t
 When evaluating Ackermann's formula by hand on an exam or in embedded flight code, four practical rules prevent algebra errors and cut computational effort:
 
 1. **Verify Complete Controllability First:** Always check $\det(\mathcal{R}) \neq 0$ before proceeding. If $\operatorname{rank}(\mathcal{R}) < n$, $\mathcal{R}^{-1}$ does not exist and no static feedback gain can move the uncontrollable modes.
-2. **Isolate $\mathbf{t}_n^T$ Without Full Matrix Inversion:** You never need the first $n - 1$ rows of $\mathcal{R}^{-1}$. Solve the single linear system:
+2. **Isolate Generator Row $\mathbf{t}_n^T$:** You never need the first $n - 1$ rows of $\mathcal{R}^{-1}$. Solve the single linear system:
    $$
    \mathbf{t}_n^T \mathcal{R} = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix} \iff \mathcal{R}^T \mathbf{t}_n = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1 \end{bmatrix}
    $$
    This requires solving for only $n$ scalar entries instead of all $n^2$ entries of $\mathcal{R}^{-1}$.
-3. **Multiply Row Vectors Sequentially from the Left:** Rather than computing full $n \times n$ matrix powers $\mathbf{A}^2, \mathbf{A}^3, \dots, \mathbf{A}^n$ (which costs $n^3$ multiplications per power), propagate the $1 \times n$ row vector $\mathbf{t}_n^T$ from the left:
+3. **Multiply Rows Left-to-Right:** Rather than computing full $n \times n$ matrix powers $\mathbf{A}^2, \mathbf{A}^3, \dots, \mathbf{A}^n$ (which costs $n^3$ multiplications per power), propagate the $1 \times n$ row vector $\mathbf{t}_n^T$ from the left:
    $$
    \mathbf{w}_0^T = \mathbf{t}_n^T, \quad \mathbf{w}_1^T = \mathbf{w}_0^T \mathbf{A}, \quad \mathbf{w}_2^T = \mathbf{w}_1^T \mathbf{A}, \quad \dots, \quad \mathbf{w}_n^T = \mathbf{w}_{n-1}^T \mathbf{A}
    $$
    Each vector-matrix product costs only $n^2$ scalar multiplications, and $\mathbf{K}$ is simply the weighted row sum $\mathbf{K} = \mathbf{w}_n^T + \alpha_{n-1}\mathbf{w}_{n-1}^T + \dots + \alpha_0 \mathbf{w}_0^T$.
-4. **Never Drop the Identity Matrix $\mathbf{I}_n$:** Whenever forming $p^*(\mathbf{A})$ explicitly as a matrix, the constant term $\alpha_0$ must multiply the $n \times n$ identity matrix ($\alpha_0 \mathbf{I}_n$), adding $\alpha_0$ only to the main diagonal entries.
+4. **Keep the Identity Matrix:** Whenever forming $p^*(\mathbf{A})$ explicitly as a matrix, the constant term $\alpha_0$ must multiply the $n \times n$ identity matrix ($\alpha_0 \mathbf{I}_n$), adding $\alpha_0$ only to the main diagonal entries.
 
 <StepCheck client:load
   mode="choice"
@@ -189,7 +191,7 @@ When evaluating Ackermann's formula by hand on an exam or in embedded flight cod
   explanation="Ackermann's formula works for any open-loop matrix (stable or unstable, canonical or unstructured) provided $m = 1$ and $\\mathcal{R}$ is invertible."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Fast Embedded Gain Scheduling">
+<Callout type="bridge" title="Embedded Flight Gain Scheduling">
 
 In dynamic UAV flight (such as PX4 transitions from vertical hover to forward cruise), aerodynamic derivatives vary continuously with dynamic pressure $\bar{q} = \frac{1}{2}\rho V_\infty^2$, parameterizing $\mathbf{A}(V_\infty)$ and $\mathbf{B}(V_\infty)$ by airspeed $V_\infty$. Because Ackermann's formula requires only closed-form matrix operations with no iterative root-finding, an ARM Cortex-M7 flight controller can recompute $\mathbf{K}(V_\infty)$ deterministically at $100\text{ Hz}$ across the entire flight envelope.
 
@@ -207,13 +209,13 @@ In dynamic UAV flight (such as PX4 transitions from vertical hover to forward cr
 
 ### Key Proofs
 
-- **Elimination of $\mathbf{T}$ and $a_i$:** Expanding $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1} = \mathbf{t}_n^T \sum_{i=0}^{n-1}(\alpha_i - a_i)\mathbf{A}^i$ and substituting Cayley-Hamilton $-\sum_{i=0}^{n-1} a_i \mathbf{A}^i = \mathbf{A}^n$ yields $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$.
+- **Elimination of $\mathbf{T}$:** Expanding $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1} = \mathbf{t}_n^T \sum_{i=0}^{n-1}(\alpha_i - a_i)\mathbf{A}^i$ and substituting Cayley-Hamilton $-\sum_{i=0}^{n-1} a_i \mathbf{A}^i = \mathbf{A}^n$ yields $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$.
 - **Row-Vector Shortcut:** Multiplying $\mathbf{t}_n^T$ sequentially from the left ($\mathbf{t}_n^T \mathbf{A}$, $\mathbf{t}_n^T \mathbf{A}^2$, ...) avoids forming full $n \times n$ matrix powers by hand.
 
 <Callout type="warning" title="Common Mistakes">
-1. **Omitting $\mathbf{I}_n$ on the Constant Term:** Always write $\alpha_0 \mathbf{I}_n$ inside $p^*(\mathbf{A})$, never add a scalar $\alpha_0$ to off-diagonal matrix entries.
+1. **Missing Identity Matrix:** Always write $\alpha_0 \mathbf{I}_n$ inside $p^*(\mathbf{A})$, never add a scalar $\alpha_0$ to off-diagonal matrix entries.
 2. **Wrong Multiplication Order:** Controller Ackermann places the row vector $\mathbf{e}_n^T \mathcal{R}^{-1}$ on the **left** of $p^*(\mathbf{A})$; putting it on the right fails dimensionally and algebraically.
-3. **Forgetting the Sign of $\mathbf{u} = -\mathbf{K}\mathbf{x}$:** Ackermann yields $\mathbf{K}$ for $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$; if a control law is written as $\mathbf{u} = +\mathbf{K}\mathbf{x}$, signs flip.
+3. **Feedback Sign Inversion:** Ackermann yields $\mathbf{K}$ for $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$; if a control law is written as $\mathbf{u} = +\mathbf{K}\mathbf{x}$, signs flip.
 </Callout>
 
 <Divider label="4 · Exercises" />
@@ -243,14 +245,14 @@ $$
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Open-loop characteristic equation and stability:**
+1. **Open-Loop Stability Check:**
    Expanding the determinant of $s\mathbf{I}_2 - \mathbf{A}$ gives:
    $$
    \det(s\mathbf{I}_2 - \mathbf{A}) = \det\begin{bmatrix} s & -1 \\ -9 & s \end{bmatrix} = s^2 - 9 = (s - 3)(s + 3) = 0 \implies \lambda_{1,2} = \pm 3
    $$
    Because $\lambda_1 = +3 > 0$ lies strictly in the open right-half plane, the unforced inverted pendulum possesses an exponentially divergent natural mode $e^{+3t}$ and is strictly unstable.
 
-2. **Controllability matrix and generator row vector $\mathbf{t}_2^T$:**
+2. **Controllability and Vector $\mathbf{t}_2^T$:**
    Computing $\mathbf{A}\mathbf{B}$ gives:
    $$
    \mathbf{A}\mathbf{B} = \begin{bmatrix} 0 & 1 \\ 9 & 0 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}
@@ -332,7 +334,7 @@ $$
    $$
    The open-loop eigenvalues are $\lambda_1 = +1$, $\lambda_2 = -1$, and $\lambda_3 = -2$, so the mode at $\lambda_1 = +1 > 0$ is exponentially unstable.
 
-2. **Controllability matrix and generator row vector $\mathbf{t}_3^T$:**
+2. **Controllability and Vector $\mathbf{t}_3^T$:**
    Compute the reachability vectors $\mathbf{A}\mathbf{B}$ and $\mathbf{A}^2\mathbf{B}$ sequentially:
    $$
    \mathbf{B} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}, \qquad

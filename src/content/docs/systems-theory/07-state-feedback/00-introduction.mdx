@@ -1,6 +1,6 @@
 ---
-title: "Part VII — Introduction: State Feedback Control"
-description: "Conceptual overview and real-world framing for Part VII of Linear Systems Theory."
+title: "Part VII — State Feedback Control"
+description: "Conceptual overview, running system, and chapter roadmap for Part VII of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,19 +10,27 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Up through Part VI, you analyzed systems as they are. Part VII flips the perspective from **analysis** to **synthesis**: if the pair $(\mathbf{A}, \mathbf{B})$ is controllable, you gain complete authority to reshape the system's dynamics by closing a static state-feedback law $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$.
+Once controllability $\operatorname{rank}(\mathcal{R}) = n$ is confirmed in Part VI, state-space control transitions from analysis to synthesis. Closing a static state-feedback law $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$ shifts the open-loop dynamics from $\mathbf{A}$ to the closed-loop matrix $\mathbf{A} - \mathbf{B}\mathbf{K}$, allowing arbitrary assignment of all $n$ closed-loop eigenvalues.
 
-Instead of settling for the open-loop eigenvalues nature gave the plant, you choose the desired closed-loop characteristic polynomial $p^*(s)$ and solve algebraically for the gain vector $\mathbf{K}$ that places all $n$ closed-loop poles wherever performance requires—first conceptually in Controllable Canonical Form, then directly via **Ackermann's Formula**, and finally practically by mapping real time-domain specs (settling time and overshoot) into dominant pole locations.
+Part VII builds pole placement from the ground up: matching desired polynomial coefficients directly in Controllable Canonical Form, bypassing basis conversion with **Ackermann's Formula**, and choosing physically realizable target poles from transient overshoot and settling-time specifications.
 
-### Practical Real-World Perspective
+### Running Example
 
-- **Balancing Unstable Hardware:** An inverted pendulum, Segway, or vertical-takeoff rocket has an open-loop pole in the right-half plane ($\lambda > 0$). Full-state feedback moves that unstable pole safely into the left-half plane so the vehicle stands upright actively.
-- **Preventing Actuator Saturation:** Knowing how to pick closed-loop poles using the **Dominant Pole Principle** (Rule of Five) keeps auxiliary poles fast enough to stay invisible without pushing gains so high that motor drivers clip or amplify gyroscope noise.
+Across Chapters 24–26, we stabilize and shape a controllable plant via full-state feedback $\mathbf{u} = -\mathbf{K}\mathbf{x} + \mathbf{v}$:
+
+$$\dot{\mathbf{x}}(t) = (\mathbf{A} - \mathbf{B}\mathbf{K})\mathbf{x}(t) + \mathbf{B}\mathbf{v}(t), \qquad \det\big(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})\big) = p^*(s)$$
+
+Chapter 24 converts $(\mathbf{A}, \mathbf{B})$ to companion coordinates to match coefficients, Chapter 25 computes $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ directly, and Chapter 26 selects $p^*(s)$ from overshoot $\hat{s}$ and settling time $T_s$ via the Dominant Pole Rule.
+
+### Real-World Applications
+
+- **Unstable Plant Stabilization:** Full-state feedback moves unstable open-loop RHP poles (such as upright inverted pendulums and launchers) strictly into the left-half plane.
+- **Actuator Bandwidth Balance:** Placing dominant second-order poles and placing auxiliary poles $5\times\text{--}10\times$ faster prevents excessive gains from saturating actuators or amplifying sensor noise.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[24. Pole Placement in Canonical Form](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/)** — Transform $(\mathbf{A}, \mathbf{B})$ into companion coordinates and match characteristic polynomial coefficients directly.
-2. **[25. Ackermann Feedback Formula](/dynamic-courses/systems-theory/07-state-feedback/02-ackermann-state-feedback-gain-formula/)** — Compute $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ directly without full canonical basis transformations.
-3. **[26. Dominant Closed-Loop Dynamics](/dynamic-courses/systems-theory/07-state-feedback/03-dominant-second-order-closed-loop-poles/)** — Translate transient overshoot $\hat{s}$ and settling time $T_s$ into dominant second-order poles and balanced auxiliary poles.
+- [24. Canonical Pole Placement](/dynamic-courses/systems-theory/07-state-feedback/01-pole-placement-controllable-canonical-form/) — Transform $(\mathbf{A}, \mathbf{B})$ into companion coordinates and match characteristic polynomial coefficients directly.
+- [25. Ackermann Feedback Formula](/dynamic-courses/systems-theory/07-state-feedback/02-ackermann-state-feedback-gain-formula/) — Evaluate $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ without full canonical basis transformations.
+- [26. Dominant Closed-Loop Dynamics](/dynamic-courses/systems-theory/07-state-feedback/03-dominant-second-order-closed-loop-poles/) — Convert overshoot $\hat{s}$ and settling time $T_s$ into dominant second-order poles and balanced auxiliary poles.

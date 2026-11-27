@@ -1,6 +1,6 @@
 ---
-title: "Part III — Introduction: Matrix Exponential & Time Response"
-description: "Conceptual overview and real-world framing for Part III of Linear Systems Theory."
+title: "Part III — Time-Domain Response"
+description: "Conceptual overview, running system, and chapter roadmap for Part III of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,20 +10,28 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Once a physical system is written as $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$, the central question is: **where will the state vector be at any future time $t > 0$?** Part III answers this completely in the time domain by generalizing the scalar exponential $e^{at}$ into the **state transition matrix** $\mathbf{\Phi}(t) = e^{\mathbf{A}t}$.
+Once a dynamical system is expressed in state-space form $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$, predicting its exact trajectory $\mathbf{x}(t)$ for all $t \ge 0$ requires generalizing the scalar exponential $e^{at}$ into the **state transition matrix** $\mathbf{\Phi}(t) = e^{\mathbf{A}t}$.
 
-Conceptually, $e^{\mathbf{A}t}$ acts as the system's propagator: multiply any initial state $\mathbf{x}(0)$ by $e^{\mathbf{A}t}$ and you immediately trace its natural, unforced trajectory. Add external actuator commands $\mathbf{u}(t)$, and **Lagrange's Formula** blends every past impulse of control effort up to time $t$ via superposition into one clean free + forced decomposition.
+Part III solves continuous-time state and output evolution cleanly via **Lagrange's Formula**, separating the total response by superposition into the natural free evolution $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}(0)$ driven by initial stored energy and the forced convolution response driven by actuator inputs $\mathbf{u}(t)$.
 
-### Practical Real-World Perspective
+### Running Example
 
-- **Drone Gust Recovery (Free Response):** When a crosswind tilts a hovering quadrotor and then vanishes, $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}_0$ determines whether the attitude spirals smoothly back to level, overshoots, or tumbles monotonically along an eigenvector manifold.
-- **Digital Simulation & Discrete Control Loops:** Embedded autopilots running on microcontrollers at $400\text{ Hz}$ discretize continuous plant dynamics by evaluating $\mathbf{A}_d = e^{\mathbf{A}\Delta t}$ every $2.5\text{ ms}$.
-- **Impulse Weighting:** Measuring a structure's impulse response $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$ from a single hammer tap lets vibration engineers predict its output under any arbitrary road or aerodynamic load via convolution.
+Across Chapters 8–10, we evaluate a damped second-order state model $\mathbf{x}(t) \in \mathbb{R}^2$ under non-zero initial displacement $\mathbf{x}(0)$ and step excitation $u(t) = 1(t)$:
+
+$$\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}(0) + \int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}u(\tau)\,d\tau$$
+
+Chapter 8 computes $e^{\mathbf{A}t}$ via resolvent inversion, spectral decomposition, and Cayley-Hamilton; Chapter 9 maps free trajectories $\mathbf{x}_l(t)$ onto phase portraits; and Chapter 10 evaluates forced trajectories and impulse weights $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$.
+
+### Real-World Applications
+
+- **Attitude Gust Recovery:** Free response $e^{\mathbf{A}t}\mathbf{x}(0)$ determines whether a disturbed quadrotor settles smoothly, overshoots, or diverges along an eigenvector.
+- **Digital Discretization:** Embedded flight loops compute $\mathbf{A}_d = e^{\mathbf{A}\Delta t}$ to advance discrete-time estimators and controllers every sampling interval.
+- **Impulse Characterization:** Measuring impulse response $w(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}$ predicts output trajectories under arbitrary excitation via convolution.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[8. Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/)** — Three analytical routes to $e^{\mathbf{A}t}$: inverse Laplace of the resolvent, spectral decomposition, and Cayley-Hamilton.
-2. **[9. Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/)** — Computing $\mathbf{x}_l(t)$, visualizing natural modes on the phase plane, and exploiting eigenvector invariance.
-3. **[10. Forced Response and Convolution](/dynamic-courses/systems-theory/03-time-response/03-lagrange-convolution-forced-response/)** — Splitting total response into transient vs. steady-state components using Lagrange's integral and Laplace.
+- [8. Matrix Exponential Transitions](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/) — Synthesize $e^{\mathbf{A}t}$ via resolvent inversion, spectral decomposition, and Cayley-Hamilton.
+- [9. Free State Response](/dynamic-courses/systems-theory/03-time-response/02-free-state-response-evaluation/) — Evaluate $\mathbf{x}_l(t)$, classify natural modes on the phase plane, and exploit eigenvector invariance.
+- [10. Forced Response and Convolution](/dynamic-courses/systems-theory/03-time-response/03-lagrange-convolution-forced-response/) — Decompose transient vs. steady-state trajectories using Lagrange's integral and Laplace.

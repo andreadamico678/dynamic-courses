@@ -12,13 +12,13 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Introduction
 
-Ackermann's formula lets you place closed-loop eigenvalues *anywhere* in the complex plane—which immediately raises the central engineering design question: **where should you actually put them?** Real customers and flight specifications never ask for "$s = -12$" or "$s = -50$"; they ask for measurable physical step-response behavior like *"settle within $0.6\text{ s}$ with less than $5\%$ overshoot."*
+Ackermann's formula lets you place closed-loop eigenvalues *anywhere* in the complex plane—which immediately raises the central synthesis question of **eigenvalue selection**. Real flight and servo specifications never ask for "$s = -12$" or "$s = -50$"; they ask for measurable physical step-response behavior like *"settle within $0.6\text{ s}$ with less than $5\%$ overshoot."*
 
 The **Dominant Pole Principle** bridges time-domain engineering specifications to complex $s$-plane geometry: you encode overshoot and settling time into one primary second-order complex conjugate pair $\mu_{1,2} = -\sigma \pm j\omega_d$, and then tuck the remaining $n - 2$ auxiliary poles far enough to the left (the **Rule of Five**) that their transients vanish almost immediately without demanding extreme feedback gains that saturate motors or amplify sensor noise.
 
 <Divider label="1 · Example" />
 
-### Choosing Poles for a Third-Order Servo
+### Third-Order Servo Poles
 
 Suppose a third-order robotic actuator must achieve a $5\%$ settling time $T_{s,5\%} \le 0.75\text{ s}$ and a maximum step overshoot $\hat{s} \le 4.32\%$ ($\hat{s} \le 0.0432$). Rather than guessing three arbitrary roots in the complex plane, we translate those two time-domain requirements systematically into a **dominant complex conjugate pair** $\mu_{1,2} = -\sigma \pm j\omega_d$ and one fast real **auxiliary pole** $\mu_3$.
 
@@ -74,6 +74,8 @@ After just one dominant time constant $t = 1/\sigma = 0.25\text{ s}$—well befo
 />
 
 <Divider label="2 · Theory" />
+
+Selecting $n$ closed-loop eigenvalues for a higher-order state-feedback design requires mapping physical transient specifications into the complex plane without causing excessive gains. This section relates overshoot and settling time to the second-order prototype $(\zeta, \omega_n)$, justifies the Rule of Five for auxiliary poles, and balances bandwidth against actuator saturation and sensor noise.
 
 ### Second-Order Dynamic Specifications
 
@@ -150,7 +152,7 @@ y(t) = 1 + c_{\text{dom}} e^{-\sigma t} \cos(\omega_d t + \phi) + c_3 e^{-\gamma
 $$
 
 When $\gamma = 5$ ($\mu_3 = -5\sigma$), the auxiliary mode is suppressed by two simultaneous effects:
-1. **Small Initial Amplitude (Residue Scaling):** By Heaviside's residue formula at $s = -5\sigma$, the initial amplitude of the fast mode is $c_3 = \frac{-\omega_n^2}{(5\sigma)^2 - 10\sigma^2 + \omega_n^2} = \frac{-(1 + \tan^2\theta)}{16 + \tan^2\theta}$, which for $\zeta \approx 0.707$ ($\tan\theta = 1$) is only $|c_3| = 2/17 \approx 0.118$ compared to the unit step size.
+1. **Small Initial Amplitude:** By Heaviside's residue formula at $s = -5\sigma$, the initial amplitude of the fast mode is $c_3 = \frac{-\omega_n^2}{(5\sigma)^2 - 10\sigma^2 + \omega_n^2} = \frac{-(1 + \tan^2\theta)}{16 + \tan^2\theta}$, which for $\zeta \approx 0.707$ ($\tan\theta = 1$) is only $|c_3| = 2/17 \approx 0.118$ compared to the unit step size.
 2. **Rapid Exponential Decay:** The auxiliary time constant $\tau_3 = 1/(5\sigma) = \tau_{\text{dom}}/5$ is five times shorter than the dominant time constant $\tau_{\text{dom}} = 1/\sigma$. After just one dominant time constant $t = 1/\sigma$, the dominant envelope is still at $e^{-1} \approx 36.8\%$, whereas the auxiliary exponential factor has already dropped to $e^{-5} \approx 0.0067$ (less than $0.7\%$).
 
 Because the auxiliary mode starts with a small residue and vanishes long before the dominant peak time $T_p$, the closed-loop transient tracks the ideal second-order specifications closely.
@@ -183,7 +185,7 @@ Inside this $[3\sigma, 6\sigma]$ window, auxiliary transients decay to less than
   explanation="Constant coefficient $\\alpha_0 = \\prod |\\mu_i|$ scales directly with auxiliary pole speed, inflating $\\mathbf{K}$ and amplifying sensor noise into saturated actuators."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Drone Attitude Rate and Angle Inner-Outer Loops">
+<Callout type="bridge" title="Drone Attitude Rate Loops">
 
 In the PX4 autopilot attitude control architecture, quadrotor rotational dynamics are 3rd-order per axis:
 
@@ -215,11 +217,11 @@ where $\tau_m \approx 30\text{ ms}$ is the ESC motor time constant and $\tau_e$ 
 ### Key Proofs
 
 - **Overshoot and Peak Time:** Differentiating $y(t) = 1 - \frac{e^{-\sigma t}}{\sqrt{1-\zeta^2}}\sin(\omega_d t + \theta)$ gives $\dot{y}(t) \propto e^{-\sigma t}\sin(\omega_d t) = 0$, placing the first peak at $T_p = \pi/\omega_d$ with overshoot $\hat{s} = e^{-\pi\sigma/\omega_d} = e^{-\pi\zeta/\sqrt{1-\zeta^2}}$.
-- **Settling Time and Rule of Five:** Solving $e^{-\sigma T_s} = 0.05$ yields $\sigma T_s = \ln(20) \approx 3$ (or $\ln(50) \approx 4$ for $2\%$); setting $\mu_k = -5\sigma$ forces $e^{\mu_k t} = e^{-5} < 0.007$ at $t = 1/\sigma$.
+- **Settling Time Bounds:** Solving $e^{-\sigma T_s} = 0.05$ yields $\sigma T_s = \ln(20) \approx 3$ (or $\ln(50) \approx 4$ for $2\%$); setting $\mu_k = -5\sigma$ forces $e^{\mu_k t} = e^{-5} < 0.007$ at $t = 1/\sigma$.
 
 <Callout type="warning" title="Common Mistakes">
-1. **Using Percent Directly in $\ln(\hat{s})$:** Always convert $\hat{s} = 5\%$ to decimal $\hat{s} = 0.05$ before evaluating $\ln(\hat{s})$.
-2. **Mixing $5\%$ and $2\%$ Constants:** $T_{s,5\%} \approx 3/\sigma$ uses $3$, whereas $T_{s,2\%} \approx 4/\sigma$ uses $4$; verify which criterion the problem states.
+1. **Percent vs. Decimal Overshoot:** Always convert $\hat{s} = 5\%$ to decimal $\hat{s} = 0.05$ before evaluating $\ln(\hat{s})$.
+2. **Mixing Settling Criteria:** $T_{s,5\%} \approx 3/\sigma$ uses $3$, whereas $T_{s,2\%} \approx 4/\sigma$ uses $4$; verify which criterion the problem states.
 3. **Confusing $\omega_n$ and $\omega_d$:** The imaginary part of $\mu_{1,2} = -\sigma \pm j\omega_d$ is $\omega_d = \omega_n\sqrt{1-\zeta^2}$, while the constant term of $s^2 + 2\zeta\omega_n s + \omega_n^2$ is $\omega_n^2 = \sigma^2 + \omega_d^2$.
 </Callout>
 
@@ -259,7 +261,7 @@ A control system must satisfy the following time-domain step response specificat
    $$
    Thus the damping ratio must satisfy $\zeta \ge 0.690$ (often rounded on exams to $\zeta = 0.7$).
 
-2. **Minimum decay rate and natural frequency:**
+2. **Decay Rate and Frequency:**
    From the $5\%$ settling-time envelope formula $T_{s,5\%} \approx \frac{3}{\sigma} \le 0.6\text{ s}$, the minimum real-part decay rate is:
    $$
    \sigma = \zeta\omega_n \ge \frac{3}{0.6} = 5\text{ rad/s}
@@ -269,7 +271,7 @@ A control system must satisfy the following time-domain step response specificat
    \omega_n = \frac{\sigma}{\zeta} = \frac{5}{0.690} \approx 7.25\text{ rad/s}
    $$
 
-3. **Damped oscillation frequency and dominant pole locations:**
+3. **Damped Frequency and Poles:**
    Using the Pythagorean relation $\omega_n^2 = \sigma^2 + \omega_d^2$, the imaginary part $\omega_d$ is:
    $$
    \omega_d = \omega_n \sqrt{1 - \zeta^2} = \sqrt{\omega_n^2 - \sigma^2} \approx \sqrt{(7.25)^2 - 5^2} = \sqrt{52.56 - 25} = \sqrt{27.56} \approx 5.25\text{ rad/s}
@@ -315,7 +317,7 @@ is to be stabilized with state feedback $\mathbf{u} = -\mathbf{K}\mathbf{x}$. Tr
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Dominant pole locations and quadratic factor:**
+1. **Dominant Poles and Quadratic:**
    With $\zeta = 0.6$ and $\omega_n = 5\text{ rad/s}$, the real decay rate and damped oscillation frequency are:
    $$
    \sigma = \zeta\omega_n = (0.6)(5) = 3\text{ rad/s}, \qquad \omega_d = \omega_n \sqrt{1 - \zeta^2} = 5\sqrt{1 - 0.36} = 5(0.8) = 4\text{ rad/s}
@@ -325,7 +327,7 @@ is to be stabilized with state feedback $\mathbf{u} = -\mathbf{K}\mathbf{x}$. Tr
    p_{\text{dom}}^*(s) = (s + 3)^2 + 4^2 = s^2 + 2\zeta\omega_n s + \omega_n^2 = s^2 + 6s + 25
    $$
 
-2. **Auxiliary pole selection via the Rule of Five:**
+2. **Auxiliary Pole Selection:**
    To ensure the third mode vanishes within one dominant time constant $1/\sigma = 1/3\text{ s}$, place the real auxiliary pole $\mu_3$ five times deeper into the left half-plane than $-\sigma = -3$:
    $$
    \mu_3 = -5\sigma = -5(3) = -15\text{ rad/s}

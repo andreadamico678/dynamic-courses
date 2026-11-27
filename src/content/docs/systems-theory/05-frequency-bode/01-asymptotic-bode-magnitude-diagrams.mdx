@@ -13,13 +13,13 @@ import BodeExplorer from "@components/BodeExplorer.tsx";
 
 ## Introduction
 
-Up to this point, we have predicted how a system behaves by solving differential equations in time $t$ or tracking poles and zeros in the complex $s$-plane. In laboratory practice and feedback design, however, engineers rarely excite an aircraft wing, audio amplifier, or motor drive with an ideal mathematical Dirac delta impulse—Instead, they sweep a sinusoidal input across frequency $\omega$ and measure how strongly the hardware amplifies or attenuates each oscillation speed.
+Up to this point, we have predicted how a system behaves by solving differential equations in time $t$ or tracking poles and zeros in the complex $s$-plane. In laboratory practice and feedback design, however, engineers rarely excite an aircraft wing, audio amplifier, or motor drive with an ideal mathematical Dirac delta impulse—instead, they sweep a sinusoidal input across frequency $\omega$ and measure how strongly the hardware amplifies or attenuates each oscillation speed.
 
 **Bode magnitude diagrams** turn that entire frequency sweep into a modular, ruler-drawn geometric picture. By plotting angular frequency $\omega$ on a logarithmic axis and gain $|W(j\omega)|$ in **decibels** ($\text{dB}$), multiplication and division of high-order polynomial factors collapse into simple addition and subtraction of straight lines with slopes of $\pm 20\text{ dB/decade}$, while analytical correction formulas predict exact corner offsets and structural resonance peaks.
 
 <Divider label="1 · Example" />
 
-### Piecewise-Linear Magnitude of the Part V Loop
+### Loop Magnitude Sketch
 
 Before deriving the general rules for arbitrary transfer functions, let us trace how a concrete rational function behaves across frequency when converted to decibels. Consider our Part V running example with unit proportional gain $K = 1$:
 
@@ -35,15 +35,15 @@ $$|L(j\omega)|_{\text{dB}} = \underbrace{-20\log_{10}\omega}_{\text{integrator }
 
 Notice how the three factors now add together independently across three frequency bands separated by the **corner frequencies** $\omega_p = 2\text{ rad/s}$ and $\omega_z = 4\text{ rad/s}$:
 
-1. **Low-Frequency Band ($\omega \ll 2\text{ rad/s}$):**
-   When $\omega$ is much smaller than $2$, both $(\omega/2)^2 \ll 1$ and $(\omega/4)^2 \ll 1$. Therefore $\sqrt{1 + (\omega/2)^2} \approx 1$ and $\sqrt{1 + (\omega/4)^2} \approx 1$, whose logarithms are $20\log_{10}(1) = 0\text{ dB}$. Only the integrator term survives:
+1. **Low-Frequency Band:**
+   When $\omega \ll 2\text{ rad/s}$, both $(\omega/2)^2 \ll 1$ and $(\omega/4)^2 \ll 1$. Therefore $\sqrt{1 + (\omega/2)^2} \approx 1$ and $\sqrt{1 + (\omega/4)^2} \approx 1$, whose logarithms are $20\log_{10}(1) = 0\text{ dB}$. Only the integrator term survives:
    $$|L(j\omega)|_{\text{dB}} \approx -20\log_{10}\omega$$
    Against the horizontal coordinate $x = \log_{10}\omega$, the equation $y = -20x$ is a **straight line** with slope $-20\text{ dB/decade}$ that passes through the exact anchor point $(\omega = 1\text{ rad/s},\; 0\text{ dB})$. By the time this line reaches the first corner $\omega_p = 2\text{ rad/s}$, its asymptotic height is:
    $$y(2) = 0 - 20\log_{10}(2) \approx -6.02\text{ dB}$$
-2. **Intermediate Band ($2 \le \omega < 4\text{ rad/s}$):**
-   Once $\omega$ passes $\omega_p = 2\text{ rad/s}$, the pole term $\sqrt{1 + (\omega/2)^2}$ is approximated by its high-frequency asymptote $\omega/2$, contributing $-20\log_{10}(\omega/2)$ (a downward slope of $-20\text{ dB/dec}$), while the zero term at $\omega_z = 4$ still sits near $0\text{ dB}$. Combining the integrator ($-20\text{ dB/dec}$) and the activated pole ($-20\text{ dB/dec}$) gives a steeper cumulative slope of $-40\text{ dB/dec}$. Walking from $\omega_p = 2$ to $\omega_z = 4$ (one octave, $\log_{10}(4/2) \approx 0.3010$ decades) drops the asymptotic height to:
+2. **Intermediate Band:**
+   For $2 \le \omega < 4\text{ rad/s}$, the pole term $\sqrt{1 + (\omega/2)^2}$ is approximated by its high-frequency asymptote $\omega/2$, contributing $-20\log_{10}(\omega/2)$ (a downward slope of $-20\text{ dB/dec}$), while the zero term at $\omega_z = 4$ still sits near $0\text{ dB}$. Combining the integrator ($-20\text{ dB/dec}$) and the activated pole ($-20\text{ dB/dec}$) gives a steeper cumulative slope of $-40\text{ dB/dec}$. Walking from $\omega_p = 2$ to $\omega_z = 4$ (one octave, $\log_{10}(4/2) \approx 0.3010$ decades) drops the asymptotic height to:
    $$y(4) = y(2) - 40\log_{10}\!\left(\frac{4}{2}\right) \approx -6.02 - 40(0.3010) = -18.06\text{ dB}$$
-3. **High-Frequency Band ($\omega \ge 4\text{ rad/s}$):**
+3. **High-Frequency Band:**
    Above $\omega_z = 4\text{ rad/s}$, the numerator zero term $\sqrt{1 + (\omega/4)^2} \approx \omega/4$ wakes up and contributes $+20\log_{10}(\omega/4)$, adding $+20\text{ dB/dec}$ to the slope. The cumulative slope bends back from $-40\text{ dB/dec}$ to $-40 + 20 = -20\text{ dB/dec}$ for all $\omega > 4\text{ rad/s}$.
 
 How far does the smooth exact curve $20\log_{10}|L(j\omega)|$ stray from those three ruler-drawn line segments? At an isolated corner $\omega = \omega_c$, replacing $\sqrt{1 + 1^2} = \sqrt{2}$ by $1$ introduces a vertical offset of $\pm 20\log_{10}\sqrt{2} \approx \pm 3.01\text{ dB}$. Toggle `Show exact curve` and vary $K_B$ or $\omega_p$ in the interactive plot below to compare the piecewise-linear skeleton (solid blue) against the exact curve (dashed red).
@@ -60,7 +60,9 @@ How far does the smooth exact curve $20\log_{10}|L(j\omega)|$ stray from those t
 
 <Divider label="2 · Theory" />
 
-### Harmonic Response & Semi-Log Axes
+Evaluating a BIBO-stable transfer function along $s = j\omega$ turns sinusoidal steady-state amplification into a function of frequency alone. This section defines decibel and logarithmic frequency coordinates, derives the piecewise-linear magnitude asymptotes for real factors, and determines resonant peaking limits for complex conjugate poles.
+
+### Harmonic Response Axes
 
 Why does evaluating a Laplace transfer function $W(s)$ along the imaginary axis $s = j\omega$ describe physical sinusoidal testing? Recall from [Chapter 5](/dynamic-courses/systems-theory/02-laplace-resolvent/02-partial-fraction-expansion-heaviside-residues/) and [Chapter 16](/dynamic-courses/systems-theory/04-stability-routh/06-bounded-input-bounded-output-stability/) that when a BIBO-stable LTI system (all poles of $W(s)$ strictly in the open left half-plane, $\operatorname{Re}(p_k) < 0$) is driven by a sinusoidal input $u(t) = U\sin(\omega t)\,\mathbb{1}(t)$ with Laplace transform $U(s) = \frac{U\omega}{s^2 + \omega^2}$, partial fraction expansion splits the output $Y(s) = W(s)U(s)$ into two parts:
 1. **Natural Transient Modes:** Terms arising from the LHP poles $p_k$ of $W(s)$, which decay exponentially to zero as $e^{\operatorname{Re}(p_k)t} \to 0$.
@@ -103,17 +105,15 @@ $$|W(j\omega)|_{\text{dB}} = \underbrace{20\log_{10}|K_B| - 20g\log_{10}\omega}_
 
 Let us analyze each elementary building block in detail:
 
-1. **Low-Frequency Monomial $W_{\text{LF}}(j\omega) = K_B / (j\omega)^g$:**
-   Its exact decibel value is $y_{\text{LF}}(\omega) = 20\log_{10}|K_B| - 20g\log_{10}\omega$. In terms of the horizontal log coordinate $x = \log_{10}\omega$, this is an exact straight line of slope $S_0 = -20g\text{ dB/decade}$. At $\omega = 1\text{ rad/s}$ ($x = \log_{10} 1 = 0$), the second term vanishes for any $g$, pinning the low-frequency asymptote (or its straight-line extension) through the universal **anchor point** $(\omega = 1\text{ rad/s},\; 20\log_{10}|K_B|\text{ dB})$.
-2. **First-Order Real Pole $(1 + j\omega/\omega_c)^{-1}$ (and Real Zero $1 + j\omega/\omega_c$):**
-   Writing $\omega_c = 1/|\tau|$, the exact decibel contribution of a single real pole is:
+1. **Low-Frequency Monomial:** For $W_{\text{LF}}(j\omega) = K_B / (j\omega)^g$, the exact decibel value is $y_{\text{LF}}(\omega) = 20\log_{10}|K_B| - 20g\log_{10}\omega$. In terms of the horizontal log coordinate $x = \log_{10}\omega$, this is an exact straight line of slope $S_0 = -20g\text{ dB/decade}$. At $\omega = 1\text{ rad/s}$ ($x = \log_{10} 1 = 0$), the second term vanishes for any $g$, pinning the low-frequency asymptote (or its straight-line extension) through the universal **anchor point** $(\omega = 1\text{ rad/s},\; 20\log_{10}|K_B|\text{ dB})$.
+2. **First-Order Real Factors:** For $(1 + j\omega/\omega_c)^{-1}$ (and symmetrically for a real zero $1 + j\omega/\omega_c$), writing $\omega_c = 1/|\tau|$ gives the exact decibel contribution of a single real pole:
    $$|F_p(j\omega)|_{\text{dB}} = -20\log_{10}\sqrt{1 + \left(\frac{\omega}{\omega_c}\right)^2} = -10\log_{10}\!\left(1 + \frac{\omega^2}{\omega_c^2}\right)$$
    Inspect its behavior below, above, and right at the corner frequency $\omega_c$:
-   - **Below the corner ($\omega \ll \omega_c$):** Since $(\omega/\omega_c)^2 \ll 1$, we neglect $(\omega/\omega_c)^2$ relative to $1$, yielding $-10\log_{10}(1) = 0\text{ dB}$. A pole or zero is invisible in magnitude below its corner frequency.
-   - **Above the corner ($\omega \gg \omega_c$):** Since $(\omega/\omega_c)^2 \gg 1$, we neglect $1$ relative to $(\omega/\omega_c)^2$, yielding:
+   - **Below Corner Frequency:** For $\omega \ll \omega_c$, $(\omega/\omega_c)^2 \ll 1$, so we neglect $(\omega/\omega_c)^2$ relative to $1$, yielding $-10\log_{10}(1) = 0\text{ dB}$. A pole or zero is invisible in magnitude below its corner frequency.
+   - **Above Corner Frequency:** For $\omega \gg \omega_c$, $(\omega/\omega_c)^2 \gg 1$, so we neglect $1$ relative to $(\omega/\omega_c)^2$, yielding:
      $$|F_p(j\omega)|_{\text{dB}} \approx -20\log_{10}\!\left(\frac{\omega}{\omega_c}\right) = -20\log_{10}\omega + 20\log_{10}\omega_c$$
      This is a straight line of slope $-20\text{ dB/decade}$ (or $-6.02\text{ dB/octave}$) that intersects the $0\text{ dB}$ axis precisely at $\omega = \omega_c$.
-   - **Exact Error at the Corner ($\omega = \omega_c$):** At $\omega = \omega_c$, the two straight asymptotes meet at $0\text{ dB}$, whereas the exact formula gives $-20\log_{10}\sqrt{1 + 1^2} = -20\log_{10}\sqrt{2} \approx -3.01\text{ dB}$ (and $-10\log_{10}(1 + 0.5^2) \approx -0.97\text{ dB}$ one octave away at $\omega = 0.5\omega_c$ and $2\omega_c$).
+   - **Exact Corner Offset:** At $\omega = \omega_c$, the two straight asymptotes meet at $0\text{ dB}$, whereas the exact formula gives $-20\log_{10}\sqrt{1 + 1^2} = -20\log_{10}\sqrt{2} \approx -3.01\text{ dB}$ (and $-10\log_{10}(1 + 0.5^2) \approx -0.97\text{ dB}$ one octave away at $\omega = 0.5\omega_c$ and $2\omega_c$).
    Reversing the sign for a real numerator zero $(1 + j\omega/\omega_c)$ flips the high-frequency slope to $+20\text{ dB/decade}$ and the corner offset to $+3.01\text{ dB}$.
 
 ### Complex Poles and Resonant Peaking
@@ -171,7 +171,7 @@ On the other hand, if $\zeta \ge 1/\sqrt{2} \approx 0.707$, then $dD/du \ge 0$ f
 
 ### Drafting Procedure
 
-1. **Convert to Bode Canonical Form & Sort Corners:** Factor constants out of all $(s - z_i)$ and $(s - p_k)$ terms to find $g$, $K_B$, and $20\log_{10}|K_B|$. Sort all corner frequencies $\omega_{c,1} < \dots < \omega_{c,r}$ and pick a plotting window $[\omega_{\text{start}}, \omega_{\text{end}}]$ with $\omega_{\text{start}} \le 0.1\,\omega_{c,1}$ and $\omega_{\text{end}} \ge 10\,\omega_{c,r}$.
+1. **Canonical Form and Corners:** Factor constants out of all $(s - z_i)$ and $(s - p_k)$ terms to find $g$, $K_B$, and $20\log_{10}|K_B|$. Sort all corner frequencies $\omega_{c,1} < \dots < \omega_{c,r}$ and pick a plotting window $[\omega_{\text{start}}, \omega_{\text{end}}]$ with $\omega_{\text{start}} \le 0.1\,\omega_{c,1}$ and $\omega_{\text{end}} \ge 10\,\omega_{c,r}$.
 2. **Draw the Low-Frequency Line:** Start at $y(\omega_{\text{start}}) = 20\log_{10}|K_B| - 20g\log_{10}(\omega_{\text{start}})$ and draw a straight segment of slope $S_0 = -20g\text{ dB/dec}$ aimed through the anchor point $(1\text{ rad/s},\, 20\log_{10}|K_B|)$ up to $\omega_{c,1}$.
 3. **Walk Vertex-to-Vertex:** Compute each next corner height using the general logarithmic step formula:
    $$\boxed{y(\omega_{k+1}) = y(\omega_k) + S_{\text{current}} \cdot \log_{10}\!\left(\frac{\omega_{k+1}}{\omega_k}\right)}$$
@@ -185,15 +185,15 @@ On the other hand, if $\zeta \ge 1/\sqrt{2} \approx 0.707$, then $dD/du \ge 0$ f
 
 ### Key Proofs
 
-- **Logarithmic slope of a real pole:** Show that $-20\log_{10}\sqrt{1 + (\omega/\omega_c)^2} \to 0\text{ dB}$ for $\omega \ll \omega_c$, $-20\log_{10}(\omega/\omega_c)$ ($-20\text{ dB/dec}$) for $\omega \gg \omega_c$, and $-20\log_{10}\sqrt{2} \approx -3.01\text{ dB}$ at $\omega = \omega_c$.
+- **Real Pole Slope:** Show that $-20\log_{10}\sqrt{1 + (\omega/\omega_c)^2} \to 0\text{ dB}$ for $\omega \ll \omega_c$, $-20\log_{10}(\omega/\omega_c)$ ($-20\text{ dB/dec}$) for $\omega \gg \omega_c$, and $-20\log_{10}\sqrt{2} \approx -3.01\text{ dB}$ at $\omega = \omega_c$.
 - **Resonant peak derivation:** Differentiate $D(u) = (1 - u)^2 + 4\zeta^2 u$ with respect to $u = (\omega/\omega_n)^2$ to prove $u_r = 1 - 2\zeta^2 > 0 \iff \zeta < 1/\sqrt{2}$ and $M_r = \frac{1}{2\zeta\sqrt{1-\zeta^2}}$.
 
 <Callout type="warning" title="Common Mistakes">
-1. **Confusing Evans $K$ with Bode $K_B$:** Always factor constants out of every $(s + a)$ binomial before computing $20\log_{10}|K_B|$.
-2. **Treating Corner Error as a Slope Change:** Never change the line slope by $-3.01\text{ dB}$; $-3.01\text{ dB}$ is purely a vertical offset between the sharp asymptotic vertex and the smooth exact curve at $\omega_c$.
+1. **Evans vs. Bode Gain:** Always factor constants out of every $(s + a)$ binomial before computing $20\log_{10}|K_B|$.
+2. **Corner Offset vs. Slope:** Never change the line slope by $-3.01\text{ dB}$; $-3.01\text{ dB}$ is purely a vertical offset between the sharp asymptotic vertex and the smooth exact curve at $\omega_c$.
 </Callout>
 
-<Callout type="bridge" title="Robotics Note: Structural Resonance in Drone Frames">
+<Callout type="bridge" title="Drone Frame Structural Resonance">
 Lightweight carbon-fiber quadrotor frames often show low structural damping ($\zeta \approx 0.05$) near $\omega_n \approx 150\text{ rad/s}$, creating a resonant spike $M_r \approx \frac{1}{2(0.05)} = 10$ ($+20\text{ dB}$) that digital notch filters at $\omega_r$ remove in flight firmware.
 </Callout>
 
@@ -227,7 +227,30 @@ $$W(s) = \frac{10 (s + 2)}{s (s + 20)}$$
 
 </Exercise>
 
-<Exercise client:load id="ex-17-2" title="Exercise 17.2 — Multi-Corner Gain Crossover" level="Exam Standard">
+<Exercise client:load id="ex-17-2" title="Exercise 17.2 — Complex Conjugate Resonance Peak" level="Intermediate">
+
+A second-order accelerometer stage has the transfer function:
+$$W(s) = \frac{100}{s^2 + 2s + 100}$$
+1. Write $W(s)$ in Bode canonical form and identify $K_B$, $\omega_n$, and $\zeta$.
+2. Determine whether a resonant peak exists, and compute the exact resonant frequency $\omega_r$ and peak amplification $M_r$ in decibels.
+
+<StepCheck client:load prompt="Compute the resonant peak amplification $20\log_{10}(M_r)$ in $\mathrm{dB}$ (round to 2 decimal places):" expected={14.02} tolerance={0.1} unit="$\mathrm{dB}$" explanation="Here $\omega_n = 10\;\mathrm{rad/s}$ and $\zeta = 0.1 < 0.707$. Thus $M_r = \frac{1}{2(0.1)\sqrt{1 - 0.01}} = \frac{5}{\sqrt{0.99}} \approx 5.025 \implies 20\log_{10}(5.025) \approx 14.02\;\mathrm{dB}$." />
+
+<details className="dc-solution">
+<summary>Show Step-by-Step Solution</summary>
+
+1. **Bode canonical form:** Factor $100$ from the denominator:
+   $$W(s) = \frac{100}{100\left(1 + \frac{2}{100}s + \frac{s^2}{100}\right)} = \frac{1}{1 + \frac{2(0.1)}{10}s + \frac{s^2}{10^2}}$$
+   Matching $1 + \frac{2\zeta}{\omega_n}s + \frac{s^2}{\omega_n^2}$ gives $g = 0$, $K_B = 1$ ($0\text{ dB}$), $\omega_n = 10\text{ rad/s}$, and $\zeta = 0.1$.
+2. **Resonance parameters:** Since $0 < \zeta = 0.1 < 1/\sqrt{2} \approx 0.707$, a strong resonant peak occurs at:
+   $$\omega_r = \omega_n\sqrt{1 - 2\zeta^2} = 10\sqrt{1 - 0.02} = 10\sqrt{0.98} \approx 9.90\text{ rad/s}$$
+   $$M_r = \frac{1}{2\zeta\sqrt{1 - \zeta^2}} = \frac{1}{0.2\sqrt{0.99}} \approx 5.025 \implies 20\log_{10}(M_r) \approx +14.02\text{ dB}$$
+
+</details>
+
+</Exercise>
+
+<Exercise client:load id="ex-17-3" title="Exercise 17.3 — Multi-Corner Gain Crossover" level="Exam Standard">
 
 Consider the open-loop transfer function:
 $$W(s) = \frac{200 (s + 5)}{s (s + 2)(s + 50)}$$
@@ -253,29 +276,6 @@ $$W(s) = \frac{200 (s + 5)}{s (s + 2)(s + 50)}$$
    - At $\omega = 100\text{ rad/s}$: $y(100) = -21.94 - 40\log_{10}(100/50) \approx -33.98\text{ dB}$.
 3. **Crossover on $[2, 5]$:** Since $y(2) = +13.98\text{ dB} > 0$ and $y(5) = -1.94\text{ dB} < 0$, the $0\text{ dB}$ crossing lies inside $[2, 5]$ where the slope is $-40\text{ dB/dec}$:
    $$13.98 - 40\log_{10}\!\left(\frac{\omega_c}{2}\right) = 0 \implies \log_{10}\!\left(\frac{\omega_c}{2}\right) = \frac{13.98}{40} = 0.3495 \implies \omega_c = 2 \cdot 10^{0.3495} \approx 4.47\text{ rad/s}$$
-
-</details>
-
-</Exercise>
-
-<Exercise client:load id="ex-17-3" title="Exercise 17.3 — Complex Conjugate Resonance Peak" level="Intermediate">
-
-A second-order accelerometer stage has the transfer function:
-$$W(s) = \frac{100}{s^2 + 2s + 100}$$
-1. Write $W(s)$ in Bode canonical form and identify $K_B$, $\omega_n$, and $\zeta$.
-2. Determine whether a resonant peak exists, and compute the exact resonant frequency $\omega_r$ and peak amplification $M_r$ in decibels.
-
-<StepCheck client:load prompt="Compute the resonant peak amplification $20\log_{10}(M_r)$ in $\mathrm{dB}$ (round to 2 decimal places):" expected={14.02} tolerance={0.1} unit="$\mathrm{dB}$" explanation="Here $\omega_n = 10\;\mathrm{rad/s}$ and $\zeta = 0.1 < 0.707$. Thus $M_r = \frac{1}{2(0.1)\sqrt{1 - 0.01}} = \frac{5}{\sqrt{0.99}} \approx 5.025 \implies 20\log_{10}(5.025) \approx 14.02\;\mathrm{dB}$." />
-
-<details className="dc-solution">
-<summary>Show Step-by-Step Solution</summary>
-
-1. **Bode canonical form:** Factor $100$ from the denominator:
-   $$W(s) = \frac{100}{100\left(1 + \frac{2}{100}s + \frac{s^2}{100}\right)} = \frac{1}{1 + \frac{2(0.1)}{10}s + \frac{s^2}{10^2}}$$
-   Matching $1 + \frac{2\zeta}{\omega_n}s + \frac{s^2}{\omega_n^2}$ gives $g = 0$, $K_B = 1$ ($0\text{ dB}$), $\omega_n = 10\text{ rad/s}$, and $\zeta = 0.1$.
-2. **Resonance parameters:** Since $0 < \zeta = 0.1 < 1/\sqrt{2} \approx 0.707$, a strong resonant peak occurs at:
-   $$\omega_r = \omega_n\sqrt{1 - 2\zeta^2} = 10\sqrt{1 - 0.02} = 10\sqrt{0.98} \approx 9.90\text{ rad/s}$$
-   $$M_r = \frac{1}{2\zeta\sqrt{1 - \zeta^2}} = \frac{1}{0.2\sqrt{0.99}} \approx 5.025 \implies 20\log_{10}(M_r) \approx +14.02\text{ dB}$$
 
 </details>
 

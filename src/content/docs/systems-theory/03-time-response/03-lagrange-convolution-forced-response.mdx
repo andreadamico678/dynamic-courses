@@ -24,9 +24,9 @@ $$\dot{x}(t) = -2 x(t) + 4 u(t), \qquad y(t) = x(t)$$
 
 Because the differential equation is linear, we can solve for the effect of $x(0)$ and the effect of $u(t)$ separately and add them together:
 
-1. **Free Response ($u(t) \equiv 0$, $x(0) = 5$):** Without the heater, initial thermal energy decays exponentially at rate $A = -2$:
+1. **Free Response:** Without the heater ($u(t) \equiv 0$, $x(0) = 5$), initial thermal energy decays exponentially at rate $A = -2$:
    $$x_l(t) = e^{-2t} \cdot 5 = 5e^{-2t}, \qquad y_l(t) = 5e^{-2t}$$
-2. **Forced Response ($x(0) = 0$, $u(t) = 1(t)$):** Starting from zero initial temperature, Lagrange's convolution integral sums the heater effort $B u(\tau) = 4$ over all past instants $\tau \in [0, t]$:
+2. **Forced Response:** Starting from zero initial temperature ($x(0) = 0$, $u(t) = 1(t)$), Lagrange's convolution integral sums the heater effort $B u(\tau) = 4$ over all past instants $\tau \in [0, t]$:
 
    $$
    \begin{aligned}
@@ -58,6 +58,8 @@ Physically, the heater's upward buildup $2(1 - e^{-2t})$ partially offsets the i
 />
 
 <Divider label="2 · Theory" />
+
+Solving the non-homogeneous state equation adds a forced convolution term to the homogeneous transition matrix. This section derives Lagrange's formula, relates its zero-state integral to the impulse response matrix, and separates transient modes from steady-state behavior.
 
 ### Non-Homogeneous State Evolution
 
@@ -139,7 +141,7 @@ Notice that the exact same result follows from the Final Value Theorem in [Unila
   explanation="Even when $\mathbf{x}(0) = \mathbf{0}$ (zero free response), a step input excites decaying natural modes inside $\mathbf{y}_f(t)$, which belong to $\mathbf{y}_{\mathrm{trans}}(t)$."
 />
 
-<Callout type="bridge" title="SDU Robotics Bridge: Robot Manipulator Joint Trajectory Tracking">
+<Callout type="bridge" title="Manipulator Joint Trajectory Tracking">
 
 In robotic manipulators (such as Universal Robots or Franka Emika arms), joint positions $\mathbf{q}(t)$ are driven by actuator torque commands $\boldsymbol{\tau}(t)$. Because gravity acts as a constant external disturbance $\mathbf{u}_{\text{dist}} = -\mathbf{g}(\mathbf{q})$, Lagrange's formula proves that proportional-derivative (PD) control without an integrator leaves a persistent steady-state error:
 

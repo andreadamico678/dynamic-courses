@@ -1,6 +1,6 @@
 ---
-title: "Part IV — Introduction: Stability & Routh-Hurwitz"
-description: "Conceptual overview and real-world framing for Part IV of Linear Systems Theory."
+title: "Part IV — System Stability"
+description: "Conceptual overview, running system, and chapter roadmap for Part IV of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,23 +10,30 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Before tuning performance, bandwidth, or energy efficiency, control engineering enforces one non-negotiable requirement: **stability**. An unstable system amplifies tiny disturbances or sensor noise exponentially until actuators saturate or mechanical hardware fails.
+Before optimizing tracking speed or control energy, control engineering enforces **stability**: bounded perturbations and bounded actuator commands must never produce unbounded internal growth or actuator saturation.
 
-Part IV provides a complete toolkit for diagnosing stability from both inside and outside the system. You start by finding stationary operating equilibria ($\dot{\mathbf{x}} = \mathbf{0}$), classify internal state stability rigorously through the eigenvalues of $\mathbf{A}$ (including tricky repeated roots on the imaginary axis), master the algebraic **Routh-Hurwitz** table to test high-degree or symbolic polynomials without factoring, and conclude by contrasting internal state stability with external **BIBO** input-output boundedness.
+Part IV connects internal and external stability criteria systematically. Chapters 11–16 locate stationary equilibria $\mathbf{x}_e$, classify internal stability via the eigenvalues and multiplicities of $\mathbf{A}$, evaluate high-degree and symbolic characteristic polynomials without root factoring via the **Routh-Hurwitz array** (including singular rows), compute stabilizing gain bounds $(K_{\min}, K_{\max})$, and contrast internal stability against external **BIBO stability**.
 
-### Practical Real-World Perspective
+### Running Example
 
-- **Flight Trim & Hover:** An aircraft cruising at constant altitude or a rocket balancing upright operates at a trim equilibrium $(\mathbf{x}_e, \mathbf{u}_0)$. Perturbation dynamics $\mathbf{z} = \mathbf{x} - \mathbf{x}_e$ let linear stability theorems govern small deviations around that trim point.
-- **PID Gain Tuning Limits:** Turning up proportional controller gain $K$ on a robotic arm makes tracking snappier until you cross $K_{\text{crit}}$ and the arm breaks into violent oscillation. Routh's array predicts the exact maximum gain $K_{\max}$ and chatter frequency $\omega_{\text{osc}}$ analytically before turning on power.
-- **Hidden Instability Trap:** An internal thermal or structural resonance can diverge silently while a poorly placed sensor reports bounded output—why comparing internal Lyapunov stability against external BIBO stability prevents catastrophic blind spots.
+Across Chapters 11–16, we track a third-order parameterized feedback system driven by constant setpoint $u_0$ and proportional loop gain $K$:
+
+$$p(s; K) = s^3 + 6s^2 + 11s + (6 + K) = 0$$
+
+Chapters 11–12 establish hover/trim equilibria and spectral perturbation behavior; Chapters 13–15 build Routh tables (including zero pivots and auxiliary rows) to solve analytically for $K_{\max}$ and sustained oscillation frequency $\omega_{\text{osc}}$; and Chapter 16 links $\int_0^\infty |w(t)|\,dt < \infty$ to hidden unstable modes.
+
+### Real-World Applications
+
+- **Trim Equilibria:** Linearizing hover or cruise trim $(\mathbf{x}_e, \mathbf{u}_0)$ via perturbation coordinates $\mathbf{z} = \mathbf{x} - \mathbf{x}_e$ brings physical vehicles under LTI stability theorems.
+- **Gain Margin Synthesis:** Routh arrays predict exact controller instability thresholds $K_{\max}$ and oscillation frequencies analytically prior to hardware testing.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[11. Equilibrium States in Linear Dynamic Systems](/dynamic-courses/systems-theory/04-stability-routh/01-linear-time-invariant-equilibrium-points/)** — Solve $\mathbf{A}\mathbf{x}_e + \mathbf{B}\mathbf{u}_0 = \mathbf{0}$ via Rouché-Capelli and translate coordinates to the origin.
-2. **[12. Lyapunov Internal State Stability](/dynamic-courses/systems-theory/04-stability-routh/02-lyapunov-spectral-internal-stability/)** — Master asymptotic, simple, and unstable spectral conditions ($m_a$ vs. $m_g$ on $\operatorname{Re}(\lambda)=0$).
-3. **[13. Routh-Hurwitz Stability Criterion](/dynamic-courses/systems-theory/04-stability-routh/03-routh-hurwitz-tabular-array-construction/)** — Count RHP roots directly from polynomial coefficients via the Routh tabular array.
-4. **[14. Singular Routh Tables](/dynamic-courses/systems-theory/04-stability-routh/04-singular-routh-table-zero-elements/)** — Resolve zero pivots ($\varepsilon$-method) and all-zero rows (auxiliary polynomial $A(s)$).
-5. **[15. Parametric Stability Bounds](/dynamic-courses/systems-theory/04-stability-routh/05-parametric-feedback-gain-stability-bounds/)** — Derive stabilizing gain intervals $(K_{\min}, K_{\max})$ and imaginary-axis oscillation frequencies.
-6. **[16. BIBO Stability](/dynamic-courses/systems-theory/04-stability-routh/06-bounded-input-bounded-output-stability/)** — Relate $\|w\|_1 < \infty$, transfer poles, and pole-zero cancellations to internal stability.
+- [11. Equilibrium States](/dynamic-courses/systems-theory/04-stability-routh/01-linear-time-invariant-equilibrium-points/) — Solve $\mathbf{A}\mathbf{x}_e + \mathbf{B}\mathbf{u}_0 = \mathbf{0}$ via Rouché-Capelli and shift coordinates to the origin.
+- [12. Lyapunov Internal Stability](/dynamic-courses/systems-theory/04-stability-routh/02-lyapunov-spectral-internal-stability/) — Classify asymptotic, simple, and unstable modes using eigenvalue real parts and multiplicities ($m_a$ vs. $m_g$).
+- [13. Routh-Hurwitz Criterion](/dynamic-courses/systems-theory/04-stability-routh/03-routh-hurwitz-tabular-array-construction/) — Count RHP roots from polynomial coefficients using the Routh tabular array.
+- [14. Singular Routh Tables](/dynamic-courses/systems-theory/04-stability-routh/04-singular-routh-table-zero-elements/) — Resolve isolated zero pivots ($\varepsilon$-method) and all-zero rows via the auxiliary polynomial $A(s)$.
+- [15. Parametric Stability Bounds](/dynamic-courses/systems-theory/04-stability-routh/05-parametric-feedback-gain-stability-bounds/) — Solve for stabilizing gain intervals $(K_{\min}, K_{\max})$ and boundary oscillation frequencies.
+- [16. BIBO Stability](/dynamic-courses/systems-theory/04-stability-routh/06-bounded-input-bounded-output-stability/) — Relate $\lVert w \rVert_1 < \infty$, transfer poles, and hidden pole-zero cancellations to internal stability.

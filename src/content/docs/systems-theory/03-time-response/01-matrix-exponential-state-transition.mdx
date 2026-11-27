@@ -13,9 +13,9 @@ import PhaseFlowExplorer from "@components/PhaseFlowExplorer.tsx";
 
 ## Introduction
 
-A scalar differential equation $\dot{x} = a x$ is solved immediately by $x(t) = e^{at} x(0)$. When $n$ state variables interact through a coupling matrix $\mathbf{A}$ in the state-space model $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x}$ introduced in [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/), the exact same exponential structure governs how the system evolves—except the scalar $a$ is replaced by the matrix operator $e^{\mathbf{A}t}$.
+A scalar differential equation $\dot{x} = a x$ is solved immediately by $x(t) = e^{at} x(0)$. When $n$ state variables interact through a coupling matrix $\mathbf{A}$ in the state-space model $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x}$ introduced in [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/), the same exponential structure governs the homogeneous evolution, with the scalar $a$ replaced by the matrix operator $e^{\mathbf{A}t}$.
 
-Far from an abstract notation trick, $e^{\mathbf{A}t}$ is the workhorse behind both continuous-time stability proofs and digital flight software: autopilot firmware computes $\mathbf{A}_d = e^{\mathbf{A}\Delta t}$ to propagate vehicle dynamics forward over each discrete sample period $\Delta t$. In this chapter, you will see why $e^{\mathbf{A}t}$ is defined via an infinite power series, verify the group properties that make it behave like a time-propagator, and master three practical routes to compute it by hand.
+This operator underpins both continuous-time stability proofs and digital flight software, where autopilot firmware computes $\mathbf{A}_d = e^{\mathbf{A}\Delta t}$ to propagate vehicle states across each sample period $\Delta t$. Below, we define $e^{\mathbf{A}t}$ via its convergent power series, prove the group properties of the state transition matrix, and apply three exact pencil-on-paper computation routes.
 
 <Divider label="1 · Example" />
 
@@ -75,6 +75,8 @@ Press **Play** or drag the time slider $t$ to watch $e^{\mathbf{A}t}$ map $\math
 <PhaseFlowExplorer client:load initialPreset="focus" />
 
 <Divider label="2 · Theory" />
+
+Generalizing the scalar exponential to $n \times n$ matrices requires a convergent series that preserves differentiation with respect to time. This section establishes the power series definition, proves the transition group laws, and develops the resolvent, diagonalization, and Cayley-Hamilton evaluation methods.
 
 ### Power Series Definition
 
@@ -223,7 +225,7 @@ $$
 
 Notice that this method works uniformly whether $\mathbf{A}$ is diagonalizable or defective, because it depends only on the roots of $p(\lambda)$ and never requires computing eigenvectors.
 
-<Callout type="bridge" title="SDU Robotics Bridge: Discretization in PX4 Flight Control Loops">
+<Callout type="bridge" title="Discretization in Flight Loops">
 
 Physical microcontrollers in autonomous drones (such as the STM32H7 on a Pixhawk flight controller) cannot execute continuous-time differential equations $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$. Instead, the continuous state-space model is discretized at a fixed sample period $T_s$ (e.g., $T_s = 2.5\;\text{ms}$ for a $400\;\text{Hz}$ inner rate loop):
 

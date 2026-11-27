@@ -70,6 +70,8 @@ Evaluating each system's trajectory $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}(0
 
 <Divider label="2 · Theory" />
 
+Internal stability evaluates how autonomous state trajectories respond to small perturbations around an equilibrium point. This section translates equilibrium points to the origin, defines Lyapunov and asymptotic stability, and proves how the eigenvalue spectrum and Jordan multiplicity classify every LTI system.
+
 ### Perturbation Coordinates and Origin
 
 Internal stability evaluates how a plant recovers from an initial energy displacement (such as a wind gust, mechanical tap, or stray capacitor charge) under **zero external forcing**. In [Equilibrium States in Linear Dynamic Systems](/dynamic-courses/systems-theory/04-stability-routh/01-linear-time-invariant-equilibrium-points/), we proved that for any operating trim $(\mathbf{x}_e, \mathbf{u}_0)$, the deviation vector $\mathbf{z}(t) = \mathbf{x}(t) - \mathbf{x}_e$ satisfies $\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{z}(t) + \mathbf{B}\mathbf{v}(t)$. Holding the input at its nominal trim ($\mathbf{v}(t) \equiv \mathbf{0}$) removes external forcing and leaves:
@@ -82,7 +84,7 @@ Analyzing stability around any equilibrium $\mathbf{x}_e$ is therefore identical
 
 Lyapunov formalized stability by comparing the size of the initial perturbation $\|\mathbf{x}(0)\|$ against the size of the resulting trajectory $\|\mathbf{x}(t)\|$ for all future time $t \ge 0$:
 
-1. **Stability in the Sense of Lyapunov (Simple Stability):** The origin $\mathbf{x}_e = \mathbf{0}$ is *simply stable* if for every tolerance radius $\varepsilon > 0$ there exists a smaller launch radius $\delta(\varepsilon) > 0$ such that:
+1. **Lyapunov Stability:** The origin $\mathbf{x}_e = \mathbf{0}$ is *simply stable* if for every tolerance radius $\varepsilon > 0$ there exists a smaller launch radius $\delta(\varepsilon) > 0$ such that:
    $$\|\mathbf{x}(0)\| < \delta \implies \|\mathbf{x}(t)\| < \varepsilon \quad \forall t \ge 0$$
    In words, any trajectory that starts close enough to equilibrium stays inside the chosen $\varepsilon$-ball forever, though it need not return to zero (as seen with $\mathbf{A}_2$ above).
 2. **Asymptotic Stability:** The origin is *asymptotically stable* if it is simply stable **and** attractive: there exists $\delta_a > 0$ such that $\|\mathbf{x}(0)\| < \delta_a \implies \lim_{t \to \infty} \|\mathbf{x}(t)\| = \mathbf{0}$. Internal dissipation drains all perturbation energy so the state returns to rest.
@@ -94,7 +96,7 @@ Unlike nonlinear systems—where stability can hold only inside a small basin ar
 
 Every state transition matrix $e^{\mathbf{A}t}$ can be decomposed via the Jordan canonical form $\mathbf{A} = \mathbf{T}\mathbf{J}\mathbf{T}^{-1}$ into $e^{\mathbf{A}t} = \mathbf{T}e^{\mathbf{J}t}\mathbf{T}^{-1}$, where each Jordan block of size $m$ for an eigenvalue $\lambda_i = \sigma_i + j\omega_i$ contributes modes of the form $\frac{t^k}{k!} e^{\sigma_i t} e^{j\omega_i t}$ ($0 \le k \le m - 1$). Internal stability is therefore governed completely by the eigenvalue spectrum $\sigma(\mathbf{A}) = \{\lambda \in \mathbb{C} \mid \det(\lambda\mathbf{I} - \mathbf{A}) = 0\}$, together with the algebraic multiplicity $m_a(\lambda_i)$ and geometric multiplicity $m_g(\lambda_i) = \dim(\ker(\lambda_i\mathbf{I} - \mathbf{A})) = n - \operatorname{rank}(\lambda_i\mathbf{I} - \mathbf{A})$:
 
-1. **Asymptotically Stable (Hurwitz Matrix):** All eigenvalues lie strictly in the open left-half plane:
+1. **Asymptotically Stable:** All eigenvalues lie strictly in the open left-half plane:
    $$\boxed{\operatorname{Re}(\lambda_i) < 0 \quad \forall i = 1, 2, \dots, n}$$
    Because every exponential factor $e^{-|\sigma_i|t}$ decays faster than any polynomial factor $t^k$ grows ($\lim_{t \to \infty} t^k e^{-|\sigma_i|t} = 0$), even repeated or defective eigenvalues inside the open LHP decay to zero.
 
@@ -121,7 +123,7 @@ Here $\alpha$ sets the asymptotic decay rate of the dominant pole closest to the
   explanation="The stability margin is $\alpha = \min_i |\operatorname{Re}(\lambda_i)| = \min(4, 1, 1) = 1\;\mathrm{s}^{-1}$, governed by the slower complex pair."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Structural Damping and Vibration Suppression">
+<Callout type="bridge" title="Structural Damping and Vibration">
 
 In industrial robotic manipulators with elastic harmonic-drive joints, mechanical flexure introduces lightly damped poles $\lambda_{1,2} = -\zeta\omega_n \pm j\omega_n\sqrt{1 - \zeta^2}$ close to the imaginary axis. For $\zeta = 0.005$ and $\omega_n = 200\;\text{rad/s}$, $\operatorname{Re}(\lambda_{1,2}) = -1.0\;\text{s}^{-1}$ gives a $1.0\;\text{s}$ time constant (over $4\;\text{s}$ settling). State feedback shifts these poles left to $\operatorname{Re}(\lambda) = -20\;\text{s}^{-1}$, suppressing vibration in under $200\;\text{ms}$.
 
@@ -150,8 +152,8 @@ In industrial robotic manipulators with elastic harmonic-drive joints, mechanica
 <Callout type="warning" title="Common Mistakes">
 
 1. **The Defective Imaginary Trap:** Never conclude stability solely from $\operatorname{Re}(\lambda_i) \le 0$; a repeated eigenvalue on the imaginary axis (including $\lambda = 0$) is unstable whenever $m_g(\lambda_k) < m_a(\lambda_k)$.
-2. **Repeated Poles in the Open LHP:** A defective eigenvalue with $\operatorname{Re}(\lambda) < 0$ still yields $t^k e^{-|\sigma|t} \to 0$, so multiplicity defects inside the strict LHP do **not** break asymptotic stability.
-3. **Mixing Simple and Asymptotic Stability:** Purely imaginary simple eigenvalues yield bounded oscillations, never convergence to zero.
+2. **Defective Open-LHP Poles:** A defective eigenvalue with $\operatorname{Re}(\lambda) < 0$ still yields $t^k e^{-|\sigma|t} \to 0$, so multiplicity defects inside the strict LHP do **not** break asymptotic stability.
+3. **Simple vs. Asymptotic Stability:** Purely imaginary simple eigenvalues yield bounded oscillations, never convergence to zero.
 
 </Callout>
 

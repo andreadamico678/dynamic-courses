@@ -18,7 +18,7 @@ To see *why* arbitrary pole placement always works whenever a system is controll
 
 <Divider label="1 · Example" />
 
-### Placing Poles Directly in Companion Coordinates
+### Companion Coordinate Pole Placement
 
 In an arbitrary physical coordinate basis, changing a single entry of the feedback gain row vector $\mathbf{K} = \begin{bmatrix} k_1 & k_2 & \dots & k_n \end{bmatrix}$ alters multiple entries of $\mathbf{A} - \mathbf{B}\mathbf{K}$ at once, tangling the closed-loop characteristic polynomial in coupled algebraic products. Before tackling general coordinates, consider a second-order unstable plant already expressed in **Controllable Canonical Form** $(\mathbf{A}_c, \mathbf{B}_c)$ with canonical state vector $\mathbf{z}(t) = \begin{bmatrix} z_1(t) & z_2(t) \end{bmatrix}^T$:
 
@@ -76,6 +76,8 @@ Thus $\mathbf{K}_c = \begin{bmatrix} 14 & 6 \end{bmatrix}$ moves the closed-loop
 />
 
 <Divider label="2 · Theory" />
+
+Static state feedback shifts all $n$ closed-loop eigenvalues arbitrarily whenever the plant is controllable, because any single-input controllable pair transforms into companion coordinates where feedback gains decouple power by power. This section defines Controllable Canonical Form, constructs the transformation matrix $\mathbf{T}^{-1}$ from the controllability matrix $\mathcal{R}$, and maps canonical gains back to physical coordinates via $\mathbf{K} = \mathbf{K}_c\mathbf{T}^{-1}$.
 
 ### Controllable Canonical Form
 
@@ -256,7 +258,7 @@ Because the physical closed-loop matrix satisfies $\mathbf{A} - \mathbf{B}\mathb
   explanation="Substituting $\\mathbf{z} = \\mathbf{T}^{-1}\\mathbf{x}$ into $u = -\\mathbf{K}_c\\mathbf{z}$ yields $u = -(\\mathbf{K}_c\\mathbf{T}^{-1})\\mathbf{x}$, so $\\mathbf{K} = \\mathbf{K}_c\\mathbf{T}^{-1}$."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Joint Servoing and Robot Arm Decoupling">
+<Callout type="bridge" title="Joint Servoing and Arm Decoupling">
 
 In multi-link articulated robots (e.g., UR5 or Franka Emika manipulators running ROS 2 control), feedback linearization decouples nonlinear Euler-Lagrange dynamics into $n$ independent double integrators $\ddot{q}_i(t) = v_i(t)$. Each joint is already in Controllable Canonical Form with $a_0 = 0, a_1 = 0$:
 
@@ -293,8 +295,8 @@ Assigning $s^2 + 2\zeta\omega_n s + \omega_n^2$ sets $k_{c0} = \omega_n^2$ and $
 
 <Callout type="warning" title="Common Mistakes">
 1. **Reversing Coefficient Order:** In $\mathbf{K}_c = [k_{c0}, k_{c1}, \dots, k_{c,n-1}]$, $k_{c0}$ pairs with the constant term $a_0$ (first state $z_1$), **not** with $a_{n-1}$.
-2. **Multiplying by $\mathbf{T}$ Instead of $\mathbf{T}^{-1}$:** Since $\mathbf{x} = \mathbf{T}\mathbf{z}$ and $\mathbf{z} = \mathbf{T}^{-1}\mathbf{x}$, always compute $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$.
-3. **Mixing Row Order in $\mathbf{T}^{-1}$:** Check $\mathbf{T}^{-1}\mathbf{B} = [0, \dots, 0, 1]^T$ before computing $\mathbf{K}$ so row $1$ ($\mathbf{t}_n^T$) and row $n$ ($\mathbf{t}_n^T\mathbf{A}^{n-1}$) are never inverted.
+2. **Multiplying by $\mathbf{T}$ Wrongly:** Since $\mathbf{x} = \mathbf{T}\mathbf{z}$ and $\mathbf{z} = \mathbf{T}^{-1}\mathbf{x}$, always compute $\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$.
+3. **Reversed Rows in $\mathbf{T}^{-1}$:** Check $\mathbf{T}^{-1}\mathbf{B} = [0, \dots, 0, 1]^T$ before computing $\mathbf{K}$ so row $1$ ($\mathbf{t}_n^T$) and row $n$ ($\mathbf{t}_n^T\mathbf{A}^{n-1}$) are never inverted.
 </Callout>
 
 <Divider label="4 · Exercises" />
@@ -411,7 +413,7 @@ $$
    \mathcal{R}^{-1} = \frac{1}{-2} \begin{bmatrix} -3 & -2 \\ -1 & 0 \end{bmatrix} = \begin{bmatrix} 1.5 & 1 \\ 0.5 & 0 \end{bmatrix}
    $$
 
-3. **Transformation matrix $\mathbf{T}^{-1}$ and canonical verification:**
+3. **Transformation and Canonical Check:**
    Extract the last (second) row of $\mathcal{R}^{-1}$ as the generator row vector $\mathbf{t}_2^T$:
    $$
    \mathbf{t}_2^T = \begin{bmatrix} 0 & 1 \end{bmatrix}\mathcal{R}^{-1} = \begin{bmatrix} 0.5 & 0 \end{bmatrix}
@@ -432,7 +434,7 @@ $$
    \mathbf{B}_c = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 0.5 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \quad \checkmark
    $$
 
-4. **Desired polynomial and feedback gain synthesis:**
+4. **Target Polynomial and Gain:**
    Expanding the complex conjugate factors for $\mu_{1,2} = -4 \pm j2$ gives the target characteristic polynomial:
    $$
    p^*(s) = (s - (-4 + j2))(s - (-4 - j2)) = (s + 4 - j2)(s + 4 + j2) = (s + 4)^2 + 2^2 = s^2 + 8s + 20

@@ -1,6 +1,6 @@
 ---
-title: "Part V — Introduction: Frequency Response & Bode"
-description: "Conceptual overview and real-world framing for Part V of Linear Systems Theory."
+title: "Part V — Frequency Response"
+description: "Conceptual overview, running system, and chapter roadmap for Part V of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,27 +10,27 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Up to this point, you have viewed systems through differential equations in time $t$ and algebraic matrices in $s$. Part V introduces the engineer's favorite experimental and design lens: **frequency response**. When you excite a stable system with a steady sinusoid of frequency $\omega$, it responds with a sinusoid of the exact same frequency—only scaled in amplitude by $|W(j\omega)|$ and delayed in phase by $\arg(W(j\omega))$.
+Part V shifts analysis onto the imaginary axis $s = j\omega$ to quantify **sinusoidal steady-state response**. Excite any BIBO-stable LTI system with a pure sinusoid of frequency $\omega$, and the steady-state output oscillates at the exact same frequency—scaled in amplitude by $\lvert W(j\omega) \rvert$ and shifted in phase by $\arg W(j\omega)$.
 
-Plotting gain in decibels and phase in degrees on a logarithmic frequency axis turns complicated polynomial products into straight, modular building blocks. Better yet, **Bode diagrams** directly expose how close a feedback loop sits to instability (**gain margin** and **phase margin**) and reveal hard physical speed limits caused by right-half-plane zeros and time delays.
+Plotting gain in decibels and phase in degrees on a logarithmic frequency axis turns high-order polynomial products into modular straight-line building blocks. **Bode diagrams** directly measure closed-loop stability reserves—**gain margin** $K_m$ and **phase margin** $\varphi_m$—and expose fundamental bandwidth limits imposed by right-half-plane zeros and pure time delays.
 
-### Practical Real-World Perspective
+### Running Example
 
-- **Drone Structural Filtering & Bandwidth:** Lightweight carbon-fiber quadrotor frames resonate strongly at high frequencies ($\omega_r$), amplifying propeller vibrations into IMU sensors. Reading a Bode magnitude plot shows immediately where the resonant peak lives so you can place a digital notch filter without wrecking phase margin at the crossover frequency $\omega_c$.
-- **Steering & Aircraft Delays (Non-Minimum Phase):** To turn a bicycle or aircraft right, you first briefly counter-steer or drop a control surface, creating an initial dip in the wrong direction (**undershoot**). Network packet latency in teleoperation adds $e^{-sT_d}$ phase lag that caps maximum safe closed-loop bandwidth.
-
-### Shared Running Example
-
-Throughout Part V, we analyze the same unity-feedback loop from successive angles:
+Throughout Part V, we analyze the same unity-feedback open-loop plant from successive angles:
 
 $$L(s) = K \frac{1 \pm s/4}{s(1 + s/2)}, \qquad W_{\text{CL}}(s) = \frac{L(s)}{1 + L(s)}$$
 
-**Chapter 17** sketches its asymptotic magnitude $|L(j\omega)|$, **Chapter 18** adds phase $\angle L(j\omega)$ to measure stability margins, and **Chapter 19** flips the sign of $s/4$ to show how a single right-half-plane zero changes closed-loop stability.
+Chapter 17 sketches its piecewise-linear asymptotic magnitude $\lvert L(j\omega) \rvert_{\text{dB}}$, Chapter 18 adds phase $\arg L(j\omega)$ to evaluate phase and gain margins, and Chapter 19 flips the numerator sign to quantify how an RHP zero erodes phase margin and induces step undershoot.
+
+### Real-World Applications
+
+- **Structural Notch Filtering:** Identifying resonant magnitude spikes $M_r$ at $\omega_r$ on Bode plots lets engineers place digital notch filters without collapsing phase margin at crossover.
+- **Bandwidth & Delay Limits:** Right-half-plane zeros and network transport delays $e^{-sT_d}$ add continuous phase lag that bounds maximum achievable closed-loop crossover frequency.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[17. Bode Magnitude Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/)** — Convert transfer functions to Bode canonical form and draft ruler-accurate asymptotic skeletons plus exact $-3.01\text{ dB}$ / resonant corrections.
-2. **[18. Bode Phase Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/02-exact-bode-phase-diagrams/)** — Sketch 3-segment phase ramps, verify $\varphi(0^+)$ and $\varphi(\infty)$ limits, and evaluate phase margin $\varphi_m$.
-3. **[19. Non-Minimum Phase Systems](/dynamic-courses/systems-theory/05-frequency-bode/03-non-minimum-phase-singularity-dynamics/)** — Understand why RHP zeros and transport delays add extra phase lag, cause initial undershoot, and cap feedback speed.
+- [17. Bode Magnitude Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/) — Convert transfer functions to Bode canonical form and draft asymptotic skeletons plus exact corner and resonance corrections.
+- [18. Bode Phase Diagrams](/dynamic-courses/systems-theory/05-frequency-bode/02-exact-bode-phase-diagrams/) — Sketch 3-segment phase ramps, verify $\varphi(0^+)$ and $\varphi(\infty)$ limits, and evaluate phase and gain margins.
+- [19. Non-Minimum Phase Systems](/dynamic-courses/systems-theory/05-frequency-bode/03-non-minimum-phase-singularity-dynamics/) — Analyze RHP zeros, pure time delays $e^{-sT_d}$, initial undershoot, and cancellation traps.

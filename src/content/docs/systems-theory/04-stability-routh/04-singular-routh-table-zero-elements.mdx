@@ -22,7 +22,7 @@ Classify all roots of the fourth-order characteristic polynomial:
 
 $$p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$$
 
-1. **Build the Table Down to Row $s^1$:** Place alternating coefficients into rows $s^4$ ($[1, 5, 6]$) and $s^3$ ($[3, 9, 0]$). Dividing row $s^3$ by $3$ gives $[1, 3, 0]$. Computing row $s^2$ by cross-multiplication yields:
+1. **Build to Row $s^1$:** Place alternating coefficients into rows $s^4$ ($[1, 5, 6]$) and $s^3$ ($[3, 9, 0]$). Dividing row $s^3$ by $3$ gives $[1, 3, 0]$. Computing row $s^2$ by cross-multiplication yields:
 
    $$
    b_1 = \frac{(1)(5) - (1)(3)}{1} = 2, \qquad b_2 = \frac{(1)(6) - (1)(0)}{1} = 6
@@ -43,7 +43,7 @@ $$p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$$
    \end{array}
    $$
 
-2. **Resolve the Vanishing Row via $A(s)$:** An entire row of zeros signals that $p(s)$ contains an even factor $A(s)$ with origin-symmetric roots. Reading the scaled row $s^2$ ($[1, 3]$) as coefficients of $s^2$ and $s^0$ gives the **auxiliary polynomial**:
+2. **Resolve via $A(s)$:** An entire row of zeros signals that $p(s)$ contains an even factor $A(s)$ with origin-symmetric roots. Reading the scaled row $s^2$ ($[1, 3]$) as coefficients of $s^2$ and $s^0$ gives the **auxiliary polynomial**:
 
    $$A(s) = s^2 + 3 = 0 \implies s_{1,2} = \pm j\sqrt{3}$$
 
@@ -66,12 +66,14 @@ $$p(s) = s^4 + 3s^3 + 5s^2 + 9s + 6$$
 
 <Divider label="2 · Theory" />
 
+When a leading pivot vanishes during Routh array construction, the table terminates unless handled algebraically. This section distinguishes isolated first-column zeros from full vanishing rows, deriving the $\varepsilon$-perturbation limit and the even auxiliary polynomial method.
+
 ### Classification of Singular Rows
 
 The standard Routh algorithm in [Routh-Hurwitz Stability Criterion](/dynamic-courses/systems-theory/04-stability-routh/03-routh-hurwitz-tabular-array-construction/) divides each cross-product by the leading pivot of the row immediately above. Whenever a pivot evaluates to zero, division by zero halts the ordinary table and signals one of two distinct algebraic phenomena:
 
-1. **Singular Case 1 (Isolated First-Column Zero):** The leading entry of row $s^k$ is zero ($a_{k,1} = 0$), while at least one subsequent entry in that row is non-zero ($a_{k,j} \neq 0$ for some $j > 1$). This occurs because of an accidental numerical cancellation in the table, not because of origin-symmetric roots.
-2. **Singular Case 2 (Complete Row of Zeros):** Every entry in row $s^k$ vanishes identically ($a_{k,j} = 0$ for all $j \ge 1$). This occurs **if and only if** $p(s)$ contains an even polynomial factor whose roots are symmetric about the origin.
+1. **Isolated First-Column Zero:** The leading entry of row $s^k$ is zero ($a_{k,1} = 0$), while at least one subsequent entry in that row is non-zero ($a_{k,j} \neq 0$ for some $j > 1$). This occurs because of an accidental numerical cancellation in the table, not because of origin-symmetric roots.
+2. **Complete Row of Zeros:** Every entry in row $s^k$ vanishes identically ($a_{k,j} = 0$ for all $j \ge 1$). This occurs **if and only if** $p(s)$ contains an even polynomial factor whose roots are symmetric about the origin.
 
 ### Isolated Zero Perturbation
 
@@ -115,7 +117,7 @@ Because $A(s)$ contains only even or odd powers separated by $2$, row $s^{k+1}$ 
   explanation="Zero sign changes only prove $n_{\mathrm{RHP}} = 0$. A vanishing row indicates symmetric roots—here from $A(s) = \alpha_1 s^2 + \alpha_2 = 0$, placing roots on the $j\omega$-axis (simple stability if distinct)."
 />
 
-<Callout type="bridge" title="SDU Robotics Bridge: Tethered Multirotor Altitude Hunting">
+<Callout type="bridge" title="Tethered Multirotor Altitude Hunting">
 
 When altitude velocity gain in PX4 firmware reaches its critical boundary, the closed-loop characteristic polynomial triggers a vanishing row $s^1$. Solving the row-$s^2$ auxiliary equation $A(s) = \alpha_1 s^2 + \alpha_2 = 0$ gives the exact vertical limit-cycle frequency $\omega_0 = \sqrt{\alpha_2 / \alpha_1}$ for notch-filter tuning.
 
@@ -126,7 +128,7 @@ When altitude velocity gain in PX4 firmware reaches its critical boundary, the c
 | Singular Type | Table Symptom | Physical Root Geometry | Algebraic Remedy |
 | :--- | :--- | :--- | :--- |
 | **Case 1: Isolated Zero** | $a_{k,1} = 0$, some $a_{k,j} \neq 0$ | Asymmetrical cancellation in table | Replace $0$ with $\varepsilon > 0$; take $\varepsilon \to 0^+$ |
-| **Case 2: Full Zero Row** | $a_{k,j} = 0$ for all $j$ | Symmetric pairs ($\pm j\omega_0, \pm\sigma_0, \pm\sigma\pm j\omega$) | Build $A(s)$ from row $s^{k+1}$; replace row $s^k$ with $\frac{dA}{ds}$ |
+| **Case 2: Zero Row** | $a_{k,j} = 0$ for all $j$ | Symmetric pairs ($\pm j\omega_0, \pm\sigma_0, \pm\sigma\pm j\omega$) | Build $A(s)$ from row $s^{k+1}$; replace row $s^k$ with $\frac{dA}{ds}$ |
 
 ### Resolution Procedure
 
@@ -141,9 +143,9 @@ When altitude velocity gain in PX4 firmware reaches its critical boundary, the c
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Ignoring $j\omega$ Roots Below $A(s)$:** Zero sign changes in Column 1 after using $dA/ds$ means $n_{\text{RHP}} = 0$, **not** asymptotic stability; always solve $A(s) = 0$ to identify $j\omega$-axis roots.
+1. **Ignoring Boundary Roots:** Zero sign changes in Column 1 after using $dA/ds$ means $n_{\text{RHP}} = 0$, **not** asymptotic stability; always solve $A(s) = 0$ to identify $j\omega$-axis roots.
 2. **Forgetting to Differentiate $A(s)$:** Never copy row $s^{k+1}$ directly into row $s^k$; you must compute $\frac{dA}{ds}$ first.
-3. **Confusing Case 1 and Case 2:** Check the entire row $s^k$ before choosing a method; only use $A(s)$ when **every** entry in row $s^k$ is zero.
+3. **Mixing Singular Cases:** Check the entire row $s^k$ before choosing a method; only use $A(s)$ when **every** entry in row $s^k$ is zero.
 
 </Callout>
 

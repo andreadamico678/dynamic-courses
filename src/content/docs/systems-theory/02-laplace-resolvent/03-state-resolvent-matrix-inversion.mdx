@@ -94,6 +94,8 @@ Dividing this adjugate matrix by $p(s) = s^3 + 5s^2 + 8s + 6$ yields the state r
 
 <Divider label="2 · Theory" />
 
+Solving an $n$-dimensional LTI state equation in the $s$-domain hinges on inverting $(s\mathbf{I} - \mathbf{A})$. This section defines the state resolvent operator via the adjugate and characteristic polynomial, verifies strict properness, and establishes explicit $2 \times 2$ and $3 \times 3$ templates.
+
 ### Resolvent Operator Definition
 
 When we apply the Unilateral Laplace Transform from [Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/) to an $n$-dimensional state-space system, we need an operator that solves all $n$ coupled first-order differential equations simultaneously in vector form.
@@ -129,7 +131,7 @@ In this expression:
 2. The **cofactor** $C_{ij}(s) = (-1)^{i+j} M_{ij}(s)$ is the signed determinant of the $(n - 1) \times (n - 1)$ submatrix obtained by deleting row $i$ and column $j$ from $(s\mathbf{I} - \mathbf{A})$.
 3. The **adjugate matrix** $\operatorname{adj}(s\mathbf{I} - \mathbf{A}) = \mathbf{C}_{\text{cof}}^T(s\mathbf{I} - \mathbf{A})$ is the **transpose** of the cofactor matrix, placing cofactor $C_{ji}(s)$ in row $i$, column $j$.
 
-Because deleting row $j$ and column $i$ from $(s\mathbf{I} - \mathbf{A})$ removes at least one diagonal $(s - a_{kk})$ entry (and removes two diagonal entries whenever $i \neq j$), every diagonal cofactor $C_{ii}(s)$ is a monic polynomial of degree $n - 1$, while every off-diagonal cofactor $C_{ji}(s)$ ($i \neq j$) has degree at most $n - 2$. Dividing by $p(s)$ of degree $n$ guarantees that **every entry of the state resolvent is strictly proper**:
+Because deleting row $j$ and column $i$ from $(s\mathbf{I} - \mathbf{A})$ removes at least one diagonal $(s - a_{kk})$ entry (and removes two diagonal entries whenever $i \neq j$), every diagonal cofactor $C_{ii}(s)$ is a monic polynomial of degree $n - 1$, while every off-diagonal cofactor $C_{ji}(s)$ ($i \neq j$) has degree at most $n - 2$. Dividing by $p(s)$ of degree $n$ ensures **strictly proper resolvent entries**:
 
 $$\left[ (s\mathbf{I} - \mathbf{A})^{-1} \right]_{ij} = \frac{C_{ji}(s)}{p(s)}, \qquad \deg\big(C_{ii}(s)\big) = n - 1 < n, \quad \deg\big(C_{ji}(s)\big) \le n - 2 < n \;\;(i \neq j)$$
 
@@ -149,7 +151,7 @@ In the $2 \times 2$ case, the cofactors of $(s\mathbf{I} - \mathbf{A})$ are $C_{
 
 $$(s\mathbf{I} - \mathbf{A})^{-1} = \frac{1}{s^2 - \operatorname{Tr}(\mathbf{A})s + \det(\mathbf{A})} \begin{bmatrix} s - a_{22} & a_{12} \\ a_{21} & s - a_{11} \end{bmatrix}$$
 
-To form $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ for a $2 \times 2$ matrix, simply **swap the two diagonal elements** of $(s\mathbf{I} - \mathbf{A})$ and **negate the two off-diagonal elements** (which restores $+a_{12}$ and $+a_{21}$ to their original signs in $\mathbf{A}$).
+To form $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ for a $2 \times 2$ matrix, **swap diagonal elements** of $(s\mathbf{I} - \mathbf{A})$ and **negate off-diagonal elements** (which restores $+a_{12}$ and $+a_{21}$ to their original signs in $\mathbf{A}$).
 
 ### Third-Order Adjugate Template
 
@@ -163,7 +165,7 @@ s - a_{11} & -a_{12} & -a_{13} \\
 \end{bmatrix}
 $$
 
-To prevent transposition mistakes when computing the nine $2 \times 2$ minors under exam time pressure, always write down the transposed index grid first, where entry $(i, j)$ of $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ is the cofactor $C_{ji}(s)$ obtained by deleting **row $j$ and column $i$** of $(s\mathbf{I} - \mathbf{A})$:
+To prevent transposition mistakes when computing the nine $2 \times 2$ minors under exam time pressure, always write down the transposed index grid first, where entry $(i, j)$ of $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ is the cofactor $C_{ji}(s)$ obtained by deleting row $j$ and column $i$ of $(s\mathbf{I} - \mathbf{A})$:
 
 $$
 \operatorname{adj}(s\mathbf{I} - \mathbf{A}) = \begin{bmatrix}
@@ -210,7 +212,7 @@ The most frequent algebra error in $3\times 3$ resolvent problems is computing $
   explanation="Each diagonal minor $C_{ii}(s)$ is monic of degree $n-1$ while $p(s)$ is monic of degree $n$, so every diagonal resolvent entry rolls off as $1/s \to 0$."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Continuous-Discrete Kalman Filtering">
+<Callout type="bridge" title="Continuous-Discrete Kalman Filtering">
 
 In autonomous drone navigation, onboard Extended Kalman Filters propagate the state error covariance matrix $\mathbf{P}(t)$ between sensor measurements via:
 
@@ -247,7 +249,7 @@ Inverting $\mathbf{\Phi}(s) = (s\mathbf{I} - \mathbf{A})^{-1}$ analytically yiel
 <Callout type="warning" title="Common Mistakes">
 
 1. **Forgetting the Transpose:** Placing $C_{ij}$ instead of $C_{ji}$ at position $(i,j)$ corrupts every off-diagonal coupling term.
-2. **Sign Errors in $s\mathbf{I} - \mathbf{A}$:** Subtracting $\mathbf{A}$ flips the signs of off-diagonal entries to $-a_{ij}$; double-check before taking $2\times 2$ minors.
+2. **Matrix Subtraction Sign Errors:** Subtracting $\mathbf{A}$ flips the signs of off-diagonal entries to $-a_{ij}$; double-check before taking $2\times 2$ minors.
 3. **Missing Checkerboard Signs:** Entries $(1,2), (2,1), (2,3), (3,2)$ carry an extra minus sign $(-1)^{i+j} = -1$ in $C_{ji}$.
 
 </Callout>

@@ -15,7 +15,7 @@ import PhaseFlowExplorer from "@components/PhaseFlowExplorer.tsx";
 
 Before predicting how a motor or aircraft responds to external pilot commands, we must understand what the system does on its own when all inputs are turned off ($\mathbf{u}(t) \equiv \mathbf{0}$) and it is released from an initial stored-energy state $\mathbf{x}(0) = \mathbf{x}_0$. That autonomous trajectory—the **free state response** $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}_0$—reveals the plant's pure natural personality: whether initial energy bleeds away smoothly, rings in decaying oscillations, or diverges outward.
 
-Think of a quadrotor knocked sideways by a brief wind gust or an RLC circuit left with initial capacitor charge: every resulting curve is a weighted mixture of the system's **natural modes**, dictated by its eigenvalues and eigenvectors. Understanding how initial states project onto eigenvectors prepares you directly for internal stability analysis in Part IV.
+When a quadrotor experiences an attitude disturbance or an RLC circuit retains initial capacitor charge, the autonomous time response decomposes into a weighted combination of the system's **natural modes** fixed by its eigenvalues and eigenvectors. Analyzing how initial conditions project onto those eigenvectors prepares directly for internal stability in Part IV.
 
 <Divider label="1 · Example" />
 
@@ -35,7 +35,7 @@ $$\dot{x}_1(t) = x_2(t), \qquad \dot{x}_2(t) = -6 x_1(t) - 5 x_2(t)$$
 
    Decomposing the initial vector $\mathbf{x}(0) = [a, \; a]^T$ in this eigenbasis gives $\mathbf{x}(0) = 4a\mathbf{v}_1 - 3a\mathbf{v}_2$ (check: $4a[1, -2]^T - 3a[1, -3]^T = [a, a]^T$).
 
-3. **State Transition Matrix & Free Trajectory:** From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), the state transition matrix is:
+3. **Transition and Free Trajectory:** From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), the state transition matrix is:
 
    $$e^{\mathbf{A}t} = \begin{bmatrix} 3e^{-2t} - 2e^{-3t} & e^{-2t} - e^{-3t} \\ -6e^{-2t} + 6e^{-3t} & -2e^{-2t} + 3e^{-3t} \end{bmatrix}$$
 
@@ -50,7 +50,7 @@ $$\dot{x}_1(t) = x_2(t), \qquad \dot{x}_2(t) = -6 x_1(t) - 5 x_2(t)$$
 
    Notice that the matrix multiplication produces the exact same modal decomposition $4a e^{-2t}\mathbf{v}_1 - 3a e^{-3t}\mathbf{v}_2$: the initial state splits into two independent exponential waves, one along $\mathbf{v}_1$ decaying at rate $e^{-2t}$ and one along $\mathbf{v}_2$ decaying faster at rate $e^{-3t}$.
 
-4. **Boundary Check ($t = 0$):** Evaluating at $t = 0$ confirms $\mathbf{x}_l(0) = [4a - 3a, \; -8a + 9a]^T = [a, \; a]^T = \mathbf{x}(0)$. As $t$ grows, the faster mode $e^{-3t}$ dies out first, leaving $\mathbf{x}_l(t)$ tangent to the slower eigenvector $\mathbf{v}_1 = [1, \; -2]^T$ as it approaches the origin.
+4. **Initial Boundary Check:** Evaluating at $t = 0$ confirms $\mathbf{x}_l(0) = [4a - 3a, \; -8a + 9a]^T = [a, \; a]^T = \mathbf{x}(0)$. As $t$ grows, the faster mode $e^{-3t}$ decays first, leaving $\mathbf{x}_l(t)$ tangent to the slower eigenvector $\mathbf{v}_1 = [1, \; -2]^T$ as it approaches the origin.
 
 <figure id="fig-modal-eigenspace-trajectories" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/systems-theory/fig-modal-eigenspace-trajectories.svg" alt="Modal trajectories in the phase plane. Trajectories initialized along an eigenvector remain confined to that 1D invariant subspace for all time. Trajectories initialized off-axis rapidly decay along the fast manifold v_2 and enter the origin asymptotically tangent to the dominant, slowest-decaying eigenspace v_1." />
@@ -76,6 +76,8 @@ Switch between **Stable Node**, **Focus**, **Saddle**, and **Center** presets, a
 
 <Divider label="2 · Theory" />
 
+Autonomous LTI trajectories decompose into distinct natural modes determined by the eigenvalues and geometric multiplicity of $\mathbf{A}$. This section derives modal expansions for simple, complex conjugate, and defective Jordan spectra alongside their phase-plane geometry.
+
 ### Autonomous Dynamics and Modes
 
 When a continuous-time linear system starts with initial stored energy $\mathbf{x}(0) = \mathbf{x}_0$ under zero external input ($\mathbf{u}(t) \equiv \mathbf{0}$ for all $t \ge 0$), the input term $\mathbf{B}\mathbf{u}(t)$ and feedthrough term $\mathbf{D}\mathbf{u}(t)$ vanish. From [Matrix Exponential State Transition](/dynamic-courses/systems-theory/03-time-response/01-matrix-exponential-state-transition/), the **free state response** $\mathbf{x}_l(t)$ and **free output response** $\mathbf{y}_l(t)$ are:
@@ -88,9 +90,9 @@ Physically, $\mathbf{x}_l(t)$ tracks how the system's internal energy (stored in
 
 Because $e^{\mathbf{A}t} = \mathcal{L}^{-1}\{(s\mathbf{I} - \mathbf{A})^{-1}\}$ and every entry of $(s\mathbf{I} - \mathbf{A})^{-1}$ has denominator dividing $p(s) = \det(s\mathbf{I} - \mathbf{A})$, every component of $\mathbf{x}_l(t)$ is a linear combination of elementary waveforms called the **natural modes** of the system. By [Partial Fraction Expansion](/dynamic-courses/systems-theory/02-laplace-resolvent/02-partial-fraction-expansion-heaviside-residues/), each root of $p(\lambda) = 0$ generates one of three mode families:
 
-1. **Real Simple Eigenvalue ($\lambda_i \in \mathbb{R}$):** A simple pole at $s = \lambda_i$ produces $\frac{1}{s - \lambda_i} \xrightarrow{\mathcal{L}^{-1}} e^{\lambda_i t}$. The mode decays monotonically to $0$ if $\lambda_i < 0$, stays constant if $\lambda_i = 0$, and diverges if $\lambda_i > 0$.
-2. **Real Repeated Eigenvalue with Defect ($m_g < m_a$):** When a Jordan block of size $m \ge 2$ occurs (so the geometric multiplicity $m_g = n - \operatorname{rank}(\lambda_i\mathbf{I} - \mathbf{A})$ is strictly less than the algebraic multiplicity $m_a$), $(s\mathbf{I} - \mathbf{A})^{-1}$ contains higher-order poles $\frac{1}{(s - \lambda_i)^{k+1}}$ ($0 \le k \le m - 1$), generating secular polynomial-exponential modes $e^{\lambda_i t}, \; t e^{\lambda_i t}, \; \dots, \; t^{m-1} e^{\lambda_i t}$. Note that if $\mathbf{A}$ is diagonalizable ($m_g = m_a$), all higher-order poles cancel and no $t^k$ terms appear.
-3. **Complex Conjugate Pair ($\lambda_{1,2} = \sigma \pm j\omega$):** Since $\mathbf{A}$ has real entries, complex eigenvalues always appear in conjugate pairs. By Euler's formula, $e^{(\sigma \pm j\omega)t} = e^{\sigma t}(\cos\omega t \pm j\sin\omega t)$, so combining conjugate residues yields real oscillatory modes $e^{\sigma t}\cos(\omega t)$ and $e^{\sigma t}\sin(\omega t)$—damped if $\sigma < 0$, sustained harmonic if $\sigma = 0$, and growing if $\sigma > 0$.
+1. **Real Simple Mode:** A simple pole at $s = \lambda_i$ produces $\frac{1}{s - \lambda_i} \xrightarrow{\mathcal{L}^{-1}} e^{\lambda_i t}$. The mode decays monotonically to $0$ if $\lambda_i < 0$, stays constant if $\lambda_i = 0$, and diverges if $\lambda_i > 0$.
+2. **Defective Repeated Mode:** When a Jordan block of size $m \ge 2$ occurs (so the geometric multiplicity $m_g = n - \operatorname{rank}(\lambda_i\mathbf{I} - \mathbf{A})$ is strictly less than the algebraic multiplicity $m_a$), $(s\mathbf{I} - \mathbf{A})^{-1}$ contains higher-order poles $\frac{1}{(s - \lambda_i)^{k+1}}$ ($0 \le k \le m - 1$), generating secular polynomial-exponential modes $e^{\lambda_i t}, \; t e^{\lambda_i t}, \; \dots, \; t^{m-1} e^{\lambda_i t}$. Note that if $\mathbf{A}$ is diagonalizable ($m_g = m_a$), all higher-order poles cancel and no $t^k$ terms appear.
+3. **Complex Conjugate Pair:** Since $\mathbf{A}$ has real entries, complex eigenvalues always appear in conjugate pairs ($\lambda_{1,2} = \sigma \pm j\omega$). By Euler's formula, $e^{(\sigma \pm j\omega)t} = e^{\sigma t}(\cos\omega t \pm j\sin\omega t)$, so combining conjugate residues yields real oscillatory modes $e^{\sigma t}\cos(\omega t)$ and $e^{\sigma t}\sin(\omega t)$—damped if $\sigma < 0$, sustained harmonic if $\sigma = 0$, and growing if $\sigma > 0$.
 
 ### Modal Projection
 
@@ -147,7 +149,7 @@ Because $\lambda_i - \lambda_1 < 0$ for all $i \ge 2$, every fast term $e^{(\lam
   explanation="Eigenspaces are invariant under $e^{\mathbf{A}t}$: since $e^{\mathbf{A}t}\mathbf{v}_2 = e^{\lambda_2 t}\mathbf{v}_2$, all other modal coordinates stay identically zero for all $t \ge 0$."
 />
 
-<Callout type="bridge" title="SDU Robotics Bridge: Attitude Recovery in Multirotors After Wind Gusts">
+<Callout type="bridge" title="Multirotor Gust Attitude Recovery">
 
 When an autonomous drone experiences a sudden wind gust, aerodynamic torque displaces its pitch and roll angles away from hover trim ($\theta_0 \neq 0, \dot{\theta}_0 \neq 0$). If motor thrust commands temporarily saturate or the autopilot runs an unforced damping mode, the airframe's attitude follows $\mathbf{x}_l(t) = e^{\mathbf{A}t}\mathbf{x}_0$. Because aerodynamic damping gives $\operatorname{Re}(\lambda_i) < 0$, SDU flight tests measure free-response decay rates to identify physical airframe damping parameters $d_r / J_{yy}$.
 
@@ -175,9 +177,9 @@ When an autonomous drone experiences a sudden wind gust, aerodynamic torque disp
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Skipping the $t = 0$ Check:** Always plug $t = 0$ into your final $\mathbf{x}_l(t)$ to confirm it equals $\mathbf{x}(0)$.
-2. **Slow vs. Fast Alignment:** Off-axis trajectories approach the origin tangent to the **slowest** decaying eigenvector (smallest $|\operatorname{Re}(\lambda)|$), not the fastest.
-3. **Secular Terms on Repeated Roots:** Repeated eigenvalues produce $t^k e^{\lambda t}$ modes only when a Jordan block has size $\ge 2$ ($m_g < m_a$), not when $\mathbf{A}$ is diagonalizable.
+1. **Missing Initial Check:** Always plug $t = 0$ into your final $\mathbf{x}_l(t)$ to confirm it equals $\mathbf{x}(0)$.
+2. **Slow vs. Fast Alignment:** Off-axis trajectories approach the origin tangent to the **slowest decaying eigenvector** (smallest $|\operatorname{Re}(\lambda)|$), not the fastest.
+3. **Secular Repeated Roots:** Repeated eigenvalues produce $t^k e^{\lambda t}$ modes only when a Jordan block has size $\ge 2$ ($m_g < m_a$), not when $\mathbf{A}$ is diagonalizable.
 
 </Callout>
 

@@ -60,6 +60,8 @@ $$W(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + D = -\begin{bmatrix} 2 & 3 \end{
 
 <Divider label="2 · Theory" />
 
+Projecting the internal state resolvent through input and output matrices yields the external transfer matrix $\mathbf{W}(s)$. This section derives $\mathbf{W}(s)$ from zero-initial-state Laplace equations, proves coordinate-basis invariance, characterizes pole-zero cancellations, and connects high- and low-frequency limits to $\mathbf{D}$ and DC gain.
+
 ### Transfer Matrix Derivation
 
 In [Block Diagram Algebra Reduction](/dynamic-courses/systems-theory/01-state-models/03-block-diagram-algebra-reduction/), we manipulated subsystems as $s$-domain transfer blocks $\mathbf{Y}(s) = \mathbf{W}(s)\mathbf{U}(s)$, whereas in [First Order Differential State Equations](/dynamic-courses/systems-theory/01-state-models/01-first-order-differential-state-equations/) we modeled physical plants via internal state matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$. We now derive the exact algebraic formula that converts any state-space realization into its external transfer function matrix $\mathbf{W}(s)$.
@@ -160,7 +162,7 @@ $$\mathbf{W}(0) = \mathbf{C}(0\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{
 
 How does this formula connect to time-domain equilibrium? When a constant step input $\mathbf{u}(t) = \mathbf{u}_0 \cdot 1(t)$ drives an asymptotically stable system (all eigenvalues in $\operatorname{Re}(\lambda_i) < 0$), the state derivative eventually settles to $\dot{\mathbf{x}}(\infty) = \mathbf{0}$, so $\mathbf{0} = \mathbf{A}\mathbf{x}_{\text{ss}} + \mathbf{B}\mathbf{u}_0 \implies \mathbf{x}_{\text{ss}} = -\mathbf{A}^{-1}\mathbf{B}\mathbf{u}_0$, and the steady-state sensor output is $\mathbf{y}_{\text{ss}} = \mathbf{C}\mathbf{x}_{\text{ss}} + \mathbf{D}\mathbf{u}_0 = (-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0 = \mathbf{W}(0)\mathbf{u}_0$—matching the Final Value Theorem $\lim_{s\to 0} s\mathbf{W}(s)\frac{1}{s}\mathbf{u}_0 = \mathbf{W}(0)\mathbf{u}_0$!
 
-<Callout type="bridge" title="Robotics Bridge: Unstable Pole-Zero Cancellation">
+<Callout type="bridge" title="Unstable Pole-Zero Cancellation">
 
 In flight control, attempting to stabilize an unstable open-loop airframe mode (such as pitch divergence at $s = +2$) by placing a controller zero at $s = +2$ fails catastrophically:
 
@@ -183,7 +185,7 @@ Although the cancelled transfer function looks stable, in state space the unstab
 ### Transfer Matrix Procedure
 
 1. **Compute Resolvent:** Form $(s\mathbf{I} - \mathbf{A})^{-1} = \frac{\operatorname{adj}(s\mathbf{I}-\mathbf{A})}{p(s)}$.
-2. **Project via $\mathbf{C}$ and $\mathbf{B}$:** Multiply $\mathbf{C}\operatorname{adj}(s\mathbf{I}-\mathbf{A})\mathbf{B}$ before dividing by $p(s)$, then add $\mathbf{D}p(s)$ over $p(s)$.
+2. **Project Outputs and Inputs:** Multiply $\mathbf{C}\operatorname{adj}(s\mathbf{I}-\mathbf{A})\mathbf{B}$ before dividing by $p(s)$, then add $\mathbf{D}p(s)$ over $p(s)$.
 3. **Cancel Common Factors:** Factor numerator and denominator to check whether $\deg(D(s)) < n$ (non-minimal realization).
 4. **Verify Endpoints:** Confirm $\lim_{s\to\infty}\mathbf{W}(s) = \mathbf{D}$ and check $\mathbf{W}(0)$ against $-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D}$.
 

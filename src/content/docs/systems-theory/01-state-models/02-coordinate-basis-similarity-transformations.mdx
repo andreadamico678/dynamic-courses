@@ -84,6 +84,8 @@ Thus, changing coordinates alters how internal variables are labeled and scaled,
 
 <Divider label="2 · Theory" />
 
+Changing the coordinate basis of a state vector reshapes the internal system matrices without altering its external behavior. Below we derive the similarity transformation laws and prove invariance of the characteristic polynomial, eigenvalues, and transfer function.
+
 ### Algebraic Coordinate Transformation
 
 Because an internal state vector $\mathbf{x}(t) \in \mathbb{R}^n$ is chosen by the modeler—such as node voltages versus mesh currents in an electrical filter, or body-frame versus Earth-frame axes on an aircraft—any single physical system admits infinitely many valid state-space realizations. We need an exact algebraic dictionary that translates the matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ from one coordinate basis to another without losing or distorting the underlying dynamics.
@@ -195,7 +197,7 @@ $$\dot{z}_i(t) = \lambda_i z_i(t) + \tilde{b}_i u(t), \qquad i = 1, \dots, n$$
 
 where $\tilde{b}_i$ is the $i$-th entry of $\tilde{\mathbf{B}} = \mathbf{M}^{-1}\mathbf{B}$. Physically, $\tilde{b}_i$ tells us how strongly the actuator excites mode $i$, $z_i(t)$ tracks the amplitude of mode $i$ evolving at natural rate $e^{\lambda_i t}$, and the $i$-th column of $\tilde{\mathbf{C}} = \mathbf{C}\mathbf{M}$ tells us how strongly mode $i$ appears in the sensor measurements.
 
-<Callout type="bridge" title="Robotics Bridge: Body-to-Inertial Transformations">
+<Callout type="bridge" title="Body and Inertial Frames">
 
 In aerial robotics, coordinate transformations occur continuously between the **Body-fixed frame** $\mathcal{F}_B$ (aligned with IMU accelerometer axes) and the **Inertial World frame** $\mathcal{F}_W$ (North-East-Down or ENU coordinates). For body velocities $\mathbf{v}_B = \begin{bmatrix} u & v & w \end{bmatrix}^T$ and inertial positions $\mathbf{p}_W = \begin{bmatrix} x & y & z \end{bmatrix}^T$:
 

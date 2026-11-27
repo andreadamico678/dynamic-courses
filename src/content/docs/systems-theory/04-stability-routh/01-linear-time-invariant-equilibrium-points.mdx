@@ -50,6 +50,8 @@ By contrast, suppose the top-left entry were $0$ instead of $-2$, so $\mathbf{A}
 
 <Divider label="2 · Theory" />
 
+Before judging whether trajectories decay or diverge, we must locate the constant state vectors where motion vanishes under a steady input. This section characterizes uniqueness and multiplicity of equilibria via the rank of $\mathbf{A}$ and connects those points to shifted deviation coordinates.
+
 ### Equilibrium State Definition
 
 In physical systems, an **equilibrium state** (also called an *operating point*, *quiescent state*, or *trim condition*) is a permanent stationary configuration: a mass-spring system where gravity balances spring tension, a DC motor where electromagnetic torque matches viscous drag, or a hovering drone where propeller thrust equals vehicle weight.
@@ -68,15 +70,15 @@ The first equation states that internal restoring dynamics $\mathbf{A}\mathbf{x}
 
 The equilibrium equation $\mathbf{A}\mathbf{x}_e = -\mathbf{B}\mathbf{u}_0$ is a system of $n$ linear equations in $n$ unknowns. Physically, the column space $\operatorname{Im}(\mathbf{A})$ represents every state-rate vector that the system's internal dynamics can produce to oppose an external input. By the **Rouché-Capelli theorem**, existence and uniqueness of $\mathbf{x}_e$ depend on comparing $\operatorname{rank}(\mathbf{A})$ against the rank of the augmented matrix $[\mathbf{A} \mid -\mathbf{B}\mathbf{u}_0]$:
 
-1. **Non-Singular System Matrix ($\det(\mathbf{A}) \neq 0$):**
+1. **Non-Singular System Matrix:**
    Here $\operatorname{rank}(\mathbf{A}) = n$, so $\operatorname{Im}(\mathbf{A}) = \mathbb{R}^n$ and zero is not an eigenvalue of $\mathbf{A}$. Because $\mathbf{A}^{-1}$ exists, every constant input $\mathbf{u}_0$ can be balanced at a **unique** isolated equilibrium state with steady-state output:
    $$\boxed{\mathbf{x}_e = -\mathbf{A}^{-1}\mathbf{B}\mathbf{u}_0}, \qquad \mathbf{y}_e = (-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0 = \mathbf{W}(0)\mathbf{u}_0$$
    The matrix $\mathbf{W}(0) = -\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D}$ is the system's **DC gain matrix** (obtained by setting $s = 0$ in $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$). When $\mathbf{u}_0 = \mathbf{0}$, the origin $\mathbf{x}_e = \mathbf{0}$ is the strictly unique equilibrium.
 
-2. **Singular System Matrix ($\det(\mathbf{A}) = 0$):**
+2. **Singular System Matrix:**
    Here $\operatorname{rank}(\mathbf{A}) = r < n$, so $\lambda = 0$ is an eigenvalue with geometric multiplicity $m_g(0) = n - r \ge 1$ and non-trivial null space $\ker(\mathbf{A}) = \{\mathbf{v} \in \mathbb{R}^n \mid \mathbf{A}\mathbf{v} = \mathbf{0}\}$. Any displacement along $\ker(\mathbf{A})$ generates zero internal restoring rate, splitting the behavior into two subcases:
-   * **Incompatible Input ($-\mathbf{B}\mathbf{u}_0 \notin \operatorname{Im}(\mathbf{A})$):** Augmenting $\mathbf{A}$ with $-\mathbf{B}\mathbf{u}_0$ adds a linearly independent column, raising the rank to $\operatorname{rank}([\mathbf{A} \mid -\mathbf{B}\mathbf{u}_0]) = r + 1 > r$. **Zero equilibria exist.** The constant input pushes along an unconstrained integrator direction with no internal restoring force to balance it, causing unbounded drift (like applying constant net force to a frictionless mass).
-   * **Compatible Input ($-\mathbf{B}\mathbf{u}_0 \in \operatorname{Im}(\mathbf{A})$):** Augmenting does not increase the rank, so $\operatorname{rank}([\mathbf{A} \mid -\mathbf{B}\mathbf{u}_0]) = r$. **Infinitely many equilibria exist**, forming an $(n - r)$-dimensional affine manifold:
+   * **Incompatible Input:** When $-\mathbf{B}\mathbf{u}_0 \notin \operatorname{Im}(\mathbf{A})$, augmenting $\mathbf{A}$ with $-\mathbf{B}\mathbf{u}_0$ adds a linearly independent column, raising the rank to $\operatorname{rank}([\mathbf{A} \mid -\mathbf{B}\mathbf{u}_0]) = r + 1 > r$. **Zero equilibria exist.** The constant input pushes along an unconstrained integrator direction with no internal restoring force to balance it, causing unbounded drift.
+   * **Compatible Input:** When $-\mathbf{B}\mathbf{u}_0 \in \operatorname{Im}(\mathbf{A})$, augmenting does not increase the rank, so $\operatorname{rank}([\mathbf{A} \mid -\mathbf{B}\mathbf{u}_0]) = r$. **Infinitely many equilibria exist**, forming an $(n - r)$-dimensional affine manifold:
      $$\boxed{\mathbf{x}_e = \mathbf{x}_{e,\text{part}} + \ker(\mathbf{A}) = \mathbf{x}_{e,\text{part}} + \sum_{k=1}^{n-r} \alpha_k \mathbf{v}_k, \quad \alpha_k \in \mathbb{R}}$$
      where $\mathbf{x}_{e,\text{part}}$ is any particular solution and $\{\mathbf{v}_1, \dots, \mathbf{v}_{n-r}\}$ is a basis of $\ker(\mathbf{A})$. Moving from $\mathbf{x}_{e,\text{part}}$ along any $\mathbf{v}_k$ leaves $\mathbf{A}\mathbf{x}_e$ unchanged, so every point on the manifold balances $-\mathbf{B}\mathbf{u}_0$. For $\mathbf{u}_0 = \mathbf{0}$, compatibility always holds and the equilibrium set is $\ker(\mathbf{A})$.
 
@@ -113,7 +115,7 @@ $$\boxed{\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{z}(t) + \mathbf{B}\mathbf{v}(t)
 
 Because this deviation model shares the exact same matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ and places the equilibrium at the origin ($\mathbf{z} = \mathbf{0}$), analyzing stability around **any** operating point $\mathbf{x}_e$ reduces completely to analyzing the origin of $\dot{\mathbf{z}} = \mathbf{A}\mathbf{z}$, as developed in [Lyapunov Internal State Stability](/dynamic-courses/systems-theory/04-stability-routh/02-lyapunov-spectral-internal-stability/).
 
-<Callout type="bridge" title="Robotics Application: Mobile Robots and Drone Hover Trim">
+<Callout type="bridge" title="Robot and Drone Hover Trim">
 
 1. **Differential-Drive Heading:** A mobile robot with heading angle $\theta$ and angular velocity $\omega$ satisfies $\dot{\theta} = \omega$ and $\dot{\omega} = -\frac{d_m}{J}\omega + \frac{k_t}{J}u$. With $\mathbf{x} = [\theta, \; \omega]^T$, $\mathbf{A}$ is singular ($\det(\mathbf{A}) = 0$). For zero torque $u_0 = 0$, the equilibrium set is the line $\mathbf{x}_e = [\theta_e, \; 0]^T$ for any heading $\theta_e \in [-\pi, \pi]$.
 2. **Quadrotor Vertical Hover:** A quadrotor of mass $m$ has vertical dynamics $\dot{z} = v_z$ and $\dot{v}_z = -g + \frac{1}{m}T(t)$. Hover equilibrium requires $T_0 = mg$, at which any altitude $z_e$ forms a valid equilibrium state.
@@ -144,7 +146,7 @@ Because this deviation model shares the exact same matrices $(\mathbf{A}, \mathb
 
 1. **Missing Minus Sign:** Always solve $\mathbf{A}\mathbf{x}_e = -\mathbf{B}\mathbf{u}_0$, never $+\mathbf{B}\mathbf{u}_0$.
 2. **Misreading $\det(\mathbf{A}) = 0$:** A singular $\mathbf{A}$ does *not* automatically mean no equilibrium exists; you must check compatibility $-\mathbf{B}\mathbf{u}_0 \in \operatorname{Im}(\mathbf{A})$.
-3. **Confusing Trim Output with DC Gain When Singular:** The DC-gain formula $\mathbf{y}_e = (-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0$ applies only when $\det(\mathbf{A}) \neq 0$.
+3. **Trim Output When Singular:** The DC-gain formula $\mathbf{y}_e = (-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0$ applies only when $\det(\mathbf{A}) \neq 0$.
 
 </Callout>
 

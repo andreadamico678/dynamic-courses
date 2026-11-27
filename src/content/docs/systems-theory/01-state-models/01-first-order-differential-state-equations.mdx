@@ -109,6 +109,8 @@ While $\mathbf{A}$ and $\mathbf{B}$ capture the internal mechanics of the carts,
 
 <Divider label="2 · Theory" />
 
+Every continuous-time LTI system can be written as a first-order vector differential equation paired with an algebraic output map. This section establishes the general state-space matrices, derives the companion canonical realization from an input-output ODE, and validates the multirotor pitch model against unit consistency.
+
 ### Dynamical State Definition
 
 A single high-order differential equation linking one input $u(t)$ to one output $y(t)$ treats the system as a sealed black box: it hides internal forces between components, requires clumsy reconfiguration whenever we add a second actuator or sensor, and buries initial stored energy inside high-order output derivatives at $t = 0^-$. To analyze any dynamical system with a single universal toolkit, we need a minimal internal summary that captures all stored energy, matter, or information at a given instant.
@@ -181,7 +183,7 @@ $$y(t) = \begin{bmatrix} 1 & 0 & 0 & \dots & 0 \end{bmatrix} \mathbf{x}(t)$$
 
 Geometrically, the first $n - 1$ rows of the companion matrix $\mathbf{A}$ form a pure shift-register chain of integrators (with $1$s along the superdiagonal and zeros everywhere else), while the bottom row closes the feedback loop from all $n$ states back into the highest derivative $\dot{x}_n(t)$.
 
-<Callout type="bridge" title="Robotics Bridge: Multirotor Pitch Dynamics">
+<Callout type="bridge" title="Multirotor Pitch Dynamics">
 
 In aerial robotics autopilots (such as PX4), quadcopter pitch dynamics around hover equilibrium follow:
 
@@ -252,7 +254,7 @@ The transformed quadruple $(\tilde{\mathbf{A}}, \tilde{\mathbf{B}}, \tilde{\math
 
 1. **Reversed Companion Order:** Putting $[-a_{n-1}, \dots, -a_0]$ instead of $[-a_0, -a_1, \dots, -a_{n-1}]$ in the bottom row of $\mathbf{A}$ flips the characteristic polynomial. Always match each column to $[x_1, x_2, \dots, x_n]$.
 2. **Spring Force Sign Errors:** When cart 2 moves farther than cart 1 ($p_2 > p_1$), the coupling spring pulls cart 1 forward ($+k(p_2 - p_1)$) and cart 2 backward ($-k(p_2 - p_1)$).
-3. **Forgetting to Normalize Highest Derivative:** Before reading companion coefficients from $c_n y^{(n)} + \dots + c_0 y = d_0 u$, divide through by $c_n$ so the coefficient of $y^{(n)}$ is $1$.
+3. **Unnormalized Highest Derivative:** Before reading companion coefficients from $c_n y^{(n)} + \dots + c_0 y = d_0 u$, divide through by $c_n$ so the coefficient of $y^{(n)}$ is $1$.
 
 </Callout>
 

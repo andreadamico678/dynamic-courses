@@ -64,6 +64,8 @@ Drag the gain slider $K$ from $-12$ to $115$ (or click the preset buttons) to wa
 
 <Divider label="2 · Theory" />
 
+Parameterizing the characteristic polynomial in a feedback gain turns Routh's first column into algebraic design inequalities. This section derives stabilizing gain intervals from Column 1 pivots and solves the row-$s^2$ auxiliary equation for sustained crossover frequencies.
+
 ### Parameterized Characteristic Polynomial
 
 For a unity negative-feedback loop with fixed plant $G(s) = N(s)/D(s)$ and proportional gain $K$, the closed-loop transfer function is:
@@ -81,8 +83,8 @@ Notice that varying $K$ moves the closed-loop poles continuously through the com
 By [Routh-Hurwitz Stability Criterion](/dynamic-courses/systems-theory/04-stability-routh/03-routh-hurwitz-tabular-array-construction/), $p(s, K)$ is strictly Hurwitz if and only if every first-column entry $c_{k,1}(K)$ is strictly positive. Whenever a first-column entry is a rational expression $f(K)/g(K)$, its denominator $g(K)$ is the pivot of the row immediately above—which is already required to be strictly positive ($g(K) > 0$) by its own Column 1 inequality. Consequently, $f(K)/g(K) > 0$ simplifies directly to $f(K) > 0$. Intersecting all resulting inequalities yields the stabilizing gain interval $K \in (K_{\min}, K_{\max})$.
 
 As $K$ reaches a boundary $K_{\text{crit}}$, closed-loop poles can cross the imaginary axis in two distinct ways:
-1. **Real Pole Crossing at $s = 0$:** When the constant term $a_0(K) = 0$, $s = 0$ becomes a root of $p(s, K) = 0$, marking a static stability boundary.
-2. **Complex Pair Crossing at $\pm j\omega_{\text{osc}}$:** When a complex conjugate pair crosses the $j\omega$-axis, row $s^1$ vanishes identically while row $s^2$ remains non-zero (Singular Case 2 from [Singular Routh Tables](/dynamic-courses/systems-theory/04-stability-routh/04-singular-routh-table-zero-elements/)). Denoting row $s^2$ evaluated at $K = K_{\text{crit}}$ explicitly as $[\alpha_1(K_{\text{crit}}),\; \alpha_2(K_{\text{crit}})]$ (kept distinct from row $s^{n-2}$ entries $b_1, b_2$ so the notation holds for any polynomial degree $n \ge 3$), the quadratic auxiliary polynomial is:
+1. **Real Pole at Origin:** When the constant term $a_0(K) = 0$, $s = 0$ becomes a root of $p(s, K) = 0$, marking a static stability boundary.
+2. **Complex Conjugate Crossing:** When a complex conjugate pair crosses the $j\omega$-axis ($\pm j\omega_{\text{osc}}$), row $s^1$ vanishes identically while row $s^2$ remains non-zero (Singular Case 2 from [Singular Routh Tables](/dynamic-courses/systems-theory/04-stability-routh/04-singular-routh-table-zero-elements/)). Denoting row $s^2$ evaluated at $K = K_{\text{crit}}$ explicitly as $[\alpha_1(K_{\text{crit}}),\; \alpha_2(K_{\text{crit}})]$ (kept distinct from row $s^{n-2}$ entries $b_1, b_2$ so the notation holds for any polynomial degree $n \ge 3$), the quadratic auxiliary polynomial is:
 
 $$A(s) = \alpha_1(K_{\text{crit}}) s^2 + \alpha_2(K_{\text{crit}}) = 0$$
 
@@ -105,7 +107,7 @@ Because a complex pair $\pm j\omega_{\text{osc}}$ is always a degree-2 factor, t
   explanation="A complex pair $\pm j\omega_{\mathrm{osc}}$ corresponds to a quadratic auxiliary equation $A(s) = \alpha_1 s^2 + \alpha_2 = 0$, which always sits in row $s^2$ right above the vanishing $s^1$ row regardless of degree $n$."
 />
 
-<Callout type="bridge" title="SDU Robotics Bridge: PX4 Roll Loop Tuning & Ziegler-Nichols">
+<Callout type="bridge" title="Roll Loop Ziegler-Nichols Tuning">
 
 In industrial PID tuning (Ziegler-Nichols), $K_{\text{crit}}$ is the **ultimate gain** $K_u$ and $T_u = 2\pi / \omega_{\text{osc}}$ is the **ultimate period**. Routh's array computes $K_u$ and $T_u$ analytically before ever spinning a drone's propellers.
 

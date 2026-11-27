@@ -88,6 +88,8 @@ Multiplying numerator and denominator by $(s + 1)$ clears the internal pole at $
 
 <Divider label="2 · Theory" />
 
+Reducing a multi-loop block diagram relies on exact signal conservation at every node. This section formalizes the three algebraic reductions—series, parallel, and feedback—and derives the node-shifting equivalence rules needed when loops interleave.
+
 ### Block Diagram Primitives
 
 In multi-loop control engineering—such as flight autopilots, robotic joint servos, and power converters—each physical device (actuator, sensor, filter, compensator) is modeled as an individual transfer block. **Block diagram algebra** provides a rigorous graphical calculus to connect those modular blocks together and reduce the resulting network to a single overall input-output transfer function $W(s) = \frac{Y(s)}{U(s)}$.
@@ -153,22 +155,22 @@ Dividing both sides by $\big[1 \pm G(s) H(s)\big] U(s)$ yields the fundamental *
 
 $$W(s) = \frac{Y(s)}{U(s)} = \frac{G(s)}{1 \pm G(s) H(s)}$$
 
-In this formula, $G(s)$ is the **forward-path transfer function**, $H(s)$ is the **feedback return-path transfer function** (with $H(s) = 1$ for unity feedback), and the product $L(s) \triangleq G(s)H(s)$ is the **open-loop (or loop) transfer function**. Always remember the sign reversal caused by moving $G(s)H(s)Y(s)$ across the equals sign: negative feedback ($-$ at the summing junction) produces $+G(s)H(s)$ in the denominator, whereas positive feedback ($+$ at the summing junction) produces $-G(s)H(s)$ in the denominator.
+In this formula, $G(s)$ is the **forward-path transfer function**, $H(s)$ is the **feedback return-path transfer function** (with $H(s) = 1$ for unity feedback), and the product $L(s) \triangleq G(s)H(s)$ is the **loop transfer function**. Always remember the sign reversal caused by moving $G(s)H(s)Y(s)$ across the equals sign: negative feedback ($-$ at the summing junction) produces $+G(s)H(s)$ in the denominator, whereas positive feedback ($+$ at the summing junction) produces $-G(s)H(s)$ in the denominator.
 
 ### Topological Equivalence Rules
 
 In tangled multi-loop diagrams, a takeoff point from one loop frequently sits *inside* another feedback loop, preventing us from collapsing either loop directly with the cascade, parallel, or feedback formulas. To untangle interleaved loops, we slide a summing junction or takeoff point past an adjacent block $G(s)$ and insert a compensating transfer function on the moved branch so that every signal leaving the sub-network remains algebraically identical.
 
 Let us verify the four fundamental node-shift operations by equating the outgoing signals before and after the move:
-1. **Moving a summing junction from before $G(s)$ to after $G(s)$:** Before the move, two inputs $U_1(s)$ and $\pm U_2(s)$ sum first and then pass through $G(s)$, producing output:
+1. **Summer Past $G$:** Before the move, two inputs $U_1(s)$ and $\pm U_2(s)$ sum first and then pass through $G(s)$, producing output:
    $$Y(s) = G(s)\big(U_1(s) \pm U_2(s)\big) = G(s) U_1(s) \pm G(s) U_2(s)$$
    By the distributive law, if we move the summing junction *after* $G(s)$ so that $U_1(s)$ passes through $G(s)$ alone, we must multiply the side branch $U_2(s)$ by an extra block $G(s)$ before adding it at the shifted summer.
-2. **Moving a summing junction from after $G(s)$ to before $G(s)$:** Before the move, $U_1(s)$ passes through $G(s)$ first and then adds to $\pm U_2(s)$, giving output:
+2. **Summer Before $G$:** Before the move, $U_1(s)$ passes through $G(s)$ first and then adds to $\pm U_2(s)$, giving output:
    $$Y(s) = G(s) U_1(s) \pm U_2(s) = G(s)\left( U_1(s) \pm \frac{1}{G(s)} U_2(s) \right)$$
    Factoring $G(s)$ out on the left shows that if we shift the summing junction *before* $G(s)$, we must pre-multiply the side branch $U_2(s)$ by the inverse block $\frac{1}{G(s)}$ so that passing through $G(s)$ restores $\pm U_2(s)$.
-3. **Moving a takeoff point from before $G(s)$ to after $G(s)$:** Before the move, the main branch outputs $Y(s) = G(s)U(s)$ while the tapped wire carries the unscaled input $X(s) = U(s)$. If we slide the takeoff point *after* $G(s)$, the wire now taps $Y(s) = G(s)U(s)$, so we must insert $\frac{1}{G(s)}$ on the tapped branch to recover:
+3. **Takeoff Past $G$:** Before the move, the main branch outputs $Y(s) = G(s)U(s)$ while the tapped wire carries the unscaled input $X(s) = U(s)$. If we slide the takeoff point *after* $G(s)$, the wire now taps $Y(s) = G(s)U(s)$, so we must insert $\frac{1}{G(s)}$ on the tapped branch to recover:
    $$X(s) = \frac{1}{G(s)} Y(s) = \frac{1}{G(s)}\big(G(s) U(s)\big) = U(s)$$
-4. **Moving a takeoff point from after $G(s)$ to before $G(s)$:** Before the move, the tapped wire carries $X(s) = G(s)U(s)$. If we slide the takeoff point *before* $G(s)$ where the wire only carries $U(s)$, we must insert a duplicate block $G(s)$ on the tapped branch so its output remains $X(s) = G(s)U(s)$.
+4. **Takeoff Before $G$:** Before the move, the tapped wire carries $X(s) = G(s)U(s)$. If we slide the takeoff point *before* $G(s)$ where the wire only carries $U(s)$, we must insert a duplicate block $G(s)$ on the tapped branch so its output remains $X(s) = G(s)U(s)$.
 
 All four node-shift rules—plus the fact that two adjacent summing junctions can be reordered freely by associativity of addition—are summarized in the lookup table in Section 3.
 
@@ -185,7 +187,7 @@ All four node-shift rules—plus the fact that two adjacent summing junctions ca
   explanation="Before $G$, the tapped signal equals $U$. Moving the tap after $G$ picks up $GU$, so inserting $1/G(s)$ restores $\frac{1}{G}(GU) = U$."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Cascaded Drone Control Loops">
+<Callout type="bridge" title="Cascaded Drone Control Loops">
 
 In PX4 flight control stacks, attitude loops are wired in a nested, cascaded topology:
 1. **Outer Attitude Loop ($\theta$):** A proportional gain $K_p$ turns angle error into a desired angular rate $\omega_{\text{ref}}$.
@@ -220,7 +222,7 @@ Block diagram algebra shows why closing the inner rate loop first rejects high-f
 <Callout type="warning" title="Common Mistakes">
 
 1. **Feedback Sign Inversion:** Negative feedback ($-H$) produces $+G(s)H(s)$ in the denominator; positive feedback ($+H$) produces $-G(s)H(s)$.
-2. **Non-Unity Feedback ($H \neq 1$):** Remember the closed-loop numerator is the forward gain $G(s)$ alone, whereas the denominator uses the full loop gain $L(s) = G(s)H(s)$.
+2. **Non-Unity Feedback Paths:** Remember the closed-loop numerator is the forward gain $G(s)$ alone, whereas the denominator uses the full loop gain $L(s) = G(s)H(s)$.
 3. **Illegal Node Swaps:** A summing junction and a takeoff point do **not** commute; swapping them directly alters intermediate signals.
 
 </Callout>

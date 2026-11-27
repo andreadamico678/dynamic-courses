@@ -66,6 +66,8 @@ Physically, once acceleration $\ddot{y}$ and velocity $\dot{y}$ settle to zero i
 
 <Divider label="2 · Theory" />
 
+Transforming causal time functions into complex rational functions turns ordinary differential equations into polynomial algebra. This section establishes the unilateral integral definition, proves the core operational theorems, and derives the Initial and Final Value Theorems.
+
 ### Definition and Convergence Region
 
 In real engineering control loops, an actuator command or disturbance begins at a specific initial instant $t = 0$, while the plant may already hold stored energy just prior to switching on (at $t = 0^-$) or experience an impulsive hit $\delta(t)$ right at $t = 0$. To capture initial conditions at $t = 0^-$ and impulses at $t = 0$ without needing to know the system's history over $t \in (-\infty, 0)$, we integrate from the lower limit $t = 0^-$.
@@ -98,17 +100,17 @@ Using this integral definition, let us derive the fundamental transform pairs th
 
 Rather than computing improper integrals for every composite signal, operational theorems translate time delays, exponential envelopes, and linear combinations into immediate algebraic rules in the $s$-domain.
 
-Because integration is a linear operator, the Laplace transform satisfies **superposition (linearity)** for any scalar weights $\alpha, \beta \in \mathbb{C}$:
+1. **Superposition:** Because integration is a linear operator, the Laplace transform satisfies **linearity** for any scalar weights $\alpha, \beta \in \mathbb{C}$:
 
 $$\mathcal{L}\{\alpha f_1(t) + \beta f_2(t)\} = \int_{0^-}^\infty \big(\alpha f_1(t) + \beta f_2(t)\big) e^{-st} \, dt = \alpha F_1(s) + \beta F_2(s)$$
 
-When a causal waveform $f(t)1(t)$ is delayed by $\tau > 0$ seconds—for example, across a digital communication buffer or fluid pipe—it becomes $f(t - \tau) 1(t - \tau)$, which is zero for $t < \tau$. Changing the integration variable to $\sigma = t - \tau$ (so $t = \sigma + \tau$ and $dt = d\sigma$) yields the **Time Translation (Pure Delay) Theorem**:
+When a causal waveform $f(t)1(t)$ is delayed by $\tau > 0$ seconds—for example, across a digital communication buffer or fluid pipe—it becomes $f(t - \tau) 1(t - \tau)$, which is zero for $t < \tau$. Changing the integration variable to $\sigma = t - \tau$ (so $t = \sigma + \tau$ and $dt = d\sigma$) yields the **Time Translation Theorem**:
 
 $$\mathcal{L}\{f(t - \tau) 1(t - \tau)\} = \int_\tau^\infty f(t - \tau) e^{-st} \, dt = \int_0^\infty f(\sigma) e^{-s(\sigma + \tau)} \, d\sigma = e^{-s\tau} \int_0^\infty f(\sigma) e^{-s\sigma} \, d\sigma = e^{-s\tau} F(s)$$
 
 Delaying a signal by $\tau$ seconds in the time domain therefore multiplies its Laplace transform by the non-rational phase factor $e^{-s\tau}$.
 
-Dually, multiplying a signal $f(t)$ by an exponential damping or growth factor $e^{at}$ in the time domain combines the exponents $e^{at}e^{-st} = e^{-(s-a)t}$ inside the integral, yielding the **Frequency Translation Theorem**:
+2. **Exponential Shift:** Multiplying a signal $f(t)$ by an exponential damping or growth factor $e^{at}$ in the time domain combines the exponents $e^{at}e^{-st} = e^{-(s-a)t}$ inside the integral, yielding the **Frequency Translation Theorem**:
 
 $$\mathcal{L}\{e^{at} f(t)\} = \int_{0^-}^\infty f(t) e^{-(s - a)t} \, dt = F(s - a)$$
 
@@ -129,7 +131,7 @@ Inside the Region of Convergence ($\operatorname{Re}(s) > \sigma_0$), the upper 
 
 $$\mathcal{L}\{\ddot{f}(t)\} = s G(s) - g(0^-) = s\big(s F(s) - f(0^-)\big) - \dot{f}(0^-) = s^2 F(s) - s f(0^-) - \dot{f}(0^-)$$
 
-Repeating this induction $n$ times yields the general **$n$-th Order Time Differentiation Theorem**:
+Repeating this induction $n$ times yields the general **$n$-th Order Derivative** theorem:
 
 $$\mathcal{L}\{f^{(n)}(t)\} = s^n F(s) - s^{n-1} f(0^-) - s^{n-2} \dot{f}(0^-) - \dots - s f^{(n-2)}(0^-) - f^{(n-1)}(0^-) = s^n F(s) - \sum_{k=1}^n s^{n-k} f^{(k-1)}(0^-)$$
 
@@ -161,7 +163,7 @@ $$f(0^+) = \lim_{s \to \infty} s F(s)$$
 
 Physically, high frequencies $s \to \infty$ correspond to tiny time scales $t \to 0^+$.
 
-To find the steady-state value as $t \to \infty$, we instead take the low-frequency limit $s \to 0$ in $\int_{0^-}^\infty \dot{f}(t)e^{-st}\,dt = sF(s) - f(0^-)$. Provided that **every pole of $sF(s)$ lies strictly in the open left half-plane** ($\operatorname{Re}(s) < 0$), $s = 0$ lies inside the Region of Convergence of $\dot{f}(t)$, allowing us to pass the limit $s \to 0$ inside the integral ($e^{-0\cdot t} = 1$):
+To find the steady-state value as $t \to \infty$, we instead take the low-frequency limit $s \to 0$ in $\int_{0^-}^\infty \dot{f}(t)e^{-st}\,dt = sF(s) - f(0^-)$. Provided that **every pole** of $sF(s)$ lies strictly in the open left half-plane ($\operatorname{Re}(s) < 0$), $s = 0$ lies inside the Region of Convergence of $\dot{f}(t)$, allowing us to pass the limit $s \to 0$ inside the integral ($e^{-0\cdot t} = 1$):
 
 $$\lim_{s \to 0} \big(s F(s) - f(0^-)\big) = \int_{0^-}^\infty \dot{f}(t) \, dt = \lim_{t \to \infty} f(t) - f(0^-)$$
 
@@ -188,7 +190,7 @@ The Final Value Theorem is **invalid** whenever $s F(s)$ has any poles on the im
   explanation="For $F(s) = \frac{5}{s(s+3)}$, $sF(s) = \frac{5}{s+3}$ has its only pole at $s = -3$ (strictly in the open LHP). The other two have poles at $s = +1$ (RHP) and $s = \pm j3$ (imaginary axis)."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Telemetry Network Latency">
+<Callout type="bridge" title="Telemetry Network Latency">
 
 In remote drone operations over wireless links, communication latency $\tau$ between the ground station and the vehicle acts as a pure transport delay. By the time translation theorem, this delay multiplies the open-loop transfer function by $e^{-s\tau}$. On the imaginary axis $s = j\omega$:
 

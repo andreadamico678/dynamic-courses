@@ -59,11 +59,13 @@ $$p(s) = s^3 + 2s^2 + 4s + 12$$
 
 <Divider label="2 · Theory" />
 
+Determining whether a high-order characteristic polynomial has only open left-half-plane roots is possible without factoring it explicitly. This section establishes Stodola's necessary condition and constructs Routh's tabular array to count right-half-plane roots purely from polynomial coefficients.
+
 ### Characteristic Polynomial Root Counting
 
 In [Lyapunov Internal State Stability](/dynamic-courses/systems-theory/04-stability-routh/02-lyapunov-spectral-internal-stability/), we established that an LTI system is internally asymptotically stable if and only if every root of its characteristic polynomial $p(s)$ lies strictly in the open left-half complex plane ($\operatorname{Re}(s_k) < 0$). While quadratic roots ($n \le 2$) factor by the quadratic formula, the Abel-Ruffini theorem proves no general radical formula exists for $n \ge 5$, and symbolic parameters make direct root-finding impossible. In 1877, Edward John Routh devised a purely algebraic **tabular array** that counts how many roots lie in the open right-half plane ($\operatorname{Re}(s_k) > 0$) directly from polynomial coefficients.
 
-<Callout type="bridge" title="Terminology Bridge: Matrix Eigenvalues vs. Polynomial Roots">
+<Callout type="bridge" title="Eigenvalues and Polynomial Roots">
 
 Earlier we classified stability using **eigenvalues of $\mathbf{A}$** (tracking $m_a$ and $m_g$). The Routh-Hurwitz criterion operates on a **scalar polynomial** $p(s) = a_n s^n + \dots + a_0$ (even without a state matrix $\mathbf{A}$, such as a closed-loop denominator $D(s) + K N(s)$). Routh-Hurwitz counts the real-part signs of all **roots** of $p(s)$, but **cannot** distinguish $m_g$ from $m_a$ for repeated roots on the imaginary axis.
 
@@ -132,7 +134,7 @@ For low-order monic polynomials with $a_i > 0$, evaluating the first column dire
   explanation="Scaling a row by $k > 0$ preserves the signs of all entries in that row and leaves every subsequent row ratio unchanged, whereas multiplying by $-1$ flips first-column signs."
 />
 
-<Callout type="bridge" title="SDU Robotics Bridge: DC Motor PI Speed Loop Tuning">
+<Callout type="bridge" title="Motor PI Speed Loop Tuning">
 
 In differential-drive mobile robots, a permanent-magnet DC motor ($J, b, L, R$) under PI speed control $C(s) = K_p + K_i/s$ yields a 3rd-order characteristic polynomial. Applying $a_2 a_1 > a_0$ directly bounds the maximum integral gain $K_i$ before armature current oscillations destabilize the H-bridge driver.
 

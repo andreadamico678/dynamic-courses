@@ -1,6 +1,6 @@
 ---
-title: "Part II — Introduction: Laplace & State Resolvent"
-description: "Conceptual overview and real-world framing for Part II of Linear Systems Theory."
+title: "Part II — Laplace and Resolvent"
+description: "Conceptual overview, running system, and chapter roadmap for Part II of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,20 +10,28 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Differential equations in the time domain require solving coupled derivatives and convolution integrals—hard by hand whenever system order exceeds $n = 2$. Part II shifts the entire problem into the **complex frequency domain ($s$-domain)**, where differentiation $\frac{d}{dt}$ becomes simple multiplication by $s$ and an entire system of linear differential equations collapses into linear matrix algebra.
+Solving coupled differential equations and convolution integrals directly in the time domain becomes algebraic guesswork once system order exceeds $n = 2$. Part II moves the entire problem into the **complex frequency domain** ($s$-domain), turning differentiation $\frac{d}{dt}$ into multiplication by $s$ and coupled state equations into linear matrix algebra.
 
-You will follow a complete two-way bridge: first converting signals and state equations from time $t$ into rational functions of $s$ via the **State Resolvent Matrix** $(s\mathbf{I} - \mathbf{A})^{-1}$, and then decomposing those rational fractions into simple terms so you can read off natural decay rates, oscillation frequencies, and steady-state behavior directly.
+Chapters 4–7 build a two-way operational bridge: converting time signals and initial conditions into rational functions of $s$, inverting the **State Resolvent Matrix** $(s\mathbf{I} - \mathbf{A})^{-1}$, decomposing fractions via residues, and mapping internal matrices $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ to external transfer functions $\mathbf{W}(s)$.
 
-### Practical Real-World Perspective
+### Running Example
 
-- **Embedded Flight & Motor Diagnostics:** Measuring a motor's step response in the lab tells you its transfer function $W(s)$. Partial fraction residues instantly separate a fast electrical current transient from a slow mechanical rotor inertia mode.
-- **Hidden Internal Faults:** Two wildly different physical circuits or mechanical linkages can share the exact same external transfer function $\mathbf{W}(s) = \mathbf{C}(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$ if an internal mode cancels before reaching the sensor. Part II reveals the exact distinction between internal matrix eigenvalues and external transfer-function poles.
+Across Part II, we carry forward second- and third-order state-space dynamics in the $s$-domain—converting initial-energy ODEs and Frobenius companion matrices $\mathbf{A}$ through the resolvent:
+
+$$\mathbf{\Phi}(s) = (s\mathbf{I} - \mathbf{A})^{-1}, \qquad \mathbf{W}(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D}$$
+
+Chapter 4 handles $t = 0^-$ initial conditions via Laplace theorems, Chapter 5 recovers time modes from residues, Chapter 6 inverts $(s\mathbf{I} - \mathbf{A})$ via its adjugate, and Chapter 7 exposes pole-zero cancellation inside $\mathbf{W}(s)$.
+
+### Real-World Applications
+
+- **Motor & Airframe Diagnostics:** Partial fraction residues immediately isolate fast electrical transients from slower mechanical structural modes.
+- **Hidden Internal Modes:** Two distinct physical circuits or linkages can share the exact same $\mathbf{W}(s)$ if an internal eigenvalue cancels before reaching the sensor.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[4. Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/)** — Operational theorems, initial-condition handling at $t = 0^-$, and Initial/Final Value Theorems.
-2. **[5. Partial Fraction Expansion](/dynamic-courses/systems-theory/02-laplace-resolvent/02-partial-fraction-expansion-heaviside-residues/)** — Heaviside cover-up residues for simple, repeated, and complex conjugate poles.
-3. **[6. State Resolvent Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/03-state-resolvent-matrix-inversion/)** — Systematic $2\times 2$ and $3\times 3$ adjugate inversion of $(s\mathbf{I} - \mathbf{A})^{-1}$.
-4. **[7. Transfer Function Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/04-transfer-function-matrix-invariants/)** — Computing $\mathbf{W}(s)$, verifying coordinate invariance, and extracting DC gain and pole-zero structure.
+- [4. Unilateral Laplace Transform](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/) — Apply operational theorems, initial-condition handling at $t = 0^-$, and Initial/Final Value limits.
+- [5. Partial Fraction Expansion](/dynamic-courses/systems-theory/02-laplace-resolvent/02-partial-fraction-expansion-heaviside-residues/) — Compute Heaviside residues for simple, repeated, and complex conjugate poles.
+- [6. State Resolvent Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/03-state-resolvent-matrix-inversion/) — Invert $(s\mathbf{I} - \mathbf{A})^{-1}$ systematically via $2 \times 2$ and $3 \times 3$ adjugates.
+- [7. Transfer Function Matrix](/dynamic-courses/systems-theory/02-laplace-resolvent/04-transfer-function-matrix-invariants/) — Evaluate $\mathbf{W}(s)$, verify similarity invariance, and inspect DC gain and pole-zero cancellation.

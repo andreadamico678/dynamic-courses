@@ -80,6 +80,8 @@ With $\mathbf{L} = \begin{bmatrix} 10 & 16 \end{bmatrix}^T$, every initial estim
 
 <Divider label="2 · Theory" />
 
+When sensors measure only $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$ rather than the full state, reconstructing unmeasured states requires feedback from output prediction errors rather than open-loop simulation. This section contrasts open-loop state copying with Luenberger's innovation correction, derives the autonomous estimation error dynamics, and establishes observer pole-placement bandwidth bounds.
+
 ### Why Open-Loop Estimation Fails
 
 In Part VII, every state-feedback law $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$ assumed that the entire state vector $\mathbf{x}(t) \in \mathbb{R}^n$ is directly measurable. In real engineering hardware, sensors only measure a lower-dimensional output vector $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{D}\mathbf{u}(t) \in \mathbb{R}^p$ with $p < n$.
@@ -110,9 +112,9 @@ $$
 
 Because the open-loop simulator ignores the physical sensor measurements $\mathbf{y}(t)$, its estimation error dynamics are governed entirely by the unforced open-loop matrix $\mathbf{A}$. This open-loop approach is unusable in practice for three reasons:
 
-1. **Divergence on Unstable or Integrator Plants:** If $\mathbf{A}$ has any eigenvalue with $\operatorname{Re}(\lambda_i) > 0$ (such as an inverted pendulum) or at $\lambda_i = 0$ (such as a motor shaft position integrator), any tiny initial mismatch $\mathbf{e}(0) \neq \mathbf{0}$ grows exponentially without bound or persists as a permanent offset forever.
+1. **Unstable or Integrator Divergence:** If $\mathbf{A}$ has any eigenvalue with $\operatorname{Re}(\lambda_i) > 0$ (such as an inverted pendulum) or at $\lambda_i = 0$ (such as a motor shaft position integrator), any tiny initial mismatch $\mathbf{e}(0) \neq \mathbf{0}$ grows exponentially without bound or persists as a permanent offset forever.
 2. **Uncontrollable Convergence Rate:** Even when $\mathbf{A}$ is asymptotically stable, the estimation error decays only as fast as the plant's slowest open-loop eigenvalue—which cannot be sped up to serve a fast closed-loop controller.
-3. **Blindness to Disturbances and Model Uncertainty:** Any unmodeled external load torque, wind gust, or slight parameter discrepancy between the physical plant and the software model enters $\dot{\mathbf{x}}(t)$ without entering $\dot{\hat{\mathbf{x}}}(t)$, causing $\hat{\mathbf{x}}(t)$ to drift steadily away from $\mathbf{x}(t)$.
+3. **Disturbance and Model Blindness:** Any unmodeled external load torque, wind gust, or slight parameter discrepancy between the physical plant and the software model enters $\dot{\mathbf{x}}(t)$ without entering $\dot{\hat{\mathbf{x}}}(t)$, causing $\hat{\mathbf{x}}(t)$ to drift steadily away from $\mathbf{x}(t)$.
 
 ### Closed-Loop Innovation Correction
 
@@ -166,12 +168,12 @@ Consequently, the Luenberger observer is an **asymptotic state observer**—mean
 
 Where in the left-half plane should you place the observer eigenvalues $\{\beta_1, \dots, \beta_n\}$? Choosing observer bandwidth involves a fundamental engineering trade-off between **fast state locking** and **sensor noise rejection**:
 
-1. **Fast Enough to Outrun the Controller ($2\times$ to $5\times$ Rule):** When the estimated state $\hat{\mathbf{x}}(t)$ is fed into a state-feedback controller $\mathbf{u}(t) = -\mathbf{K}\hat{\mathbf{x}}(t)$, the controller initially acts on corrupted estimates until $\mathbf{e}(t)$ decays. To prevent initial estimation errors from distorting the closed-loop physical step response, the observer poles $\beta_i$ are placed **$2$ to $5$ times deeper** into the left-half plane than the dominant controller poles $\mu_{\text{dom}}$:
+1. **Faster Than Controller ($2\text{–}5\times$):** When the estimated state $\hat{\mathbf{x}}(t)$ is fed into a state-feedback controller $\mathbf{u}(t) = -\mathbf{K}\hat{\mathbf{x}}(t)$, the controller initially acts on corrupted estimates until $\mathbf{e}(t)$ decays. To prevent initial estimation errors from distorting the closed-loop physical step response, the observer poles $\beta_i$ are placed **deeper in the LHP** ($2\text{–}5\times$) than the dominant controller poles $\mu_{\text{dom}}$:
    $$
    \boxed{|\operatorname{Re}(\beta_i)| \approx (2 \text{ to } 5) \times |\operatorname{Re}(\mu_{\text{dom}})|}
    $$
    This guarantees that the observer estimation transient settles within the first fraction of the controller's rise time.
-2. **Slow Enough to Filter High-Frequency Sensor Noise:** Physical sensors never deliver a pure signal $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$; they deliver a noise-corrupted signal $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{v}_m(t)$ alongside process disturbances $\mathbf{w}_d(t)$ on the plant ($\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u} + \mathbf{w}_d$). Substituting these into the error equation $\dot{\mathbf{e}} = \dot{\mathbf{x}} - \dot{\hat{\mathbf{x}}}$ reveals how both noise sources drive the estimation error:
+2. **High-Frequency Noise Filtering:** Physical sensors never deliver a pure signal $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t)$; they deliver a noise-corrupted signal $\mathbf{y}(t) = \mathbf{C}\mathbf{x}(t) + \mathbf{v}_m(t)$ alongside process disturbances $\mathbf{w}_d(t)$ on the plant ($\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u} + \mathbf{w}_d$). Substituting these into the error equation $\dot{\mathbf{e}} = \dot{\mathbf{x}} - \dot{\hat{\mathbf{x}}}$ reveals how both noise sources drive the estimation error:
    $$
    \dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t) + \mathbf{w}_d(t) - \mathbf{L}\mathbf{v}_m(t)
    $$
@@ -189,7 +191,7 @@ Where in the left-half plane should you place the observer eigenvalues $\{\beta_
   explanation="Placing observer poles $2\\text{–}5\\times$ faster than controller poles ensures rapid error convergence without turning $\\mathbf{L}$ into a noise amplifier."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Robot Velocity Estimation from Encoders">
+<Callout type="bridge" title="Encoder Velocity Estimation">
 
 Industrial robotic arms (such as Universal Robots running ROS 2 control) measure joint angular position $q_i$ with optical encoders but lack direct velocity sensors. Finite-differencing $(q_k - q_{k-1})/\Delta t$ amplifies quantization noise and adds phase lag. Running a 2nd-order Luenberger observer per joint with:
 
@@ -221,9 +223,9 @@ and tuning $\mathbf{L} = [l_1, l_2]^T$ for critically damped observer poles at $
 - **Asymptotic Convergence:** $\mathbf{e}(t) = e^{(\mathbf{A}-\mathbf{L}\mathbf{C})t}\mathbf{e}(0) \to \mathbf{0}$ for every $\mathbf{e}(0)$ if and only if every eigenvalue of $\mathbf{A} - \mathbf{L}\mathbf{C}$ has $\operatorname{Re}(\beta_i) < 0$.
 
 <Callout type="warning" title="Common Mistakes">
-1. **Flipping the Sign of Innovation Feedback:** The correction term is $+\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ (giving $\mathbf{A} - \mathbf{L}\mathbf{C}$); subtracting $-\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ produces $\mathbf{A} + \mathbf{L}\mathbf{C}$ and destabilizes the estimator.
-2. **Writing $\mathbf{C}\mathbf{L}$ Instead of $\mathbf{L}\mathbf{C}$:** Because $\mathbf{L} \in \mathbb{R}^{n \times p}$ and $\mathbf{C} \in \mathbb{R}^{p \times n}$, the $n \times n$ correction product in $\mathbf{A}_o$ is always $\mathbf{L}\mathbf{C}$, never $\mathbf{C}\mathbf{L}$.
-3. **Ignoring Sensor Noise When Choosing $\beta_i$:** Placing observer poles $20\text{–}50\times$ faster than the controller saturates actuators with amplified measurement noise.
+1. **Inverted Innovation Sign:** The correction term is $+\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ (giving $\mathbf{A} - \mathbf{L}\mathbf{C}$); subtracting $-\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ produces $\mathbf{A} + \mathbf{L}\mathbf{C}$ and destabilizes the estimator.
+2. **Reversed Product $\mathbf{C}\mathbf{L}$:** Because $\mathbf{L} \in \mathbb{R}^{n \times p}$ and $\mathbf{C} \in \mathbb{R}^{p \times n}$, the $n \times n$ correction product in $\mathbf{A}_o$ is always $\mathbf{L}\mathbf{C}$, never $\mathbf{C}\mathbf{L}$.
+3. **Excessive Noise Amplification:** Placing observer poles $20\text{–}50\times$ faster than the controller saturates actuators with amplified measurement noise.
 </Callout>
 
 <Divider label="4 · Exercises" />
@@ -259,7 +261,7 @@ $$
    $$
    Thus the open-loop eigenvalues sit at $\lambda_1 = -2$ and $\lambda_2 = -3$.
 
-2. **Observer error matrix $\mathbf{A} - \mathbf{L}\mathbf{C}$:**
+2. **Observer Error Matrix:**
    First form the $2 \times 2$ outer product $\mathbf{L}\mathbf{C}$:
    $$
    \mathbf{L}\mathbf{C} = \begin{bmatrix} l_1 \\ l_2 \end{bmatrix} \begin{bmatrix} 1 & 0 \end{bmatrix} = \begin{bmatrix} l_1 & 0 \\ l_2 & 0 \end{bmatrix}
@@ -278,7 +280,7 @@ $$
    \end{aligned}
    $$
 
-4. **Coefficient matching for $\beta_1 = \beta_2 = -10$:**
+4. **Coefficient Matching:**
    The desired observer polynomial is:
    $$
    p_o^*(s) = (s - (-10))^2 = (s + 10)^2 = s^2 + 20s + 100
@@ -324,7 +326,7 @@ $$
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Open-loop characteristic polynomial of $\mathbf{A}$:**
+1. **Open-Loop Polynomial:**
    Notice that $\mathbf{A}$ is the transpose of a controllable companion matrix (putting $(\mathbf{A}, \mathbf{C})$ in **Observable Canonical Form**). Expanding $\det(s\mathbf{I}_3 - \mathbf{A})$ along row 1 gives:
    $$
    \begin{aligned}
@@ -335,7 +337,7 @@ $$
    $$
    The open-loop eigenvalues are $\lambda_1 = -1$, $\lambda_2 = -2$, and $\lambda_3 = -3$, and the negated polynomial coefficients $[-a_0, -a_1, -a_2]^T = [-6, -11, -6]^T$ appear down the third column of $\mathbf{A}$.
 
-2. **Observer error matrix and characteristic polynomial:**
+2. **Observer Characteristic Polynomial:**
    Because $\mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}$ has $1$ only in its third entry, the outer product $\mathbf{L}\mathbf{C}$ is non-zero only in column 3:
    $$
    \mathbf{L}\mathbf{C} = \begin{bmatrix} l_1 \\ l_2 \\ l_3 \end{bmatrix} \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 0 & 0 & l_1 \\ 0 & 0 & l_2 \\ 0 & 0 & l_3 \end{bmatrix}
@@ -349,7 +351,7 @@ $$
    p_o(s) = \det\left(s\mathbf{I}_3 - (\mathbf{A} - \mathbf{L}\mathbf{C})\right) = s^3 + (6 + l_3)s^2 + (11 + l_2)s + (6 + l_1)
    $$
 
-3. **Gain synthesis for $\beta_1 = \beta_2 = \beta_3 = -5$:**
+3. **Gain Synthesis:**
    Expanding the desired cubic observer polynomial gives:
    $$
    p_o^*(s) = (s + 5)^3 = s^3 + 3(5)s^2 + 3(25)s + 125 = s^3 + 15s^2 + 75s + 125
@@ -363,7 +365,7 @@ $$
    \mathbf{L} = \begin{bmatrix} 119 \\ 64 \\ 9 \end{bmatrix}
    $$
 
-4. **Estimation error differential equation and asymptotic convergence:**
+4. **Asymptotic Error Convergence:**
    With $\mathbf{L} = \begin{bmatrix} 119 & 64 & 9 \end{bmatrix}^T$, the estimation error $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$ obeys:
    $$
    \dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t) = \begin{bmatrix} 0 & 0 & -125 \\ 1 & 0 & -75 \\ 0 & 1 & -15 \end{bmatrix} \mathbf{e}(t)

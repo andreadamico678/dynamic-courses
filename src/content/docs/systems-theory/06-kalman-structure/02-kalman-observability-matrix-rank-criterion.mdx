@@ -39,7 +39,7 @@ $$
 Suppose you record the output signal $y(t)$ and its time derivatives at $t = 0$ in order to deduce all three unknown initial states $x_1(0), x_2(0), x_3(0)$:
 - **Direct reading ($\mathbf{C}$):** At $t = 0$, the sensor outputs $y(0) = x_1(0)$ directly, so the first state $x_1(0)$ is known immediately.
 - **First derivative ($\mathbf{C}\mathbf{A}$):** Differentiating the sensor trace once gives $\dot{y}(t) = \dot{x}_1(t) = x_2(t)$. Evaluating the slope of the sensor trace at $t = 0$ yields $\dot{y}(0) = x_2(0)$, so the hidden velocity state $x_2(0)$ is also reconstructed uniquely!
-- **Second derivative ($\mathbf{C}\mathbf{A}^2$) and the blind spot:** Differentiating a second time gives $\ddot{y}(t) = \dot{x}_2(t) = -2x_1(t) - 3x_2(t)$, which is merely a linear combination of the two states $x_1$ and $x_2$ we already know. Notice that $x_3(t) = x_3(0)e^{-4t}$ never feeds into $\dot{x}_1$, $\dot{x}_2$, or $y(t)$: no matter how many times you differentiate $y(t)$, the third state $x_3(0)$ never appears in the sensor signal.
+- **Second Derivative Blind Spot:** Differentiating a second time gives $\ddot{y}(t) = \dot{x}_2(t) = -2x_1(t) - 3x_2(t)$, which is merely a linear combination of the two states $x_1$ and $x_2$ we already know. Notice that $x_3(t) = x_3(0)e^{-4t}$ never feeds into $\dot{x}_1$, $\dot{x}_2$, or $y(t)$: no matter how many times you differentiate $y(t)$, the third state $x_3(0)$ never appears in the sensor signal.
 
 To express this derivative chain systematically in matrix form, compute the $1 \times 3$ row vectors $\mathbf{C}$, $\mathbf{C}\mathbf{A}$, and $\mathbf{C}\mathbf{A}^2$ step by step:
 
@@ -91,6 +91,8 @@ Any initial state $\mathbf{x}(0) = [0, 0, c]^T \in \mathcal{X}_{no}$ excites the
 
 <Divider label="2 · Theory" />
 
+Determining whether an entire internal state trajectory can be uniquely inferred from external sensor measurements depends solely on the pair $(\mathbf{A}, \mathbf{C})$. This section removes the known forced response to isolate initial-state observability, derives the Kalman observability matrix and kernel invariants, and proves exact transpose duality with controllability.
+
 ### Sensor Reconstruction Invariant
 
 Consider the full continuous-time LTI state-space model with $n$ states, $m$ inputs, and $p$ outputs:
@@ -114,7 +116,7 @@ $$
 \mathbf{y}_{\text{free}}(t) = \mathbf{y}(t) - \int_0^t \mathbf{C} e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau - \mathbf{D}\mathbf{u}(t) = \mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0)
 $$
 
-This subtraction proves a crucial physical fact: **observability depends exclusively on the pair $(\mathbf{A}, \mathbf{C})$** and never on $\mathbf{B}$, $\mathbf{D}$, or $\mathbf{u}(t)$. An initial state $\mathbf{x}(0) \in \mathbb{R}^n$ is **unobservable** if it produces zero free output over the entire observation window:
+This subtraction proves a crucial physical fact: **observability depends strictly** on the pair $(\mathbf{A}, \mathbf{C})$ and never on $\mathbf{B}$, $\mathbf{D}$, or $\mathbf{u}(t)$. An initial state $\mathbf{x}(0) \in \mathbb{R}^n$ is **unobservable** if it produces zero free output over the entire observation window:
 
 $$
 \mathbf{C}e^{\mathbf{A}t}\mathbf{x}(0) = \mathbf{0} \qquad \forall t \in [0, t_f]
@@ -183,8 +185,8 @@ $$
 In noise-free continuous time, derivatives at $t = 0$ suffice conceptually, while in real hardware with sensor noise, one avoids differentiating $\mathbf{y}(t)$ by integrating over $[0, t_f]$ using the symmetric positive semi-definite **observability Gramian** $\mathbf{W}_o(t_f) = \int_0^{t_f} e^{\mathbf{A}^T t}\mathbf{C}^T\mathbf{C}e^{\mathbf{A}t}\,dt$. By the exact same Cayley-Hamilton argument used for controllability, $\ker(\mathbf{W}_o(t_f)) = \ker(\mathcal{O})$, so when $\operatorname{rank}(\mathcal{O}) = n$, $\mathbf{W}_o(t_f)$ is invertible and reconstructs the initial state via the noise-averaging integral $\mathbf{x}_0 = \mathbf{W}_o(t_f)^{-1} \int_0^{t_f} e^{\mathbf{A}^T t}\mathbf{C}^T \mathbf{y}_{\text{free}}(t)\,dt$.
 
 Depending on the number of sensors $p$, we evaluate $\operatorname{rank}(\mathcal{O})$ as follows:
-- **Single-Output Systems (SISO, $p = 1$):** Here $\mathbf{C} \in \mathbb{R}^{1 \times n}$ is a single row vector, so $\mathcal{O}$ is an $n \times n$ **square** matrix. Complete observability holds if and only if $\det(\mathcal{O}) \neq 0$.
-- **Multi-Output Systems (MIMO, $p > 1$):** Here $\mathbf{C} \in \mathbb{R}^{p \times n}$ has $p$ rows, so $\mathcal{O}$ is a tall $(np) \times n$ **rectangular** matrix. Complete observability holds if and only if Gaussian row reduction of $\mathcal{O}$ produces $n$ non-zero pivots (or at least one $n \times n$ submatrix has a non-zero determinant).
+- **Single-Output Systems:** Here $\mathbf{C} \in \mathbb{R}^{1 \times n}$ is a single row vector ($p = 1$), so $\mathcal{O}$ is an $n \times n$ **square** matrix. Complete observability holds if and only if $\det(\mathcal{O}) \neq 0$.
+- **Multi-Output Systems:** Here $\mathbf{C} \in \mathbb{R}^{p \times n}$ has $p > 1$ rows, so $\mathcal{O}$ is a tall $(np) \times n$ **rectangular** matrix. Complete observability holds if and only if Gaussian row reduction of $\mathcal{O}$ produces $n$ non-zero pivots (or at least one $n \times n$ submatrix has a non-zero determinant).
 
 When $\operatorname{rank}(\mathcal{O}) = r_o < n$, the null space (kernel) of $\mathcal{O}$ is non-trivial and forms the **unobservable subspace** $\mathcal{X}_{no}$:
 
@@ -194,7 +196,7 @@ $$
 
 By the rank-nullity theorem, the dimension of the unobservable subspace is $\dim(\mathcal{X}_{no}) = n - \operatorname{rank}(\mathcal{O}) = n - r_o$. Furthermore, $\mathcal{X}_{no}$ satisfies two fundamental geometric properties:
 1. **$\mathbf{A}$-Invariance ($\mathbf{A}\mathcal{X}_{no} \subseteq \mathcal{X}_{no}$):** Suppose $\mathbf{x}_0 \in \mathcal{X}_{no}$, so $\mathbf{C}\mathbf{A}^k\mathbf{x}_0 = \mathbf{0}$ for all $k = 0, 1, \dots, n-1$. Let us check whether $\mathbf{A}\mathbf{x}_0$ also lies in $\ker(\mathcal{O})$. For the first $n-1$ blocks ($j = 0, \dots, n-2$), we have $\mathbf{C}\mathbf{A}^j(\mathbf{A}\mathbf{x}_0) = \mathbf{C}\mathbf{A}^{j+1}\mathbf{x}_0 = \mathbf{0}$. For the final block ($j = n - 1$), Cayley-Hamilton gives $\mathbf{C}\mathbf{A}^{n-1}(\mathbf{A}\mathbf{x}_0) = \mathbf{C}\mathbf{A}^n\mathbf{x}_0 = -\sum_{i=1}^n a_i (\mathbf{C}\mathbf{A}^{n-i}\mathbf{x}_0) = \mathbf{0}$. Thus $\mathcal{O}(\mathbf{A}\mathbf{x}_0) = \mathbf{0}$, proving $\mathbf{A}\mathcal{X}_{no} \subseteq \mathcal{X}_{no}$.
-2. **Kernel Containment ($\mathcal{X}_{no} \subseteq \ker(\mathbf{C})$):** Because the very first block row of $\mathcal{O}\mathbf{x}_0 = \mathbf{0}$ is $\mathbf{C}\mathbf{x}_0 = \mathbf{0}$, every unobservable state lies inside the sensor's immediate null space $\ker(\mathbf{C})$.
+2. **Kernel Containment:** Because the very first block row of $\mathcal{O}\mathbf{x}_0 = \mathbf{0}$ is $\mathbf{C}\mathbf{x}_0 = \mathbf{0}$, every unobservable state lies inside the sensor's immediate null space ($\mathcal{X}_{no} \subseteq \ker(\mathbf{C})$).
 
 Physically, $\mathbf{A}$-invariance inside $\ker(\mathbf{C})$ means that any free trajectory starting inside $\mathcal{X}_{no}$ remains trapped inside $\mathcal{X}_{no}$ forever, never crossing into a direction that the sensors can detect.
 
@@ -269,7 +271,7 @@ Even though the internal state $\mathbf{x}(t) = e^{\lambda t}\mathbf{v}$ is acti
   explanation="Transposing $\\mathcal{R}_{\\text{dual}}$ for $(\\mathbf{A}^T, \\mathbf{C}^T)$ recovers $\\mathcal{O} = [\\mathbf{C}; \\mathbf{C}\\mathbf{A}; \\dots; \\mathbf{C}\\mathbf{A}^{n-1}]$, preserving rank identically."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Sensor Fusion and IMU Bias Observability">
+<Callout type="bridge" title="IMU Bias Observability">
 
 In autonomous drone navigation (PX4 / ROS 2 EKF2 module), estimating gyroscope sensor bias $b_g$ alongside angular orientation $\theta$ using only an inclinometer/accelerometer measurement $y = \theta$ uses the model:
 
@@ -310,14 +312,14 @@ Even though no sensor measures bias directly, coupling through $\mathbf{A}$ make
 - **PBH Right-Eigenvector Invisibility:** If $\mathbf{A}\mathbf{v} = \lambda\mathbf{v}$ and $\mathbf{C}\mathbf{v} = \mathbf{0}$, then $\mathbf{x}(0) = \mathbf{v}$ produces $\mathbf{y}_{\text{free}}(t) = \mathbf{C}e^{\lambda t}\mathbf{v} = e^{\lambda t}(\mathbf{C}\mathbf{v}) \equiv \mathbf{0}$.
 
 <Callout type="warning" title="Common Mistakes">
-1. **Confusing Left and Right Eigenvectors:** Unobservable modes satisfy $\mathbf{A}\mathbf{v} = \lambda\mathbf{v}$ and $\mathbf{C}\mathbf{v} = \mathbf{0}$ (right eigenvectors), whereas uncontrollable modes use left eigenvectors.
+1. **Left vs. Right Eigenvectors:** Unobservable modes satisfy $\mathbf{A}\mathbf{v} = \lambda\mathbf{v}$ and $\mathbf{C}\mathbf{v} = \mathbf{0}$ (right eigenvectors), whereas uncontrollable modes use left eigenvectors.
 2. **Swapping Row/Column Stacking:** $\mathcal{O}$ stacks $\mathbf{C}\mathbf{A}^k$ **vertically** ($(np) \times n$), while $\mathcal{R}$ stacks $\mathbf{A}^k\mathbf{B}$ **horizontally** ($n \times (nm)$).
 3. **Ignoring Forced Subtraction:** Observability tests apply to $\mathbf{y}_{\text{free}}(t)$ after subtracting known $\mathbf{u}(t)$ effects; an observed nonzero $y(t)$ under nonzero input does not imply observability.
 </Callout>
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-21-1" title="Exercise 21.1 — Kalman Observability Matrix" level="Warm-Up" hint="Compute $\mathbf{C}\mathbf{A}$ and $\mathbf{C}\mathbf{A}^2$ as row vectors, stack them into $\mathcal{M}_o$, and expand $\det(\mathcal{M}_o)$ along column 1.">
+<Exercise client:load id="ex-21-1" title="Exercise 21.1 — Kalman Observability Matrix" level="Warm-Up" hint="Compute $\mathbf{C}\mathbf{A}$ and $\mathbf{C}\mathbf{A}^2$ as row vectors, stack them into $\mathcal{O}$, and expand $\det(\mathcal{O})$ along column 1.">
 
 Given the continuous-time LTI system:
 
@@ -325,27 +327,27 @@ $$
 \mathbf{A} = \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}
 $$
 
-1. State the state dimension $n$ and the structure of the Kalman observability matrix $\mathcal{M}_o$.
+1. State the state dimension $n$ and the structure of the Kalman observability matrix $\mathcal{O}$.
 2. Compute the row vectors $\mathbf{C}\mathbf{A}$ and $\mathbf{C}\mathbf{A}^2$.
-3. Construct the observability matrix $\mathcal{M}_o = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix}$.
-4. Compute the determinant $\det(\mathcal{M}_o)$ and determine whether the pair $(\mathbf{A}, \mathbf{C})$ is completely observable.
+3. Construct the observability matrix $\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix}$.
+4. Compute the determinant $\det(\mathcal{O})$ and determine whether the pair $(\mathbf{A}, \mathbf{C})$ is completely observable.
 
 <StepCheck client:load
-  prompt="Compute $\det(\mathcal{M}_o)$ for the third-order system above:"
+  prompt="Compute $\det(\mathcal{O})$ for the third-order system above:"
   expected={-1}
   tolerance={0.01}
   unit=""
-  explanation="$\mathcal{M}_o = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}$, which has $\det(\mathcal{M}_o) = -1 \neq 0$."
+  explanation="$\mathcal{O} = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}$, which has $\det(\mathcal{O}) = -1 \neq 0$."
 />
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **State dimension and observability matrix definition:**
+1. **Dimension and Matrix Definition:**
    The system matrix $\mathbf{A} \in \mathbb{R}^{3 \times 3}$ has dimension $n = 3$.
    For a single-output system ($p = 1$), the Kalman observability matrix has size $3 \times 3$ and is defined as:
    $$
-   \mathcal{M}_o = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix}
+   \mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \\ \mathbf{C}\mathbf{A}^2 \end{bmatrix}
    $$
 
 2. **Row-matrix products:**
@@ -356,27 +358,27 @@ $$
    \mathbf{C}\mathbf{A}^2 = (\mathbf{C}\mathbf{A})\mathbf{A} = \begin{bmatrix} 0 & 1 & -6 \end{bmatrix} \begin{bmatrix} 0 & 0 & -6 \\ 1 & 0 & -11 \\ 0 & 1 & -6 \end{bmatrix} = \begin{bmatrix} 1 & -6 & 0(0) - 11(1) - 6(-6) \end{bmatrix} = \begin{bmatrix} 1 & -6 & 25 \end{bmatrix}
    $$
 
-3. **Assembly of the observability matrix:**
+3. **Observability Matrix Assembly:**
    $$
-   \mathcal{M}_o = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}
+   \mathcal{O} = \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & -6 \\ 1 & -6 & 25 \end{bmatrix}
    $$
 
 4. **Determinant and observability conclusion:**
-   Expanding $\det(\mathcal{M}_o)$ along the first column:
+   Expanding $\det(\mathcal{O})$ along the first column:
    $$
-   \det(\mathcal{M}_o) = +1 \cdot \det\begin{bmatrix} 0 & 1 \\ 1 & -6 \end{bmatrix} = 1 \cdot (0 - 1) = -1
+   \det(\mathcal{O}) = +1 \cdot \det\begin{bmatrix} 0 & 1 \\ 1 & -6 \end{bmatrix} = 1 \cdot (0 - 1) = -1
    $$
-   Since $\det(\mathcal{M}_o) = -1 \neq 0$, the matrix has full rank:
+   Since $\det(\mathcal{O}) = -1 \neq 0$, the matrix has full rank:
    $$
-   \operatorname{rank}(\mathcal{M}_o) = 3 = n
+   \operatorname{rank}(\mathcal{O}) = 3 = n
    $$
-   By the Kalman rank condition, the pair $(\mathbf{A}, \mathbf{C})$ is **completely observable**. Notice also that $(\mathbf{A}, \mathbf{C})$ here is the exact transpose dual $(\mathbf{A}_1^T, \mathbf{B}_1^T)$ of the controllable companion system $(\mathbf{A}_1, \mathbf{B}_1)$ from Exercise 20.1, yielding the exact same matrix $\mathcal{M}_o = \mathcal{M}_c^T = \mathcal{M}_c$.
+   By the Kalman rank condition, the pair $(\mathbf{A}, \mathbf{C})$ is **completely observable**. Notice also that $(\mathbf{A}, \mathbf{C})$ here is the exact transpose dual $(\mathbf{A}_1^T, \mathbf{B}_1^T)$ of the controllable companion system $(\mathbf{A}_1, \mathbf{B}_1)$ from Exercise 20.1, yielding the exact same matrix $\mathcal{O} = \mathcal{R}^T = \mathcal{R}$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-21-2" title="Exercise 21.2 — Parametric Observability Kernel" level="Exam Standard" hint="Row-reduce $\mathcal{M}_o(\beta)$ by subtracting $2 \times \text{Row } 1$ from Row 2 and $4 \times \text{Row } 1$ from Row 3 before computing the determinant.">
+<Exercise client:load id="ex-21-2" title="Exercise 21.2 — Parametric Observability Kernel" level="Exam Standard" hint="Row-reduce $\mathcal{O}(\beta)$ by subtracting $2 \times \text{Row } 1$ from Row 2 and $4 \times \text{Row } 1$ from Row 3 before computing the determinant.">
 
 A third-order system depends on an unknown real measurement parameter $\beta \in \mathbb{R}$:
 
@@ -384,23 +386,23 @@ $$
 \mathbf{A} = \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix}
 $$
 
-1. Compute the Kalman observability matrix $\mathcal{M}_o(\beta)$.
-2. Calculate the determinant $\det(\mathcal{M}_o(\beta))$ as an explicit function of $\beta$.
+1. Compute the Kalman observability matrix $\mathcal{O}(\beta)$.
+2. Calculate the determinant $\det(\mathcal{O}(\beta))$ as an explicit function of $\beta$.
 3. Determine the critical value(s) of $\beta$ for which complete observability is lost.
-4. For the critical value of $\beta$, evaluate the rank of $\mathcal{M}_o$ and find an explicit basis for the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{M}_o)$. Identify which eigenvalue mode is unobservable.
+4. For the critical value of $\beta$, evaluate the rank of $\mathcal{O}$ and find an explicit basis for the unobservable subspace $\mathcal{X}_{no} = \ker(\mathcal{O})$. Identify which eigenvalue mode is unobservable.
 
 <StepCheck client:load
   prompt="Which eigenvalue mode becomes unobservable at the critical value $\beta = 1/3$?"
   expected={-1}
   tolerance={0.01}
   unit=""
-  explanation="For $\beta = 1/3$, $\ker(\mathcal{M}_o)$ is spanned by $[-1, 3, 0]^T$, which is the right eigenvector of $\mathbf{A}$ for $\lambda_2 = -1$."
+  explanation="For $\beta = 1/3$, $\ker(\mathcal{O})$ is spanned by $[-1, 3, 0]^T$, which is the right eigenvector of $\mathbf{A}$ for $\lambda_2 = -1$."
 />
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Computing row-matrix products for $\mathcal{M}_o(\beta)$:**
+1. **Row Products for $\mathcal{O}(\beta)$:**
    Given $\mathbf{A} = \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix}$ and $\mathbf{C} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix}$:
    $$
    \mathbf{C}\mathbf{A} = \begin{bmatrix} 1 & \beta & 1 \end{bmatrix} \begin{bmatrix} 2 & 1 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 3 \end{bmatrix} = \begin{bmatrix} 2 & 1 - \beta & 3 \end{bmatrix}
@@ -410,34 +412,34 @@ $$
    $$
    Thus:
    $$
-   \mathcal{M}_o(\beta) = \begin{bmatrix} 1 & \beta & 1 \\ 2 & 1 - \beta & 3 \\ 4 & 1 + \beta & 9 \end{bmatrix}
+   \mathcal{O}(\beta) = \begin{bmatrix} 1 & \beta & 1 \\ 2 & 1 - \beta & 3 \\ 4 & 1 + \beta & 9 \end{bmatrix}
    $$
 
 2. **Determinant calculation:**
    Perform elementary row operations: subtract $2 \times (\text{Row } 1)$ from Row 2, and $4 \times (\text{Row } 1)$ from Row 3:
    $$
-   \mathcal{M}_o \sim \begin{bmatrix} 1 & \beta & 1 \\ 0 & (1 - \beta) - 2\beta & 3 - 2 \\ 0 & (1 + \beta) - 4\beta & 9 - 4 \end{bmatrix} = \begin{bmatrix} 1 & \beta & 1 \\ 0 & 1 - 3\beta & 1 \\ 0 & 1 - 3\beta & 5 \end{bmatrix}
+   \mathcal{O} \sim \begin{bmatrix} 1 & \beta & 1 \\ 0 & (1 - \beta) - 2\beta & 3 - 2 \\ 0 & (1 + \beta) - 4\beta & 9 - 4 \end{bmatrix} = \begin{bmatrix} 1 & \beta & 1 \\ 0 & 1 - 3\beta & 1 \\ 0 & 1 - 3\beta & 5 \end{bmatrix}
    $$
    Expanding along the first column:
    $$
-   \det(\mathcal{M}_o(\beta)) = 1 \cdot \det\begin{bmatrix} 1 - 3\beta & 1 \\ 1 - 3\beta & 5 \end{bmatrix} = 5(1 - 3\beta) - 1(1 - 3\beta) = 4(1 - 3\beta)
+   \det(\mathcal{O}(\beta)) = 1 \cdot \det\begin{bmatrix} 1 - 3\beta & 1 \\ 1 - 3\beta & 5 \end{bmatrix} = 5(1 - 3\beta) - 1(1 - 3\beta) = 4(1 - 3\beta)
    $$
 
 3. **Observability loss:**
-   The pair $(\mathbf{A}, \mathbf{C})$ loses full observability when $\det(\mathcal{M}_o(\beta)) = 0$:
+   The pair $(\mathbf{A}, \mathbf{C})$ loses full observability when $\det(\mathcal{O}(\beta)) = 0$:
    $$
    4(1 - 3\beta) = 0 \iff 1 - 3\beta = 0 \iff \beta = \frac{1}{3}
    $$
-   * For all $\beta \neq \frac{1}{3}$, $\det(\mathcal{M}_o(\beta)) \neq 0$, so $\operatorname{rank}(\mathcal{M}_o) = 3$ and the system is completely observable.
+   * For all $\beta \neq \frac{1}{3}$, $\det(\mathcal{O}(\beta)) \neq 0$, so $\operatorname{rank}(\mathcal{O}) = 3$ and the system is completely observable.
    * For $\beta = \frac{1}{3}$, the system is **not completely observable**.
 
-4. **Unobservable subspace and mode for $\beta = \frac{1}{3}$:**
+4. **Unobservable Subspace and Mode:**
    Substituting $\beta = \frac{1}{3}$ into the row-reduced matrix:
    $$
    \begin{bmatrix} 1 & 1/3 & 1 \\ 0 & 0 & 1 \\ 0 & 0 & 5 \end{bmatrix} \sim \begin{bmatrix} 1 & 1/3 & 1 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{bmatrix}
    $$
-   Clearly, $\operatorname{rank}(\mathcal{M}_o) = 2 < 3$.
-   The unobservable subspace is the null space $\mathcal{X}_{no} = \ker(\mathcal{M}_o)$:
+   Clearly, $\operatorname{rank}(\mathcal{O}) = 2 < 3$.
+   The unobservable subspace is the null space $\mathcal{X}_{no} = \ker(\mathcal{O})$:
    $$
    \begin{cases} x_1 + \frac{1}{3}x_2 + x_3 = 0 \\ x_3 = 0 \end{cases} \implies \begin{cases} x_3 = 0 \\ x_1 = -\frac{1}{3}x_2 \end{cases}
    $$

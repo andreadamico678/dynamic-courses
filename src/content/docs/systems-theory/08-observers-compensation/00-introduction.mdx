@@ -1,6 +1,6 @@
 ---
-title: "Part VIII — Introduction: Observers & Dynamic Compensation"
-description: "Conceptual overview and real-world framing for Part VIII of Linear Systems Theory."
+title: "Part VIII — State Observers"
+description: "Conceptual overview, running system, and chapter roadmap for Part VIII of Linear Systems Theory."
 sidebar:
   label: "Introduction"
   order: 0
@@ -10,19 +10,27 @@ import Divider from "@components/Divider.astro";
 
 ## Introduction
 
-Part VII assumed you can measure every state variable $x_i(t)$ with physical sensors—an assumption that almost never holds in real engineering hardware. Motors rarely carry shaft torque sensors, battery cells cannot measure internal core lithium concentration, and robotic arms often lack clean velocity tachometers.
+Full-state feedback in Part VII assumed all $n$ state variables $x_i(t)$ are directly wired to sensors—rarely true in physical hardware where encoders measure position without clean velocity or internal thermal/motor states. Part VIII reconstructs the unmeasured state online using a **Luenberger State Observer** driven by actuator inputs $\mathbf{u}(t)$ and sensor output innovations $\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)$.
 
-Part VIII completes the modern state-space control loop by building a software twin—the **Luenberger State Observer**—that continuously runs alongside the physical plant, compares predicted output $\mathbf{C}\hat{\mathbf{x}}$ against real sensor readings $\mathbf{y}(t)$, and drives the estimation error $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$ rapidly to zero. Finally, the **Separation Principle** proves that plugging the estimated state $\hat{\mathbf{x}}(t)$ into your feedback controller $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}}$ preserves the exact closed-loop eigenvalues of both the controller and the observer independently.
+Chapters 27–29 establish autonomous error convergence $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$, synthesize the observer gain $\mathbf{L}$ directly via Kalman duality, and prove the **Separation Principle** guaranteeing that feeding $\hat{\mathbf{x}}(t)$ into $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}}$ preserves both controller and observer eigenvalues independently.
 
-### Practical Real-World Perspective
+### Running Example
 
-- **Encoder Velocity Estimation:** Industrial robot arms measure joint angle $q$ with optical encoders; finite-differencing $(q_k - q_{k-1})/\Delta t$ explodes quantization noise. A 2nd-order Luenberger observer produces smooth, low-latency joint velocity estimates $\hat{\dot{q}}$ tuned faster than the servo loop.
-- **Modular Autonomy Stacks (ROS 2 / PX4):** The Separation Principle is the mathematical license behind separating state estimation nodes (EKF / `robot_localization`) from trajectory controller nodes (`controller_server`) in modern robotics software.
+Across Chapters 27–29, we estimate and control an observable servo plant from scalar output $y(t) = \mathbf{C}\mathbf{x}(t)$:
+
+$$\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\big(\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)\big), \qquad \mathbf{u}(t) = -\mathbf{K}\hat{\mathbf{x}}(t) + \mathbf{v}(t)$$
+
+Chapter 27 derives error matrix $\mathbf{A} - \mathbf{L}\mathbf{C}$ and observer bandwidth rules, Chapter 28 solves $\mathbf{L} = p_o^*(\mathbf{A})\mathcal{O}^{-1}\mathbf{e}_n$ via dual Ackermann synthesis, and Chapter 29 couples $\mathbf{K}$ and $\mathbf{L}$ into one dynamic output compensator $C(s)$.
+
+### Real-World Applications
+
+- **Noise-Free Velocity Estimation:** Luenberger observers fuse position encoders and plant dynamics to estimate clean velocities without finite-difference quantization spikes.
+- **Modular Estimation & Control:** The Separation Principle lets flight and robotics stacks decouple state estimation nodes from trajectory controller nodes safely.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[27. Luenberger Observer Architecture](/dynamic-courses/systems-theory/08-observers-compensation/01-luenberger-state-observer-architecture/)** — Derive closed-loop innovation feedback $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$ and choose observer bandwidth safely.
-2. **[28. Dual Ackermann Observer Gain](/dynamic-courses/systems-theory/08-observers-compensation/02-dual-observer-gain-ackermann-synthesis/)** — Synthesize observer gain $\mathbf{L} = p_o^*(\mathbf{A})\mathcal{O}^{-1}\mathbf{e}_n$ via Kalman duality.
-3. **[29. Separation Principle Compensators](/dynamic-courses/systems-theory/08-observers-compensation/03-separation-principle-dynamic-compensator/)** — Prove block-triangular spectrum factorization $\det(s\mathbf{I}_{2n} - \mathbf{A}_{\text{total}}) = p_c^*(s) p_o^*(s)$ and derive the dynamic compensator $C(s)$.
+- [27. Luenberger Observer Architecture](/dynamic-courses/systems-theory/08-observers-compensation/01-luenberger-state-observer-architecture/) — Derive closed-loop innovation feedback $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$ and select observer bandwidth safely.
+- [28. Dual Ackermann Observer Gain](/dynamic-courses/systems-theory/08-observers-compensation/02-dual-observer-gain-ackermann-synthesis/) — Synthesize observer gain $\mathbf{L} = p_o^*(\mathbf{A})\mathcal{O}^{-1}\mathbf{e}_n$ via Kalman duality.
+- [29. Separation Principle Compensators](/dynamic-courses/systems-theory/08-observers-compensation/03-separation-principle-dynamic-compensator/) — Prove block-triangular spectrum factorization $\det(s\mathbf{I}_{2n} - \mathbf{A}_{\text{total}}) = p_c^*(s) p_o^*(s)$ and derive $C(s)$.

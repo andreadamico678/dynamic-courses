@@ -79,6 +79,8 @@ As an immediate verification, evaluating $f(t)$ at $t = 0^+$ gives $f(0^+) = 2(1
 
 <Divider label="2 · Theory" />
 
+Inverting a rational Laplace transform back to the time domain requires splitting high-order fractions into elementary poles. This section develops polynomial division for improper terms, Heaviside cover-up for simple poles, derivative formulas for repeated roots, and completed-square inversions for complex conjugate pairs.
+
 ### Strict Properness and Division
 
 Every linear time-invariant state-space system or differential equation with rational inputs produces a rational Laplace transform—a ratio of two polynomials in $s$ with real coefficients:
@@ -174,7 +176,7 @@ Here $e^{\sigma t}$ is the exponential envelope (decaying when $\sigma < 0$, gro
 
 $$f_{\text{quad}}(t) = M e^{\sigma t} \cos(\omega t - \phi) \cdot 1(t), \qquad M = \sqrt{B^2 + \left(\frac{C+B\sigma}{\omega}\right)^2}, \quad \phi = \operatorname{atan2}\left( \frac{C+B\sigma}{\omega}, B \right)$$
 
-<Callout type="bridge" title="Robotics Bridge: Airframe Structural Resonances">
+<Callout type="bridge" title="Airframe Structural Resonances">
 
 In physical quadrotors, high-speed propeller rotation (for instance, blades spinning at $6000\text{ RPM} = 100\text{ Hz}$) injects narrowband vibration into the airframe. If the structure has a lightly damped complex pole pair at $p_{1,2} = -2 \pm j2\pi(100)$, the IMU accelerometer records a damped oscillation:
 
@@ -192,9 +194,9 @@ to attenuate the resonant pair inside the flight loop.
 
 | Denominator / Degree Case | Partial Fraction Form | Coefficient Rule | Time-Domain Mode |
 | :--- | :--- | :--- | :--- |
-| **Improper ($\deg N \ge \deg D$)** | $Q(s) + \frac{R(s)}{D(s)}$ | Polynomial long division first | $q_0\delta(t) + q_1\dot{\delta}(t) + \dots$ |
-| **Simple Real Pole $(s - p)$** | $\frac{R_i}{s - p_i}$ | $R_i = \left.(s - p_i)F(s)\right\rvert_{s=p_i}$ | $R_i e^{p_i t} \cdot 1(t)$ |
-| **Repeated Pole $(s - p)^m$** | $\sum_{k=0}^{m-1} \frac{A_{m-k}}{(s-p)^{m-k}}$ | $A_{m-k} = \frac{1}{k!}\left.\frac{d^k}{ds^k}[(s-p)^m F(s)]\right\rvert_{s=p}$ | $A_{m-k}\frac{t^{m-k-1}}{(m-k-1)!} e^{pt}\cdot 1(t)$ |
+| **Improper Form** ($\deg N \ge \deg D$) | $Q(s) + \frac{R(s)}{D(s)}$ | Polynomial long division first | $q_0\delta(t) + q_1\dot{\delta}(t) + \dots$ |
+| **Simple Real Pole** $(s - p)$ | $\frac{R_i}{s - p_i}$ | $R_i = \left.(s - p_i)F(s)\right\rvert_{s=p_i}$ | $R_i e^{p_i t} \cdot 1(t)$ |
+| **Repeated Pole** $(s - p)^m$ | $\sum_{k=0}^{m-1} \frac{A_{m-k}}{(s-p)^{m-k}}$ | $A_{m-k} = \frac{1}{k!}\left.\frac{d^k}{ds^k}[(s-p)^m F(s)]\right\rvert_{s=p}$ | $A_{m-k}\frac{t^{m-k-1}}{(m-k-1)!} e^{pt}\cdot 1(t)$ |
 | **Complex Pair $(s-\sigma)^2+\omega^2$** | $\frac{B(s-\sigma) + (C+B\sigma)}{(s-\sigma)^2 + \omega^2}$ | Match numerators & complete square | $e^{\sigma t}[B\cos\omega t + \frac{C+B\sigma}{\omega}\sin\omega t]$ |
 
 ### Expansion Procedure

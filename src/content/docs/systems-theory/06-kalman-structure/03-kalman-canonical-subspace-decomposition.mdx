@@ -14,7 +14,7 @@ import StepCheck from "@components/StepCheck.tsx";
 
 What happens when a state-space model fails full [controllability](/dynamic-courses/systems-theory/06-kalman-structure/01-kalman-controllability-matrix-rank-criterion/) ($\operatorname{rank}(\mathcal{R}) < n$) or full [observability](/dynamic-courses/systems-theory/06-kalman-structure/02-kalman-observability-matrix-rank-criterion/) ($\operatorname{rank}(\mathcal{O}) < n$)? Rather than treating the entire model as broken, Rudolf Kalman proved that you can apply an invertible similarity transformation $\mathbf{x} = \mathbf{T}\mathbf{z}$ ([Chapter 2](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/)) to partition the state space $\mathbb{R}^n$ cleanly into four structural compartments: states you can both steer and see ($\mathcal{X}_{co}$), states you can steer but cannot see ($\mathcal{X}_{c\bar{o}}$), states you can see but cannot steer ($\mathcal{X}_{\bar{c}o}$), and states completely isolated from both actuators and sensors ($\mathcal{X}_{\bar{c}\bar{o}}$).
 
-In real hardware—like a flexible robotic arm viewed only by an external overhead camera—high-frequency joint oscillations may sit inside the controllable-unobservable block $\mathcal{X}_{c\bar{o}}$, completely absent from the transfer function $W(s)$ yet still shaking the gearbox apart. Kalman's canonical decomposition explains mathematically why transfer functions ([Chapter 7](/dynamic-courses/systems-theory/02-laplace-resolvent/04-transfer-function-matrix-invariants/)) see *only* the controllable-observable core $\mathcal{X}_{co}$ and why pole-zero cancellations correspond to hidden internal subspaces.
+In real robotic manipulators instrumented only at the end effector—such as a flexible arm observed by an overhead camera—high-frequency joint oscillations may sit inside the controllable-unobservable block $\mathcal{X}_{c\bar{o}}$, completely absent from the transfer function $W(s)$ yet still degrading internal mechanics. Kalman's canonical decomposition explains mathematically why transfer functions ([Chapter 7](/dynamic-courses/systems-theory/02-laplace-resolvent/04-transfer-function-matrix-invariants/)) capture *only* the controllable-observable core $\mathcal{X}_{co}$ and why pole-zero cancellations correspond to hidden internal subspaces.
 
 <Divider label="1 · Example" />
 
@@ -37,9 +37,9 @@ $$
 $$
 
 Inspecting the actuator entries $b_i$ and sensor weights $c_i$ classifies each state mode immediately:
-- **State $x_1$ ($\lambda_1 = -1$):** Driven directly by the actuator ($b_1 = 1 \neq 0$) and measured directly by the sensor ($c_1 = 3 \neq 0$). Thus $x_1$ belongs to $\mathcal{X}_{co}$ (**controllable and observable**).
-- **State $x_2$ ($\lambda_2 = -2$):** Driven directly by the actuator ($b_2 = 1 \neq 0$), so $u(t)$ actively excites $x_2(t)$, but its sensor coefficient is zero ($c_2 = 0$). Thus $x_2$ belongs to $\mathcal{X}_{c\bar{o}}$ (**controllable but unobservable**).
-- **State $x_3$ ($\lambda_3 = -5$):** Measured by the sensor ($c_3 = 2 \neq 0$), so any initial condition $x_3(0) \neq 0$ appears in $y(t)$, but its actuator coefficient is zero ($b_3 = 0$). Thus $x_3$ belongs to $\mathcal{X}_{\bar{c}o}$ (**uncontrollable but observable**).
+- **State $x_1$:** Driven directly by the actuator ($b_1 = 1 \neq 0$) and measured directly by the sensor ($c_1 = 3 \neq 0$), so $x_1$ belongs to $\mathcal{X}_{co}$ ($\lambda_1 = -1$).
+- **State $x_2$:** Driven directly by the actuator ($b_2 = 1 \neq 0$), so $u(t)$ actively excites $x_2(t)$, but its sensor coefficient is zero ($c_2 = 0$), placing $x_2$ in $\mathcal{X}_{c\bar{o}}$ ($\lambda_2 = -2$).
+- **State $x_3$:** Measured by the sensor ($c_3 = 2 \neq 0$), so any initial condition $x_3(0) \neq 0$ appears in $y(t)$, but its actuator coefficient is zero ($b_3 = 0$), placing $x_3$ in $\mathcal{X}_{\bar{c}o}$ ($\lambda_3 = -5$).
 
 Let us verify that the formal Kalman matrices $\mathcal{R}$ and $\mathcal{O}$ reproduce this exact classification. First, compute the controllability matrix $\mathcal{R} = [\mathbf{B} \;\; \mathbf{A}\mathbf{B} \;\; \mathbf{A}^2\mathbf{B}]$:
 
@@ -84,6 +84,8 @@ Both the controllable-unobservable eigenvalue $\lambda_2 = -2$ and the uncontrol
 
 <Divider label="2 · Theory" />
 
+When a state-space model lacks full controllability or observability, intersecting and complementing their $\mathbf{A}$-invariant subspaces partitions the state space into four decoupled subsystems. This section constructs the four Kalman subspaces, proves block-triangular canonical structure and transfer-function isolation, and formalizes the pencil-on-paper two-block decomposition algorithms.
+
 ### Four-Subspace State Partition
 
 Consider a general continuous-time LTI state-space realization $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ of state dimension $n$:
@@ -106,21 +108,21 @@ $$
 $$
 
 We construct the bases for these four subspaces in four sequential steps:
-1. **Controllable and Unobservable Subspace ($\mathcal{X}_{c\bar{o}}$):** Define the intersection of the controllable and unobservable subspaces:
+1. **Controllable Unobservable ($\mathcal{X}_{c\bar{o}}$):** Define the intersection of the controllable and unobservable subspaces:
    $$
    \mathcal{X}_{c\bar{o}} = \mathcal{X}_c \cap \mathcal{X}_{no} = \operatorname{Im}(\mathcal{R}) \cap \ker(\mathcal{O}), \qquad n_{c\bar{o}} = \dim(\mathcal{X}_{c\bar{o}})
    $$
    Because both $\mathcal{X}_c$ and $\mathcal{X}_{no}$ are $\mathbf{A}$-invariant, their intersection $\mathcal{X}_{c\bar{o}}$ is strictly $\mathbf{A}$-invariant ($\mathbf{A}\mathcal{X}_{c\bar{o}} \subseteq \mathcal{X}_{c\bar{o}}$). States in $\mathcal{X}_{c\bar{o}}$ can be excited by $\mathbf{u}(t)$ from the origin, yet produce zero output at the sensors.
-2. **Controllable and Observable Subspace ($\mathcal{X}_{co}$):** Choose any subspace $\mathcal{X}_{co} \subseteq \mathcal{X}_c$ complementary to $\mathcal{X}_{c\bar{o}}$ inside $\mathcal{X}_c$ so that:
+2. **Controllable Observable ($\mathcal{X}_{co}$):** Choose any subspace $\mathcal{X}_{co} \subseteq \mathcal{X}_c$ complementary to $\mathcal{X}_{c\bar{o}}$ inside $\mathcal{X}_c$ so that:
    $$
    \mathcal{X}_c = \mathcal{X}_{co} \oplus \mathcal{X}_{c\bar{o}}, \qquad n_{co} = \dim(\mathcal{X}_{co}) = r_c - n_{c\bar{o}}
    $$
    Every vector in $\mathcal{X}_{co}$ is reachable from the origin ($\mathcal{X}_{co} \subseteq \mathcal{X}_c$) and no non-zero vector in $\mathcal{X}_{co}$ lies in $\ker(\mathcal{O})$ ($\mathcal{X}_{co} \cap \mathcal{X}_{no} = \{\mathbf{0}\}$).
-3. **Uncontrollable and Unobservable Subspace ($\mathcal{X}_{\bar{c}\bar{o}}$):** Choose any subspace $\mathcal{X}_{\bar{c}\bar{o}} \subseteq \mathcal{X}_{no}$ complementary to $\mathcal{X}_{c\bar{o}}$ inside $\mathcal{X}_{no}$ so that:
+3. **Uncontrollable Unobservable ($\mathcal{X}_{\bar{c}\bar{o}}$):** Choose any subspace $\mathcal{X}_{\bar{c}\bar{o}} \subseteq \mathcal{X}_{no}$ complementary to $\mathcal{X}_{c\bar{o}}$ inside $\mathcal{X}_{no}$ so that:
    $$
    \mathcal{X}_{no} = \mathcal{X}_{c\bar{o}} \oplus \mathcal{X}_{\bar{c}\bar{o}}, \qquad n_{\bar{c}\bar{o}} = \dim(\mathcal{X}_{\bar{c}\bar{o}}) = (n - r_o) - n_{c\bar{o}}
    $$
-4. **Uncontrollable and Observable Subspace ($\mathcal{X}_{\bar{c}o}$):** Choose any complementary subspace $\mathcal{X}_{\bar{c}o}$ that completes the sum $\mathcal{X}_c + \mathcal{X}_{no} = \mathcal{X}_{co} \oplus \mathcal{X}_{c\bar{o}} \oplus \mathcal{X}_{\bar{c}\bar{o}}$ to the entire state space $\mathbb{R}^n$:
+4. **Uncontrollable Observable ($\mathcal{X}_{\bar{c}o}$):** Choose any complementary subspace $\mathcal{X}_{\bar{c}o}$ that completes the sum $\mathcal{X}_c + \mathcal{X}_{no} = \mathcal{X}_{co} \oplus \mathcal{X}_{c\bar{o}} \oplus \mathcal{X}_{\bar{c}\bar{o}}$ to the entire state space $\mathbb{R}^n$:
    $$
    \mathbb{R}^n = (\mathcal{X}_c + \mathcal{X}_{no}) \oplus \mathcal{X}_{\bar{c}o}, \qquad n_{\bar{c}o} = n - n_{co} - n_{c\bar{o}} - n_{\bar{c}\bar{o}}
    $$
@@ -136,9 +138,9 @@ $$
 $$
 
 Applying the similarity transformation $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$ from [Chapter 2](/dynamic-courses/systems-theory/01-state-models/02-coordinate-basis-similarity-transformations/) forces specific block entries of $(\hat{\mathbf{A}}, \hat{\mathbf{B}}, \hat{\mathbf{C}})$ to vanish identically because of subspace invariance:
-- **Invariance of $\mathcal{X}_c = \mathcal{X}_{co} \oplus \mathcal{X}_{c\bar{o}}$:** Because $\mathbf{A}\mathcal{X}_c \subseteq \mathcal{X}_c$, multiplying $\mathbf{A}$ by any column in $\mathbf{T}_{co}$ or $\mathbf{T}_{c\bar{o}}$ produces a vector purely inside $\operatorname{span}(\mathbf{T}_{co}, \mathbf{T}_{c\bar{o}})$, with **zero** component along $\mathbf{T}_{\bar{c}o}$ or $\mathbf{T}_{\bar{c}\bar{o}}$. This forces the bottom-left $2 \times 2$ blocks (rows 3–4, columns 1–2) of $\hat{\mathbf{A}}$ to be $\mathbf{0}$.
-- **Invariance of $\mathcal{X}_{c\bar{o}} = \mathcal{X}_c \cap \mathcal{X}_{no}$:** Because $\mathbf{A}\mathcal{X}_{c\bar{o}} \subseteq \mathcal{X}_{c\bar{o}}$, multiplying $\mathbf{A}$ by $\mathbf{T}_{c\bar{o}}$ produces a vector purely inside $\operatorname{span}(\mathbf{T}_{c\bar{o}})$, forcing block $(1, 2)$ of $\hat{\mathbf{A}}$ to be $\mathbf{0}$.
-- **Invariance of $\mathcal{X}_{no} = \mathcal{X}_{c\bar{o}} \oplus \mathcal{X}_{\bar{c}\bar{o}}$:** Because $\mathbf{A}\mathcal{X}_{no} \subseteq \mathcal{X}_{no}$, multiplying $\mathbf{A}$ by $\mathbf{T}_{\bar{c}\bar{o}}$ produces a vector purely inside $\operatorname{span}(\mathbf{T}_{c\bar{o}}, \mathbf{T}_{\bar{c}\bar{o}})$, with zero component along $\mathbf{T}_{co}$ or $\mathbf{T}_{\bar{c}o}$. This forces blocks $(1, 4)$ and $(3, 4)$ of $\hat{\mathbf{A}}$ to be $\mathbf{0}$.
+- **Invariance of $\mathcal{X}_c$:** Because $\mathbf{A}\mathcal{X}_c \subseteq \mathcal{X}_c$ ($\mathcal{X}_c = \mathcal{X}_{co} \oplus \mathcal{X}_{c\bar{o}}$), multiplying $\mathbf{A}$ by any column in $\mathbf{T}_{co}$ or $\mathbf{T}_{c\bar{o}}$ produces a vector purely inside $\operatorname{span}(\mathbf{T}_{co}, \mathbf{T}_{c\bar{o}})$, with **zero** component along $\mathbf{T}_{\bar{c}o}$ or $\mathbf{T}_{\bar{c}\bar{o}}$. This forces the bottom-left $2 \times 2$ blocks (rows 3–4, columns 1–2) of $\hat{\mathbf{A}}$ to be $\mathbf{0}$.
+- **Invariance of $\mathcal{X}_{c\bar{o}}$:** Because $\mathbf{A}\mathcal{X}_{c\bar{o}} \subseteq \mathcal{X}_{c\bar{o}}$ ($\mathcal{X}_{c\bar{o}} = \mathcal{X}_c \cap \mathcal{X}_{no}$), multiplying $\mathbf{A}$ by $\mathbf{T}_{c\bar{o}}$ produces a vector purely inside $\operatorname{span}(\mathbf{T}_{c\bar{o}})$, forcing block $(1, 2)$ of $\hat{\mathbf{A}}$ to be $\mathbf{0}$.
+- **Invariance of $\mathcal{X}_{no}$:** Because $\mathbf{A}\mathcal{X}_{no} \subseteq \mathcal{X}_{no}$ ($\mathcal{X}_{no} = \mathcal{X}_{c\bar{o}} \oplus \mathcal{X}_{\bar{c}\bar{o}}$), multiplying $\mathbf{A}$ by $\mathbf{T}_{\bar{c}\bar{o}}$ produces a vector purely inside $\operatorname{span}(\mathbf{T}_{c\bar{o}}, \mathbf{T}_{\bar{c}\bar{o}})$, with zero component along $\mathbf{T}_{co}$ or $\mathbf{T}_{\bar{c}o}$. This forces blocks $(1, 4)$ and $(3, 4)$ of $\hat{\mathbf{A}}$ to be $\mathbf{0}$.
 - **Input and Output Containment:** Because $\operatorname{Im}(\mathbf{B}) \subseteq \mathcal{X}_c = \operatorname{span}(\mathbf{T}_{co}, \mathbf{T}_{c\bar{o}})$, the bottom two blocks of $\hat{\mathbf{B}}$ vanish ($\mathbf{B}_{\bar{c}o} = \mathbf{0}, \mathbf{B}_{\bar{c}\bar{o}} = \mathbf{0}$). Because $\mathcal{X}_{no} = \operatorname{span}(\mathbf{T}_{c\bar{o}}, \mathbf{T}_{\bar{c}\bar{o}}) \subseteq \ker(\mathbf{C})$, columns 2 and 4 of $\hat{\mathbf{C}}$ vanish ($\mathbf{C}\mathbf{T}_{c\bar{o}} = \mathbf{0}, \mathbf{C}\mathbf{T}_{\bar{c}\bar{o}} = \mathbf{0}$).
 
 Putting these structural zeros together yields the **Kalman Canonical Decomposition Theorem**:
@@ -202,9 +204,9 @@ The transfer function $W(s)$ depends **exclusively** on the controllable and obs
 
 On written exams, you are frequently asked to perform the two-block **controllability decomposition** when $\operatorname{rank}(\mathcal{R}) = r_c < n$, separating the $r_c$ controllable coordinates $\mathbf{z}_c$ from the $n - r_c$ uncontrollable coordinates $\mathbf{z}_{\bar{c}}$. Follow this exact four-step recipe:
 
-1. **Compute $\mathcal{R}$ and its rank:** Form $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$ and determine $r_c = \operatorname{rank}(\mathcal{R}) < n$.
-2. **Place $\mathbf{T}_c$ on the LEFT:** Select $r_c$ linearly independent columns from $\mathcal{R}$ (starting with the independent columns of $\mathbf{B}$) to form the left block $\mathbf{T}_c \in \mathbb{R}^{n \times r_c}$ spanning $\mathcal{X}_c = \operatorname{Im}(\mathcal{R})$.
-3. **Complete the basis on the RIGHT:** Append $n - r_c$ linearly independent columns $\mathbf{T}_{\bar{c}} \in \mathbb{R}^{n \times (n - r_c)}$ (usually simple standard unit vectors $\mathbf{e}_k$) so that the full $n \times n$ matrix $\mathbf{T} = \begin{bmatrix} \mathbf{T}_c & \mathbf{T}_{\bar{c}} \end{bmatrix}$ has $\det(\mathbf{T}) \neq 0$.
+1. **Compute $\mathcal{R}$ Rank:** Form $\mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} & \dots & \mathbf{A}^{n-1}\mathbf{B} \end{bmatrix}$ and determine $r_c = \operatorname{rank}(\mathcal{R}) < n$.
+2. **Left Block $\mathbf{T}_c$:** Select $r_c$ linearly independent columns from $\mathcal{R}$ (starting with the independent columns of $\mathbf{B}$) to form the left block $\mathbf{T}_c \in \mathbb{R}^{n \times r_c}$ spanning $\mathcal{X}_c = \operatorname{Im}(\mathcal{R})$.
+3. **Right Completion Block:** Append $n - r_c$ linearly independent columns $\mathbf{T}_{\bar{c}} \in \mathbb{R}^{n \times (n - r_c)}$ (usually simple standard unit vectors $\mathbf{e}_k$) so that the full $n \times n$ matrix $\mathbf{T} = \begin{bmatrix} \mathbf{T}_c & \mathbf{T}_{\bar{c}} \end{bmatrix}$ has $\det(\mathbf{T}) \neq 0$.
 4. **Transform $(\mathbf{A}, \mathbf{B}, \mathbf{C})$:** Compute $\mathbf{T}^{-1}$ and evaluate $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$. Because $\mathbf{A}\operatorname{Im}(\mathbf{T}_c) \subseteq \operatorname{Im}(\mathbf{T}_c)$ and $\operatorname{Im}(\mathbf{B}) \subseteq \operatorname{Im}(\mathbf{T}_c)$, the transformed matrices are guaranteed to have the block upper-triangular form:
 
 $$
@@ -217,9 +219,9 @@ Here $(\mathbf{A}_c, \mathbf{B}_c)$ of order $r_c$ is completely controllable, w
 
 Dually, when observability fails ($\operatorname{rank}(\mathcal{O}) = r_o < n$), we separate the $r_o$ observable coordinates $\mathbf{z}_o$ from the $n - r_o$ unobservable coordinates $\mathbf{z}_{\bar{o}}$ using the **observability decomposition**:
 
-1. **Compute $\mathcal{O}$ and its kernel:** Form $\mathcal{O} = \begin{bmatrix} \mathbf{C}; & \mathbf{C}\mathbf{A}; & \dots; & \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}$, find $r_o = \operatorname{rank}(\mathcal{O}) < n$, and solve the homogeneous equation $\mathcal{O}\mathbf{v} = \mathbf{0}$ to find $n - r_o$ linearly independent basis vectors spanning $\mathcal{X}_{no} = \ker(\mathcal{O})$.
-2. **Place $\mathbf{T}_{\bar{o}}$ on the RIGHT:** Group those $n - r_o$ kernel basis vectors into the **right-hand** matrix block $\mathbf{T}_{\bar{o}} \in \mathbb{R}^{n \times (n - r_o)}$.
-3. **Complete the basis on the LEFT:** Prepend $r_o$ linearly independent columns $\mathbf{T}_o \in \mathbb{R}^{n \times r_o}$ on the **left** so that $\mathbf{T} = \begin{bmatrix} \mathbf{T}_o & \mathbf{T}_{\bar{o}} \end{bmatrix}$ is invertible ($\det(\mathbf{T}) \neq 0$).
+1. **Compute $\mathcal{O}$ Kernel:** Form $\mathcal{O} = \begin{bmatrix} \mathbf{C}; & \mathbf{C}\mathbf{A}; & \dots; & \mathbf{C}\mathbf{A}^{n-1} \end{bmatrix}$, find $r_o = \operatorname{rank}(\mathcal{O}) < n$, and solve the homogeneous equation $\mathcal{O}\mathbf{v} = \mathbf{0}$ to find $n - r_o$ linearly independent basis vectors spanning $\mathcal{X}_{no} = \ker(\mathcal{O})$.
+2. **Right Block $\mathbf{T}_{\bar{o}}$:** Group those $n - r_o$ kernel basis vectors into the **right-hand** matrix block $\mathbf{T}_{\bar{o}} \in \mathbb{R}^{n \times (n - r_o)}$.
+3. **Left Completion Block:** Prepend $r_o$ linearly independent columns $\mathbf{T}_o \in \mathbb{R}^{n \times r_o}$ on the **left** so that $\mathbf{T} = \begin{bmatrix} \mathbf{T}_o & \mathbf{T}_{\bar{o}} \end{bmatrix}$ is invertible ($\det(\mathbf{T}) \neq 0$).
 4. **Transform $(\mathbf{A}, \mathbf{B}, \mathbf{C})$:** Because $\mathcal{X}_{no} = \operatorname{Im}(\mathbf{T}_{\bar{o}})$ is $\mathbf{A}$-invariant ($\mathbf{A}\mathbf{T}_{\bar{o}} = \mathbf{T}_{\bar{o}}\mathbf{A}_{\bar{o}}$) and $\mathbf{C}\mathbf{T}_{\bar{o}} = \mathbf{0}$, evaluating $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$ yields the dual block lower-triangular form:
 
 $$
@@ -240,7 +242,7 @@ Here $(\mathbf{A}_o, \mathbf{C}_o)$ of order $r_o$ is completely observable, whi
   explanation="Subsystems $\\mathcal{X}_{c\\bar{o}}$, $\\mathcal{X}_{\\bar{c}o}$, and $\\mathcal{X}_{\\bar{c}\\bar{o}}$ drop out of $W(s)$; only when $n = n_{co}$ does no state redundancy remain."
 />
 
-<Callout type="bridge" title="Robotics Bridge: Flexible Joint Dynamics vs. End-Effector Vision">
+<Callout type="bridge" title="Flexible Joint Vision Observability">
 
 In collaborative robotic manipulators (such as Universal Robots arms), joint gearboxes exhibit torsional elasticity between motor angles $\boldsymbol{\theta}_m$ and link angles $\boldsymbol{q}$. If an external camera (e.g., OptiTrack motion capture) measures only end-effector pose $\mathbf{y} = \mathbf{f}(\boldsymbol{q})$, high-frequency torsional oscillations between motor and link lie in $\mathcal{X}_{c\bar{o}}$ or $\mathcal{X}_{\bar{c}\bar{o}}$. The camera-to-tool transfer function $W(s) = \mathbf{C}_{co}(s\mathbf{I} - \mathbf{A}_{co})^{-1}\mathbf{B}_{co}$ appears smooth, yet fast motions excite hidden gear vibrations unless internal motor encoders restore full observability.
 
@@ -257,8 +259,8 @@ In collaborative robotic manipulators (such as Universal Robots arms), joint gea
 
 ### Two-Block Decomposition Procedure
 
-1. **For controllability ($r_c < n$):** Take $r_c$ independent columns of $\mathcal{R}$ as $\mathbf{T}_c$ on the **left**, complete $\mathbf{T} = [\mathbf{T}_c \; \mathbf{T}_{\bar{c}}]$ with $\det(\mathbf{T}) \neq 0$, and compute $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$. Verify $\hat{\mathbf{A}}_{21} = \mathbf{0}$ and $\hat{\mathbf{B}}_2 = \mathbf{0}$.
-2. **For observability ($r_o < n$):** Solve $\mathcal{O}\mathbf{v} = \mathbf{0}$ for $\mathbf{T}_{\bar{o}}$, place $\mathbf{T}_{\bar{o}}$ on the **right** in $\mathbf{T} = [\mathbf{T}_o \; \mathbf{T}_{\bar{o}}]$ with $\det(\mathbf{T}) \neq 0$, and compute $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$. Verify $\hat{\mathbf{A}}_{12} = \mathbf{0}$ and $\hat{\mathbf{C}}_2 = \mathbf{0}$.
+1. **Controllability Decomposition:** Take $r_c$ independent columns of $\mathcal{R}$ ($r_c < n$) as $\mathbf{T}_c$ on the **left**, complete $\mathbf{T} = [\mathbf{T}_c \; \mathbf{T}_{\bar{c}}]$ with $\det(\mathbf{T}) \neq 0$, and compute $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$. Verify $\hat{\mathbf{A}}_{21} = \mathbf{0}$ and $\hat{\mathbf{B}}_2 = \mathbf{0}$.
+2. **Observability Decomposition:** Solve $\mathcal{O}\mathbf{v} = \mathbf{0}$ for $\mathbf{T}_{\bar{o}}$ ($r_o < n$), place $\mathbf{T}_{\bar{o}}$ on the **right** in $\mathbf{T} = [\mathbf{T}_o \; \mathbf{T}_{\bar{o}}]$ with $\det(\mathbf{T}) \neq 0$, and compute $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$. Verify $\hat{\mathbf{A}}_{12} = \mathbf{0}$ and $\hat{\mathbf{C}}_2 = \mathbf{0}$.
 
 ### Key Proofs
 
@@ -268,12 +270,12 @@ In collaborative robotic manipulators (such as Universal Robots arms), joint gea
 <Callout type="warning" title="Common Mistakes">
 1. **Reversing Basis Column Order:** Put $\mathbf{T}_c = \operatorname{Im}(\mathcal{R})$ on the **left** ($\mathbf{T} = [\mathbf{T}_c \; \mathbf{T}_{\bar{c}}]$) for controllability, but put $\mathbf{T}_{\bar{o}} = \ker(\mathcal{O})$ on the **right** ($\mathbf{T} = [\mathbf{T}_o \; \mathbf{T}_{\bar{o}}]$) for observability.
 2. **Linearly Dependent Completion Vectors:** Always verify $\det(\mathbf{T}) \neq 0$ before inverting $\mathbf{T}$.
-3. **Confusing External and Internal Stability:** Unobservable or uncontrollable unstable modes cancel out of $W(s)$ (giving a benign BIBO transfer function) while still blowing up internal states ([Chapter 16](/dynamic-courses/systems-theory/04-stability-routh/06-bounded-input-bounded-output-stability/)).
+3. **External vs. Internal Stability:** Unobservable or uncontrollable unstable modes cancel out of $W(s)$ (giving a benign BIBO transfer function) while still blowing up internal states ([Chapter 16](/dynamic-courses/systems-theory/04-stability-routh/06-bounded-input-bounded-output-stability/)).
 </Callout>
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-22-1" title="Exercise 22.1 — Controllability Kalman Decomposition" level="Warm-Up" hint="Pick $\mathbf{t}_1$ from $\operatorname{Im}(\mathcal{M}_c)$ and complete $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$ with any vector giving $\det(\mathbf{T}) \neq 0$.">
+<Exercise client:load id="ex-22-1" title="Exercise 22.1 — Controllability Kalman Decomposition" level="Warm-Up" hint="Pick $\mathbf{t}_1$ from $\operatorname{Im}(\mathcal{R})$ and complete $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$ with any vector giving $\det(\mathbf{T}) \neq 0$.">
 
 Given the continuous-time state-space system:
 
@@ -281,8 +283,8 @@ $$
 \mathbf{A} = \begin{bmatrix} 1 & 2 \\ 0 & 3 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 2 & 1 \end{bmatrix}
 $$
 
-1. Compute the Kalman controllability matrix $\mathcal{M}_c$ and determine its rank $r_c$.
-2. Choose a basis vector $\mathbf{t}_1 \in \operatorname{Im}(\mathcal{M}_c)$ and complete the basis with an independent vector $\mathbf{t}_2$ to construct $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$. Compute $\mathbf{T}^{-1}$.
+1. Compute the Kalman controllability matrix $\mathcal{R}$ and determine its rank $r_c$.
+2. Choose a basis vector $\mathbf{t}_1 \in \operatorname{Im}(\mathcal{R})$ and complete the basis with an independent vector $\mathbf{t}_2$ to construct $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$. Compute $\mathbf{T}^{-1}$.
 3. Calculate the transformed matrices $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ and $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$.
 4. Verify the block-triangular structure $\hat{\mathbf{A}} = \begin{bmatrix} A_c & A_{12} \\ 0 & A_{\bar{c}} \end{bmatrix}$ and identify the uncontrollable eigenvalue mode.
 
@@ -302,13 +304,13 @@ $$
    \mathbf{A}\mathbf{B} = \begin{bmatrix} 1 & 2 \\ 0 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}
    $$
    $$
-   \mathcal{M}_c = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 0 & 0 \end{bmatrix}
+   \mathcal{R} = \begin{bmatrix} \mathbf{B} & \mathbf{A}\mathbf{B} \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 0 & 0 \end{bmatrix}
    $$
-   The columns are identical, so $\det(\mathcal{M}_c) = 0$.
-   Since column 1 is non-zero, $r_c = \operatorname{rank}(\mathcal{M}_c) = 1 < 2 = n$.
+   The columns are identical, so $\det(\mathcal{R}) = 0$.
+   Since column 1 is non-zero, $r_c = \operatorname{rank}(\mathcal{R}) = 1 < 2 = n$.
 
 2. **Basis transformation construction:**
-   The controllable subspace is $\operatorname{Im}(\mathcal{M}_c) = \operatorname{span}\left\{ \begin{bmatrix} 1 \\ 0 \end{bmatrix} \right\}$.
+   The controllable subspace is $\operatorname{Im}(\mathcal{R}) = \operatorname{span}\left\{ \begin{bmatrix} 1 \\ 0 \end{bmatrix} \right\}$.
    Select $\mathbf{t}_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$.
    Complete the basis of $\mathbb{R}^2$ with a linearly independent vector, for instance $\mathbf{t}_2 = \begin{bmatrix} 1 \\ 1 \end{bmatrix}$.
    The transformation matrix is:
@@ -328,7 +330,7 @@ $$
    \hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 1 & -1 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}
    $$
 
-4. **Canonical structure and uncontrollable eigenvalue:**
+4. **Uncontrollable Eigenvalue Structure:**
    The transformed matrix has block upper triangular structure:
    $$
    \hat{\mathbf{A}} = \begin{bmatrix} A_c & A_{12} \\ 0 & A_{\bar{c}} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & 3 \end{bmatrix}
@@ -340,7 +342,7 @@ $$
 
 </Exercise>
 
-<Exercise client:load id="ex-22-2" title="Exercise 22.2 — Observability Decomposition and Minimality" level="Exam Standard" hint="Find $\ker(\mathcal{M}_o)$ first to get $\mathbf{t}_2$, then pick $\mathbf{t}_1$ independent of $\mathbf{t}_2$ and compute $W(s)$ from $(A_o, B_o, C_o)$.">
+<Exercise client:load id="ex-22-2" title="Exercise 22.2 — Observability Decomposition and Minimality" level="Exam Standard" hint="Find $\ker(\mathcal{O})$ first to get $\mathbf{t}_2$, then pick $\mathbf{t}_1$ independent of $\mathbf{t}_2$ and compute $W(s)$ from $(A_o, B_o, C_o)$.">
 
 Given the state-space model:
 
@@ -348,8 +350,8 @@ $$
 \mathbf{A} = \begin{bmatrix} 2 & 0 \\ 1 & -1 \end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix} 1 \\ 2 \end{bmatrix}, \quad \mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}
 $$
 
-1. Compute the Kalman observability matrix $\mathcal{M}_o$ and verify that $\operatorname{rank}(\mathcal{M}_o) = 1$.
-2. Determine the unobservable subspace $\mathcal{X}_{\bar{o}} = \ker(\mathcal{M}_o)$ and select basis vector $\mathbf{t}_2 \in \ker(\mathcal{M}_o)$. Choose $\mathbf{t}_1$ to complete the basis, forming $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$.
+1. Compute the Kalman observability matrix $\mathcal{O}$ and verify that $\operatorname{rank}(\mathcal{O}) = 1$.
+2. Determine the unobservable subspace $\mathcal{X}_{\bar{o}} = \ker(\mathcal{O})$ and select basis vector $\mathbf{t}_2 \in \ker(\mathcal{O})$. Choose $\mathbf{t}_1$ to complete the basis, forming $\mathbf{T} = [\mathbf{t}_1 \; \mathbf{t}_2]$.
 3. Compute $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$, $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$, and $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$.
 4. Compute the transfer function $W(s) = \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B}$ directly and from the observable subsystem $(\hat{A}_o, \hat{B}_o, \hat{C}_o)$. Explain why the eigenvalue mode $\lambda = -1$ is absent from $W(s)$.
 
@@ -373,13 +375,13 @@ $$
    \mathbf{C}\mathbf{A} = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} 2 & 0 \\ 1 & -1 \end{bmatrix} = \begin{bmatrix} 2 & 0 \end{bmatrix}
    $$
    $$
-   \mathcal{M}_o = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 2 & 0 \end{bmatrix}
+   \mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{C}\mathbf{A} \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 2 & 0 \end{bmatrix}
    $$
-   The second row is $2 \times (\text{Row } 1)$, so $\det(\mathcal{M}_o) = 0$.
-   Since Row 1 is non-zero, $\operatorname{rank}(\mathcal{M}_o) = 1 < 2 = n$. The system is not completely observable.
+   The second row is $2 \times (\text{Row } 1)$, so $\det(\mathcal{O}) = 0$.
+   Since Row 1 is non-zero, $\operatorname{rank}(\mathcal{O}) = 1 < 2 = n$. The system is not completely observable.
 
-2. **Unobservable subspace and basis transformation:**
-   The unobservable subspace is the null space $\mathcal{X}_{\bar{o}} = \ker(\mathcal{M}_o)$:
+2. **Unobservable Subspace Transformation:**
+   The unobservable subspace is the null space $\mathcal{X}_{\bar{o}} = \ker(\mathcal{O})$:
    $$
    \begin{bmatrix} 1 & 0 \\ 2 & 0 \end{bmatrix} \begin{bmatrix} v_1 \\ v_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies v_1 = 0, \quad v_2 \in \mathbb{R}
    $$
@@ -401,7 +403,7 @@ $$
    $$
    Notice that the upper-right block is identically zero ($\hat{A}_{12} = 0$), and the second column of $\hat{\mathbf{C}}$ is zero ($\hat{C}_{\bar{o}} = 0$).
 
-4. **Transfer function and pole-zero cancellation:**
+4. **Transfer Function Cancellation:**
    Computing $W(s)$ directly using full state-space formulas:
    $$
    (s\mathbf{I} - \mathbf{A})^{-1} = \begin{bmatrix} s - 2 & 0 \\ -1 & s + 1 \end{bmatrix}^{-1} = \frac{1}{(s - 2)(s + 1)} \begin{bmatrix} s + 1 & 0 \\ 1 & s - 2 \end{bmatrix}

@@ -15,11 +15,11 @@ import BodeExplorer from "@components/BodeExplorer.tsx";
 
 In [Chapter 17](/dynamic-courses/systems-theory/05-frequency-bode/01-asymptotic-bode-magnitude-diagrams/) and [Chapter 18](/dynamic-courses/systems-theory/05-frequency-bode/02-exact-bode-phase-diagrams/), you learned to read gain crossover $\omega_{gc}$ and **phase margin** $\varphi_m$ directly from open-loop Bode diagrams. A natural question follows: if you already know the exact magnitude curve $|L(j\omega)|$ across all frequencies, do you automatically know how the system will behave when you close a feedback loop around it?
 
-For most standard plants, the answer is yes—Hendrik Bode proved that when all poles and zeros lie in the left half-plane and no time delay exists, the slope of the magnitude curve uniquely fixes the phase curve. However, as soon as a plant contains a **right-half-plane (RHP) zero** or a **pure transport delay** $e^{-sT_d}$, that coupling breaks down completely. Two open-loop systems can trace the **exact same Bode magnitude diagram** at every frequency, yet when placed inside the same unity-feedback loop, one settles smoothly while the other explodes into growing oscillations.
+For most standard plants, the answer is yes—Hendrik Bode proved that when all poles and zeros lie in the left half-plane and no time delay exists, the slope of the magnitude curve uniquely fixes the phase curve. However, as soon as a plant contains a **right-half-plane (RHP) zero** or a **pure transport delay** $e^{-sT_d}$, that coupling breaks down completely. Two open-loop systems can trace the **identical Bode magnitude** at every frequency, yet when placed inside the same unity-feedback loop, one settles smoothly while the other explodes into growing oscillations.
 
 <Divider label="1 · Example" />
 
-### Mirror Zeros in a Feedback Loop
+### RHP Zeros in Feedback
 
 To see why identical magnitude curves can produce opposite closed-loop stability, place a plant $G(s)$ driven by a proportional controller $C(s) = K = 6$ inside the standard unity negative-feedback loop from [Chapter 3](/dynamic-courses/systems-theory/01-state-models/03-block-diagram-algebra-reduction/) and [Chapter 18](/dynamic-courses/systems-theory/05-frequency-bode/02-exact-bode-phase-diagrams/):
 
@@ -32,7 +32,7 @@ Recall the fundamental distinction between open-loop and closed-loop transfer fu
 - The **open-loop transfer function** $L(s) = C(s)G(s)$ is the forward product you plot on a Bode diagram.
 - The **closed-loop transfer function** $W_{\text{CL}}(s) = \frac{Y(s)}{R(s)} = \frac{L(s)}{1 + L(s)}$ governs the actual feedback loop. Its poles are the roots of $1 + L(s) = 0$.
 
-Now compare two open-loop candidates that share the exact same gain $K = 6$, the same integrator $1/s$, the same real pole at $\omega_p = 2\text{ rad/s}$ ($s = -2$), and the same zero corner frequency $\omega_z = 4\text{ rad/s}$, differing **only by the algebraic sign** in the numerator:
+Now compare two open-loop candidates that share the exact same gain $K = 6$, the same integrator $1/s$, the same real pole at $\omega_p = 2\text{ rad/s}$ ($s = -2$), and the same zero corner frequency $\omega_z = 4\text{ rad/s}$, differing **solely by sign** in the numerator:
 
 $$L_{\text{MP}}(s) = K \frac{1 + s/4}{s(1 + s/2)}, \qquad L_{\text{NMP}}(s) = K \frac{1 - s/4}{s(1 + s/2)}$$
 
@@ -84,19 +84,19 @@ We can verify this frequency-domain diagnosis directly in the $s$-domain using t
   explanation="From $0.5s^2 + (1 - 0.25K)s + K = 0$, the $s^1$ damping term vanishes at $1 - 0.25K = 0 \implies K_{\max} = 4$. On the Bode plot, phase hits $-180^\circ$ at $\omega_\pi = \sqrt{2 \cdot 4} = \sqrt{8}\;\mathrm{rad/s}$, where $|L(j\sqrt{8})| = K/4 = 1 \implies K = 4$."
 />
 
-### Interactive Bode Explorer
-
 In the interactive simulator below, start at $K_B = 6$ with `RHP zero (1 − s/ω_z)` checked and observe that $\varphi_m = -16.3^\circ$ (unstable). Uncheck `RHP zero` to see the top magnitude plot stay completely frozen while the bottom phase curve jumps upward by $+87.6^\circ$ at crossover, then re-check `RHP zero` and drag $K_B$ below $4$ to see how lowering loop gain restores stability.
 
 <BodeExplorer client:load initialKb={6} initialType={1} initialPole={2} initialZero={4} initialRhpZero={true} showComplexOption={false} />
 
 <Divider label="2 · Theory" />
 
+When two causal systems share identical Bode magnitude plots, extra phase lag from right-half-plane singularities or transport delays governs closed-loop stability and step-response direction. This section formalizes minimum versus non-minimum phase classification, derives all-pass factorization and initial undershoot, proves why RHP zero cancellation destabilizes internal modes, and quantifies delay phase erosion.
+
 ### Minimum vs. Non-Minimum Phase
 
 Why do we call well-behaved systems *minimum phase*? Suppose an engineer specifies only the gain profile $|L(j\omega)|$ across all frequencies $0 \le \omega < \infty$. Because replacing any factor $(1 + s/\omega_0)$ by $(1 - s/\omega_0)$ or multiplying by $e^{-sT_d}$ leaves $|L(j\omega)|$ unchanged, there are infinitely many different transfer functions that share the exact same Bode magnitude plot.
 
-Among all causal transfer functions sharing a given magnitude curve $|L(j\omega)|$, there is one unique transfer function whose total phase lag $-\angle L(j\omega)$ is as small as physically possible across frequency: the one that has **no RHP zeros, no RHP poles, and no time delay**. We formalize this classification as follows:
+Among all causal transfer functions sharing a given magnitude curve $|L(j\omega)|$, there is one unique transfer function whose total phase lag $-\angle L(j\omega)$ is as small as physically possible across frequency: the **minimum-phase plant** containing neither RHP zeros/poles nor time delays. We formalize this classification as follows:
 - An open-loop transfer function $L(s)$ is **minimum phase** if all of its poles lie in the closed left half-plane (allowing integrators at $s = 0$), all of its finite zeros lie strictly in the open left half-plane ($\operatorname{Re}(z_i) < 0$), and its transport delay is zero ($T_d = 0$).
 - If $L(s)$ contains at least one **RHP zero** ($\operatorname{Re}(z_i) > 0$), one **RHP pole**, or a **pure time delay** $e^{-sT_d}$ ($T_d > 0$), it is **non-minimum phase (NMP)**.
 
@@ -120,7 +120,7 @@ Because $|A(j\omega)| = 1$ ($0\text{ dB}$) at every frequency, $A(s)$ is called 
 
 On a hand-drawn Bode diagram, how do we sketch a single RHP zero factor $(1 - s/\omega_z)$ directly without factoring out $A(s)$?
 - **Magnitude:** $(1 - s/\omega_z)$ behaves **identically** to an LHP zero $(1 + s/\omega_z)$: its asymptotic slope breaks **upward by $+20\text{ dB/dec}$** at $\omega = \omega_z$, and the exact curve sits $+3.01\text{ dB}$ above the corner vertex.
-- **Phase:** Because $\arg(1 - j\omega/\omega_z) = -\arctan(\omega/\omega_z)$, an RHP zero behaves **like a pole in phase**: its 3-segment asymptotic ramp breaks **downward at $-45^\circ/\text{dec}$** across $[0.1\omega_z, 10\omega_z]$, reaching $-45^\circ$ at $\omega_z$ and $-90^\circ$ for $\omega \ge 10\omega_z$.
+- **Phase:** Because $\arg(1 - j\omega/\omega_z) = -\arctan(\omega/\omega_z)$, an RHP zero injects **$-90^\circ$ asymptotic lag** identical to a real LHP pole: its 3-segment asymptotic ramp breaks **downward at $-45^\circ/\text{dec}$** across $[0.1\omega_z, 10\omega_z]$, reaching $-45^\circ$ at $\omega_z$ and $-90^\circ$ for $\omega \ge 10\omega_z$.
 
 ### Initial Undershoot
 
@@ -135,10 +135,10 @@ $$W(s) = \frac{1 - s/z_0}{(1 + s/p_1)(1 + s/p_2)}$$
 
 When excited by a unit step input $u(t) = \mathbb{1}(t)$ ($U(s) = 1/s$), the Laplace output is $Y(s) = W(s)/s$. Let us inspect the trajectory $y(t)$ at $t \to \infty$ and at $t = 0^+$:
 
-1. **Steady-State Value ($t \to \infty$):** Since all poles of $sY(s) = W(s)$ lie strictly in the LHP ($-p_1, -p_2 < 0$), the Final Value Theorem applies:
+1. **Steady-State Value:** Since all poles of $sY(s) = W(s)$ lie strictly in the LHP ($-p_1, -p_2 < 0$), the Final Value Theorem applies:
    $$y(\infty) = \lim_{s \to 0} s Y(s) = \lim_{s \to 0} W(s) = W(0) = +1$$
    The output eventually settles to $+1$.
-2. **Initial Value ($t = 0^+$):** Applying the Initial Value Theorem to $Y(s)$ gives:
+2. **Initial Value:** Applying the Initial Value Theorem to $Y(s)$ gives:
    $$y(0^+) = \lim_{s \to \infty} s Y(s) = \lim_{s \to \infty} \frac{1 - s/z_0}{(1 + s/p_1)(1 + s/p_2)} = 0$$
    Because the denominator has degree $2$ and the numerator has degree $1$, the output starts continuously at $y(0^+) = 0$.
 3. **Initial Velocity $\dot{y}(0^+)$:** Recall from [Chapter 4](/dynamic-courses/systems-theory/02-laplace-resolvent/01-unilateral-laplace-transformation-primitives/) that the Laplace transform of the derivative $\dot{y}(t)$ is $\mathcal{L}\{\dot{y}(t)\} = s Y(s) - y(0^+) = W(s) - 0 = W(s)$. Applying the Initial Value Theorem to $\mathcal{L}\{\dot{y}(t)\}$ yields the initial slope at $t = 0^+$:
@@ -153,7 +153,7 @@ Because $p_1, p_2, z_0 > 0$, the initial slope $\dot{y}(0^+)$ is strictly **nega
   <figcaption><strong>Step Response Comparison:</strong> Both systems settle to $y(\infty) = +1$, but the RHP zero forces $\dot{y}(0^+) = -p_1 p_2 / z_0 < 0$, driving the output negative at $t = 0^+$ before recovery.</figcaption>
 </figure>
 
-### Why You Cannot Cancel an RHP Zero
+### Uncancellable RHP Zeros
 
 Seeing an undesirable RHP zero $(1 - s/z_0)$ in the plant $G(s)$, beginners often propose cancelling it algebraically inside the controller by placing an unstable pole at $s = +z_0$:
 
@@ -161,7 +161,7 @@ $$C(s) = \frac{C_0(s)}{1 - s/z_0}$$
 
 In the paper product $L(s) = C(s)G(s)$, the $(1 - s/z_0)$ factors appear to cancel out. Why is this strictly forbidden in real engineering systems?
 1. **Loss of Internal Stability:** In a feedback loop, input-output stability of $W_{\text{CL}}(s) = \frac{C(s)G(s)}{1 + C(s)G(s)}$ is not enough; every internal signal must remain bounded under sensor noise and load disturbances. If a load disturbance $d(t)$ enters at the plant input (between $C(s)$ and $G(s)$), the transfer function from $d(t)$ to the controller state or plant output contains the uncanceled unstable pole $(1 - s/z_0)$ in its denominator. As proved in [Chapter 16](/dynamic-courses/systems-theory/04-stability-routh/06-bounded-input-bounded-output-stability/) and [Chapter 23](/dynamic-courses/systems-theory/06-kalman-structure/04-uncontrollable-mode-stabilizability-verification/), cancelling an RHP singularity creates a hidden unstable mode $e^{+z_0 t}$ that saturates the actuator and destroys the hardware.
-2. **Hard Bandwidth Limit ($\omega_{gc} \lesssim z_0 / 2$):** Because an RHP zero at $s = +z_0$ cannot be cancelled, it remains in $L(s)$ and in $W_{\text{CL}}(s)$. By $\omega = z_0$, the factor $(1 - j\omega/z_0)$ already subtracts $45^\circ$ of phase margin (and $90^\circ$ by $\omega \gg z_0$). If you try to push closed-loop bandwidth $\omega_{gc}$ past $z_0$, the RHP zero strips away your phase margin and forces closed-loop poles into the RHP. In practice, an RHP zero at $s = +z_0$ imposes an inescapable physical speed limit: the gain crossover frequency must be kept below roughly $\omega_{gc} \le z_0 / 2$.
+2. **Hard Bandwidth Limit:** Because an RHP zero at $s = +z_0$ cannot be cancelled, it remains in $L(s)$ and in $W_{\text{CL}}(s)$. By $\omega = z_0$, the factor $(1 - j\omega/z_0)$ already subtracts $45^\circ$ of phase margin (and $90^\circ$ by $\omega \gg z_0$). If you try to push closed-loop bandwidth $\omega_{gc}$ past $z_0$, the RHP zero strips away your phase margin and forces closed-loop poles into the RHP. In practice, an RHP zero at $s = +z_0$ imposes an inescapable physical speed limit: the gain crossover frequency must be kept below roughly $\omega_{gc} \le z_0 / 2$.
 
 <StepCheck client:load
   mode="choice"
@@ -189,13 +189,17 @@ $$\arg(e^{-j\omega T_d}) = -\omega T_d\;\text{rad} = -\omega T_d \cdot \frac{180
 
 Look closely at what these two equations say:
 1. **Zero Magnitude Effect:** Pure delay never attenuates or amplifies any frequency ($0\text{ dB}$ everywhere). Placing a transport delay in series with an open-loop plant $L(s) = L_0(s)e^{-sT_d}$ leaves $|L(j\omega)|$ and the gain crossover frequency $\omega_{gc}$ **completely unchanged**.
-2. **Unbounded Linear Phase Drop:** Unlike a rational pole or RHP zero—whose phase lag levels off at $-90^\circ$—the phase lag of a pure delay grows **linearly with $\omega$ without bound** ($\to -\infty$ as $\omega \to \infty$). On a semi-logarithmic Bode plot (where the horizontal axis is $x = \log_{10}\omega$, so $\omega = 10^x$), the curve $-\omega T_d \frac{180^\circ}{\pi}$ plunges downward exponentially fast as you move to higher decades.
+2. **Unbounded Linear Phase Drop:** Unlike a rational pole or RHP zero—whose phase lag levels off at $-90^\circ$—the phase lag of a pure delay grows **linearly without bound** ($\to -\infty$ as $\omega \to \infty$). On a semi-logarithmic Bode plot (where the horizontal axis is $x = \log_{10}\omega$, so $\omega = 10^x$), the curve $-\omega T_d \frac{180^\circ}{\pi}$ plunges downward exponentially fast as you move to higher decades.
 
 To see the link between pure delay and RHP zeros, approximate $e^{-sT_d}$ at low frequencies ($\omega T_d \ll 1$) using its first-order **Padé rational approximation**:
 
 $$e^{-sT_d} = \frac{e^{-sT_d / 2}}{e^{+sT_d / 2}} \approx \frac{1 - s(T_d / 2)}{1 + s(T_d / 2)}$$
 
 The first-order Padé approximation is literally an **all-pass filter** $A(s)$ with an LHP pole at $s = -2/T_d$ and an RHP zero at $s = +2/T_d$! Consequently, a delay $T_d$ imposes the same kind of hard closed-loop speed ceiling as an RHP zero: at $\omega = 1/T_d$, delay alone consumes $1\text{ rad} \approx 57.3^\circ$ of phase margin, so practical feedback loops must keep $\omega_{gc} \lesssim 1/T_d$.
+
+<Callout type="bridge" title="Non-Collocated Links and Latency">
+In flexible robotic arms with tip sensors (non-collocated sensing), structural torsion introduces RHP zeros that limit closed-loop joint bandwidth before tip recoil causes vibration. Similarly, vision feedback over a camera adds pure latency $T_d$ ($20\text{–}60\text{ ms}$), forcing $\omega_{gc} \ll 1/T_d$.
+</Callout>
 
 <Divider label="3 · Summary" />
 
@@ -207,7 +211,7 @@ The first-order Padé approximation is literally an **all-pass filter** $A(s)$ w
 
 ### Exam Procedure
 
-1. **Keep Signs Explicit in Canonical Form:** Factor $L(s)$ into time-constant form keeping every $(1 - s/\omega_z)$ intact—never pull a minus sign out of $(1 - s/\omega_z)$ into $K_B$.
+1. **Explicit Canonical Signs:** Factor $L(s)$ into time-constant form keeping every $(1 - s/\omega_z)$ intact—never pull a minus sign out of $(1 - s/\omega_z)$ into $K_B$.
 2. **Draft Magnitude Normally:** Sketch $|L(j\omega)|$ using unsigned corner frequencies ($\omega_z, \omega_p$); an RHP zero still bends slope upward by $+20\text{ dB/dec}$, and $e^{-sT_d}$ adds $0\text{ dB}$.
 3. **Subtract Non-Minimum Phase Lag:** For each RHP zero $(1 - s/\omega_z)$, draw a downward $-45^\circ/\text{dec}$ phase ramp across $[0.1\omega_z, 10\omega_z]$; for any delay $e^{-sT_d}$, subtract $\omega T_d (180^\circ/\pi)$ in degrees before computing $\varphi_m = 180^\circ + \angle L(j\omega_{gc})$.
 4. **Respect Internal Stability:** Never cancel an RHP zero $(1 - s/z_0)$ with an unstable controller pole $1/(1 - s/z_0)$.
@@ -219,13 +223,43 @@ The first-order Padé approximation is literally an **all-pass filter** $A(s)$ w
 
 <Callout type="warning" title="Common Mistakes">
 1. **Cancelling RHP Zeros:** Putting $(1 - s/z_0)$ in the denominator of $C(s)$ hides an unstable pole $s = +z_0$ inside the loop, causing internal actuator signals to diverge under disturbances.
-2. **Radians vs. Degrees in Delay Phase:** In $-\omega T_d$, the angle is in **radians**; always multiply by $180^\circ/\pi$ before adding to Bode phase angles in degrees.
+2. **Delay Phase Units:** In $-\omega T_d$, the angle is in **radians**; always multiply by $180^\circ/\pi$ before adding to Bode phase angles in degrees.
 3. **Slope-to-Phase Shortcuts:** Reading phase from magnitude slope works **only** for minimum phase systems.
 </Callout>
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-19-1" title="Exercise 19.1 — Transport Delay Phase Margin" level="Exam Standard">
+<Exercise client:load id="ex-19-1" title="Exercise 19.1 — Critical Gain for RHP Zero" level="Intermediate">
+Consider the open-loop non-minimum phase system $L(s) = \frac{K(1 - s/10)}{s(1 + s/2)}$ with $K > 0$. Setting $\angle L(j\omega_\pi) = -180^\circ$ gives $-90^\circ - \arctan(\omega_\pi/2) - \arctan(\omega_\pi/10) = -180^\circ$, so $\omega_\pi^2 = 20$ and $\omega_\pi = \sqrt{20} \approx 4.47\text{ rad/s}$.
+
+Evaluate $|L(j\sqrt{20})|$ to find the critical proportional gain $K_{\max}$ where the closed loop loses stability, and verify your answer via Routh-Hurwitz.
+
+<StepCheck client:load
+  prompt="Enter the critical proportional gain $K_{\max}$:"
+  expected={10}
+  tolerance={0.05}
+  unit=""
+  explanation="At $\omega_\pi = \sqrt{20}$, $|L(j\sqrt{20})| = \frac{K}{\sqrt{20}}\sqrt{\frac{1 + 20/100}{1 + 20/4}} = \frac{K}{10}$. Setting $K/10 = 1$ gives $K_{\max} = 10$."
+/>
+
+<details className="dc-solution">
+<summary>Show Step-by-Step Solution</summary>
+
+1. **Phase crossover $\omega_\pi$:** Using the trigonometric identity $\arctan(a) + \arctan(b) = 90^\circ \iff a \cdot b = 1$ on $\arctan(\omega_\pi/2) + \arctan(\omega_\pi/10) = 90^\circ$:
+   $$\frac{\omega_\pi}{2} \cdot \frac{\omega_\pi}{10} = 1 \implies \omega_\pi^2 = 20 \implies \omega_\pi = \sqrt{20} \approx 4.472\text{ rad/s}$$
+
+2. **Magnitude at Crossover:** Substituting $\omega_\pi^2 = 20$ into $|L(j\omega)|$:
+   $$|L(j\sqrt{20})| = \frac{K}{\sqrt{20}}\sqrt{\frac{1 + \omega_\pi^2 / 100}{1 + \omega_\pi^2 / 4}} = \frac{K}{\sqrt{20}}\sqrt{\frac{1 + 20/100}{1 + 20/4}} = \frac{K}{\sqrt{20}}\sqrt{\frac{1.2}{6}} = \frac{K}{\sqrt{20}}\sqrt{\frac{1}{5}} = \frac{K}{\sqrt{100}} = \frac{K}{10}$$
+   At the marginal stability boundary $|L(j\omega_\pi)| = 1$, we obtain $K / 10 = 1 \implies K_{\max} = 10$.
+
+3. **Routh-Hurwitz cross-check:** Forming $1 + L(s) = 0$:
+   $$s(1 + 0.5s) + K(1 - 0.1s) = 0 \implies 0.5 s^2 + (1 - 0.1 K)s + K = 0$$
+   For $K > 0$, all coefficients are positive if and only if $1 - 0.1 K > 0 \iff 0 < K < 10$, matching the Bode threshold $K_{\max} = 10$ identically.
+
+</details>
+</Exercise>
+
+<Exercise client:load id="ex-19-2" title="Exercise 19.2 — Transport Delay Phase Margin" level="Exam Standard">
 A robotic servo loop has open-loop transfer function with latency $T_d = 0.05\text{ s}$:
 
 $$L(s) = \frac{15\, e^{-0.05 s}}{s(1 + s/16)}$$
@@ -248,7 +282,7 @@ Find the exact gain crossover frequency $\omega_{gc}$, the phase margin $\varphi
    Testing $\omega_{gc} = 12\text{ rad/s}$ uses the $3\text{–}4\text{–}5$ right triangle ($\frac{12}{16} = \frac{3}{4} \implies \sqrt{1 + (3/4)^2} = \frac{5}{4}$):
    $$|L(j12)| = \frac{15}{12 \cdot (5/4)} = \frac{15}{15} = 1 \implies \omega_{gc} = 12\text{ rad/s}$$
 
-2. **Phase margin at $T_d = 0.05\text{ s}$:** Evaluating each factor's phase at $\omega_{gc} = 12\text{ rad/s}$ and converting the delay shift $\omega_{gc} T_d = 12 \times 0.05 = 0.60\text{ rad}$ into degrees:
+2. **Phase Margin Result:** Evaluating each factor's phase at $\omega_{gc} = 12\text{ rad/s}$ and converting the delay shift $\omega_{gc} T_d = 12 \times 0.05 = 0.60\text{ rad}$ into degrees:
    $$\angle L(j12) = -90^\circ - \arctan\!\left(\frac{12}{16}\right) - (12 \cdot 0.05)\cdot\frac{180^\circ}{\pi} = -90^\circ - 36.87^\circ - 34.38^\circ = -161.25^\circ$$
    $$\varphi_m = 180^\circ + \angle L(j12) = 180^\circ - 161.25^\circ = +18.75^\circ$$
 
@@ -260,37 +294,7 @@ Find the exact gain crossover frequency $\omega_{gc}$, the phase margin $\varphi
 </details>
 </Exercise>
 
-<Exercise client:load id="ex-19-2" title="Exercise 19.2 — Critical Gain for an RHP Zero" level="Intermediate">
-Consider the open-loop non-minimum phase system $L(s) = \frac{K(1 - s/10)}{s(1 + s/2)}$ with $K > 0$. Setting $\angle L(j\omega_\pi) = -180^\circ$ gives $-90^\circ - \arctan(\omega_\pi/2) - \arctan(\omega_\pi/10) = -180^\circ$, so $\omega_\pi^2 = 20$ and $\omega_\pi = \sqrt{20} \approx 4.47\text{ rad/s}$.
-
-Evaluate $|L(j\sqrt{20})|$ to find the critical proportional gain $K_{\max}$ where the closed loop loses stability, and verify your answer via Routh-Hurwitz.
-
-<StepCheck client:load
-  prompt="Enter the critical proportional gain $K_{\max}$:"
-  expected={10}
-  tolerance={0.05}
-  unit=""
-  explanation="At $\omega_\pi = \sqrt{20}$, $|L(j\sqrt{20})| = \frac{K}{\sqrt{20}}\sqrt{\frac{1 + 20/100}{1 + 20/4}} = \frac{K}{10}$. Setting $K/10 = 1$ gives $K_{\max} = 10$."
-/>
-
-<details className="dc-solution">
-<summary>Show Step-by-Step Solution</summary>
-
-1. **Phase crossover $\omega_\pi$:** Using the trigonometric identity $\arctan(a) + \arctan(b) = 90^\circ \iff a \cdot b = 1$ on $\arctan(\omega_\pi/2) + \arctan(\omega_\pi/10) = 90^\circ$:
-   $$\frac{\omega_\pi}{2} \cdot \frac{\omega_\pi}{10} = 1 \implies \omega_\pi^2 = 20 \implies \omega_\pi = \sqrt{20} \approx 4.472\text{ rad/s}$$
-
-2. **Bode magnitude at $\omega_\pi = \sqrt{20}$:** Substituting $\omega_\pi^2 = 20$ into $|L(j\omega)|$:
-   $$|L(j\sqrt{20})| = \frac{K}{\sqrt{20}}\sqrt{\frac{1 + \omega_\pi^2 / 100}{1 + \omega_\pi^2 / 4}} = \frac{K}{\sqrt{20}}\sqrt{\frac{1 + 20/100}{1 + 20/4}} = \frac{K}{\sqrt{20}}\sqrt{\frac{1.2}{6}} = \frac{K}{\sqrt{20}}\sqrt{\frac{1}{5}} = \frac{K}{\sqrt{100}} = \frac{K}{10}$$
-   At the marginal stability boundary $|L(j\omega_\pi)| = 1$, we obtain $K / 10 = 1 \implies K_{\max} = 10$.
-
-3. **Routh-Hurwitz cross-check:** Forming $1 + L(s) = 0$:
-   $$s(1 + 0.5s) + K(1 - 0.1s) = 0 \implies 0.5 s^2 + (1 - 0.1 K)s + K = 0$$
-   For $K > 0$, all coefficients are positive if and only if $1 - 0.1 K > 0 \iff 0 < K < 10$, matching the Bode threshold $K_{\max} = 10$ identically.
-
-</details>
-</Exercise>
-
-<Exercise client:load id="ex-19-3" title="Exercise 19.3 — Stability, Cancellation & Initial Slope" level="Exam Standard">
+<Exercise client:load id="ex-19-3" title="Exercise 19.3 — Stability, Cancellation and Slope" level="Exam Standard">
 Suppose a unity-feedback loop yields the closed-loop transfer function:
 
 $$W_{\text{CL}}(s) = \frac{4(1 - s/8)}{s^2 + 3s + 4}$$
@@ -314,13 +318,9 @@ Use **Routh-Hurwitz** ([Chapter 15](/dynamic-courses/systems-theory/04-stability
 
 1. **Closed-loop poles:** Stability depends strictly on denominator roots. Since $s^2 + 3s + 4 = 0$ has all positive coefficients, its roots $s = \frac{-3 \pm \sqrt{9 - 16}}{2} = -1.5 \pm j1.323$ lie strictly in the LHP, so $W_{\text{CL}}(s)$ is asymptotically and BIBO stable.
 2. **Forbidden RHP cancellation:** Cascading a prefilter or controller with denominator $(1 - s/8)$ introduces an unstable pole at $s = +8$ that diverges exponentially whenever disturbed.
-3. **Initial step slope via IVT:** For unit step response $Y(s) = W_{\text{CL}}(s)/s$, we have $y(0^+) = \lim_{s\to\infty} sY(s) = 0$ and
+3. **Initial Slope via IVT:** For unit step response $Y(s) = W_{\text{CL}}(s)/s$, we have $y(0^+) = \lim_{s\to\infty} sY(s) = 0$ and
    $$\dot{y}(0^+) = \lim_{s \to \infty} s\big(s Y(s) - y(0^+)\big) = \lim_{s \to \infty} \frac{4s(1 - s/8)}{s^2 + 3s + 4} = \lim_{s \to \infty} \frac{-0.5\,s^2 + 4s}{s^2 + 3s + 4} = -0.5 < 0$$
    confirming negative initial undershoot before settling to $y(\infty) = W_{\text{CL}}(0) = \frac{4}{4} = +1$.
 
 </details>
 </Exercise>
-
-<Callout type="bridge" title="Robotics Note: Non-Collocated Links & Camera Latency">
-In flexible robotic arms with tip sensors (non-collocated sensing), structural torsion introduces RHP zeros that limit closed-loop joint bandwidth before tip recoil causes vibration. Similarly, vision feedback over a camera adds pure latency $T_d$ ($20\text{–}60\text{ ms}$), forcing $\omega_{gc} \ll 1/T_d$.
-</Callout>
