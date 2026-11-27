@@ -12,7 +12,7 @@ import Divider from "@components/Divider.astro";
 
 In [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/), the dynamic instruction count $IC$ appeared as a high-level summary of compiler output. To understand how C code actually becomes hardware operations—and to translate structured algorithms by hand—we must cross the **Instruction Set Architecture (ISA)** boundary, the formal contract between software and processor hardware.
 
-Part III introduces the 32-bit **RISC-V integer and multiply/divide architecture (RV32IM)**. Unlike memory-to-memory legacy ISAs, RISC-V is a strict **load-store machine**: arithmetic, bitwise, and multiplication instructions operate exclusively on thirty-two 32-bit registers ($x_0$ through $x_{31}$), while main memory is read and written only through explicit byte and word load/store instructions.
+Part III introduces the 32-bit RISC-V integer and multiply/divide architecture (**RV32IM**). Unlike memory-to-memory legacy ISAs, RISC-V is a strict **load-store machine**: arithmetic, bitwise, and multiplication instructions operate exclusively on thirty-two 32-bit registers ($x_0$ through $x_{31}$), while main memory is read and written only through explicit byte and word load/store instructions.
 
 ### Practical Real-World Perspective
 
@@ -20,7 +20,7 @@ Part III introduces the 32-bit **RISC-V integer and multiply/divide architecture
 - **Compiler Disassembly Audits:** Embedded systems engineers routinely inspect `objdump -d` listings to verify that critical inner loops emit single-cycle left shifts (`slli`) and hardware `mul`/`rem` instructions rather than slow library calls or unintended stack spills.
 - **Zero-Overhead Leaf Helpers:** Keeping pure computational subroutines inside argument registers (`a0`–`a7`) and caller-saved scratch registers (`t0`–`t6`) eliminates stack traffic completely.
 
-### Shared Running Example
+### Running Example
 
 Across all three chapters of Part III, we progressively translate one realistic embedded routine—an ASCII telemetry packet parser `parse_scaled` paired with a 32-bit integer calibration table:
 
@@ -42,6 +42,6 @@ Each chapter unlocks one mechanical layer of this translation: arithmetic and wo
 
 ## Chapter Roadmap
 
-1. **[8. RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/)** — Map C variables onto the 32 ABI registers, apply 12-bit signed immediate arithmetic and shifts, separate 32-bit word (`lw`/`sw`) from 8-bit byte (`lb`/`lbu`/`sb`) accesses, and compute products and remainders with RV32M (`mul`/`div`/`rem`).
-2. **[9. Control Flow Translation](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/)** — Invert relational conditions for `if-else` ladders, wire short-circuit `&&` and `||` branch targets, and translate `for`, `while`, `do-while`, and `break` loops cleanly.
-3. **[10. Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/)** — Scale 32-bit `int` array indices with `slli` by `2`, scan null-terminated `'\0'` strings byte-by-byte with `lbu`, apply ASCII digit and letter offsets, and assemble complete zero-stack leaf functions.
+- [8. RISC-V Instructions](/dynamic-courses/computer-architecture/03-riscv-instructions/08-riscv-instructions/) — Map C variables onto the 32 ABI registers, apply 12-bit signed immediate arithmetic and shifts, separate 32-bit word (`lw`/`sw`) from 8-bit byte (`lb`/`lbu`/`sb`) accesses, and compute products and remainders with RV32M (`mul`/`div`/`rem`).
+- [9. Control Flow Translation](/dynamic-courses/computer-architecture/03-riscv-instructions/09-control-flow/) — Invert relational conditions for `if-else` ladders, wire short-circuit `&&` and `||` branch targets, and translate `for`, `while`, `do-while`, and `break` loops cleanly.
+- [10. Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/) — Scale 32-bit `int` array indices with `slli` by `2`, scan null-terminated `'\0'` strings byte-by-byte with `lbu`, apply ASCII digit and letter offsets, and assemble complete zero-stack leaf functions.

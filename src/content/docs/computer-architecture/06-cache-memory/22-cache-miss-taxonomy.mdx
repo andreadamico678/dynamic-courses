@@ -16,16 +16,16 @@ Lowering a cache's miss rate $\text{MR}$ requires knowing *why* blocks are missi
 
 <Divider label="1 · Example" />
 
-### Tracing Cold, Conflict, and Capacity Misses
+### Tracing 3 C's Misses
 
 Consider an initially empty cache of $NB = 4\text{ blocks}$ under two short block-address traces:
 
-1. **Alternating Two-Block Trace $\{0, 4, 0, 4, 0, 4\}$ ($2$ distinct active blocks $\le 4$):**
-   - **Direct-Mapped ($NS = 4$):** Both $0 \bmod 4 = 0$ and $4 \bmod 4 = 0$ target **Block 0**, while Blocks $1, 2, 3$ sit completely unused! The very first access to $0$ and the very first access to $4$ are **Compulsory misses** ($2$ misses). The remaining $4$ accesses (`0, 4, 0, 4`) all miss because $0$ and $4$ evict each other in Block $0$—pure **Conflict misses** ($4$ misses), because switching to a $4$-block **Fully Associative** cache holds $\{0, 4\}$ side-by-side and turns all $4$ repeat accesses into hits!
-2. **Cyclic Five-Block Trace $\{0, 1, 2, 3, 4, 0, 1, 2, 3, 4\}$ ($5$ distinct active blocks $> 4$):**
+1. **Alternating Two-Block Trace** ($\{0, 4, 0, 4, 0, 4\}$):
+   - **Direct-Mapped** ($NS = 4$): Both $0 \bmod 4 = 0$ and $4 \bmod 4 = 0$ target **Block 0**, while Blocks $1, 2, 3$ sit completely unused! The very first access to $0$ and the very first access to $4$ are **Compulsory misses** ($2$ misses). The remaining $4$ accesses (`0, 4, 0, 4`) all miss because $0$ and $4$ evict each other in Block $0$—pure **Conflict misses** ($4$ misses), because switching to a $4$-block **Fully Associative** cache holds $\{0, 4\}$ side-by-side and turns all $4$ repeat accesses into hits!
+2. **Cyclic Five-Block Trace** ($\{0, 1, 2, 3, 4, 0, 1, 2, 3, 4\}$):
    - Even in a **Fully Associative LRU** cache of $4\text{ blocks}$, the first $5$ accesses (`0, 1, 2, 3, 4`) incur $5$ **Compulsory misses**, and loading $4$ evicts LRU block $0$ because $5$ blocks cannot physically fit inside $4$ slots. Thus the second pass (`0, 1, 2, 3, 4`) suffers $5$ **Capacity misses**—which vanish completely only when total capacity $C$ expands from $4$ to $8\text{ blocks}$.
 
-[The 3 C's exclusion diagram](#fig-three-cs-taxonomy) formalizes this exact experimental filter: simulating an **infinite cache** isolates Compulsory misses, shrinking to a **Fully Associative cache of size $C$** adds Capacity misses, and restricting placement to **$N$-Way or Direct-Mapped of size $C$** adds Conflict misses.
+[The 3 C's exclusion diagram](#fig-three-cs-taxonomy) formalizes this exact experimental filter: simulating an **infinite cache** isolates Compulsory misses, shrinking to a **Fully Associative cache** of size $C$ adds Capacity misses, and restricting placement to **$N$-Way or Direct-Mapped** adds Conflict misses.
 
 <figure id="fig-three-cs-taxonomy" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/computer-architecture/fig-three-cs-taxonomy.svg" alt="The 3 C's cache miss taxonomy and diagnostic exclusion test. Compulsory misses persist even in an infinite cache; capacity misses are isolated in a fully associative cache of equal capacity; conflict misses comprise all remaining misses induced by limited associativity." />
@@ -57,21 +57,21 @@ A **Compulsory Miss** (also called a **cold-start** or **first-reference** miss)
 
 A **Capacity Miss** occurs when the cache is too small to hold the program's **active working set**: a previously loaded block is evicted because *all* slots in the cache fill with other active blocks, and the program references that evicted block again on a later pass.
 
-- **Experimental Criterion:** Measured as the extra misses incurred by a **Fully Associative cache of finite capacity $C$** beyond those of an infinite cache with the same block size $B$:
+- **Experimental Criterion:** Measured as the extra misses incurred by a **Fully Associative** cache of finite capacity $C$ beyond those of an infinite cache with the same block size $B$:
   $$\text{Misses}_{\text{cap}} = \text{Misses}_{\text{FA}(C, B)} - \text{Misses}_{\infty(B)}$$
-- **Hardware & Software Mitigation:** **Increase total cache capacity $C$** (or add a larger `L2`/`L3` level); in software, restructure nested matrix loops with **loop tiling (blocking)** so each sub-tile fits inside $C$.
-- **Adverse Side-Effect:** Larger SRAM arrays require longer wordlines and bitlines with higher capacitance, **increasing Hit Time $t_{\text{hit}}$**, silicon area, and static leakage power.
+- **Hardware & Software Mitigation:** **Increase capacity $C$** (or add a larger `L2`/`L3` level); in software, restructure nested matrix loops with **loop tiling** (blocking) so each sub-tile fits inside $C$.
+- **Adverse Side-Effect:** Larger SRAM arrays require longer wordlines and bitlines with higher capacitance, **increasing Hit Time** $t_{\text{hit}}$, silicon area, and static leakage power.
 
 ### Conflict Misses
 
 A **Conflict Miss** (or **collision** miss) occurs in Direct-Mapped or $N$-Way Set-Associative caches when more than $N$ active blocks map to the same **cache set** ($j \bmod NS$, as derived in [Cache Block Placement](/dynamic-courses/computer-architecture/06-cache-memory/19-cache-block-placement/)), forcing premature evictions inside that hot set while other sets in the cache have idle capacity.
 
-- **Experimental Criterion:** Measured as the extra misses incurred by an **$N$-Way (or Direct-Mapped) cache of capacity $C$** compared to a **Fully Associative cache of the exact same capacity $C$ and block size $B$**:
+- **Experimental Criterion:** Measured as the extra misses incurred by an $N$-Way (or Direct-Mapped) cache of capacity $C$ compared to a **Fully Associative** cache of equal capacity $C$ and block size $B$:
   $$\text{Misses}_{\text{conf}} = \text{Misses}_{N\text{-way}(C, B)} - \text{Misses}_{\text{FA}(C, B)}$$
   By definition, a Fully Associative cache has **zero Conflict misses**, and the three mutually exclusive categories sum directly to the cache's total misses and miss rate:
   $$\text{Misses}_{\text{total}} = \text{Misses}_{\text{comp}} + \text{Misses}_{\text{cap}} + \text{Misses}_{\text{conf}}, \qquad \text{MR}_{\text{total}} = \text{MR}_{\text{comp}} + \text{MR}_{\text{cap}} + \text{MR}_{\text{conf}}$$
-- **Hardware Mitigation:** **Increase associativity $N$** (moving from $1$-way to $2$-way, $4$-way, or $8$-way) or attach a small $4\text{--}16\text{-entry}$ fully associative **Victim Cache** behind a Direct-Mapped `L1` to catch recently evicted colliding lines. Empirically, the **2:1 Cache Rule of Thumb** observes that a Direct-Mapped cache of capacity $C$ suffers roughly the same miss rate as a $2$-Way Set-Associative cache of half the capacity ($\text{MR}_{\text{Direct-Mapped}}(C) \approx \text{MR}_{2\text{-Way}}(C / 2)$).
-- **Adverse Side-Effect:** Higher associativity $N$ adds parallel tag comparators and wider way-selection multiplexers on the critical read path, **increasing Hit Time $t_{\text{hit}}$** and dynamic energy per access (with diminishing miss-rate returns past $8$-way).
+- **Hardware Mitigation:** **Increase associativity $N$** (moving from $1$-way to $2$-way, $4$-way, or $8$-way) or attach a small $4\text{--}16\text{-entry}$ fully associative **Victim Cache** behind a Direct-Mapped `L1` to catch recently evicted colliding lines. Empirically, the **2:1 Cache Rule** observes that a Direct-Mapped cache of capacity $C$ suffers roughly the same miss rate as a $2$-Way Set-Associative cache of half the capacity ($\text{MR}_{\text{Direct-Mapped}}(C) \approx \text{MR}_{2\text{-Way}}(C / 2)$).
+- **Adverse Side-Effect:** Higher associativity $N$ adds parallel tag comparators and wider way-selection multiplexers on the critical read path, **increasing Hit Time** $t_{\text{hit}}$ and dynamic energy per access (with diminishing miss-rate returns past $8$-way).
 
 ### Coherence Misses in Multicores
 
@@ -90,7 +90,7 @@ In shared-memory multiprocessors (`4th C`), hardware cache-coherence protocols (
   explanation="Larger blocks take longer to transfer across the memory bus (higher $\text{MP}$) and reduce $NB = C / B$, leaving fewer distinct lines in cache and risking pollution when spatial locality is low."
 />
 
-<Callout type="bridge" title="Embedded & Robotics Bridge: AoS vs. SoA Point Clouds">
+<Callout type="bridge" title="AoS vs. SoA Point Clouds">
 
 A 3D LiDAR point stored as an **Array of Structures (AoS)** (`struct Point { float x, y, z, intensity, nx, ny, nz, curvature; };` $= 32\text{ B}$) fits only $2$ points per $64\text{-byte}$ block. If a ground-plane filter inspects only `z`, $28$ of every $32$ fetched bytes go unused—inflating both Compulsory and Capacity misses by $8\times$. Splitting coordinates into a **Structure of Arrays (SoA)** (`float z[N]`) packs $16$ contiguous `z` values into every $64\text{-byte}$ line, slashing Compulsory and Capacity misses without changing hardware.
 
@@ -106,7 +106,7 @@ A 3D LiDAR point stored as an **Array of Structures (AoS)** (`struct Point { flo
 
 ### Miss Attribution Procedure
 
-1. **Three-Simulation Subtraction (Aggregate Counts or Rates):**
+1. **Three-Simulation Subtraction** (Aggregate Counts):
    - $\text{Compulsory} = \text{Misses}_{\infty(B)}$
    - $\text{Capacity} = \text{Misses}_{\text{FA}(C, B)} - \text{Misses}_{\infty(B)}$
    - $\text{Conflict} = \text{Misses}_{N\text{-way}(C, B)} - \text{Misses}_{\text{FA}(C, B)}$
@@ -118,7 +118,7 @@ A 3D LiDAR point stored as an **Array of Structures (AoS)** (`struct Point { flo
 
 1. **Omitting the Side-Effect:** Whenever an exam question asks how to reduce each of the 3 C's, always state **both** the parameter to increase ($B$, $C$, or $N$) **and** the corresponding penalty on $\text{MP}$ or $t_{\text{hit}}$—otherwise one would claim infinite $B$, $C$, and $N$ are free.
 2. **Misclassifying First-Pass Misses:** Even if a loop's working set overflows cache capacity, the *very first* access to each distinct block is strictly **Compulsory**; Capacity misses begin only on subsequent re-references after eviction.
-3. **Confusing Capacity and Conflict in Direct-Mapped:** If two blocks bounce each other out of Slot $0$ while Slots $1\text{--}63$ sit empty, those repeat misses are **Conflict**, not Capacity!
+3. **Capacity vs. Conflict:** If two blocks bounce each other out of Slot $0$ while Slots $1\text{--}63$ sit empty, those repeat misses are **Conflict**, not Capacity!
 
 </Callout>
 
@@ -147,13 +147,13 @@ An architect simulates $10{,}000$ memory references with fixed block size $B = 6
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Direct-Mapped ($16\text{ KiB}$) 3 C's Breakdown ($520\text{ total misses}$):**
+1. **Direct-Mapped ($16\text{ KiB}$) Breakdown** ($520\text{ misses}$):
    - **Compulsory Misses:** $\text{Misses}_{\infty} = \mathbf{80\text{ misses}}$ ($0.80\%$ miss rate).
    - **Capacity Misses:** $\text{Misses}_{\text{FA}(16\text{ KiB})} - \text{Misses}_{\infty} = 230 - 80 = \mathbf{150\text{ misses}}$ ($1.50\%$ miss rate).
    - **Conflict Misses (Direct-Mapped):** $\text{Misses}_{\text{DM}(16\text{ KiB})} - \text{Misses}_{\text{FA}(16\text{ KiB})} = 520 - 230 = \mathbf{290\text{ misses}}$ ($2.90\%$ miss rate).
    - Sanity check: $80 + 150 + 290 = 520\text{ misses}$.
 
-2. **Effect of Upgrading to 2-Way Set-Associative ($310\text{ total misses}$):**
+2. **Upgrading to 2-Way** ($310\text{ misses}$):
    - Remaining Conflict misses in $2$-Way: $310 - 230 = 80\text{ misses}$.
    - **Conflict misses eliminated:** $290 - 80 = \mathbf{210\text{ misses}}$ ($72.4\%$ of all conflict misses removed!).
    - **Hardware Side-Effect:** Requires $2$ parallel tag comparators ($19$-bit tags instead of $18$-bit tags for $16\text{ KiB} / 64\text{ B}$) and a $2$-to-$1$ data multiplexer, slightly increasing Hit Time $t_{\text{hit}}$.
@@ -184,15 +184,15 @@ $$\{0,\; 1,\; 2,\; 3,\; 4,\; 0,\; 1,\; 2,\; 3,\; 4\}$$
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Fully Associative LRU Cache ($NB = 4\text{ blocks}$):**
-   - **Pass 1 (`0, 1, 2, 3, 4`):** All $5$ blocks are referenced for the first time $\implies \mathbf{5\text{ Compulsory Misses}}$. When $4$ arrives, the cache holds `{0, 1, 2, 3}` and LRU evicts $0$, leaving `{1, 2, 3, 4}`.
-   - **Pass 2 (`0, 1, 2, 3, 4`):** Accessing $0$ misses and evicts LRU $1$; accessing $1$ misses and evicts LRU $2$, and so on—every access misses even under full associativity because the $5$-block working set exceeds $NB = 4$ $\implies \mathbf{5\text{ Capacity Misses}}$ ($10$ misses total, $100\%$ miss rate).
+1. **Fully Associative LRU** ($NB = 4$):
+   - **Pass 1** (`0, 1, 2, 3, 4`): All $5$ blocks are referenced for the first time $\implies \mathbf{5\text{ Compulsory Misses}}$. When $4$ arrives, the cache holds `{0, 1, 2, 3}` and LRU evicts $0$, leaving `{1, 2, 3, 4}`.
+   - **Pass 2** (`0, 1, 2, 3, 4`): Accessing $0$ misses and evicts LRU $1$; accessing $1$ misses and evicts LRU $2$, and so on—every access misses even under full associativity because the $5$-block working set exceeds $NB = 4$ $\implies \mathbf{5\text{ Capacity Misses}}$ ($10$ misses total, $100\%$ miss rate).
 
-2. **Direct-Mapped Cache ($NB = 4\text{ blocks}$):**
+2. **Direct-Mapped Cache** ($NB = 4$):
    - Pass 1 loads $0 \to \text{Slot } 0$, $1 \to \text{Slot } 1$, $2 \to \text{Slot } 2$, $3 \to \text{Slot } 3$, and then $4 \bmod 4 = 0$ overwrites Slot $0$ (leaving `{4, 1, 2, 3}`) $\implies \mathbf{5\text{ Compulsory Misses}}$.
-   - On Pass 2: `0` misses in Slot $0$ (evicting $4$), **but `1, 2, 3` HIT in Slots $1, 2, 3$**, and `4` misses in Slot $0$ (evicting $0$)! Direct-Mapped actually incurs only $2$ repeat misses ($7$ total misses vs. $10$ in LRU Fully Associative—a classic example where cyclic scans larger than $NB$ defeat LRU while Direct-Mapped protects non-colliding slots $1, 2, 3$).
+   - On Pass 2: `0` misses in Slot $0$ (evicting $4$), while **`1, 2, 3` hit** in Slots $1, 2, 3$, and `4` misses in Slot $0$ (evicting $0$)! Direct-Mapped actually incurs only $2$ repeat misses ($7$ total misses vs. $10$ in LRU Fully Associative—a classic example where cyclic scans larger than $NB$ defeat LRU while Direct-Mapped protects non-colliding slots $1, 2, 3$).
 
-3. **Enlarged Cache ($NB = 8\text{ blocks}$):**
+3. **Enlarged Cache** ($NB = 8$):
    - Because $8 > 5$ and $j \bmod 8$ maps $\{0, 1, 2, 3, 4\}$ to five disjoint slots, Pass 1 incurs **$5$ Compulsory Misses** and Pass 2 achieves **$5$ Hits** ($0$ Capacity and $0$ Conflict misses) in both caches.
 
 </details>
@@ -218,13 +218,13 @@ A 32-bit processor with a fixed $C = 4\text{ KiB}$ ($4{,}096\text{-byte}$) Direc
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Cache Geometry ($C = 4{,}096\text{ B}$, Direct-Mapped $N = 1$):**
-   - **At $B_1 = 32\text{ B}$:** $NB_1 = 4{,}096 / 32 = 128\text{ blocks}$, Offset $m_1 = 5\text{ bits}$, Index $n_1 = \log_2(128) = 7\text{ bits}$, Tag $t_1 = 20\text{ bits}$.
-   - **At $B_2 = 64\text{ B}$:** $NB_2 = 4{,}096 / 64 = 64\text{ blocks}$, Offset $m_2 = 6\text{ bits}$, Index $n_2 = \log_2(64) = 6\text{ bits}$, Tag $t_2 = 20\text{ bits}$ (notice $t$ stays constant when $B$ doubles at fixed $C$ and $N$, because $+1$ Offset bit comes directly out of $-1$ Index bit!).
+1. **Cache Geometry** ($C = 4{,}096\text{ B}$, $N = 1$):
+   - **$B_1 = 32\text{ B}$:** $NB_1 = 4{,}096 / 32 = 128\text{ blocks}$, Offset $m_1 = 5\text{ bits}$, Index $n_1 = \log_2(128) = 7\text{ bits}$, Tag $t_1 = 20\text{ bits}$.
+   - **$B_2 = 64\text{ B}$:** $NB_2 = 4{,}096 / 64 = 64\text{ blocks}$, Offset $m_2 = 6\text{ bits}$, Index $n_2 = \log_2(64) = 6\text{ bits}$, Tag $t_2 = 20\text{ bits}$ (notice $t$ stays constant when $B$ doubles at fixed $C$ and $N$, because $+1$ Offset bit comes directly out of $-1$ Index bit!).
 
 2. **Sequential Scan Compulsory Misses:**
-   - **At $B_1 = 32\text{ B}$ ($8$ integers/block):** Misses on `arr[0], arr[8], ..., arr[1016]` $\implies 4{,}096 / 32 = \mathbf{128\text{ Compulsory Misses}}$ ($\text{MR} = 128 / 1{,}024 = 12.5\%$).
-   - **At $B_2 = 64\text{ B}$ ($16$ integers/block):** Misses on `arr[0], arr[16], ..., arr[1008]` $\implies 4{,}096 / 64 = \mathbf{64\text{ Compulsory Misses}}$ ($\text{MR} = 64 / 1{,}024 = 6.25\%$).
+   - **$B_1 = 32\text{ B}$** ($8$ ints/block): Misses on `arr[0], arr[8], ..., arr[1016]` $\implies 4{,}096 / 32 = \mathbf{128\text{ Compulsory Misses}}$ ($\text{MR} = 128 / 1{,}024 = 12.5\%$).
+   - **$B_2 = 64\text{ B}$** ($16$ ints/block): Misses on `arr[0], arr[16], ..., arr[1008]` $\implies 4{,}096 / 64 = \mathbf{64\text{ Compulsory Misses}}$ ($\text{MR} = 64 / 1{,}024 = 6.25\%$).
 
 </details>
 

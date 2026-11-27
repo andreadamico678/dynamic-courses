@@ -70,8 +70,8 @@ parse_done:
 </figure>
 
 Tracing `pkt = "47X9"` (`52, 55, 88, 57`) confirms how the four branch instructions steer execution:
-- **`i = 0` (`'4' = 52`) and `i = 1` (`'7' = 55`):** `bge`, `blt`, and `bgt` all fall through, updating `sum` to $4$ and then $47$ before `j parse_step` skips `non_digit`.
-- **`i = 2` (`'X' = 88`):** `blt` ($88 < 48$) falls through, `bgt` ($88 > 57$) **takes** the jump to `non_digit`, and `j parse_done` exits the loop immediately with `sum = 47` (`'9'` at `i = 3` is never inspected).
+- **`i = 0, 1`** (`'4'`, `'7'`): `bge`, `blt`, and `bgt` all fall through, updating `sum` to $4$ and then $47$ before `j parse_step` skips `non_digit`.
+- **`i = 2`** (`'X' = 88`): `blt` ($88 < 48$) falls through, `bgt` ($88 > 57$) **takes** the jump to `non_digit`, and `j parse_done` exits the loop immediately with `sum = 47` (`'9'` at `i = 3` is never inspected).
 
 <StepCheck
   client:load
@@ -99,12 +99,12 @@ When negating a C condition to skip a guarded block, strict inequalities (`<`, `
 $$\neg(a < b) \iff a \ge b, \qquad \neg(a \le b) \iff a > b$$
 
 Choosing between **signed** (`blt`, `bge`, `bgt`, `ble`) and **unsigned** (`bltu`, `bgeu`, `bgtu`, `bleu`) branches depends on the C operand type:
-- **Signed (`int`, `signed char`):** Interprets bit $31$ as a two's complement sign bit, so `0xFFFFFFFF` ($-1$) satisfies `-1 < 0` (`blt` taken).
-- **Unsigned (`unsigned int`, memory addresses, zero-extended bytes):** Treats all $32$ bits as magnitude, so `0xFFFFFFFF` ($4{,}294{,}967{,}295$) is strictly greater than `0` (`bltu` not taken).
+- **Signed** (`int`, `signed char`): Interprets bit $31$ as a two's complement sign bit, so `0xFFFFFFFF` ($-1$) satisfies `-1 < 0` (`blt` taken).
+- **Unsigned** (`unsigned int`, pointers, `lbu`): Treats all $32$ bits as magnitude, so `0xFFFFFFFF` ($4{,}294{,}967{,}295$) is strictly greater than `0` (`bltu` not taken).
 
 ### Selection Templates
 
-**1. Simple `if (cond)`:** Emit one inverted branch jumping to `skip_if`:
+1. **Simple `if`:** Emit one inverted branch jumping to `skip_if`:
 
 ```asm
     # C: if (v >= 1) { ris = ris + v * t; }
@@ -128,7 +128,7 @@ else_blk:
 end_if:
 ```
 
-**3. Multi-Way `else if` Ladder:** Chain each negated test to the label of the next `else if` clause, ending every taken branch (except the last) with `j end_cond`:
+3. **Multi-Way `else if`:** Chain each negated test to the label of the next `else if` clause, ending every taken branch (except the last) with `j end_cond`:
 
 ```asm
     # C: if (c > ref) { hi++; } else if (c < ref) { lo++; }
@@ -145,7 +145,7 @@ end_cond:
 
 C evaluates logical **AND (`&&`)** and **OR (`||`)** from left to right, stopping as soon as the outcome is decided:
 
-- **Logical AND (`if (A && B)`):** Both clauses must hold. Test `!A` first and jump to `skip_body`; if $A$ succeeded, test `!B` and jump to the **same** `skip_body` label:
+- **Logical AND** (`if (A && B)`): Both clauses must hold. Test `!A` first and jump to `skip_body`; if $A$ succeeded, test `!B` and jump to the **same** `skip_body` label:
   ```asm
       # C: if (x >= lo && x < hi) { count++; }
       blt  t0, t1, skip_body  # Clause 1 false (x < lo) -> short-circuit out
@@ -155,7 +155,7 @@ C evaluates logical **AND (`&&`)** and **OR (`||`)** from left to right, stoppin
   ```
   Preserving left-to-right order is essential when clause $A$ guards a pointer dereference or division in clause $B$ (such as `if (a != 0 && b / a > 2)`).
 
-- **Logical OR (`if (A || B)`):** Either clause suffices to enter the body. Test $A$ **positively** to jump straight into `exec_body`, then test `!B` **inverted** to jump past `exec_body`:
+- **Logical OR** (`if (A || B)`): Either clause suffices to enter the body. Test $A$ **positively** to jump straight into `exec_body`, then test `!B` **inverted** to jump past `exec_body`:
   ```asm
       # C: if (c == 32 || c == 9) { spaces++; }
       li   t1, 32
@@ -169,7 +169,7 @@ C evaluates logical **AND (`&&`)** and **OR (`||`)** from left to right, stoppin
 
 ### Loop Translation Templates
 
-**1. Top-Tested `for` and `while` Loops:** Both `while (cond)` and `for (init; cond; step)` place `init` once before the loop label, test `!cond` at the top to jump to `loop_exit`, execute the body and `step`, and jump back to `loop_top` with `j`:
+1. **Top-Tested Loops** (`for` / `while`): Both `while (cond)` and `for (init; cond; step)` place `init` once before the loop label, test `!cond` at the top to jump to `loop_exit`, execute the body and `step`, and jump back to `loop_top` with `j`:
 
 ```asm
     # Descending C loop: for (i = n - 1; i >= 0; i--) { ... }
@@ -183,7 +183,7 @@ for_step:
 for_exit:
 ```
 
-**2. Bottom-Tested `do-while` Loop:** Unlike `while` and `for`, a `do { ... } while (cond);` loop executes its body **at least once** and tests `cond` at the bottom to decide whether to repeat. Because jumping back repeats the loop, **do not invert the `do-while` condition**:
+2. **Bottom-Tested `do-while` Loop:** Unlike `while` and `for`, a `do { ... } while (cond);` loop executes its body **at least once** and tests `cond` at the bottom to decide whether to repeat. Because jumping back repeats the loop, leave the `do-while` condition **un-inverted**:
 
 ```asm
     # C input validation: do { ... } while (len != target);
@@ -192,7 +192,7 @@ do_top:
     bne  t0, s1, do_top       # Non-inverted: if len != target, repeat!
 ```
 
-**3. Early Exit (`break`) and Iteration Skip (`continue`):**
+3. **`break` and `continue`:**
 - **`break`:** Compiles to `j for_exit` (or a direct conditional branch `beq t1, t2, for_exit`), exiting the innermost enclosing loop immediately.
 - **`continue`:** Skips the rest of the current iteration—jumping to `for_step` in a `for` loop (so `i++` still runs!) or to `while_top` in a `while` loop.
 
@@ -232,8 +232,8 @@ In $1\text{ kHz}$ quadrotor attitude controllers, taken versus untaken branches 
 | C Construct | Assembly Skeleton | Critical Rule |
 | :--- | :--- | :--- |
 | **`if-else`** | `b_inv else` $\to$ `then` $\to$ `j end` $\to$ `else:` | Never omit `j end` before `else:` |
-| **Logical AND (`A` and `B`)** | `b_inv_A skip` $\to$ `b_inv_B skip` $\to$ `body` | First failure jumps straight to `skip:` |
-| **Logical OR (`A` or `B`)** | `b_pos_A body` $\to$ `b_inv_B skip` $\to$ `body:` | First success jumps straight to `body:` |
+| **Logical AND** (`A && B`) | `b_inv_A skip` $\to$ `b_inv_B skip` $\to$ `body` | First failure jumps straight to `skip:` |
+| **Logical OR** (`A \|\| B`) | `b_pos_A body` $\to$ `b_inv_B skip` $\to$ `body:` | First success jumps straight to `body:` |
 | **`for` / `while`** | `init` $\to$ `top: b_inv exit` $\to$ `body` $\to$ `step` $\to$ `j top` | Invert top test; place `step` before `j top` |
 | **`do-while`** | `top:` $\to$ `body` $\to$ `b_pos top` | Do **not** invert bottom repeat test |
 
@@ -248,7 +248,7 @@ In $1\text{ kHz}$ quadrotor attitude controllers, taken versus untaken branches 
 
 1. **Fall-Through into `else`:** Forgetting `j end_if` at the end of `then` executes **both** the `then` body and the `else` body whenever the `if` condition is true.
 2. **Inverting `do-while`:** Writing `beq t0, s1, do_top` for `while (len != target)` exits on invalid input and loops infinitely on valid input.
-3. **Boundary Off-by-One (`ble` vs `bge`):** Translating `for (i = 0; i < n; i++)` with `bgt t0, a1, exit` instead of `bge t0, a1, exit` runs one extra out-of-bounds iteration at `i = n`.
+3. **Boundary Off-by-One** (`ble` vs `bge`): Translating `for (i = 0; i < n; i++)` with `bgt t0, a1, exit` instead of `bge t0, a1, exit` runs one extra out-of-bounds iteration at `i = n`.
 4. **Duplicate Label Names:** Defining `loop:` in both `main` and a helper subroutine triggers an assembler duplicate-symbol error.
 
 </Callout>

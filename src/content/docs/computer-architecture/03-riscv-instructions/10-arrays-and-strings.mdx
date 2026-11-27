@@ -99,14 +99,14 @@ For any C array `T arr[]` starting at base address $\text{Base}$, element `arr[i
 
 $$\text{Addr}(\text{Base}, i) = \text{Base} + i \times \text{sizeof}(T)$$
 
-- **32-Bit Integer and Pointer Arrays (`int arr[i]`, $\text{sizeof} = 4$):** Multiply index `i` by $4$ using a 2-bit logical left shift before adding the base pointer:
+- **32-Bit Arrays** (`int arr[i]`, $\text{sizeof} = 4$): Multiply index `i` by $4$ using a 2-bit logical left shift before adding the base pointer:
   ```asm
       slli t0, s0, 2          # t0 = i * 4 (byte offset)
       add  t0, a0, t0         # t0 = &arr[i] = base + (i * 4)
       lw   t1, 0(t0)          # Load 32-bit int arr[i]
   ```
-- **16-Bit Halfword Arrays (`short arr[i]`, $\text{sizeof} = 2$):** Multiply index `i` by $2$ (`slli t0, s0, 1`), add the base pointer, and access via `lh`/`lhu`/`sh`.
-- **8-Bit Character Strings (`char str[i]`, $\text{sizeof} = 1$):** Add index `i` directly to the base pointer with **zero shift** and dereference via `lbu` (or write via `sb`):
+- **16-Bit Arrays** (`short arr[i]`, $\text{sizeof} = 2$): Multiply index `i` by $2$ (`slli t0, s0, 1`), add the base pointer, and access via `lh`/`lhu`/`sh`.
+- **8-Bit Strings** (`char str[i]`, $\text{sizeof} = 1$): Add index `i` directly to the base pointer with **zero shift** and dereference via `lbu` (or write via `sb`):
   ```asm
       add  t0, a0, s0         # t0 = &str[i] = base + i
       lbu  t1, 0(t0)          # Load unsigned 8-bit char str[i]
@@ -116,7 +116,7 @@ For **in-place read-modify-write** updates (such as `arr[i] = arr[i] + 1` or `st
 
 ### Null-Terminated Strings and `strlen`
 
-Standard C strings store contiguous ASCII bytes terminated by a sentinel **null byte (`'\0'`, numerical value `0x00`)**. Because the null terminator occupies $1$ byte in memory, a buffer declared as `char buf[16]` holds at most **$15$ visible characters** plus `'\0'` (in `.data` segments, `.asciz` and `.string` append `0x00` automatically).
+Standard C strings store contiguous ASCII bytes terminated by a sentinel **null byte** (`'\0'`, numerical value `0x00`). Because the null terminator occupies $1$ byte in memory, a buffer declared as `char buf[16]` holds at most **$15$ visible characters** plus `'\0'` (in `.data` segments, `.asciz` and `.string` append `0x00` automatically).
 
 Measuring string length without modifying `a0` until return uses a moving pointer `t0` and pointer subtraction at the end:
 
@@ -141,14 +141,14 @@ Because each character occupies $1$ byte, `t0 - a0` equals the exact number of n
 
 Characters in memory are ordinary unsigned integers governed by the ASCII code table (`'\0' = 0`, `' ' = 32`, `'0'`–`'9'` $= 48$–$57$, `'A'`–`'Z'` $= 65$–$90$, `'a'`–`'z'` $= 97$–$122$). Four constant-offset idioms recur across assembly string problems:
 
-1. **Digit Conversion (`'0'` $= 48$):** Subtract $48$ (`addi t0, t0, -48`) to turn `'0'`–`'9'` into integers $0$–$9$; add $48$ (`addi t0, t0, 48`) to format an integer digit $0$–$9$ back into ASCII.
+1. **Digit Conversion** (`'0'` $= 48$): Subtract $48$ (`addi t0, t0, -48`) to turn `'0'`–`'9'` into integers $0$–$9$; add $48$ (`addi t0, t0, 48`) to format an integer digit $0$–$9$ back into ASCII.
 2. **Alphabetical Zero-Based Index:**
    - Uppercase `'A'`–`'Z'` $\mapsto 0$–$25$: subtract $65$ (`addi t0, t0, -65`, i.e., `c - 'A'`).
    - Lowercase `'a'`–`'z'` $\mapsto 0$–$25$: subtract $97$ (`addi t0, t0, -97`, i.e., `c - 'a'`).
 3. **Range Validation:** Check `c >= lo && c <= hi` with `blt` and `bgt` (e.g., `48` and `57` for digits, `65` and `90` for uppercase letters). Alternatively, subtracting the lower bound (`addi t1, t0, -65`) maps valid uppercase letters to $[0, 25]$ and wraps values $< 65$ into large unsigned 32-bit numbers, allowing a single unsigned branch `bgeu t1, t2, not_upper` (with `t2 = 26`).
-4. **Case Conversion ($\Delta = 32$):** Add $32$ (`addi t0, t0, 32`) to convert uppercase `'A'`–`'Z'` to lowercase `'a'`–`'z'`; subtract $32$ (`addi t0, t0, -32`) for lowercase to uppercase.
+4. **Case Conversion** ($\Delta = 32$): Add $32$ (`addi t0, t0, 32`) to convert uppercase `'A'`–`'Z'` to lowercase `'a'`–`'z'`; subtract $32$ (`addi t0, t0, -32`) for lowercase to uppercase.
 
-Notice also that when subtracting **two ASCII digits or letters of the same class** (`v = p[i] - s[i]`), their base offsets ($48$, $65$, or $97$) cancel algebraically: `(d1 + 48) - (d2 + 48) = d1 - d2`, so no `-48` adjustment is needed!
+Notice also that when subtracting **same-class ASCII codes** (`v = p[i] - s[i]`), their base offsets ($48$, $65$, or $97$) cancel algebraically: `(d1 + 48) - (d2 + 48) = d1 - d2`, so no `-48` adjustment is needed!
 
 ### Zero-Stack Leaf Subroutines
 
@@ -244,14 +244,14 @@ On autonomous aerial vehicles, UART GPS receivers stream comma-delimited ASCII N
 ### Leaf Translation Procedure
 
 1. **Confirm Leaf Status:** Verify the C function contains zero function calls; assign every local variable (`i`, accumulators, temporaries) to `t0`–`t6` without touching `sp` or `s0`–`s11`.
-2. **Match Scaling to Pointer Type:** Emit `slli ..., 2` + `add` + `lw`/`sw` for every `int *` access, and plain `add` + `lbu`/`sb` for every `char *` access.
+2. **Match Pointer Scaling:** Emit `slli ..., 2` + `add` + `lw`/`sw` for every `int *` access, and plain `add` + `lbu`/`sb` for every `char *` access.
 3. **Apply Exact ASCII Constants:** Check whether the C code subtracts `'0'` (`48`), `'A'` (`65`), `'a'` (`97`), or another character `s[i]` directly.
 4. **Move Result to `a0`:** Keep `a0` intact while input pointer `a0` is still needed inside the loop; copy the accumulator into `a0` (`mv a0, t1`) only after the loop exits, right before `ret`.
 
 <Callout type="warning" title="Common Mistakes">
 
 1. **Scaling `char *` by 4 (or Forgetting `slli` by 2 on `int *`):** Using `slli` on a string skips three out of every four characters; omitting `slli ..., 2` on an `int` array triggers misaligned/corrupted reads across adjacent words.
-2. **Writing `slli t1, t0, 4` Instead of `2`:** Shifting left by `4` multiplies index `i` by $2^4 = 16$, not $4$! Multiplying by $4$ is always shift amount `2`.
+2. **Wrong Shift Amount:** Writing `slli t1, t0, 4` multiplies index `i` by $2^4 = 16$, not $4$! Multiplying by $4$ is always shift amount `2`.
 3. **Dereferencing the Offset Alone:** Executing `lbu t2, 0(t0)` when `t0` holds `i` reads near address `0x00000000` (causing an immediate memory access fault) instead of `base + i`.
 4. **Subtracting `48` Twice:** In `v = p[i] - s[i]`, both characters already carry the same ASCII base offset, which cancels during subtraction.
 

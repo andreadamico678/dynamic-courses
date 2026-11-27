@@ -21,8 +21,8 @@ Once the [CPU Performance Equation](/dynamic-courses/computer-architecture/02-co
 
 Suppose profiling our embedded RV32IM state-estimation benchmark reveals a baseline runtime of $T_{\text{old}} = 0.80\text{ ms}$ per control cycle, split across two phases:
 
-- **Matrix-Vector Filtering ($0.60\text{ ms}$):** Dense arithmetic accounting for $F = \frac{0.60\text{ ms}}{0.80\text{ ms}} = 0.75$ ($75\%$) of original execution time.
-- **Serial Sensor I/O and Control Logic ($0.20\text{ ms}$):** SPI bus reads and safety checks accounting for the remaining $1 - F = 0.25$ ($25\%$).
+- **Matrix-Vector Filtering** ($0.60\text{ ms}$): Dense arithmetic accounting for $F = \frac{0.60\text{ ms}}{0.80\text{ ms}} = 0.75$ ($75\%$) of original execution time.
+- **Serial Sensor I/O** ($0.20\text{ ms}$): SPI bus reads and safety checks accounting for the remaining $1 - F = 0.25$ ($25\%$).
 
 If we offload the matrix kernel onto a $4$-lane hardware SIMD vector unit that accelerates that $75\%$ phase by a local factor $S = 4$, the serial $0.20\text{ ms}$ phase stays completely unchanged while the matrix phase shrinks to $\frac{0.60\text{ ms}}{4} = 0.15\text{ ms}$:
 
@@ -70,7 +70,7 @@ $$S_{\text{tot}} = \frac{T_{\text{old}}}{T_{\text{new}}} = \frac{1}{(1 - F) + \d
 
 Two structural extensions appear frequently in quantitative architecture problems:
 
-- **Converting Instruction Mix to Time Fraction $F$:** Whenever a problem specifies dynamic instruction shares $f_i = \text{IC}_i / \text{IC}$ and latencies $\text{CPI}_i$ (as in [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/)), $F$ is the share of baseline *execution time* (cycles), never the raw instruction count share $f_k$, and reducing class $k$ from $\text{CPI}_{k,\text{old}}$ to $\text{CPI}_{k,\text{new}}$ yields local speedup $S_k = \text{CPI}_{k,\text{old}} / \text{CPI}_{k,\text{new}}$:
+- **Time Fraction Conversion:** Whenever a problem specifies dynamic instruction shares $f_i = \text{IC}_i / \text{IC}$ and latencies $\text{CPI}_i$ (as in [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/)), $F$ is the share of baseline *execution time* (cycles), never the raw instruction count share $f_k$, and reducing class $k$ from $\text{CPI}_{k,\text{old}}$ to $\text{CPI}_{k,\text{new}}$ yields local speedup $S_k = \text{CPI}_{k,\text{old}} / \text{CPI}_{k,\text{new}}$:
 
 $$F = \frac{f_k \cdot \text{CPI}_k}{\text{CPI}_{\text{old}}}, \qquad S_k = \frac{\text{CPI}_{k,\text{old}}}{\text{CPI}_{k,\text{new}}}, \qquad \text{where } \text{CPI}_{\text{old}} = \sum_{i=1}^m f_i \cdot \text{CPI}_i$$
 
@@ -84,27 +84,27 @@ Letting the local accelerator become infinitely fast ($S \to \infty$) drives the
 
 $$S_{\max} = \lim_{S \to \infty} S_{\text{tot}} = \frac{1}{1 - F}$$
 
-Thus overall speedup is strictly bounded above by the reciprocal of the unenhanced time fraction ($S_{\text{tot}} < \frac{1}{1 - F}$ for every finite $S$). This bound enforces the core design rule **"make the common case fast"**: accelerating a rare $10\%$ routine ($F = 0.10$) by $100\times$ yields only $S_{\text{tot}} = \frac{1}{0.90 + 0.001} \approx 1.11\times$ (capped forever at $1.111\times$), whereas merely doubling ($S = 2$) an $80\%$ hotspot ($F = 0.80$) delivers $S_{\text{tot}} = \frac{1}{0.20 + 0.40} = 1.67\times$.
+Thus overall speedup is strictly bounded above by the reciprocal of the unenhanced time fraction ($S_{\text{tot}} < \frac{1}{1 - F}$ for every finite $S$). This bound enforces the core design rule—**accelerate the common case**: speeding up a rare $10\%$ routine ($F = 0.10$) by $100\times$ yields only $S_{\text{tot}} = \frac{1}{0.90 + 0.001} \approx 1.11\times$ (capped forever at $1.111\times$), whereas merely doubling ($S = 2$) an $80\%$ hotspot ($F = 0.80$) delivers $S_{\text{tot}} = \frac{1}{0.20 + 0.40} = 1.67\times$.
 
-Note that Amdahl's Law models **fixed-workload (strong) scaling**—running the exact same problem faster. In scientific clusters and GPU training, engineers also apply **Gustafson's weak scaling**, where adding parallel cores allows users to expand dataset resolution so the parallelizable fraction $F$ grows with problem size.
+Note that Amdahl's Law models **strong scaling** (fixed workload)—running the exact same problem faster. In scientific clusters and GPU training, engineers also apply **weak scaling** (Gustafson's Law), where adding parallel cores allows users to expand dataset resolution so the parallelizable fraction $F$ grows with problem size.
 
 ### Inverse Speedup Solving
 
 Written exams frequently invert Amdahl's Law: given a required overall target speedup $S_{\text{target}}$, you must solve for either the minimum hardware factor $S$ or the minimum parallelized/offloaded time fraction $F$.
 
-#### Case 1: Solving for Required Local Speedup $S$ (Given $F$ and $S_{\text{target}}$)
+#### Solving for Local Speedup
 
-Before doing any algebra, check the **mandatory asymptotic feasibility gate**:
+Before doing any algebra, check the **asymptotic feasibility gate**:
 
 $$S_{\text{target}} < S_{\max} = \frac{1}{1 - F} \iff \frac{1}{S_{\text{target}}} - (1 - F) > 0$$
 
-If $S_{\text{target}} \ge \frac{1}{1 - F}$, the unenhanced time $(1 - F)T_{\text{old}}$ alone already equals or exceeds the target runtime $T_{\text{old}} / S_{\text{target}}$, so **no physical accelerator can achieve $S_{\text{target}}$** (blindly substituting yields $S \le 0$ or division by zero). Whenever $S_{\text{target}} < \frac{1}{1 - F}$, isolating $\frac{F}{S}$ from $\frac{1}{S_{\text{target}}} = (1 - F) + \frac{F}{S}$ gives:
+If $S_{\text{target}} \ge \frac{1}{1 - F}$, the unenhanced time $(1 - F)T_{\text{old}}$ alone already equals or exceeds the target runtime $T_{\text{old}} / S_{\text{target}}$, so **no accelerator suffices** for $S_{\text{target}}$ (blindly substituting yields $S \le 0$ or division by zero). Whenever $S_{\text{target}} < \frac{1}{1 - F}$, isolating $\frac{F}{S}$ from $\frac{1}{S_{\text{target}}} = (1 - F) + \frac{F}{S}$ gives:
 
 $$\frac{F}{S} = \frac{1}{S_{\text{target}}} - (1 - F) \implies S = \frac{F}{\dfrac{1}{S_{\text{target}}} - (1 - F)}$$
 
 For example, at $F = 0.60$ ($S_{\max} = \frac{1}{0.40} = 2.50\times$), a target of $S_{\text{target}} = 3.0\times$ is **impossible** ($3.0 > 2.50$), whereas $S_{\text{target}} = 2.0\times$ requires $S = \frac{0.60}{0.50 - 0.40} = 6.0\times$.
 
-#### Case 2: Solving for Required Enhanced Fraction $F$ (Given $S > 1$ and $S_{\text{target}}$)
+#### Solving for Enhanced Fraction
 
 When the local hardware speedup $S$ is fixed (for example, an $8$-core processor with ideal linear speedup $S = 8$), achieving $S_{\text{target}}$ is feasible if and only if $1 \le S_{\text{target}} \le S$. Factoring $F$ out of $\frac{1}{S_{\text{target}}} = 1 - F + \frac{F}{S} = 1 - F\left(1 - \frac{1}{S}\right)$ isolates the required baseline time fraction:
 
@@ -137,17 +137,17 @@ On autonomous robots running camera obstacle detection ($70\%$ of frame time) al
 
 ### Calculation Procedure
 
-1. **Extract Baseline Time Fraction $F$:** Confirm $F \in [0, 1]$ is measured relative to *unoptimized* runtime $T_{\text{old}}$. If given an instruction mix ($f_i, \text{CPI}_i$), convert instruction frequency to time share via $F = (f_k \cdot \text{CPI}_k) / \text{CPI}_{\text{old}}$ first.
-2. **Compute the Asymptotic Ceiling:** Evaluate $S_{\max} = \frac{1}{1 - F}$ immediately as a sanity bound ($S_{\text{tot}}$ must satisfy $1 \le S_{\text{tot}} < S_{\max}$).
+1. **Extract Time Fraction $F$:** Confirm $F \in [0, 1]$ is measured relative to *unoptimized* runtime $T_{\text{old}}$. If given an instruction mix ($f_i, \text{CPI}_i$), convert instruction frequency to time share via $F = (f_k \cdot \text{CPI}_k) / \text{CPI}_{\text{old}}$ first.
+2. **Compute Asymptotic Ceiling:** Evaluate $S_{\max} = \frac{1}{1 - F}$ immediately as a sanity bound ($S_{\text{tot}}$ must satisfy $1 \le S_{\text{tot}} < S_{\max}$).
 3. **Check Inverse Feasibility:** When solving for $S$, verify $S_{\text{target}} < S_{\max}$; if violated, state explicitly that the target exceeds the serial bottleneck ceiling. When solving for $F$, verify $S_{\text{target}} \le S$.
 4. **Substitute Exact Fractions:** Keep intermediate reciprocals such as $\frac{1}{1.5} = \frac{2}{3}$ or $\frac{1}{6}$ as exact rational fractions before rounding at the final step, avoiding severe rounding drift in small denominators $\frac{1}{S_{\text{target}}} - (1 - F)$.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Plugging Instruction Share $f_k$ Directly in Place of $F$:** If floating-point ops are $20\%$ of instructions ($f_{\text{FP}} = 0.20$) at $5$ cycles each while overall $\text{CPI}_{\text{old}} = 2.0$, they consume $F = \frac{0.20 \times 5}{2.0} = 0.50$ ($50\%$) of CPU time—using $F = 0.20$ yields a completely wrong speedup.
-2. **Reporting Negative $S$ on Infeasible Targets:** Never write a negative or undefined value for $S$ when $S_{\text{target}} \ge \frac{1}{1 - F}$; state $S_{\max} = \frac{1}{1 - F}$ and conclude that no hardware speedup on $F$ alone can meet the target.
-3. **Defining $F$ After Optimization:** If an exam states that a routine takes $30\%$ of runtime *after* a $2\times$ speedup, do not plug $0.30$ into forward Amdahl—reconstruct baseline $T_{\text{old}}$ shares first.
-4. **Premature Rounding in Inverse Denominators:** Rounding $1/3 \approx 0.33$ when $1 - F = 0.30$ introduces a $10\%$ error in $\frac{1}{S_{\text{target}}} - (1 - F)$ ($0.03$ vs. $0.0333$); use exact fractions.
+1. **Using Instruction Share $f_k$:** If floating-point ops are $20\%$ of instructions ($f_{\text{FP}} = 0.20$) at $5$ cycles each while overall $\text{CPI}_{\text{old}} = 2.0$, they consume $F = \frac{0.20 \times 5}{2.0} = 0.50$ ($50\%$) of CPU time—using $F = 0.20$ yields a completely wrong speedup.
+2. **Reporting Negative Speedup:** Never write a negative or undefined value for $S$ when $S_{\text{target}} \ge \frac{1}{1 - F}$; state $S_{\max} = \frac{1}{1 - F}$ and conclude that no hardware speedup on $F$ alone can meet the target.
+3. **Using Post-Optimization Shares:** If an exam states that a routine takes $30\%$ of runtime *after* a $2\times$ speedup, do not plug $0.30$ into forward Amdahl—reconstruct baseline $T_{\text{old}}$ shares first.
+4. **Premature Denominator Rounding:** Rounding $1/3 \approx 0.33$ when $1 - F = 0.30$ introduces a $10\%$ error in $\frac{1}{S_{\text{target}}} - (1 - F)$ ($0.03$ vs. $0.0333$); use exact fractions.
 
 </Callout>
 
@@ -180,18 +180,18 @@ A mobile robotics platform runs a localization and mapping workload where $80\%$
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Asymptotic Speedup Ceiling ($F = 0.80$):**
+1. **Asymptotic Ceiling** ($F = 0.80$):
 
 $$S_{\max} = \frac{1}{1 - F} = \frac{1}{1 - 0.80} = \frac{1}{0.20} = 5.00\times$$
 
-2. **Overall Speedup on $8$ Cores ($S = 8$):**
+2. **Eight-Core Speedup** ($S = 8$):
 
 $$S_{\text{tot}} = \frac{1}{(1 - 0.80) + \dfrac{0.80}{8}} = \frac{1}{0.20 + 0.10} = \frac{1}{0.30} \approx 3.33\times$$
 
-3. **Why $6.0\times$ Is Infeasible at $F = 0.80$:**
+3. **Infeasibility at $F = 0.80$:**
    Because $S_{\text{target}} = 6.0\times > S_{\max} = 5.00\times$, the unenhanced $20\%$ serial I/O phase alone consumes $0.20\,T_{\text{old}} > \frac{1}{6}\,T_{\text{old}} \approx 0.167\,T_{\text{old}}$. Even $64$ or $\infty$ cores cannot reduce total runtime below $0.20\,T_{\text{old}}$.
 
-4. **Required Parallelized Fraction on $8$ Cores ($S = 8$, $S_{\text{target}} = 6.0$):**
+4. **Required Parallel Fraction** ($S = 8$, $S_{\text{target}} = 6.0$):
    Since $S_{\text{target}} = 6.0 \le S = 8$, refactoring $F$ is feasible:
 
 $$F_{\text{req}} = \frac{1 - \dfrac{1}{S_{\text{target}}}}{1 - \dfrac{1}{S}} = \frac{1 - \dfrac{1}{6}}{1 - \dfrac{1}{8}} = \frac{5/6}{7/8} = \frac{5}{6} \times \frac{8}{7} = \frac{20}{21} \approx 0.9524 \quad (95.24\%)$$
@@ -225,7 +225,7 @@ Profiling an embedded computer-vision pipeline shows baseline execution time spl
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Option A (Accelerating Only $F_1 = 0.60$):**
+1. **Option A** (Accelerating $F_1 = 0.60$ only):
    The asymptotic ceiling for Option A is:
 
 $$S_{\max,A} = \frac{1}{1 - 0.60} = \frac{1}{0.40} = 2.50\times$$
@@ -234,9 +234,9 @@ $$S_{\max,A} = \frac{1}{1 - 0.60} = \frac{1}{0.40} = 2.50\times$$
 
 $$S_1 = \frac{0.60}{\dfrac{1}{2.00} - 0.40} = \frac{0.60}{0.50 - 0.40} = \frac{0.60}{0.10} = 6.00\times$$
 
-   - Because $S_{\text{target}} = 2.50\times$ equals the asymptotic limit $S_{\max,A} = 2.50\times$ (denominator $0.40 - 0.40 = 0$), **no finite hardware accelerator** on Convolution alone can achieve $2.50\times$.
+   - Because $S_{\text{target}} = 2.50\times$ equals the asymptotic limit $S_{\max,A} = 2.50\times$ (denominator $0.40 - 0.40 = 0$), **no finite accelerator** on Convolution alone can achieve $2.50\times$.
 
-2. **Option B (Disjoint Dual Enhancement):**
+2. **Option B** (Disjoint Dual Enhancement):
    With unaffected serial share $1 - (0.60 + 0.25) = 0.15$, applying the multi-component Amdahl formula gives:
 
 $$S_{\text{tot},B} = \frac{1}{0.15 + \dfrac{0.60}{4} + \dfrac{0.25}{2.5}} = \frac{1}{0.15 + 0.15 + 0.10} = \frac{1}{0.40} = 2.50\times$$
@@ -282,25 +282,25 @@ A hardware upgrade replaces the iterative floating-point multiplier with a pipel
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Baseline $\text{CPI}_{\text{old}}$ and Execution Time:**
+1. **Baseline Execution Time:**
 
 $$\text{CPI}_{\text{old}} = 0.60(1) + 0.20(5) + 0.10(2) + 0.10(2) = 0.60 + 1.00 + 0.20 + 0.20 = 2.00\text{ cycles/instr}$$
 
 $$T_{\text{exec,old}} = \frac{\text{IC} \times \text{CPI}_{\text{old}}}{f_{\text{clk}}} = \frac{5.0 \times 10^7 \times 2.00}{2.0 \times 10^9\text{ Hz}} = 0.050\text{ s} = 50.0\text{ ms}$$
 
-2. **True Execution-Time Fraction $F_{\text{FP}}$:**
+2. **Execution-Time Fraction** $F_{\text{FP}}$:
    Although floating-point multiplies represent only $20\%$ of dynamic *instructions*, each takes $5$ cycles ($2.5\times$ the $2.00$-cycle program average), so their share of baseline clock cycles and CPU time is:
 
 $$F_{\text{FP}} = \frac{f_{\text{FP}} \cdot \text{CPI}_{\text{FP}}}{\text{CPI}_{\text{old}}} = \frac{0.20 \times 5}{2.00} = \frac{1.00}{2.00} = 0.50 \quad (50\% \text{ of baseline runtime})$$
 
-3. **Equivalence of Amdahl's Law and Iron Law:**
-   - **Via Amdahl's Law ($F_{\text{FP}} = 0.50$, $S_{\text{FP}} = \frac{5}{1} = 5$):**
+3. **Amdahl vs. Iron Law:**
+   - **Via Amdahl's Law** ($F_{\text{FP}} = 0.50$, $S_{\text{FP}} = 5$):
 
 $$S_{\text{tot}} = \frac{1}{(1 - 0.50) + \dfrac{0.50}{5}} = \frac{1}{0.50 + 0.10} = \frac{1}{0.60} = \frac{5}{3} \approx 1.67\times$$
 
 $$T_{\text{exec,new}} = \frac{T_{\text{exec,old}}}{S_{\text{tot}}} = \frac{50.0\text{ ms}}{5/3} = 30.0\text{ ms}$$
 
-   - **Via CPU Performance Equation ($\text{CPI}_{\text{FP}} = 1$):**
+   - **Via CPU Equation** ($\text{CPI}_{\text{FP}} = 1$):
 
 $$\text{CPI}_{\text{new}} = 0.60(1) + 0.20(1) + 0.10(2) + 0.10(2) = 1.20\text{ cycles/instr}$$
 

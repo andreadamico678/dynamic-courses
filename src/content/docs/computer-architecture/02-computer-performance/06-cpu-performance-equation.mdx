@@ -71,7 +71,7 @@ Below, we formalize the three-factor Iron Law of Processor Performance, expand $
 
 ### Processor Performance Equation
 
-For a processor dedicated to a single program (excluding external I/O wait time), wall-clock **CPU execution time** $T_{\text{exec}}$ is the product of three factors—known across computer architecture as the **Iron Law of Processor Performance**:
+For a processor dedicated to a single program (excluding external I/O wait time), wall-clock **CPU execution time** $T_{\text{exec}}$ is the product of three factors—known across computer architecture as the **Iron Law**:
 
 $$T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}} = \frac{\text{IC} \times \text{CPI}}{f_{\text{clk}}}$$
 
@@ -81,9 +81,9 @@ $$\text{Seconds} = \frac{\text{Instructions}}{\text{Program}} \times \frac{\text
 
 Each factor maps to a distinct layer of the hardware-software stack, and real design changes almost always pull two factors in opposite directions:
 
-1. **Dynamic Instruction Count ($\text{IC}$):** The total number of machine instructions *actually executed* at runtime—not the static line count in an assembly file. A 10-instruction loop body iterating $1{,}000$ times contributes $10{,}000$ to $\text{IC}$. Algorithm choice, compiler flags (`-O2`, loop unrolling, dead-code elimination), and ISA style control $\text{IC}$: dense CISC encodings execute fewer instructions than RISC encodings, but require more work per instruction.
-2. **Average Cycles Per Instruction ($\text{CPI}$):** The mean number of clock cycles consumed per executed instruction, governed by pipeline organization, hazard forwarding, branch prediction, and cache miss penalties. Scalar in-order embedded cores (RISC-V RV32IM, ARM Cortex-M) operate with $\text{CPI} \ge 1.0$. Wide superscalar out-of-order cores (Apple M-series, AMD Zen) issue multiple instructions per cycle, achieving $\text{CPI} < 1.0$—often reported via its reciprocal, **Instructions Per Cycle** ($\text{IPC} = 1 / \text{CPI} > 1.0$).
-3. **Clock Period ($T_{\text{clk}} = 1 / f_{\text{clk}}$):** The duration of one clock cycle, set by the longest combinational critical-path delay between pipeline registers and the silicon transistor technology. Standard unit conversions must be automatic on paper:
+1. **Instruction Count ($\text{IC}$):** The total number of dynamic machine instructions *actually executed* at runtime—not the static line count in an assembly file. A 10-instruction loop body iterating $1{,}000$ times contributes $10{,}000$ to $\text{IC}$. Algorithm choice, compiler flags (`-O2`, loop unrolling, dead-code elimination), and ISA style control $\text{IC}$: dense CISC encodings execute fewer instructions than RISC encodings, but require more work per instruction.
+2. **Average $\text{CPI}$:** The mean number of clock cycles consumed per executed instruction, governed by pipeline organization, hazard forwarding, branch prediction, and cache miss penalties. Scalar in-order embedded cores (RISC-V RV32IM, ARM Cortex-M) operate with $\text{CPI} \ge 1.0$. Wide superscalar out-of-order cores (Apple M-series, AMD Zen) issue multiple instructions per cycle, achieving $\text{CPI} < 1.0$—often reported via its reciprocal, **Instructions Per Cycle** ($\text{IPC} = 1 / \text{CPI} > 1.0$).
+3. **Clock Period ($T_{\text{clk}}$):** Equal to $1 / f_{\text{clk}}$, this is the duration of one clock cycle set by the longest combinational critical-path delay between pipeline registers and silicon technology. Standard unit conversions must be automatic on paper:
 
 $$1\text{ GHz} = 10^9\text{ Hz} \iff T_{\text{clk}} = 1.0\text{ ns} = 1000\text{ ps}, \qquad 2.5\text{ GHz} \iff T_{\text{clk}} = \frac{1}{2.5}\text{ ns} = 0.40\text{ ns} = 400\text{ ps}$$
 
@@ -95,11 +95,11 @@ $$\text{CPI} = \frac{C_{\text{tot}}}{\text{IC}} = \sum_{i=1}^m \left(\frac{\text
 
 Two properties of this sum are tested repeatedly in written exams:
 
-- **Instruction Share vs. Time Share:** The weight $f_i = \text{IC}_i / \text{IC}$ is the fraction of *instructions*, not the fraction of *execution time*. Because slow instructions occupy more cycles, the fraction of total CPU time (and total clock cycles) spent in class $i$ is:
+- **Instruction vs. Time Share:** The weight $f_i = \text{IC}_i / \text{IC}$ is the fraction of *instructions*, not the fraction of *execution time*. Because slow instructions occupy more cycles, the fraction of total CPU time (and total clock cycles) spent in class $i$ is:
 
 $$F_i = \frac{\text{IC}_i \cdot \text{CPI}_i \cdot T_{\text{clk}}}{\text{IC} \cdot \text{CPI} \cdot T_{\text{clk}}} = \frac{f_i \cdot \text{CPI}_i}{\text{CPI}}$$
 
-- **Compiler Deletion Shifts Weights $f_i$:** Whenever an optimizing compiler deletes instructions from one class (for example, removing $30\%$ of $1$-cycle ALU instructions), the total count $\text{IC}_{\text{new}} = \sum_{i=1}^m \text{IC}_i^{\text{new}}$ shrinks and *every* relative share $f_i^{\text{new}} = \text{IC}_i^{\text{new}} / \text{IC}_{\text{new}}$ changes. Update absolute counts and total cycles first to compute:
+- **Shifting Instruction Weights:** Whenever an optimizing compiler deletes instructions from one class (for example, removing $30\%$ of $1$-cycle ALU instructions), the total count $\text{IC}_{\text{new}} = \sum_{i=1}^m \text{IC}_i^{\text{new}}$ shrinks and *every* relative share $f_i^{\text{new}} = \text{IC}_i^{\text{new}} / \text{IC}_{\text{new}}$ changes. Update absolute counts and total cycles first to compute:
 
 $$\text{CPI}_{\text{new}} = \frac{C_{\text{tot}}^{\text{new}}}{\text{IC}_{\text{new}}} = \frac{\sum_{i=1}^m \text{IC}_i^{\text{new}} \cdot \text{CPI}_i}{\sum_{i=1}^m \text{IC}_i^{\text{new}}}$$
 
@@ -111,7 +111,7 @@ Architectural **performance** is defined as the reciprocal of execution time, $\
 
 $$S = \frac{\text{Perf}_B}{\text{Perf}_A} = \frac{T_{\text{exec},A}}{T_{\text{exec},B}} = \frac{\text{IC}_A \cdot \text{CPI}_A \cdot T_{\text{clk},A}}{\text{IC}_B \cdot \text{CPI}_B \cdot T_{\text{clk},B}}$$
 
-When $S = 1.25$, design $B$ is **$25\%$ faster** than design $A$ ($(S - 1) \times 100\% = 25\%$), which corresponds to a **$20\%$ reduction in execution time** ($T_{\text{exec},B} = \frac{1}{1.25} T_{\text{exec},A} = 0.80\,T_{\text{exec},A}$). When two cores run the identical binary without recompilation ($\text{IC}_{\text{old}} = \text{IC}_{\text{new}}$), $\text{IC}$ cancels out of the speedup ratio cleanly, letting us solve directly for the target clock frequency $f_{\text{clk,new}}$ needed to overcome a deeper pipeline's higher $\text{CPI}_{\text{new}}$:
+When $S = 1.25$, design $B$ is **$25\%$ faster** than design $A$ ($(S - 1) \times 100\% = 25\%$), which corresponds to a **$20\%$ time reduction** ($T_{\text{exec},B} = \frac{1}{1.25} T_{\text{exec},A} = 0.80\,T_{\text{exec},A}$). When two cores run the identical binary without recompilation ($\text{IC}_{\text{old}} = \text{IC}_{\text{new}}$), $\text{IC}$ cancels out of the speedup ratio cleanly, letting us solve directly for the target clock frequency $f_{\text{clk,new}}$ needed to overcome a deeper pipeline's higher $\text{CPI}_{\text{new}}$:
 
 $$S = \frac{\text{CPI}_{\text{old}} \cdot f_{\text{clk,new}}}{\text{CPI}_{\text{new}} \cdot f_{\text{clk,old}}} \implies f_{\text{clk,new}} = S_{\text{target}} \cdot \frac{\text{CPI}_{\text{new}}}{\text{CPI}_{\text{old}}} \cdot f_{\text{clk,old}}$$
 
@@ -161,7 +161,7 @@ At $f_{\text{clk}} = 168\text{ MHz}$ and $T_{\text{deadline}} = 1.0\text{ ms}$, 
 ### Calculation Procedure
 
 1. **Normalize Clock Units:** Convert $f_{\text{clk}}$ to Hz ($1\text{ GHz} = 10^9\text{ Hz}$, $1\text{ MHz} = 10^6\text{ Hz}$) or $T_{\text{clk}}$ to nanoseconds before multiplying.
-2. **Evaluate Total Cycles or Weighted $\text{CPI}$:**
+2. **Evaluate Total Cycles:**
    - If the dynamic mix percentages $f_i$ are fixed, verify $\sum f_i = 1$ and compute $\text{CPI} = \sum f_i \cdot \text{CPI}_i$.
    - If a compiler optimization modifies individual class counts $\text{IC}_i$, compute new class counts $\text{IC}_i^{\text{new}}$ and total cycles $C_{\text{tot}}^{\text{new}} = \sum \text{IC}_i^{\text{new}} \cdot \text{CPI}_i$ explicitly before dividing by $\text{IC}_{\text{new}} = \sum \text{IC}_i^{\text{new}}$.
 3. **Compute $T_{\text{exec}}$:** Multiply $T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}}$ (or $C_{\text{tot}} / f_{\text{clk}}$) and convert to the requested output unit ($1\text{ ms} = 10^{-3}\text{ s} = 10^6\text{ ns}$).
@@ -169,10 +169,10 @@ At $f_{\text{clk}} = 168\text{ MHz}$ and $T_{\text{deadline}} = 1.0\text{ ms}$, 
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Reusing Old Shares $f_i$ After Compiler Changes:** If $30\%$ of ALU instructions are removed from a $50\%$ ALU workload, the new ALU share is *not* $0.50 \times 0.70 = 0.35$; it is $\frac{0.35}{1 - 0.15} = \frac{0.35}{0.85} \approx 41.2\%$ because the denominator $\text{IC}_{\text{new}}$ also decreased.
-2. **Percent Faster vs. Percent Time Reduction:** "$25\%$ faster" means $S = \frac{T_{\text{old}}}{T_{\text{new}}} = 1.25$ ($T_{\text{new}} = 0.80\,T_{\text{old}}$), whereas "reduces execution time by $25\%$" means $T_{\text{new}} = 0.75\,T_{\text{old}}$ ($S = 1.33\times$).
+1. **Reusing Old Shares:** If $30\%$ of ALU instructions are removed from a $50\%$ ALU workload, the new ALU share is *not* $0.50 \times 0.70 = 0.35$; it is $\frac{0.35}{1 - 0.15} = \frac{0.35}{0.85} \approx 41.2\%$ because the denominator $\text{IC}_{\text{new}}$ also decreased.
+2. **Speedup vs. Time Reduction:** "$25\%$ faster" means $S = \frac{T_{\text{old}}}{T_{\text{new}}} = 1.25$ ($T_{\text{new}} = 0.80\,T_{\text{old}}$), whereas "reduces execution time by $25\%$" means $T_{\text{new}} = 0.75\,T_{\text{old}}$ ($S = 1.33\times$).
 3. **Decimal vs. Percentage Scaling:** Always convert $20\%$ to $0.20$ inside $\sum f_i \cdot \text{CPI}_i$, and verify $\text{CPI}$ lies between $\min_i(\text{CPI}_i)$ and $\max_i(\text{CPI}_i)$.
-4. **Ranking Architectures by $\text{MIPS}$ or $f_{\text{clk}}$:** Never declare a processor faster without evaluating $T_{\text{exec}}$ (or $T_{\text{old}}/T_{\text{new}}$).
+4. **Misleading $\text{MIPS}$ Rankings:** Never declare a processor faster without evaluating $T_{\text{exec}}$ (or $T_{\text{old}}/T_{\text{new}}$).
 
 </Callout>
 
@@ -188,8 +188,8 @@ At $f_{\text{clk}} = 168\text{ MHz}$ and $T_{\text{deadline}} = 1.0\text{ ms}$, 
 
 Two processor microarchitectures execute the identical compiled RV32I binary of $\text{IC} = 10^6$ dynamic instructions:
 
-- **Processor Alpha ($f_{\text{clk},\alpha} = 2.0\text{ GHz}$):** ALU $50\%$ ($\text{CPI}=1$), Load $20\%$ ($\text{CPI}=3$), Store $15\%$ ($\text{CPI}=2$), Branch $15\%$ ($\text{CPI}=2$).
-- **Processor Beta ($f_{\text{clk},\beta} = 2.5\text{ GHz}$):** Due to a higher-latency memory bus, ALU $50\%$ ($\text{CPI}=1$), Load $20\%$ ($\text{CPI}=4$), Store $15\%$ ($\text{CPI}=3$), Branch $15\%$ ($\text{CPI}=2$).
+- **Processor Alpha** ($f_{\text{clk},\alpha} = 2.0\text{ GHz}$): ALU $50\%$ ($\text{CPI}=1$), Load $20\%$ ($\text{CPI}=3$), Store $15\%$ ($\text{CPI}=2$), Branch $15\%$ ($\text{CPI}=2$).
+- **Processor Beta** ($f_{\text{clk},\beta} = 2.5\text{ GHz}$): Due to a higher-latency memory bus, ALU $50\%$ ($\text{CPI}=1$), Load $20\%$ ($\text{CPI}=4$), Store $15\%$ ($\text{CPI}=3$), Branch $15\%$ ($\text{CPI}=2$).
 
 1. Compute the weighted average $\text{CPI}_\alpha$ and $\text{CPI}_\beta$.
 2. Determine total CPU execution time $T_{\text{exec},\alpha}$ and $T_{\text{exec},\beta}$ in milliseconds.
@@ -320,7 +320,7 @@ To raise the clock rate without changing the ISA ($\text{IC}_{\text{new}} = \tex
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Weighted $\text{CPI}$ Before and After Repipelining:**
+1. **Weighted $\text{CPI}$ Comparison:**
 
 $$\text{CPI}_{\text{old}} = 0.50(1) + 0.20(2) + 0.15(2) + 0.15(2) = 0.50 + 0.40 + 0.30 + 0.30 = 1.50$$
 
@@ -328,7 +328,7 @@ $$\text{CPI}_{\text{old}} = 0.50(1) + 0.20(2) + 0.15(2) + 0.15(2) = 0.50 + 0.40 
 
 $$\text{CPI}_{\text{new}} = 0.50(1) + 0.20(2) + 0.15(2) + 0.15(4) = 1.50 + 0.30 = 1.80$$
 
-2. **Required Clock Frequency and Period:**
+2. **Required Clock Frequency:**
    With $\text{IC}_{\text{new}} = \text{IC}_{\text{old}}$, enforcing $S = \frac{T_{\text{exec,old}}}{T_{\text{exec,new}}} = 1.50$ gives:
 
 $$1.50 = \frac{\text{IC} \cdot \text{CPI}_{\text{old}} / f_{\text{clk,old}}}{\text{IC} \cdot \text{CPI}_{\text{new}} / f_{\text{clk,new}}} = \frac{\text{CPI}_{\text{old}}}{\text{CPI}_{\text{new}}} \cdot \frac{f_{\text{clk,new}}}{f_{\text{clk,old}}}$$

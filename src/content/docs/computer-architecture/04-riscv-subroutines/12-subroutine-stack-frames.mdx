@@ -128,10 +128,10 @@ Safe multi-function execution rests on four rules: dividing registers into calle
 
 Without a shared register convention, every function call would have to spill all 31 general-purpose registers to memory just in case the callee modified them. Instead, the RISC-V RV32 ABI splits registers into two preservation contracts:
 
-1. **Caller-Saved (Volatile) Registers (`t0`–`t6`, `a0`–`a7`, `ra`):**
+1. **Caller-Saved Registers** (`t0`–`t6`, `a0`–`a7`, `ra`):
    - **`t0`–`t6`** (`x5`–`x7`, `x28`–`x31`) are scratch temporaries, **`a0`–`a7`** (`x10`–`x17`) carry up to 8 incoming arguments (with return values placed in **`a0`**–**`a1`**), and **`ra`** (`x1`) holds the return address written by `jal`.
    - A callee may overwrite `t0`–`t6` and `a0`–`a7` freely without saving or restoring them. Never assume a value left in `t0` or `a0` before `call helper` still exists after `call helper` returns.
-2. **Callee-Saved (Preserved) Registers (`s0`–`s11`, `sp`):**
+2. **Callee-Saved Registers** (`s0`–`s11`, `sp`):
    - **`s0`–`s11`** (`x8`–`x9`, `x18`–`x27`) and the stack pointer **`sp`** (`x2`) are guaranteed unchanged across any `call`.
    - If a callee chooses to modify `s0`, the callee **must** save the caller's old `s0` onto its stack frame in its prologue and restore `s0` in its epilogue before `ret`. Because every compliant callee honors this contract, a caller can keep loop indices (`i`) and intermediate results (`len1`) safely inside `s0`–`s11` across any number of subroutine and `ecall` invocations.
 
@@ -140,15 +140,15 @@ Without a shared register convention, every function call would have to spill al
 Every procedure in a call graph belongs to one of two structural classes that determine whether `ra` must be spilled to memory:
 
 - **Leaf Function:** Invokes **no** other subroutines inside its body (neither `call` nor `jal`). Because `ra` still holds the return address placed there by the caller, and because all temporary arithmetic can live inside volatile `t0`–`t6` and `a0`–`a7`, a leaf helper without large local arrays executes with **zero stack frame allocation** and returns in one instruction via `ret` (`jalr zero, 0(ra)`).
-- **Non-Leaf Function:** Invokes at least one subroutine via `call target` (which expands to `auipc` + `jalr` or `jal ra, target`). Hardware execution of `jal` overwrites `ra` with `PC + 4` inside the non-leaf function, permanently destroying the non-leaf function's own return address unless **`ra` was saved onto the stack in the prologue**.
+- **Non-Leaf Function:** Invokes at least one subroutine via `call target` (which expands to `auipc` + `jalr` or `jal ra, target`). Hardware execution of `jal` overwrites `ra` with `PC + 4` inside the non-leaf function, permanently destroying the non-leaf function's own return address unless **`ra` was saved** onto the stack in the prologue.
 
 ### Prologue and Epilogue Template
 
-The RISC-V runtime stack grows **downward toward lower byte addresses**: subtracting from `sp` allocates space, and adding the exact same constant back to `sp` deallocates it. At every subroutine call boundary, `sp` must remain a multiple of **16 bytes**:
+The RISC-V runtime stack grows **downward** toward lower byte addresses: subtracting from `sp` allocates space, and adding the exact same constant back to `sp` deallocates it. At every subroutine call boundary, `sp` must remain a multiple of **16 bytes**:
 
 $$K = 16 \cdot \left\lceil \frac{B_{\text{buffers}} + 4 \cdot N_{\text{regs}}}{16} \right\rceil, \qquad \mathrm{sp} \equiv 0 \pmod{16}$$
 
-Inside the allocated $K$-byte frame, place local arrays starting at `0(sp)` upward and store saved registers in descending 4-byte word slots from the top of the frame: `ra` at `(K - 4)(sp)`, `s0` at `(K - 8)(sp)`, `s1` at `(K - 12)(sp)`, and so on. Every non-leaf procedure follows one mechanical **Prologue $\to$ Body $\to$ Epilogue** skeleton:
+Inside the allocated $K$-byte frame, place local arrays starting at `0(sp)` upward and store saved registers in descending 4-byte word slots from the top of the frame: `ra` at `(K - 4)(sp)`, `s0` at `(K - 8)(sp)`, `s1` at `(K - 12)(sp)`, and so on. Every non-leaf procedure follows one mechanical **prologue–body–epilogue** skeleton:
 
 ```asm
 non_leaf_fn:
@@ -184,10 +184,10 @@ Never return the address of a local stack array (`addi a0, sp, 0` followed by `a
 
 Two practical conventions govern Question 6 grading in RARS:
 
-1. **Register-Named C Variables in Helpers:** Exam prompts frequently write leaf C helpers with local integers deliberately named `int s0, s1, s2;`. In C, `s0` is an ordinary variable identifier, **not** an instruction to touch hardware register `x8`! Inside a leaf helper, map all local C variables to caller-saved temporaries (`t0`–`t6`). Writing to hardware `s0` inside a zero-stack leaf helper silently clobbers `main`'s loop counter `s0`!
+1. **Register-Named C Variables:** Exam prompts frequently write leaf C helpers with local integers deliberately named `int s0, s1, s2;`. In C, `s0` is an ordinary variable identifier, **not** an instruction to touch hardware register `x8`! Inside a leaf helper, map all local C variables to caller-saved temporaries (`t0`–`t6`). Writing to hardware `s0` inside a zero-stack leaf helper silently clobbers `main`'s loop counter `s0`!
 2. **Self-Contained RARS File:** RARS does not link `libc`. Whenever C code calls `strlen`, append the leaf `strlen` subroutine directly at the bottom of `.text` so all labels assemble without unresolved symbol errors.
 
-<Callout type="bridge" title="Embedded Firmware Bridge: RTOS Stack Watermarks and Guard Pages">
+<Callout type="bridge" title="RTOS Stack Guard Pages">
 
 On desktop Linux, overflowing the stack crosses an unmapped virtual **guard page** and triggers a clean `SIGSEGV` fault. On bare-metal Cortex-M and RISC-V flight controllers running FreeRTOS without full virtual memory, every task's stack sits right next to another task's TCB or global RAM: allocating `char frame_buf[4096]` on a $2\text{ KiB}$ thread stack silently corrupts neighboring tasks mid-flight. Embedded engineers place large buffers in static SRAM or DMA pools and audit worst-case frame sums at compile time (`-fstack-usage`).
 
@@ -226,13 +226,13 @@ On desktop Linux, overflowing the stack crosses an unmapped virtual **guard page
 2. **Sum Raw Frame Bytes:** For a non-leaf function (or one with local arrays), sum all local buffer capacities plus $4\text{ bytes}$ for `ra` and $4\text{ bytes}$ for each `s` register modified by the function.
 3. **Align to 16 Bytes:** Compute $K = 16 \cdot \lceil B_{\text{raw}} / 16 \rceil \in \{16, 32, 48, 64, \dots\}$.
 4. **Assign Non-Overlapping Offsets:** Place local arrays starting at `0(sp)` upward, and place saved registers descending from `(K - 4)(sp)` (`ra` at `K - 4`, `s0` at `K - 8`, `s1` at `K - 12`, ...).
-5. **Write Mirrored Prologue & Epilogue:** Emit `addi sp, sp, -K` + `sw` stores at entry, pass stack buffer pointers via `addi aX, sp, offset`, and emit matching `lw` loads + `addi sp, sp, K` + `ret` (or `ecall 10` in `main`) at exit.
+5. **Mirrored Prologue & Epilogue:** Emit `addi sp, sp, -K` + `sw` stores at entry, pass stack buffer pointers via `addi aX, sp, offset`, and emit matching `lw` loads + `addi sp, sp, K` + `ret` (or `ecall 10` in `main`) at exit.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Placing Local C Buffers in `.data`:** Declaring `prima: .space 16` in `.data` when C declares `char prima[16];` inside `main()` violates stack allocation rules (and breaks re-entrancy).
-2. **Forgetting `sw ra` in `main` or Nested Helpers:** Without `sw ra, (K-4)(sp)`, the first `call strlen` overwrites `ra`.
-3. **Using `lw a0, 0(sp)` Instead of `addi a0, sp, 0`:** `lw` loads the first 4 characters inside the buffer rather than computing the buffer's memory address `&buf[0]`.
+1. **Stack Arrays in `.data`:** Declaring `prima: .space 16` in `.data` when C declares `char prima[16];` inside `main()` violates stack allocation rules (and breaks re-entrancy).
+2. **Forgetting `sw ra`:** Without `sw ra, (K-4)(sp)` in non-leaf routines or `main`, the first `call` overwrites `ra`.
+3. **Loading Instead of Addressing:** Writing `lw a0, 0(sp)` instead of `addi a0, sp, 0` loads the first 4 characters inside the buffer rather than computing `&buf[0]`.
 4. **Unaligned Stack Allocations:** Writing `addi sp, sp, -12` or `addi sp, sp, -40` breaks the $16$-byte ABI boundary ($12 \bmod 16 \neq 0$, $40 \bmod 16 = 8 \neq 0$).
 
 </Callout>

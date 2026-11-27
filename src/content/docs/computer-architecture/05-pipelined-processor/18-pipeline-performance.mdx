@@ -39,14 +39,14 @@ As depicted in [the figure](#fig-pipeline-cpi-breakdown), we sum the ideal basel
 </figure>
 
 1. **Baseline Rate:** $\text{CPI}_{\text{base}} = 1.00$.
-2. **Structural Hazards (Unified Memory):** Every `Load` ($14\%$) and `Store` ($10\%$) stalls stage `IF` for $1$ cycle during `MEM`:
+2. **Structural Hazards** (Unified Memory): Every `Load` ($14\%$) and `Store` ($10\%$) stalls stage `IF` for $1$ cycle during `MEM`:
    $$\text{Stalls}_{\text{struct}} = (0.14 + 0.10) \times 1 = 0.24\text{ cycles/instr}$$
-3. **Data Hazards (Full Forwarding Active):**
+3. **Data Hazards** (Forwarding Active):
    - `ALU -> ALU` ($30\%$ of `ALU`) resolves via `EX/MEM` bypass $\implies 0\text{ stalls}$.
    - `ALU -> Load` ($30\%$ of `Load`) forwards the base register from `EX/MEM` into `lw`'s `EX` address calculation $\implies 0\text{ stalls}$.
-   - `Load -> ALU` at $k = 1$ ($25\%$ of the $60\%$ `ALU` instructions) triggers a **1-cycle Load-Use bubble**:
+   - `Load -> ALU` at $k = 1$ ($25\%$ of the $60\%$ `ALU` instructions) triggers a **1-cycle Load-Use** bubble:
      $$\text{Stalls}_{\text{data}} = 0.60 \times 0.25 \times 1 = 0.15\text{ cycles/instr}$$
-4. **Control Hazards (Predict-Untaken in `EX`, $P_{\text{EX}} = 2$):** Only taken branches ($50\%$ of $16\%$) flush `IF` and `ID`:
+4. **Control Hazards** (`EX`, $P_{\text{EX}} = 2$): Only taken branches ($50\%$ of $16\%$) flush `IF` and `ID`:
    $$\text{Stalls}_{\text{ctrl}} = 0.16 \times 0.50 \times 2 = 0.16\text{ cycles/instr}$$
 
 Summing all terms yields the exact effective CPI:
@@ -63,6 +63,8 @@ $$\text{CPI}_{\text{pipe}} = 1.00 + 0.24 + 0.15 + 0.16 = 1.55\text{ cycles/instr
 />
 
 <Divider label="2 · Theory" />
+
+We now assemble structural, data, and control stall frequencies into one additive CPI law, clarify how producer- versus consumer-relative phrasing determines the multiplier base, and illustrate the exact hardware switches that govern exam calculations.
 
 ### Master Pipeline CPI Equation
 
@@ -90,15 +92,15 @@ The single most frequent numerical error in pipeline evaluations is multiplying 
 
 Once you know the master equation and conditional percentage anchoring, every written CPI problem is simply a combination of hardware switches (memory topology, forwarding on/off, branch stage, and branch policy). The two patterns below show the exact switches that flip terms on exams:
 
-- **Case 1 — Split Memories, Forwarding Disabled, Stall-Always (*Solo Stalli*) in `ID`:**
+- **Case 1** (Split Memories, Forwarding OFF, *Solo Stalli* in `ID`):
   Suppose a workload has `Load` $18\%$, `Store` $12\%$, `Branch` $15\%$ ($40\%$ taken), and `ALU` $55\%$. Without forwarding, $30\%$ of `ALU` depend on a preceding instruction at distance $k = 1$ ($2\text{ stalls}$), $15\%$ of `ALU` depend at distance $k = 2$ ($1\text{ stall}$), and $30\%$ of `Load` depend on an `ALU` address producer at distance $k = 1$ ($2\text{ stalls}$).
   - $\text{Stalls}_{\text{struct}} = 0$ (split Harvard memories).
   - $\text{Stalls}_{\text{data}} = (0.55 \times 0.30 \times 2) + (0.55 \times 0.15 \times 1) + (0.18 \times 0.30 \times 2) = 0.33 + 0.0825 + 0.108 = 0.5205$.
   - $\text{Stalls}_{\text{ctrl}} = 0.15 \times 1.00 \times 1 = 0.15$ (*solo stalli* stalls $100\%$ of branches; $40\%$ taken is unused!).
   - $\text{CPI}_{\text{pipe}} = 1.00 + 0 + 0.5205 + 0.15 = 1.6705\text{ cycles/instr}$.
 
-- **Case 2 — Unified Memory, Forwarding Active, Late `MEM` Branch With Decoy Dependency:**
-  Suppose a workload has `Load` $16\%$, `Store` $12\%$, `Branch` $12\%$ ($50\%$ taken), and `ALU` $60\%$, with unified memory, full forwarding, and Predict-Untaken resolving branches in stage **`MEM`** ($P_{\text{MEM}} = 3$). Profiling states: $30\%$ of `ALU` depend on `ALU` ($k = 1$), $35\%$ of `ALU` depend on `Load` ($k = 1$), and **$50\%$ of `Branch` depend on the preceding `ALU` instruction ($k = 1$)**.
+- **Case 2** (Unified Memory, Forwarding ON, `MEM` Branch):
+  Suppose a workload has `Load` $16\%$, `Store` $12\%$, `Branch` $12\%$ ($50\%$ taken), and `ALU` $60\%$, with unified memory, full forwarding, and Predict-Untaken resolving branches in stage **`MEM`** ($P_{\text{MEM}} = 3$). Profiling states: $30\%$ of `ALU` depend on `ALU` ($k = 1$), $35\%$ of `ALU` depend on `Load` ($k = 1$), and $50\%$ of `Branch` depend on the preceding `ALU` instruction ($k = 1$).
   - $\text{Stalls}_{\text{struct}} = (0.16 + 0.12) \times 1 = 0.28$.
   - $\text{Stalls}_{\text{data}} = 0.60 \times 0.35 \times 1 = 0.21$ (`ALU -> ALU` costs $0$).
   - `ALU -> Branch` Check: Because branches resolve in **`MEM`** (not `ID`), forwarding supplies the `ALU` operand with **$0$ extra stalls**—the $50\%$ figure is a **decoy**!
@@ -145,13 +147,13 @@ When deploying a $1\text{ kHz}$ ($T_{\text{deadline}} = 1.0\text{ ms}$) state-es
 2. **Evaluate $\text{Stalls}_{\text{struct}}$:** Add $(f_{\text{load}} + f_{\text{store}}) \times 1$ if unified memory is specified; write $0$ if split memories are specified.
 3. **Evaluate $\text{Stalls}_{\text{data}}$:** Check whether forwarding is ON (count *only* distance-1 Load-Use $\times 1$) or OFF (count $k=1 \times 2$ and $k=2 \times 1$). Anchor each percentage carefully to its grammatical subject (producer vs. consumer).
 4. **Evaluate $\text{Stalls}_{\text{ctrl}}$:** Pick $P_{\text{stage}} \in \{1, 2, 3\}$ (`ID`, `EX`, `MEM`), then multiply by $p_{\text{taken}}$ for Predict-Untaken or by $1.0$ for *solo stalli*.
-5. **Check `ALU -> Branch` Interaction:** Add $f_{\text{ALU}\to\text{Branch}} \times 1$ **only** when branches resolve in stage `ID`; explicitly cross out `ALU -> Branch` when branches resolve in `EX` or `MEM`.
+5. **Check `ALU -> Branch`:** Add $f_{\text{ALU}\to\text{Branch}} \times 1$ **only** when branches resolve in stage `ID`; explicitly cross out `ALU -> Branch` when branches resolve in `EX` or `MEM`.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Swapping Producer and Consumer Base Frequencies:** *"20% of ALU depend on Load"* is $f_{\text{ALU}} \times 0.20$, whereas *"20% of Load feed ALU"* is $f_{\text{Load}} \times 0.20$.
+1. **Swapping Base Frequencies:** *"20% of ALU depend on Load"* is $f_{\text{ALU}} \times 0.20$, whereas *"20% of Load feed ALU"* is $f_{\text{Load}} \times 0.20$.
 2. **Adding Decoy Stalls:** When forwarding is ON, write $= 0$ explicitly next to `ALU -> ALU` and (for `EX`/`MEM` branch resolution) `ALU -> Branch` in your written work so graders see deliberate filtering rather than an oversight.
-3. **Comparing CPI Alone When $T_{\text{clk}}$ Differs:** Always multiply $\text{CPI}_{\text{pipe}} \times T_{\text{clk,pipe}}$ when comparing two pipelines with different stage delays or clock frequencies!
+3. **Comparing CPI Alone:** When two pipelines have different stage delays or clock frequencies, always compare the product $\text{CPI}_{\text{pipe}} \times T_{\text{clk,pipe}}$!
 
 </Callout>
 
@@ -196,7 +198,7 @@ Applying the five-step CPI procedure:
    - $30\%$ of `ALU` depending on `ALU` ($k = 1$): resolved by `EX/MEM` forwarding $\implies 0\text{ stalls}$.
    - $20\%$ of `ALU` depending on `Load` ($k = 1$, consumer-relative to $f_{\text{ALU}} = 0.55$):
      $$\text{Stalls}_{\text{data}} = 0.55 \times 0.20 \times 1 = 0.11\text{ cycles/instr}$$
-4. **Control Stalls (Predict-Untaken in `EX`, $P_{\text{EX}} = 2$):**
+4. **Control Stalls** (`EX`, $P_{\text{EX}} = 2$):
    $$\text{Stalls}_{\text{ctrl}} = 0.10 \times 0.60 \times 2 = 0.12\text{ cycles/instr}$$
 5. **`ALU -> Branch` Check:** Because branches resolve in **`EX`** with forwarding active, `EX/MEM -> EX` bypasses the `ALU` result in **$0$ extra stalls** (the $30\%$ figure is a decoy).
 
@@ -239,13 +241,13 @@ Assuming **Predict-Untaken** at an identical clock period $T_{\text{clk}}$:
 
 Common stall components across both configurations:
 
-- **Unified Memory Structural Stalls:** $(0.20 + 0.10) \times 1 = 0.30$.
-- **Load-Use Data Stalls (producer-relative to `Load`):** $0.20 \times 0.20 \times 1 = 0.04$.
+- **Unified Memory Stalls:** $(0.20 + 0.10) \times 1 = 0.30$.
+- **Load-Use Data Stalls** (producer-relative): $0.20 \times 0.20 \times 1 = 0.04$.
 
-1. **Stage `EX` Branch Resolution ($P_{\text{EX}} = 2$, `ALU -> Branch` $= 0$):**
+1. **Stage `EX` Resolution** ($P_{\text{EX}} = 2$):
    $$\text{Stalls}_{\text{ctrl,EX}} = 0.20 \times 0.50 \times 2 = 0.20$$
    $$\text{CPI}_{\text{EX}} = 1.00 + 0.30 + 0.04 + 0.20 + 0 = 1.54\text{ cycles/instr}$$
-2. **Stage `ID` Branch Resolution ($P_{\text{ID}} = 1$, `ALU -> Branch` $= +1$):**
+2. **Stage `ID` Resolution** ($P_{\text{ID}} = 1$):
    $$\text{Stalls}_{\text{ctrl,ID}} = 0.20 \times 0.50 \times 1 = 0.10, \qquad \text{Stalls}_{\text{ALU}\to\text{Branch}} = 0.20 \times 0.25 \times 1 = 0.05$$
    $$\text{CPI}_{\text{ID}} = 1.00 + 0.30 + 0.04 + 0.10 + 0.05 = 1.49\text{ cycles/instr}$$
 3. **Cycle Reduction:** Moving resolution to `ID` saves $1.54 - 1.49 = 0.05\text{ cycles/instr}$, reducing total cycles by $0.05 / 1.54 = 3.25\%$.
@@ -285,14 +287,14 @@ On a large program ($\text{IC} = 10^7$), the instruction mix is `Load` $18\%$, `
 1. **Clock Periods:**
    $$T_{\text{clk,single}} = 200 + 150 + 200 + 220 + 130 = 900\text{ ps}$$
    $$T_{\text{clk,pipe}} = \max(200, 150, 200, 220, 130) + 30 = 220 + 30 = 250\text{ ps}$$
-2. **Unified-Memory Pipeline CPI and Net Speedup:**
+2. **Unified-Memory CPI and Speedup:**
    - $\text{Stalls}_{\text{struct}} = (0.18 + 0.12) \times 1 = 0.30$.
    - $\text{Stalls}_{\text{data}} = 0.55 \times 0.20 \times 1 = 0.11$ (`ALU -> ALU` forwarding $= 0$).
    - $\text{Stalls}_{\text{ctrl}} = 0.15 \times 0.60 \times 2 = 0.18$.
    - $\text{CPI}_{\text{pipe}} = 1.00 + 0.30 + 0.11 + 0.18 = 1.59\text{ cycles/instr}$.
    - Net speedup over single-cycle ($\text{IC} \gg 5$):
      $$S_{\text{pipe}} = \frac{1.00 \times 900\text{ ps}}{1.59 \times 250\text{ ps}} = \frac{900}{397.5} = 2.264\times$$
-3. **Additional Speedup From Split L1 Caches (Amdahl's Law):**
+3. **Speedup From Split Caches:**
    - Unified memory stalls account for $F_{\text{enh}} = 0.30 / 1.59 = 0.1887$ ($18.87\%$) of execution cycles; eliminating them ($S_{\text{enh}} \to \infty$) yields:
      $$S_{\text{Harvard}} = \frac{1}{1 - 0.30 / 1.59} = \frac{1.59}{1.29} = 1.233\times \quad (\text{raising total speedup over single-cycle to } 900 / (1.29 \times 250) = 2.791\times)$$
 

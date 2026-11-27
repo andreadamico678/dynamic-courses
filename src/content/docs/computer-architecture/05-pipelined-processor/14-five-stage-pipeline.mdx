@@ -10,9 +10,9 @@ import Callout from "@components/Callout.astro";
 import Exercise from "@components/Exercise.tsx";
 import StepCheck from "@components/StepCheck.tsx";
 
-## Assembly-Line Instruction Execution
+## Pipelined Instruction Execution
 
-In a single-cycle processor, every instruction must traverse instruction memory, the Register File, the ALU, data memory, and register write-back inside one long clock period $T_{\text{clk,single}}$. Even fast register-to-register instructions like `add` are forced to wait for the worst-case critical path of `lw`, depressing clock frequency $f_{\text{clk}} = 1 / T_{\text{clk}}$ in the [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/). **Instruction pipelining** splits that combinational path into five clocked stages separated by barrier registers so five consecutive instructions overlap in flight like an assembly line—increasing **instruction throughput** rather than shrinking single-instruction latency.
+In a single-cycle processor, every instruction must traverse instruction memory, the Register File, the ALU, data memory, and register write-back inside one long clock period $T_{\text{clk,single}}$. Even fast register-to-register instructions like `add` are forced to wait for the worst-case critical path of `lw`, depressing clock frequency $f_{\text{clk}} = 1 / T_{\text{clk}}$ in the [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/). **Instruction pipelining** splits that combinational path into five clocked stages separated by barrier registers so five consecutive instructions execute in staggered overlap—increasing **instruction throughput** rather than shrinking single-instruction latency.
 
 <Divider label="1 · Example" />
 
@@ -20,11 +20,11 @@ In a single-cycle processor, every instruction must traverse instruction memory,
 
 Consider executing instructions from our shared sensor-calibration loop (`lw t0, 0(s0)` followed by `addi s0, s0, 4`) on a 32-bit RISC-V core whose hardware blocks have the combinational propagation delays measured below:
 
-- **Instruction Fetch (`IF`):** $t_{\text{IF}} = 200\text{ ps}$
-- **Instruction Decode & Register Read (`ID`):** $t_{\text{ID}} = 120\text{ ps}$
-- **Execute / Address Calculation (`EX`):** $t_{\text{EX}} = 180\text{ ps}$
-- **Data Memory Access (`MEM`):** $t_{\text{MEM}} = 250\text{ ps}$
-- **Write Back (`WB`):** $t_{\text{WB}} = 100\text{ ps}$
+- **Instruction Fetch** (`IF`): $t_{\text{IF}} = 200\text{ ps}$
+- **Instruction Decode** (`ID`): $t_{\text{ID}} = 120\text{ ps}$
+- **Execute / Address** (`EX`): $t_{\text{EX}} = 180\text{ ps}$
+- **Data Memory** (`MEM`): $t_{\text{MEM}} = 250\text{ ps}$
+- **Write Back** (`WB`): $t_{\text{WB}} = 100\text{ ps}$
 
 Inserting four clocked interstage pipeline registers (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) between these five blocks, as shown in [the figure](#fig-pipeline-datapath), adds flip-flop setup time $t_{\text{setup}} = 15\text{ ps}$ and clock-to-output propagation delay $t_{\text{cq}} = 15\text{ ps}$ per stage boundary.
 
@@ -61,6 +61,8 @@ Dividing the two execution times yields an end-to-end speedup of $S = 850{,}000 
 
 <Divider label="2 · Theory" />
 
+Below, we separate single-instruction latency from pipeline throughput, trace instruction execution and lockstep control through all five datapath stages, and derive the pipelined clock-period bound imposed by interstage register overhead.
+
 ### Throughput Versus Latency
 
 To connect pipeline timing directly to the [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/), distinguish two metrics that students frequently conflate:
@@ -89,8 +91,8 @@ The canonical RISC-V integer pipeline decomposes instruction execution into five
 $$\text{IF} \;\xrightarrow{\;\text{IF/ID}\;}\; \text{ID} \;\xrightarrow{\;\text{ID/EX}\;}\; \text{EX} \;\xrightarrow{\;\text{EX/MEM}\;}\; \text{MEM} \;\xrightarrow{\;\text{MEM/WB}\;}\; \text{WB}$$
 
 1. **Stage `IF` (Instruction Fetch):** The 32-bit Program Counter (`PC`) indexes Instruction Memory to read the 32-bit machine instruction while a dedicated adder computes the sequential fall-through address $\text{PC} + 4$. On the rising clock edge, `IF/ID` latches `PC` and the 32-bit `Instruction` word.
-2. **Stage `ID` (Instruction Decode & Register Read):** Bit-fields of `Instruction` are sliced in parallel (`opcode = inst[6:0]`, `rd = inst[11:7]`, `funct3 = inst[14:12]`, `rs1 = inst[19:15]`, `rs2 = inst[24:20]`, `funct7 = inst[31:25]`). The dual-read-port Register File reads $\text{Data1} = \text{Reg}[rs1]$ and $\text{Data2} = \text{Reg}[rs2]$, the Immediate Generator sign-extends the 32-bit immediate `Imm`, and the combinational **Control Unit** decodes `opcode` to produce all downstream control signals at once. `ID/EX` latches `PC`, `Data1`, `Data2`, `Imm`, register indices (`rs1`, `rs2`, `rd`), and the `EX`, `MEM`, and `WB` control bundles.
-3. **Stage `EX` (Execute / Address Calculation):** Controlled by `ALUSrc` and `ALUOp`, the main 32-bit ALU either computes register-register / register-immediate arithmetic (`add`, `sub`, `addi`, `and`, `or`) or adds base plus sign-extended offset ($\text{Data1} + \text{Imm}$) for `lw` and `sw`. In parallel, a dedicated branch adder computes $\text{PC} + \text{Imm}$ and the ALU evaluates branch comparison flags (`beq`, `bne`). `EX/MEM` latches `ALU_Result`, store payload `Data2`, branch target, comparison flag, destination index `rd`, and the remaining `MEM`/`WB` control signals.
+2. **Stage `ID`** (Instruction Decode): Bit-fields of `Instruction` are sliced in parallel (`opcode = inst[6:0]`, `rd = inst[11:7]`, `funct3 = inst[14:12]`, `rs1 = inst[19:15]`, `rs2 = inst[24:20]`, `funct7 = inst[31:25]`). The dual-read-port Register File reads $\text{Data1} = \text{Reg}[rs1]$ and $\text{Data2} = \text{Reg}[rs2]$, the Immediate Generator sign-extends the 32-bit immediate `Imm`, and the combinational **Control Unit** decodes `opcode` to produce all downstream control signals at once. `ID/EX` latches `PC`, `Data1`, `Data2`, `Imm`, register indices (`rs1`, `rs2`, `rd`), and the `EX`, `MEM`, and `WB` control bundles.
+3. **Stage `EX`** (Execute / Address): Controlled by `ALUSrc` and `ALUOp`, the main 32-bit ALU either computes register-register / register-immediate arithmetic (`add`, `sub`, `addi`, `and`, `or`) or adds base plus sign-extended offset ($\text{Data1} + \text{Imm}$) for `lw` and `sw`. In parallel, a dedicated branch adder computes $\text{PC} + \text{Imm}$ and the ALU evaluates branch comparison flags (`beq`, `bne`). `EX/MEM` latches `ALU_Result`, store payload `Data2`, branch target, comparison flag, destination index `rd`, and the remaining `MEM`/`WB` control signals.
 4. **Stage `MEM` (Memory Access):** Using `ALU_Result` as the byte address, Data Memory reads a 32-bit word (`Read_Data`) when `MemRead = 1` (`lw`) or writes `Data2` into memory when `MemWrite = 1` (`sw`). Arithmetic instructions bypass the memory array untouched. `MEM/WB` latches `Read_Data`, `ALU_Result`, destination index `rd`, and the `WB` control bits (`RegWrite`, `MemtoReg`).
 5. **Stage `WB` (Write Back):** Multiplexer `MemtoReg` selects between `Read_Data` (for `lw`) and `ALU_Result` (for R-type and I-type ALU instructions). When `RegWrite = 1`, the selected 32-bit value writes back into `Reg[rd]` (with writes to `x0` ignored in hardware).
 
@@ -141,13 +143,13 @@ Low-power embedded microcontrollers such as ARM Cortex-M4 and bare-metal RISC-V 
 1. **Single-Cycle Baseline:** Sum all stage combinational delays ($T_{\text{clk,single}} = \sum t_{\text{stage},i}$), omitting interstage pipeline register delays.
 2. **Pipelined Clock Period:** Identify the single slowest stage $\max_i(t_{\text{stage},i})$ and add $t_{\text{setup}} + t_{\text{cq}}$ once: $T_{\text{clk,pipe}} = \max_i(t_{\text{stage},i}) + t_{\text{setup}} + t_{\text{cq}}$.
 3. **Single-Instruction Latency:** Compare $1 \times T_{\text{clk,single}}$ against $k \times T_{\text{clk,pipe}}$ ($k = 5$).
-4. **Workload Execution Time & Speedup:** For $\text{IC}$ hazard-free instructions, compute $T_{\text{exec,pipe}} = (\text{IC} + k - 1) \cdot T_{\text{clk,pipe}}$ (or $\text{IC} \cdot \text{CPI}_{\text{pipe}} \cdot T_{\text{clk,pipe}}$ for large $\text{IC}$ with hazards) and form the ratio $S = T_{\text{exec,single}} / T_{\text{exec,pipe}}$.
+4. **Execution Time and Speedup:** For $\text{IC}$ hazard-free instructions, compute $T_{\text{exec,pipe}} = (\text{IC} + k - 1) \cdot T_{\text{clk,pipe}}$ (or $\text{IC} \cdot \text{CPI}_{\text{pipe}} \cdot T_{\text{clk,pipe}}$ for large $\text{IC}$ with hazards) and form the ratio $S = T_{\text{exec,single}} / T_{\text{exec,pipe}}$.
 
 <Callout type="warning" title="Common Mistakes">
 
 1. **Dividing $T_{\text{clk,single}}$ by $5$:** Never compute $T_{\text{clk,pipe}}$ as $T_{\text{clk,single}} / 5$ when stage delays differ—always take $\max_i(t_{\text{stage},i}) + t_{\text{setup}} + t_{\text{cq}}$.
-2. **Adding Register Overhead to Single-Cycle:** Unpipelined single-cycle datapaths do not contain `IF/ID`, `ID/EX`, `EX/MEM`, or `MEM/WB` barrier registers; only add $t_{\text{setup}} + t_{\text{cq}}$ (if given for pipeline latches) to $T_{\text{clk,pipe}}$.
-3. **Confusing `EX` Address Calculation with `MEM` Access:** In RISC-V, `lw` and `sw` compute the effective byte address $\text{Reg}[rs1] + \text{Imm}$ during stage **`EX`**, and access Data Memory during stage **`MEM`**.
+2. **Single-Cycle Register Overhead:** Unpipelined single-cycle datapaths do not contain `IF/ID`, `ID/EX`, `EX/MEM`, or `MEM/WB` barrier registers; only add $t_{\text{setup}} + t_{\text{cq}}$ (if given for pipeline latches) to $T_{\text{clk,pipe}}$.
+3. **Mixing `EX` and `MEM`:** In RISC-V, `lw` and `sw` compute the effective byte address $\text{Reg}[rs1] + \text{Imm}$ during stage **`EX`**, and access Data Memory during stage **`MEM`**.
 
 </Callout>
 
@@ -188,7 +190,7 @@ Interstage pipeline registers introduce $t_{\text{setup}} = 20\text{ ps}$ and $t
    $$T_{\text{clk,single}} = 250 + 150 + 200 + 300 + 100 = 1000\text{ ps} = 1.0\text{ ns}$$
 2. **Pipelined Clock Period:** Stage `MEM` ($300\text{ ps}$) limits the clock period, plus $20 + 30 = 50\text{ ps}$ of interstage flip-flop overhead:
    $$T_{\text{clk,pipe}} = \max(250, 150, 200, 300, 100) + 20 + 30 = 300 + 50 = 350\text{ ps}$$
-3. **Exact Speedup for $\text{IC} = 10{,}000$ Instructions:**
+3. **Speedup** ($\text{IC} = 10{,}000$):
    $$T_{\text{exec,single}} = 10{,}000 \times 1000\text{ ps} = 10{,}000{,}000\text{ ps}$$
    $$T_{\text{exec,pipe}} = (10{,}000 + 5 - 1) \times 350\text{ ps} = 10{,}004 \times 350\text{ ps} = 3{,}501{,}400\text{ ps}$$
    $$S = \frac{10{,}000{,}000\text{ ps}}{3{,}501{,}400\text{ ps}} = 2.856\times$$
@@ -237,13 +239,13 @@ sw   s2, 8(s0)       # I3: fetched in Cycle 3
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Stage Occupancy in Clock Cycle 4:**
+1. **Cycle 4 Occupancy:**
    - $I_1$ (`lw t0, 0(s0)`): `IF` (C1) $\to$ `ID` (C2) $\to$ `EX` (C3) $\to$ **`MEM` (C4)**.
    - $I_2$ (`add s2, s2, t3`): `IF` (C2) $\to$ `ID` (C3) $\to$ **`EX` (C4)**.
    - $I_3$ (`sw s2, 8(s0)`): `IF` (C3) $\to$ **`ID` (C4)**.
-2. **Signals in `EX/MEM` during Cycle 4 (belonging to $I_1$: `lw`):**
+2. **`EX/MEM` Signals** ($I_1$: `lw` in Cycle 4):
    - `MemRead = 1` (reading word at `0 + Reg[s0]` in `MEM` right now), `MemWrite = 0`, and `RegWrite = 1` (traveling onward to `MEM/WB` for Cycle 5 write-back into `t0`), giving **`(1, 0, 1)`**.
-3. **Signals in `ID/EX` during Cycle 4 (belonging to $I_2$: `add`):**
+3. **`ID/EX` Signals** ($I_2$: `add` in Cycle 4):
    - R-type `add` selects second register `t3` (`ALUSrc = 0`), performs no memory write (`MemWrite = 0`), and writes back to `s2` (`RegWrite = 1`), giving **`(0, 0, 1)`**. Meanwhile, $I_3$ (`sw`) is currently in `ID` generating `(ALUSrc = 1, MemWrite = 1, RegWrite = 0)` to be latched into `ID/EX` at the end of Cycle 4.
 
 </details>
@@ -278,7 +280,7 @@ An embedded 5-stage RISC-V processor has combinational delays $\text{IF} = 200\t
 
 1. **Original 5-Stage Pipeline:**
    $$T_{\text{clk},5} = \max(200, 160, 240, 400, 140) + 20 = 400 + 20 = 420\text{ ps} \implies f_{\text{clk},5} = \frac{1}{0.420\text{ ns}} = 2.381\text{ GHz}$$
-2. **Redesigned 6-Stage Pipeline (`IF`, `ID`, `EX`, `MEM1`, `MEM2`, `WB`):** Once `MEM` splits into two $200\text{ ps}$ stages, stage **`EX` ($240\text{ ps}$)** becomes the new critical-path bottleneck (an immediate illustration of [Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/) limiting clock scaling once the primary bottleneck is removed):
+2. **Redesigned 6-Stage Pipeline** (`IF`, `ID`, `EX`, `MEM1`, `MEM2`, `WB`): Once `MEM` splits into two $200\text{ ps}$ stages, stage **`EX` ($240\text{ ps}$)** becomes the new critical-path bottleneck (an immediate illustration of [Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/) limiting clock scaling once the primary bottleneck is removed):
    $$T_{\text{clk},6} = \max(200, 160, 240, 200, 200, 140) + 20 = 240 + 20 = 260\text{ ps} \implies f_{\text{clk},6} = \frac{1}{0.260\text{ ns}} = 3.846\text{ GHz}$$
 3. **Net Execution-Time Speedup:** With dynamic instruction count $\text{IC}$ constant across both designs:
    $$S = \frac{T_{\text{exec},5}}{T_{\text{exec},6}} = \frac{\text{IC} \times \text{CPI}_5 \times T_{\text{clk},5}}{\text{IC} \times \text{CPI}_6 \times T_{\text{clk},6}} = \frac{1.15 \times 420\text{ ps}}{1.25 \times 260\text{ ps}} = \frac{483}{325} = 1.486\times$$

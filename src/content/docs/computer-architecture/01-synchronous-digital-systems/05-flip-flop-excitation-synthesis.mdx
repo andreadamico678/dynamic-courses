@@ -20,10 +20,10 @@ After merging equivalent states via an [Implication Table](/dynamic-courses/comp
 
 Let us synthesize the reduced 3-state Mealy machine ($S_A, S_B, S_D$) derived in [Implication Table Minimization](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/04-implication-table-minimization/) using **JK flip-flops**.
 
-1. **Register Dimensioning & Binary Encoding:**
+1. **State Register Encoding:**
    With $\lvert S_{\text{min}} \rvert = 3$, we need $k = \lceil \log_2 3 \rceil = 2$ flip-flops ($Q_1, Q_0$). Assigning lexicographical codes $S_A = 00$, $S_B = 01$, and $S_D = 10$ leaves $Q_1 Q_0 = 11$ as an **unused state**.
 
-2. **Transition and JK Excitation Table:**
+2. **JK Excitation Table:**
    Recall the JK excitation rules: $0 \to 0$ gives $(J, K) = (0, X)$, $0 \to 1$ gives $(1, X)$, $1 \to 0$ gives $(X, 1)$, and $1 \to 1$ gives $(X, 0)$. For both rows of unused state `11`, **all** flip-flop inputs and output $u$ are set to `X`:
 
 | Present State $Q_1 Q_0$ | Input $X$ | Next State $Q_1^* Q_0^*$ | $Q_1 \to Q_1^*$ | $J_1$ | $K_1$ | $Q_0 \to Q_0^*$ | $J_0$ | $K_0$ | Output $u$ |
@@ -37,9 +37,9 @@ Let us synthesize the reduced 3-state Mealy machine ($S_A, S_B, S_D$) derived in
 | **$11$ (Unused)** | $0$ | $XX$ | $X \to X$ | $X$ | $X$ | $X \to X$ | $X$ | $X$ | $X$ |
 | **$11$ (Unused)** | $1$ | $XX$ | $X \to X$ | $X$ | $X$ | $X \to X$ | $X$ | $X$ | $X$ |
 
-3. **Three-Variable Karnaugh Maps ($Q_1 Q_0 \backslash X$ in Gray Order `00, 01, 11, 10`):**
+3. **Three-Variable Karnaugh Maps** ($Q_1 Q_0 \backslash X$ in Gray order `00, 01, 11, 10`):
 
-   - **Map for $J_1$ and Output $u$:**
+   - **$J_1$ and Output $u$:**
 
      | $Q_1 Q_0 \backslash X$ | $0$ ($J_1$) | $1$ ($J_1$) | $0$ ($u$) | $1$ ($u$) |
      | :---: | :---: | :---: | :---: | :---: |
@@ -50,7 +50,7 @@ Let us synthesize the reduced 3-state Mealy machine ($S_A, S_B, S_D$) derived in
 
      In $J_1$, $(01, 0) = 1$ merges with $(11, 0) = X \implies J_1 = Q_0 \overline{X}$. In $u$, $(10, 0) = 1$ merges with $(11, 0) = X \implies u = Q_1 \overline{X}$.
 
-   - **Maps for $K_1$, $J_0$, and $K_0$:**
+   - **$K_1$, $J_0$, and $K_0$:**
 
      | $Q_1 Q_0 \backslash X$ | $0$ ($K_1$) | $1$ ($K_1$) | $0$ ($J_0$) | $1$ ($J_0$) | $0$ ($K_0$) | $1$ ($K_0$) |
      | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -94,19 +94,19 @@ Because $k$ flip-flops provide $2^k$ binary patterns, whenever $\lvert S_{\text{
 
 During analysis, a flip-flop's characteristic equation computes $Q^*$ from given inputs. During **synthesis**, you invert that equation to find which inputs force a known bit transition $Q \to Q^*$:
 
-1. **JK Flip-Flop ($Q^* = J\overline{Q} + \overline{K}Q$):**
+1. **JK Flip-Flop** ($Q^* = J\overline{Q} + \overline{K}Q$):
    - When $Q = 0$, $Q^* = J$, so $J = Q^*$ and $K = X$ (`0 -> 0` gives `0 X`; `0 -> 1` gives `1 X`).
    - When $Q = 1$, $Q^* = \overline{K}$, so $J = X$ and $K = \overline{Q^*}$ (`1 -> 0` gives `X 1`; `1 -> 1` gives `X 0`).
    - Because **every** transition places a don't-care `X` in either $J$ or $K$ ($50\%$ wildcard density), JK synthesis yields the most compact SOP logic on manual exams.
 
-2. **SR Flip-Flop ($Q^* = S + \overline{R}Q$ subject to $S \cdot R = 0$):**
+2. **SR Flip-Flop** ($Q^* = S + \overline{R}Q$, $S \cdot R = 0$):
    - Holding `0 -> 0` allows $(S, R) = (0, X)$, and holding `1 -> 1` allows $(X, 0)$.
    - Changing state has **no don't-cares** because $S = R = 1$ is forbidden: `0 -> 1` requires strictly $(1, 0)$, and `1 -> 0` requires strictly $(0, 1)$.
 
-3. **T (Toggle) Flip-Flop ($Q^* = T \oplus Q \iff T = Q \oplus Q^*$):**
-   - Set $T = 1$ whenever the bit flips (`0 -> 1` or `1 -> 0`) and $T = 0$ whenever the bit stays unchanged (`0 -> 0` or `1 -> 1`).
+3. **T Flip-Flop** ($Q^* = T \oplus Q$):
+   - Set $T = 1$ whenever the bit flips (`0 -> 1` or `1 -> 0`) and $T = 0$ whenever the bit stays unchanged (`0 -> 0` or `1 -> 1`), so $T = Q \oplus Q^*$.
 
-4. **D (Data) Flip-Flop ($Q^* = D$):**
+4. **D Flip-Flop** ($Q^* = D$):
    - Copy the desired next-state bit directly into the excitation column: $D_i = Q_i^*$.
 
 ### Unused States and Constant Simplification
@@ -146,22 +146,22 @@ Modern RTL compilers (`always_ff @(posedge clk)` in SystemVerilog) synthesize sy
 
 1. **Dimension & Encode States:** Compute $k = \lceil \log_2 \lvert S_{\text{min}} \rvert \rceil$, assign sequential binary codes (`00, 01, 10, ...`), and list all $2^k - \lvert S_{\text{min}} \rvert$ unused codes.
 2. **Confirm Bistable Type:** Check whether the specification requires **JK**, **SR**, **T**, or **D** flip-flops before populating excitation columns.
-3. **Build the $2^k \times \lvert X \rvert$ Excitation Table:** Evaluate each state bit $Q_i \to Q_i^*$ one column at a time across reachable rows, and fill every excitation input and output $u$ on unused-state rows with `X`.
+3. **Build Excitation Table** ($2^k \times \lvert X \rvert$ rows): Evaluate each state bit $Q_i \to Q_i^*$ one column at a time across reachable rows, and fill every excitation input and output $u$ on unused-state rows with `X`.
 4. **Plot Gray-Coded K-Maps:** Order state rows `00, 01, 11, 10` (placing unused `11` in row 3, between `01` and `10`), tie all-`{1, X}` maps to constant `1`, and extract minimal SOP expressions for every flip-flop input and $u$.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Using JK Don't-Cares for SR Flip-Flops:** Writing $(S, R) = (1, X)$ on $0 \to 1$ or $(X, 1)$ on $1 \to 0$ allows the illegal $S = R = 1$ condition; SR strictly requires $(1, 0)$ and $(0, 1)$ on bit flips.
-2. **Putting Row `11` at the Bottom of the K-Map:** In the excitation table, unused state `11` is listed last, but in the Gray-coded K-map (`00, 01, 11, 10`), `11` sits in **row 3**, while reachable state `10` sits in **row 4**! Swapping rows `10` and `11` when copying into K-maps corrupts every equation.
-3. **Leaving Unused States as `0`:** Treating state `11` as `0` instead of `X` prevents adjacent 2-cell and 8-cell merges and yields unminimized SOP equations.
+1. **JK Wildcards on SR:** Writing $(S, R) = (1, X)$ on $0 \to 1$ or $(X, 1)$ on $1 \to 0$ allows the illegal $S = R = 1$ condition; SR strictly requires $(1, 0)$ and $(0, 1)$ on bit flips.
+2. **Misplacing Row `11`:** In the excitation table, unused state `11` is listed last, but in the Gray-coded K-map (`00, 01, 11, 10`), `11` sits in **row 3**, while reachable state `10` sits in **row 4**! Swapping rows `10` and `11` when copying into K-maps corrupts every equation.
+3. **Zeroing Unused States:** Treating state `11` as `0` instead of `X` prevents adjacent 2-cell and 8-cell merges and yields unminimized SOP equations.
 
 </Callout>
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-5-1" title="Exercise 5.1 — Three-State SR Flip-Flop Synthesis (Sept 2026)" level="Exam" hint="Apply SR rules 0->0: (0,X), 0->1: (1,0), 1->0: (0,1), 1->1: (X,0). When copying into Gray K-maps (00, 01, 11, 10), remember state C (10) goes in row 4 while unused 11 goes in row 3!">
+<Exercise client:load id="ex-5-1" title="Exercise 5.1 — Three-State SR Flip-Flop Synthesis" level="Exam" hint="Apply SR rules 0->0: (0,X), 0->1: (1,0), 1->0: (0,1), 1->1: (X,0). When copying into Gray K-maps (00, 01, 11, 10), remember state C (10) goes in row 4 while unused 11 goes in row 3!">
 
-Given the minimal 3-state Mealy table from **September 2026 (Question 2)** with binary state assignment $A = 00$, $B = 01$, $C = 10$ (and `11` unused):
+Given the minimal 3-state Mealy table with binary state assignment $A = 00$, $B = 01$, $C = 10$ (and `11` unused):
 
 | State ($Q_1 Q_0$) | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
 | :---: | :---: | :---: |
@@ -189,7 +189,7 @@ Given the minimal 3-state Mealy table from **September 2026 (Question 2)** with 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Transition & SR Excitation Table:**
+1. **SR Excitation Table:**
 
    | $Q_1 Q_0$ | $X$ | $Q_1^* Q_0^*$ | $S_1$ | $R_1$ | $S_0$ | $R_0$ | $u$ |
    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -202,7 +202,7 @@ Given the minimal 3-state Mealy table from **September 2026 (Question 2)** with 
    | **$11$ (Unused)** | $0$ | $XX$ | $X$ | $X$ | $X$ | $X$ | $X$ |
    | **$11$ (Unused)** | $1$ | $XX$ | $X$ | $X$ | $X$ | $X$ | $X$ |
 
-2. **Karnaugh Map Grouping (Gray rows `00, 01, 11, 10`):**
+2. **Karnaugh Map Grouping** (Gray rows `00, 01, 11, 10`):
    - **$S_1$:** Single `1` at $(01, 0)$ merges with unused $(11, 0) = X \implies S_1 = Q_0 \overline{X}$.
    - **$R_1$:** `1`s at $(10, 0)$ and $(10, 1)$ merge with row `11` (`X, X`) into a 4-cell block $\implies R_1 = Q_1$ (merging with row `00` (`X, X`) gives the equally minimal $R_1 = \overline{Q}_0$).
    - **$S_0$:** `1` at $(00, 0)$ is surrounded by `0`s at $(00, 1), (01, 0), (10, 0)$ $\implies$ isolated EPI $\overline{Q}_1 \overline{Q}_0 \overline{X}$. Second `1` at $(10, 1)$ merges with $(11, 1) = X \implies Q_1 X$.

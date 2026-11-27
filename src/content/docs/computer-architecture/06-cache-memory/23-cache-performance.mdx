@@ -12,16 +12,16 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Memory Latency and Execution Time
 
-Every architectural adjustment in Chapters 19–22 pulls cache parameters in opposite directions: raising capacity $C$, associativity $N$, or block size $B$ lowers miss rate $\text{MR}$ at the cost of slower hit time $t_{\text{hit}}$ or larger miss penalty $\text{MP}$. To arbitrate those trade-offs quantitatively—and plug real memory behavior back into [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/) and [Pipeline Performance](/dynamic-courses/computer-architecture/05-pipelined-processor/18-pipeline-performance/)—we evaluate **Average Memory Access Time ($\text{AMAT}$)** and **memory-stall $\text{CPI}$**.
+Every architectural adjustment in Chapters 19–22 pulls cache parameters in opposite directions: raising capacity $C$, associativity $N$, or block size $B$ lowers miss rate $\text{MR}$ at the cost of slower hit time $t_{\text{hit}}$ or larger miss penalty $\text{MP}$. To arbitrate those trade-offs quantitatively—and plug real memory behavior back into [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/) and [Pipeline Performance](/dynamic-courses/computer-architecture/05-pipelined-processor/18-pipeline-performance/)—we evaluate **Average Memory Access Time** ($\text{AMAT}$) and **memory-stall $\text{CPI}$**.
 
 <Divider label="1 · Example" />
 
 ### Ranking Caches and Adding L2
 
 Suppose we benchmark three $16\text{ KiB}$ `L1` candidates for our RV32IM processor:
-- **Cache A (Direct-Mapped):** $t_{\text{hit}} = 1.00\text{ ns}$, $\text{MR} = 5.0\%$ ($0.050$), $\text{MP} = 40\text{ ns}$.
-- **Cache B (2-Way, larger block):** $t_{\text{hit}} = 1.05\text{ ns}$, $\text{MR} = 4.7\%$ ($0.047$), $\text{MP} = 42\text{ ns}$.
-- **Cache C (4-Way, larger block):** $t_{\text{hit}} = 1.10\text{ ns}$, $\text{MR} = 4.5\%$ ($0.045$), $\text{MP} = 42\text{ ns}$.
+- **Cache A** (Direct-Mapped): $t_{\text{hit}} = 1.00\text{ ns}$, $\text{MR} = 5.0\%$ ($0.050$), $\text{MP} = 40\text{ ns}$.
+- **Cache B** (2-Way, larger block): $t_{\text{hit}} = 1.05\text{ ns}$, $\text{MR} = 4.7\%$ ($0.047$), $\text{MP} = 42\text{ ns}$.
+- **Cache C** (4-Way, larger block): $t_{\text{hit}} = 1.10\text{ ns}$, $\text{MR} = 4.5\%$ ($0.045$), $\text{MP} = 42\text{ ns}$.
 
 Evaluating $\text{AMAT} = t_{\text{hit}} + \text{MR} \cdot \text{MP}$ for each design:
 
@@ -33,10 +33,10 @@ $$
 \end{aligned}
 $$
 
-Because $\text{AMAT}$ is a **latency** metric, **smaller $\text{AMAT}$ means higher performance**:
-1. **1st Place (Best): Cache C** ($2.990\text{ ns}$) — its $0.5\%$ miss-rate drop saves enough DRAM stalls to outweigh its $+0.10\text{ ns}$ hit-time tax.
-2. **2nd Place: Cache A** ($3.000\text{ ns}$) — beats Cache B because B's higher $t_{\text{hit}}$ and $\text{MP}$ cost more than a modest $0.3\%$ miss reduction saves.
-3. **3rd Place (Worst): Cache B** ($3.024\text{ ns}$).
+Because $\text{AMAT}$ is a **latency** metric, smaller $\text{AMAT}$ means **higher performance**:
+1. **1st: Cache C** ($2.990\text{ ns}$) — its $0.5\%$ miss-rate drop saves enough DRAM stalls to outweigh its $+0.10\text{ ns}$ hit-time tax.
+2. **2nd: Cache A** ($3.000\text{ ns}$) — beats Cache B because B's higher $t_{\text{hit}}$ and $\text{MP}$ cost more than a modest $0.3\%$ miss reduction saves.
+3. **3rd: Cache B** ($3.024\text{ ns}$).
 
 Now insert a unified `L2` cache ($t_{\text{hit},L2} = 5.0\text{ ns}$, local miss rate $\text{MR}_{L2} = 10\%$, DRAM penalty $\text{MP}_{L2} = 40\text{ ns}$) beneath Cache A, as shown in [the two-level hierarchy ladder](#fig-memory-hierarchy-ladder). Cache A's miss penalty drops from $40\text{ ns}$ to $\text{AMAT}_{L2} = 5.0 + (0.10 \times 40) = 9.0\text{ ns}$, slashing overall latency to $\text{AMAT} = 1.00 + (0.050 \times 9.0) = 1.450\text{ ns}$—more than twice as fast!
 
@@ -66,16 +66,16 @@ $$\text{AMAT} = t_{\text{hit}} + \text{MR} \cdot \text{MP}$$
 
 Notice the asymmetric sensitivity: $t_{\text{hit}}$ is multiplied by $1.0$ (paid on $100\%$ of accesses), whereas $\text{MP}$ is scaled down by $\text{MR} \ll 1$ (typically $0.01\text{--}0.05$). Consequently, a seemingly tiny $+0.1\text{ ns}$ increase in $t_{\text{hit}}$ impacts $\text{AMAT}$ as much as a $+2\text{ ns}$ increase in $\text{MP}$ at $\text{MR} = 5\%$.
 
-When designing a candidate **Cache B** to achieve **performance no worse than reference Cache A**, enforce the latency non-inferiority inequality:
+When designing a candidate **Cache B** to perform no worse than reference **Cache A**, enforce the latency non-inferiority inequality:
 
 $$\text{AMAT}_B \le \text{AMAT}_A \iff t_{\text{hit},B} + \text{MR}_B \cdot \text{MP}_B \le t_{\text{hit},A} + \text{MR}_A \cdot \text{MP}_A$$
 
 Solving for whichever target parameter is left free yields the two exact design bounds:
 
-1. **Maximum Allowable Hit Time ($t_{\text{hit},B,\max}$):**
+1. **Max Hit Time** ($t_{\text{hit},B,\max}$):
    $$t_{\text{hit},B} \le \text{AMAT}_A - \text{MR}_B \cdot \text{MP}_B$$
    For instance, against $\text{AMAT}_A = 1.0 + 0.04 \times 40 = 2.60\text{ ns}$, a candidate with $\text{MR}_C = 3.5\%$ and $\text{MP}_C = 44\text{ ns}$ satisfies $t_{\text{hit},C} \le 2.60 - (0.035 \times 44) = 2.60 - 1.540 = 1.060\text{ ns}$.
-2. **Maximum Allowable Miss Rate ($\text{MR}_{B,\max}$):**
+2. **Max Miss Rate** ($\text{MR}_{B,\max}$):
    $$\text{MR}_B \le \frac{\text{AMAT}_A - t_{\text{hit},B}}{\text{MP}_B}$$
    For instance, against $\text{AMAT}_A = 1.1 + 0.03 \times 40 = 2.30\text{ ns}$, a candidate with $t_{\text{hit},B} = 1.12\text{ ns}$ and $\text{MP}_B = 42\text{ ns}$ must achieve $\text{MR}_B \le \frac{2.30 - 1.12}{42} = \frac{1.18}{42} \approx 0.0281 = 2.81\%$. (If $t_{\text{hit},B} > \text{AMAT}_A$, the numerator is negative—meaning even $\text{MR}_B = 0\%$ could never match Cache A!)
 
@@ -91,7 +91,7 @@ $$\text{AMAT} = t_{\text{hit},L1} + \text{MR}_{L1}\big(t_{\text{hit},L2} + \text
 
 Be careful to distinguish the two ways `L2` miss rates are reported:
 
-- **Local Miss Rate ($\text{MR}_{L2}$):** $\frac{\text{Misses}_{L2}}{\text{Accesses}_{L2}} = \frac{\text{Misses}_{L2}}{\text{Misses}_{L1}}$—the fraction of `L1` misses that *also* miss in `L2`. Because `L1` already filters out easy hits, local $\text{MR}_{L2}$ often looks numerically high ($10\%\text{--}30\%$). **Use local $\text{MR}_{L2}$ inside the nested $\text{AMAT}$ formula above.**
+- **Local Miss Rate ($\text{MR}_{L2}$):** $\frac{\text{Misses}_{L2}}{\text{Accesses}_{L2}} = \frac{\text{Misses}_{L2}}{\text{Misses}_{L1}}$—the fraction of `L1` misses that *also* miss in `L2`. Because `L1` already filters out easy hits, local $\text{MR}_{L2}$ often looks numerically high ($10\%\text{--}30\%$). Always use **local $\text{MR}_{L2}$** inside the nested $\text{AMAT}$ formula above.
 - **Global Miss Rate ($\text{MR}_{L2,\text{global}}$):** $\frac{\text{Misses}_{L2}}{\text{Total CPU References}} = \text{MR}_{L1} \cdot \text{MR}_{L2}$—the fraction of all CPU accesses that miss in *both* caches and reach DRAM. Expanding the nested formula confirms $\text{AMAT} = t_{\text{hit},L1} + \text{MR}_{L1} t_{\text{hit},L2} + \text{MR}_{L2,\text{global}} \cdot \text{MP}_{L2}$.
 
 ### Processor CPI with Memory Stalls
@@ -100,12 +100,12 @@ While $\text{AMAT}$ evaluates the memory hierarchy in isolation, whole-program r
 
 $$\text{CPI} = \text{CPI}_{\text{exe}} + \text{Stalls}_{I} + \text{Stalls}_{D}$$
 
-1. **Instruction Cache Stalls ($\text{Stalls}_I$):** Every dynamic instruction ($100\%$ frequency) requires $1$ instruction fetch from `L1I`:
+1. **Instruction Cache Stalls** ($\text{Stalls}_I$): Every dynamic instruction ($100\%$ frequency) requires $1$ instruction fetch from `L1I`:
    $$\text{Stalls}_I = 1.0 \cdot \text{MR}_I P_I$$
-2. **Data Cache Stalls — Percentage Form:** Only Load ($f_{\text{load}}$) and Store ($f_{\text{store}}$) instructions access `L1D`. When unified data miss rate $\text{MR}_D$ applies to both loads and stores:
+2. **Data Stalls** (Percentage Form): Only Load ($f_{\text{load}}$) and Store ($f_{\text{store}}$) instructions access `L1D`. When unified data miss rate $\text{MR}_D$ applies to both loads and stores:
    $$\text{CPI} = \text{CPI}_{\text{exe}} + \text{MR}_I P_I + (f_{\text{load}} + f_{\text{store}})\,\text{MR}_D P_D$$
    (If separate $\text{MR}_{\text{load}}$ and $\text{MR}_{\text{store}}$ rates are given, expand the data term as $f_{\text{load}}\,\text{MR}_{\text{load}} P_D + f_{\text{store}}\,\text{MR}_{\text{store}} P_D$.)
-3. **Data Cache Stalls — Hybrid Absolute-Miss Form:** When a problem specifies total dynamic instructions $\text{IC}$ alongside an **absolute integer miss count** for one data operation (loads *or* stores) and an **instruction percentage** $f_{\text{op}}$ with miss rate $\text{MR}_D$ for the other:
+3. **Data Stalls** (Hybrid Absolute-Miss Form): When a problem specifies total dynamic instructions $\text{IC}$ alongside an **absolute integer miss count** for one data operation (loads *or* stores) and an **instruction percentage** $f_{\text{op}}$ with miss rate $\text{MR}_D$ for the other:
    - Convert the percentage branch to an absolute miss count: $N_{\text{op}} = \text{IC} \cdot f_{\text{op}}$, then $\text{Misses}_{\text{op}} = N_{\text{op}} \cdot \text{MR}_D$.
    - Sum all data cache misses and divide by $\text{IC}$ to obtain data misses per instruction:
      $$\text{Stalls}_D = \frac{\text{Misses}_{\text{load}} + \text{Misses}_{\text{store}}}{\text{IC}} \cdot P_D$$
@@ -129,7 +129,7 @@ Let us verify this hybrid workflow numerically for $\text{IC} = 2{,}000$, $\text
   explanation="Global miss rate multiplies the two filtering stages: $\text{MR}_{L2,\text{global}} = \text{MR}_{L1} \cdot \text{MR}_{L2} = 0.05 \times 0.20 = 0.01 = 1\%$."
 />
 
-<Callout type="bridge" title="Embedded & Robotics Bridge: Frame-Rate Budgets Under Cache Stalls">
+<Callout type="bridge" title="Cache Stalls in Visual Odometry">
 
 On an embedded Cortex-A or RV64 vision processor running a $30\text{ Hz}$ visual-odometry loop ($33.3\text{ ms}$ deadline), memory stalls routinely account for $50\%+$ of total cycles when feature descriptors jump randomly across image pyramids. Tiling image patches so active descriptors stay inside `L2` ($\text{MP}_{L1} \approx 10\text{ cycles}$) instead of spilling to LPDDR4 ($\text{MP}_{L2} \approx 120\text{ cycles}$) routinely doubles FPS without touching a single ALU instruction.
 
@@ -140,8 +140,8 @@ On an embedded Cortex-A or RV64 vision processor running a $30\text{ Hz}$ visual
 | Metric / Design Problem | Exact Formula | Critical Unit / Convention |
 | :--- | :--- | :--- |
 | **Single-Level AMAT** | $\text{AMAT} = t_{\text{hit}} + \text{MR} \cdot \text{MP}$ | Minimum $\text{AMAT}$ = Rank 1 (Best) |
-| **Max Hit Time ($\text{AMAT}_B \le \text{AMAT}_A$)** | $t_{\text{hit},B,\max} = \text{AMAT}_A - \text{MR}_B \cdot \text{MP}_B$ | Keep $t_{\text{hit}}$ and $\text{MP}$ in same units ($\text{ns}$ or cycles) |
-| **Max Miss Rate ($\text{AMAT}_B \le \text{AMAT}_A$)** | $\text{MR}_{B,\max} = \dfrac{\text{AMAT}_A - t_{\text{hit},B}}{\text{MP}_B}$ | Multiply decimal ratio by $100$ for $\%$ |
+| **Max Hit Time** ($\text{AMAT}_B \le \text{AMAT}_A$) | $t_{\text{hit},B,\max} = \text{AMAT}_A - \text{MR}_B \cdot \text{MP}_B$ | Keep $t_{\text{hit}}$ and $\text{MP}$ in same units ($\text{ns}$ or cycles) |
+| **Max Miss Rate** ($\text{AMAT}_B \le \text{AMAT}_A$) | $\text{MR}_{B,\max} = \dfrac{\text{AMAT}_A - t_{\text{hit},B}}{\text{MP}_B}$ | Multiply decimal ratio by $100$ for $\%$ |
 | **Nested Two-Level AMAT** | $\text{AMAT} = t_{\text{hit},L1} + \text{MR}_{L1}\big(t_{\text{hit},L2} + \text{MR}_{L2}\cdot\text{MP}_{L2}\big)$ | $\text{MR}_{L2}$ is **local** L2 miss rate |
 | **Global L2 Miss Rate** | $\text{MR}_{L2,\text{global}} = \text{MR}_{L1} \cdot \text{MR}_{L2}$ | Fraction of all CPU accesses reaching DRAM |
 | **Memory-Stall CPI ($\%$ Form)** | $\text{CPI} = \text{CPI}_{\text{exe}} + \text{MR}_I P_I + (f_{\text{load}} + f_{\text{store}})\,\text{MR}_D P_D$ | $P_I, P_D$ in **CPU clock cycles** |
@@ -150,16 +150,16 @@ On an embedded Cortex-A or RV64 vision processor running a $30\text{ Hz}$ visual
 ### Performance Calculation Procedure
 
 1. **Convert Percentages Immediately:** Rewrite every miss rate and instruction frequency as a decimal ($5\% \to 0.05$, $3.6\% \to 0.036$, $0.4\% \to 0.004$) before multiplying.
-2. **Match Time vs. Cycle Units:** If $t_{\text{hit}}$ is in $\text{ns}$ and $\text{MP}$ is given in clock cycles at frequency $f_{\text{clk}}$, convert via $T_{\text{clk}} = 1 / f_{\text{clk}}$ ($\text{MP}_{\text{ns}} = \text{MP}_{\text{cycles}} \cdot T_{\text{clk}}$).
+2. **Match Time Units:** If $t_{\text{hit}}$ is in $\text{ns}$ and $\text{MP}$ is given in clock cycles at frequency $f_{\text{clk}}$, convert via $T_{\text{clk}} = 1 / f_{\text{clk}}$ ($\text{MP}_{\text{ns}} = \text{MP}_{\text{cycles}} \cdot T_{\text{clk}}$).
 3. **Rank Ascending for AMAT:** Sort candidate caches from smallest $\text{AMAT}$ (fastest, 1st place) to largest $\text{AMAT}$ (slowest, last place), keeping at least $3$ decimal places ($\text{ns}$) to resolve tight ties.
-4. **Separate I-Cache from D-Cache in CPI:** Weight `L1I` misses by $1.0$ (every instruction is fetched) and `L1D` misses strictly by $f_{\text{load}} + f_{\text{store}}$ (or $\text{Misses}_{D,\text{tot}} / \text{IC}$), then plug effective $\text{CPI}$ into $T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}}$.
+4. **Weight `L1I` vs. `L1D`:** Multiply `L1I` misses by $1.0$ (every instruction is fetched) and `L1D` misses strictly by $f_{\text{load}} + f_{\text{store}}$ (or $\text{Misses}_{D,\text{tot}} / \text{IC}$), then plug effective $\text{CPI}$ into $T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}}$.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Decimal Shift Error ($5\% \neq 0.5$):** Entering $4.5\%$ as $0.45$ inflates the miss penalty term by $10\times$ and flips every inequality.
+1. **Decimal Shift Error** ($5\% \neq 0.5$): Entering $4.5\%$ as $0.45$ inflates the miss penalty term by $10\times$ and flips every inequality.
 2. **Inverted Ranking Order:** Never crown the highest $\text{AMAT}$ as "highest performance"—lower latency ($\min \text{AMAT}$) is strictly superior.
-3. **Applying $\text{MR}_D P_D$ to $100\%$ of Instructions:** Arithmetic and branch instructions never touch `L1D`; forgetting the $(f_{\text{load}} + f_{\text{store}})$ factor overcounts data stalls by $2.5\times\text{--}4\times$.
-4. **Local vs. Global L2 Mix-Up:** Never plug $\text{MR}_{L2,\text{global}}$ inside $\text{MR}_{L1}(\dots)$, which would multiply by $\text{MR}_{L1}$ twice!
+3. **Over-Weighting Data Stalls:** Arithmetic and branch instructions never touch `L1D`; omitting $(f_{\text{load}} + f_{\text{store}})$ overcounts $\text{MR}_D P_D$ by $2.5\times\text{--}4\times$.
+4. **Local vs. Global Mix-Up:** Never plug $\text{MR}_{L2,\text{global}}$ inside $\text{MR}_{L1}(\dots)$, which would multiply by $\text{MR}_{L1}$ twice!
 
 </Callout>
 
@@ -173,7 +173,7 @@ Three candidate $8\text{ KiB}$ data caches share a DRAM miss penalty $\text{MP} 
 - **Cache C:** $t_{\text{hit},C} = 1.23\text{ ns}$, $\text{MR}_C = 3.5\%$
 
 1. Compute $\text{AMAT}_A$, $\text{AMAT}_B$, and $\text{AMAT}_C$, and rank the three caches from best to worst performance.
-2. Holding $t_{\text{hit},C} = 1.23\text{ ns}$ and $\text{MP}_C = 40\text{ ns}$ fixed, determine the **maximum allowable Miss Rate $\text{MR}_{C,\max}$** (in $\%$) required for Cache C to achieve performance no worse than the winning cache.
+2. Holding $t_{\text{hit},C} = 1.23\text{ ns}$ and $\text{MP}_C = 40\text{ ns}$ fixed, determine the **miss-rate ceiling** $\text{MR}_{C,\max}$ (in $\%$) required for Cache C to achieve performance no worse than the winning cache.
 
 <StepCheck
   client:load
@@ -187,16 +187,16 @@ Three candidate $8\text{ KiB}$ data caches share a DRAM miss penalty $\text{MP} 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **AMAT Evaluation & Performance Ranking:**
+1. **AMAT Evaluation:**
    - $\text{AMAT}_A = 1.09 + (0.038 \times 40) = 1.09 + 1.520 = \mathbf{2.610\text{ ns}}$
    - $\text{AMAT}_B = 1.16 + (0.036 \times 40) = 1.16 + 1.440 = \mathbf{2.600\text{ ns}}$
    - $\text{AMAT}_C = 1.23 + (0.035 \times 40) = 1.23 + 1.400 = \mathbf{2.630\text{ ns}}$
-   - **Performance Ranking ($\min \text{AMAT}$ first):**
+   - **Performance Ranking** ($\min \text{AMAT}$ first):
      1. **1st (Best): Cache B** ($2.600\text{ ns}$)
      2. **2nd: Cache A** ($2.610\text{ ns}$)
      3. **3rd (Worst): Cache C** ($2.630\text{ ns}$)
 
-2. **Threshold Miss Rate for Cache C vs. Cache B ($\text{AMAT}_C \le 2.600\text{ ns}$):**
+2. **Cache C Miss-Rate Bound** ($\text{AMAT}_C \le 2.600\text{ ns}$):
    $$1.23 + (\text{MR}_C \times 40) \le 2.600 \implies 40\,\text{MR}_C \le 1.370 \implies \text{MR}_C \le \frac{1.370}{40} = 0.03425 = \mathbf{3.425\%}$$
 
 </details>
@@ -226,9 +226,9 @@ A computer system employs a two-level cache hierarchy:
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Effective L1 Miss Penalty ($\text{AMAT}_{L2}$):**
+1. **Effective L1 Penalty** ($\text{AMAT}_{L2}$):
    $$\text{MP}_{L1} = \text{AMAT}_{L2} = t_{\text{hit},L2} + \text{MR}_{L2} \cdot \text{MP}_{L2} = 5.0 + (0.10 \times 60) = 5.0 + 6.0 = \mathbf{11.0\text{ ns}}$$
-2. **Overall Two-Level AMAT vs. L1-Only:**
+2. **Two-Level vs. L1-Only:**
    $$\text{AMAT}_{\text{L1+L2}} = t_{\text{hit},L1} + \text{MR}_{L1} \cdot \text{AMAT}_{L2} = 1.2 + (0.04 \times 11.0) = 1.2 + 0.44 = \mathbf{1.64\text{ ns}}$$
    Without `L2`, $\text{AMAT}_{\text{L1-only}} = 1.2 + (0.04 \times 60) = 1.2 + 2.40 = 3.60\text{ ns}$—adding `L2` cuts average memory latency by $2.20\times$.
 3. **Global L2 Miss Rate:**
@@ -240,7 +240,7 @@ A computer system employs a two-level cache hierarchy:
 
 <Exercise client:load id="ex-23-3" title="Exercise 23.3 — Memory-Stall CPI and Execution Time" level="Exam" hint="Compute store misses from $N_{\text{store}} = \text{IC} \cdot f_{\text{store}}$ and $\text{MR}_D$, add the 25 absolute load misses, and divide total D-misses by $\text{IC} = 3{,}000$.">
 
-A $2\text{ GHz}$ processor ($T_{\text{clk}} = 0.5\text{ ns}$) executes a benchmark of $\text{IC} = 3{,}000$ dynamic instructions with ideal-cache execution $\text{CPI}_{\text{exe}} = 1.5$. Store instructions represent $f_{\text{store}} = 15\%$ of all executed instructions, while Load instructions generate an **absolute count of $25$ data-cache misses**. The split Harvard caches exhibit:
+A $2\text{ GHz}$ processor ($T_{\text{clk}} = 0.5\text{ ns}$) executes a benchmark of $\text{IC} = 3{,}000$ dynamic instructions with ideal-cache execution $\text{CPI}_{\text{exe}} = 1.5$. Store instructions represent $f_{\text{store}} = 15\%$ of all executed instructions, while Load instructions generate an **absolute count** of $25$ data-cache misses. The split Harvard caches exhibit:
 - **Instruction Cache (`L1I`):** $\text{MR}_I = 2\%$, miss penalty $P_I = 45\text{ cycles}$.
 - **Data Cache (`L1D`):** $\text{MR}_D = 3\%$, miss penalty $P_D = 45\text{ cycles}$.
 
@@ -259,10 +259,10 @@ A $2\text{ GHz}$ processor ($T_{\text{clk}} = 0.5\text{ ns}$) executes a benchma
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Cache Stall Breakdown and Effective CPI:**
-   - **Instruction Cache Stalls ($100\%$ fetch rate):**
+1. **Stalls and Effective CPI:**
+   - **Instruction Cache Stalls** ($100\%$ fetch):
      $$\text{Stalls}_I = 1.0 \times 0.02 \times 45 = \mathbf{0.90\text{ cycles/instr}}$$
-   - **Data Cache Stalls (Hybrid Load + Store Count):**
+   - **Data Cache Stalls** (Load + Store):
      - Dynamic stores: $N_{\text{store}} = 3{,}000 \times 0.15 = 450\text{ stores}$.
      - Store misses: $\text{Misses}_{\text{store}} = 450 \times 0.03 = 13.5\text{ misses}$.
      - Total `L1D` misses: $\text{Misses}_{D,\text{tot}} = 25 + 13.5 = 38.5\text{ misses}$.
@@ -271,7 +271,7 @@ A $2\text{ GHz}$ processor ($T_{\text{clk}} = 0.5\text{ ns}$) executes a benchma
    - **Total Processor CPI:**
      $$\text{CPI} = \text{CPI}_{\text{exe}} + \text{Stalls}_I + \text{Stalls}_D = 1.5 + 0.90 + 0.5775 = \mathbf{2.9775\text{ cycles/instr}}$$
 
-2. **Total Execution Time ($T_{\text{clk}} = 0.5\text{ ns}$):**
+2. **Total Execution Time** ($T_{\text{clk}} = 0.5\text{ ns}$):
    $$T_{\text{exec}} = \text{IC} \cdot \text{CPI} \cdot T_{\text{clk}} = 3{,}000 \times 2.9775 \times 0.5\text{ ns} = 4{,}466.25\text{ ns} \approx \mathbf{4.466\text{ }\mu\text{s}}$$
 
 </details>

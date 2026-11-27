@@ -85,7 +85,7 @@ An arithmetic instruction (`add`, `sub`, `addi`, `and`, `or`, `slt`) finishes co
 
 The combinational **Forwarding Unit** inspects register indices latched in `ID/EX`, `EX/MEM`, and `MEM/WB` and drives `ForwardA` according to two prioritized Boolean equations (with identical equations replacing `RegisterRs1` by `RegisterRs2` for `ForwardB`):
 
-1. **`EX` Hazard (Distance $k = 1$ from `EX/MEM` $\implies \text{ForwardA} = 10$):**
+1. **`EX` Hazard** (Distance $k = 1$, `ForwardA = 10`):
 
 $$
 \begin{aligned}
@@ -96,7 +96,7 @@ $$
 \end{aligned}
 $$
 
-2. **`MEM` Hazard (Distance $k = 2$ from `MEM/WB` $\implies \text{ForwardA} = 01$):**
+2. **`MEM` Hazard** (Distance $k = 2$, `ForwardA = 01`):
 
 $$
 \begin{aligned}
@@ -108,7 +108,7 @@ $$
 \end{aligned}
 $$
 
-3. **Default (`No Hazard` $\implies \text{ForwardA} = 00$):** Select `ID/EX.Data1` read normally from the Register File.
+3. **Default** (No Hazard, `ForwardA = 00`): Select `ID/EX.Data1` read normally from the Register File.
 
 Two guards inside these equations are mandatory for architectural correctness:
 
@@ -132,9 +132,9 @@ $$
 
 When triggered, the Hazard Detection Unit executes three synchronous actions on the next clock edge:
 
-1. **Zero `ID/EX` Control Signals:** Forces a multiplexer ahead of `ID/EX` to set `RegWrite = 0` and `MemWrite = 0`, launching a harmless `NOP` bubble into stage `EX`.
-2. **Freeze `IF/ID` (`IF/IDWrite = 0`):** Holds the stalled consumer instruction inside `IF/ID` so it repeats `ID` on the next cycle.
-3. **Freeze `PC` (`PCWrite = 0`):** Holds `PC` unchanged so the instruction after the consumer is re-fetched rather than lost.
+1. **Zero `ID/EX` Controls:** Forces a multiplexer ahead of `ID/EX` to set `RegWrite = 0` and `MemWrite = 0`, launching a harmless `NOP` bubble into stage `EX`.
+2. **Freeze `IF/ID`:** Setting `IF/IDWrite = 0` holds the stalled consumer instruction inside `IF/ID` so it repeats `ID` on the next cycle.
+3. **Freeze `PC`:** Setting `PCWrite = 0` holds `PC` unchanged so the instruction after the consumer is re-fetched rather than lost.
 
 One cycle later, the `lw` data sits in `MEM/WB`, and the Forwarding Unit (`ForwardA = 01` or `ForwardB = 01`) routes it cleanly into the resumed consumer's `EX` stage. (Note: if `lw x1, 0(x2)` is immediately followed by `sw x1, 0(x3)`, where `x1` is only the *stored payload* `rs2` needed in `MEM` rather than the base address `rs1` needed in `EX`, a `MEM/WB -> MEM` store-data bypass forwards `x1` in **0 stalls**; unless a problem explicitly invokes store-data forwarding, check whether `lw` feeds an `EX` operand.)
 
@@ -190,8 +190,8 @@ Embedded RISC-V and ARM Cortex-M microcontrollers rely on static compiler schedu
 
 | Dependency Pattern | Distance $k$ | Stalls (Forwarding OFF) | Stalls (Forwarding ON) | Active Hardware Mechanism (Forwarding ON) |
 | :--- | :---: | :---: | :---: | :--- |
-| **`ALU` $\to$ `ALU` / `lw` / `sw`** | $k = 1$ | $2$ | **$0$** | `EX/MEM` $\to$ `EX` bypass (`ForwardA/B = 10`) |
-| **`ALU` $\to$ `ALU` / `lw` / `sw`** | $k = 2$ | $1$ | **$0$** | `MEM/WB` $\to$ `EX` bypass (`ForwardA/B = 01`) |
+| **ALU to ALU/Memory** | $k = 1$ | $2$ | **$0$** | `EX/MEM` $\to$ `EX` bypass (`ForwardA/B = 10`) |
+| **ALU to ALU/Memory** | $k = 2$ | $1$ | **$0$** | `MEM/WB` $\to$ `EX` bypass (`ForwardA/B = 01`) |
 | **`lw` $\to$ `ALU` (Load-Use)** | $k = 1$ | $2$ | **$1$** | 1 bubble via `ID/EX.MemRead` + `MEM/WB` bypass (`01`) |
 | **`lw` $\to$ `ALU`** | $k = 2$ | $1$ | **$0$** | `MEM/WB` $\to$ `EX` bypass (`ForwardA/B = 01`) |
 | **Any `RegWrite` $\to$ Reader** | $k \ge 3$ | **$0$** | **$0$** | Split-cycle Register File double-pumping |
@@ -205,9 +205,9 @@ Embedded RISC-V and ARM Cortex-M microcontrollers rely on static compiler schedu
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Adding Stalls to `ALU -> ALU` When Forwarding is Active:** With full forwarding, `ALU -> ALU` at $k = 1$ or $k = 2$ costs **0 stalls**. Only `lw` at distance $k = 1$ incurs 1 stall!
-2. **Forgetting Stall Cascades When Forwarding is Disabled:** When instruction $I_2$ stalls for 2 cycles in `ID`, $I_3$ is simultaneously held in `IF` for those same 2 cycles—always track actual cycle numbers (`C1`, `C2`, ...) so you don't double-count stalls that were already absorbed by an earlier stall.
-3. **Moving Pointer Updates Without Offset Adjustment:** If you move `addi s0, s0, 4` *above* `sw t1, 0(s0)` during compiler scheduling, you must update the store offset to `sw t1, -4(s0)` so it writes to the original address!
+1. **Stalling `ALU -> ALU`:** With full forwarding, `ALU -> ALU` at $k = 1$ or $k = 2$ costs **0 stalls**. Only `lw` at distance $k = 1$ incurs 1 stall!
+2. **Double-Counting Stall Cascades:** When instruction $I_2$ stalls for 2 cycles in `ID`, $I_3$ is simultaneously held in `IF` for those same 2 cycles—always track actual cycle numbers (`C1`, `C2`, ...) so you don't double-count stalls that were already absorbed by an earlier stall.
+3. **Unadjusted Pointer Offsets:** If you move `addi s0, s0, 4` *above* `sw t1, 0(s0)` during compiler scheduling, you must update the store offset to `sw t1, -4(s0)` so it writes to the original address!
 
 </Callout>
 
@@ -253,7 +253,7 @@ or   x6, x0, x4      # I5
    - $I_2 \to I_3$ on `x4` ($k = 1$, `ALU` to `ALU`).
    - $I_2 \to I_4$ on `x4` ($k = 2$, `ALU` to `ALU`).
    - $I_2 \to I_5$ on `x4` ($k = 3$, `ALU` to `ALU`).
-   - **Why `x0` in $I_4 \to I_5$ is NOT a hazard:** `x0` is hardwired to `0`; $I_4$ (`addi x0, x4, 8`) discards its write in `WB`, and the `RegisterRd != 0` guard prevents `EX/MEM` from forwarding `x4 + 8` into $I_5$.
+   - **`x0` Exemption** ($I_4 \to I_5$): `x0` is hardwired to `0`; $I_4$ (`addi x0, x4, 8`) discards its write in `WB`, and the `RegisterRd != 0` guard prevents `EX/MEM` from forwarding `x4 + 8` into $I_5$.
 2. **Without Forwarding (Cycle-by-Cycle):**
    - $I_1$ (`lw x1`): `IF`(C1) `ID`(C2) `EX`(C3) `MEM`(C4) `WB`(C5).
    - $I_2$ (`sub x4, x1, x3`): `IF`(C2) `ID`(C3), **2 stalls** (C4, C5 waiting for `x1`), `EX`(C6) `MEM`(C7) `WB`(C8).

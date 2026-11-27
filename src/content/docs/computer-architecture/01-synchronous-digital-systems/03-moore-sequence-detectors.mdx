@@ -12,7 +12,7 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Introduction
 
-Whereas a [Mealy Sequence Detector](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/02-mealy-sequence-detectors/) feeds live inputs directly into its output gates, a **Moore sequence detector** computes its output solely from the latched present state: $u^t = \lambda(S^t)$. Insulating $u^t$ behind the state flip-flops eliminates asynchronous input glitches and breaks long combinational paths between chip modules, trading **one extra recognition state** and **1 clock cycle of output latency** for clean, clock-synchronized output waveforms.
+Whereas a [Mealy Sequence Detector](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/02-mealy-sequence-detectors/) feeds live inputs directly into its output gates, a **Moore sequence detector** computes its output solely from the latched present state: $u^t = \lambda(S^t)$. Insulating $u^t$ behind the state flip-flops eliminates asynchronous input glitches and breaks long combinational paths between chip modules, trading **one recognition state** and **1-cycle output latency** for clean, clock-synchronized output waveforms.
 
 <Divider label="1 · Example" />
 
@@ -22,10 +22,10 @@ Let us design a synchronous Moore detector over $xy \in \{00, 01, 11, 10\}$ that
 
 Because a Moore output belongs strictly to a state circle ($S_k / u$) and reset state $S_0$ must output $u = 0$, the circuit requires **4 states** ($L + 1 = 3 + 1 = 4$):
 
-1. **$S_0 / 0$ (Reset $\varepsilon$):** Idle state; `11` advances to $S_1$, all other inputs stay in $S_0$.
-2. **$S_1 / 0$ (Prefix `11`):** `10` advances to $S_2$; `11` stays in $S_1$ (preserving prefix `11`); `00, 01` reset to $S_0$.
-3. **$S_2 / 0$ (Prefix `11, 10`):** `00` enters the dedicated recognition state $S_3$; `11` routes to $S_1$; `01, 10` reset to $S_0$.
-4. **$S_3 / 1$ (Recognition `11, 10, 00`):** Asserts $u = 1$ for one full clock period! On the next clock edge, if $xy = 11$ arrives, the machine jumps directly to $S_1$ (`11` starts a new sequence without wasting a cycle); `00, 01, 10` return to $S_0$.
+1. **$S_0 / 0$** (Reset $\varepsilon$): Idle state; `11` advances to $S_1$, all other inputs stay in $S_0$.
+2. **$S_1 / 0$** (Prefix `11`): `10` advances to $S_2$; `11` stays in $S_1$ (preserving prefix `11`); `00, 01` reset to $S_0$.
+3. **$S_2 / 0$** (`11, 10`): `00` enters the dedicated recognition state $S_3$; `11` routes to $S_1$; `01, 10` reset to $S_0$.
+4. **$S_3 / 1$** (`11, 10, 00`): Asserts $u = 1$ for one full clock period! On the next clock edge, if $xy = 11$ arrives, the machine jumps directly to $S_1$ (`11` starts a new sequence without wasting a cycle); `00, 01, 10` return to $S_0$.
 
 <figure id="fig-moore-fsm" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/computer-architecture/fig-moore-fsm.svg" alt="Moore state transition diagram for sequence {11, 10, 00} with outputs u written inside state circles and plain input labels xy on transition arcs." />
@@ -97,11 +97,11 @@ A common exam trap is leaving $S_{\text{rec}} / 1$ as a dead end or blindly rout
 - For each of the 4 inputs $xy \in \{00, 01, 11, 10\}$, form $W + [xy]$ and apply the **Longest Proper Prefix-Suffix (LPS)** rule from [Mealy Sequence Detectors](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/02-mealy-sequence-detectors/). Whenever $W$ already ends in a valid prefix (for example, $W = \{01, 10, 01\}$ ends in `{01}`), appending the second symbol (`10`) forms a 2-symbol suffix (`{01, 10}`) that routes $S_{\text{rec}} / 1$ directly to $S_2$ rather than $S_1$ or $S_0$.
 - If two branches end with **different suffix histories** that affect subsequent overlaps (e.g., Branch A ends in `10` while Branch B ends in `00` where `00` already starts a new prefix!), you must split recognition into distinct $u = 1$ states so neither branch loses its overlap context.
 
-### Flip-Flop Cost and Timing Latency
+### Flip-Flop Cost and Latency
 
 Adding the dedicated recognition state introduces two quantifiable hardware trade-offs relative to a Mealy detector:
 
-1. **One-Cycle Assertion Latency:** If an $L$-symbol target sequence is applied across clock cycles $1, 2, \dots, L$ starting from $S_0 / 0$, cycle $L$ presents the final symbol while the machine is still in $S_{L-1} / 0$ and sets up $S^{t+1} = S_{\text{rec}}$. Output $u = 1$ therefore asserts during **clock cycle $L + 1$**, immediately after the rising edge latches $S_{\text{rec}} / 1$.
+1. **One-Cycle Assertion Latency:** If an $L$-symbol target sequence is applied across clock cycles $1, 2, \dots, L$ starting from $S_0 / 0$, cycle $L$ presents the final symbol while the machine is still in $S_{L-1} / 0$ and sets up $S^{t+1} = S_{\text{rec}}$. Output $u = 1$ therefore asserts during clock cycle **$L + 1$**, immediately after the rising edge latches $S_{\text{rec}} / 1$.
 2. **Binary Flip-Flop Count:** Encoding $\lvert S \rvert$ states in binary requires $k = \lceil \log_2 \lvert S \rvert \rceil$ flip-flops (developed fully in [Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/)). Whenever the Mealy state count is an exact power of two (such as $\lvert S_{\text{Mealy}} \rvert = 4 \implies \lceil \log_2 4 \rceil = 2$ flip-flops), adding a single Moore recognition state crosses the power-of-two boundary ($\lvert S_{\text{Moore}} \rvert = 5 \implies \lceil \log_2 5 \rceil = 3$ flip-flops), adding one extra state bit.
 
 <Callout type="tip" title="Practical Hardware Perspective">
@@ -136,16 +136,16 @@ Production FPGA/ASIC designs and flight-control autopilots (such as PX4 mode man
 
 ### Synthesis Procedure
 
-1. **Allocate Prefix and Recognition States:** Assign $S_0 / 0$ to $\varepsilon$, assign $u = 0$ states to every intermediate prefix/loop, and add dedicated $S_{\text{rec}} / 1$ state(s) (splitting $u = 1$ states if distinct branches preserve different overlap suffixes).
+1. **Allocate States:** Assign $S_0 / 0$ to $\varepsilon$, assign $u = 0$ states to every intermediate prefix/loop, and add dedicated $S_{\text{rec}} / 1$ state(s) (splitting $u = 1$ states if distinct branches preserve different overlap suffixes).
 2. **Route Prefix Transitions:** Apply forward, $(XY)^+$ self-loop, and LPS mismatch rules across all $u = 0$ states, writing plain input labels $xy$ on arcs (never `/ u`) and routing terminal matches into $S_{\text{rec}} / 1$.
-3. **Route Outgoing Arcs from $S_{\text{rec}} / 1$:** Evaluate $W + [xy]$ via LPS across all 4 symbols `00, 01, 11, 10` so overlapping sequences jump straight to $S_1, S_2, \dots$ on the next clock edge.
-4. **Format the Moore State Table:** Place a separate `Output u` column beside `Present State`, followed by plain next-state entries $S^{t+1}$ in Gray column order `00, 01, 11, 10`.
+3. **Route Recognition Exits:** Evaluate $W + [xy]$ from $S_{\text{rec}} / 1$ via LPS across all 4 symbols `00, 01, 11, 10` so overlapping sequences jump straight to $S_1, S_2, \dots$ on the next clock edge.
+4. **Format Moore Table:** Place a separate `Output u` column beside `Present State`, followed by plain next-state entries $S^{t+1}$ in Gray column order `00, 01, 11, 10`.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Mixing Mealy and Moore Notation:** Writing `/ 0` or `/ 1` on arrows or inside next-state columns in a Moore question loses marks immediately.
-2. **Omitting Outgoing Arcs from $S_{\text{rec}} / 1$:** Leaving the $S_{\text{rec}}$ row blank or sending all 4 inputs to $S_0$ breaks overlapping sequence detection on the cycle following a match.
-3. **Forgetting Already-Matched Suffixes in $S_{\text{rec}}$:** If a recognized sequence `{01, 10, 01}` ends in `01`, then $S_3 / 1$ **already** holds the 1-symbol prefix `01`—so receiving `10` next advances directly to $S_2$ (`{01, 10}`), not $S_0$!
+1. **Mixing Notation:** Writing `/ 0` or `/ 1` on arrows or inside next-state columns in a Moore question loses marks immediately.
+2. **Omitting $S_{\text{rec}}$ Exits:** Leaving the $S_{\text{rec}}$ row blank or sending all 4 inputs to $S_0$ breaks overlapping sequence detection on the cycle following a match.
+3. **Ignoring $S_{\text{rec}}$ Suffixes:** If a recognized sequence `{01, 10, 01}` ends in `01`, then $S_3 / 1$ **already** holds the 1-symbol prefix `01`—so receiving `10` next advances directly to $S_2$ (`{01, 10}`), not $S_0$!
 
 </Callout>
 
@@ -174,7 +174,7 @@ Synthesize a synchronous Moore sequence detector over $xy \in \{00, 01, 11, 10\}
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **State Set & Outputs (4 States):**
+1. **State Set & Outputs** (4 States):
    - **$S_0 / 0$:** Reset ($\varepsilon$).
    - **$S_1 / 0$:** Prefix `{01}`.
    - **$S_2 / 0$:** Prefix `{01, 11}`.

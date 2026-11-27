@@ -28,16 +28,16 @@ Every calculation and procedure tested in **Q1–Q6** is given with complete, me
 
 ## Prerequisites
 
-1. **Boolean Logic & Binary Arithmetic:** Basic logic gates (`AND`, `OR`, `NOT`, `XOR`), two's complement signed integers, and hexadecimal notation.
+1. **Boolean Logic:** Basic logic gates (`AND`, `OR`, `NOT`, `XOR`), two's complement signed integers, and hexadecimal notation.
 2. **C Programming:** Pointers, arrays, null-terminated strings, stack vs. static memory, and structured loops/recursion.
-3. **Discrete Basics:** Powers of two ($2^k$), base-2 logarithms ($\log_2$), and modulo arithmetic ($j \bmod N$).
+3. **Discrete Mathematics:** Powers of two ($2^k$), base-2 logarithms ($\log_2$), and modulo arithmetic ($j \bmod N$).
 
 <Divider />
 
-## Practical Engineering & Robotics Bridge
+## Engineering Applications
 
-Every abstraction in this course maps directly onto real embedded and robotic hardware:
+Every abstraction in this course maps directly onto embedded and robotic hardware:
 
-- **Pipelined Datapaths & Hazards $\longrightarrow$ Deterministic Control Loops:** On embedded RISC-V and ARM Cortex-M flight controllers, understanding Load-Use stalls, forwarding paths, and compiler instruction scheduling prevents timing jitter in high-rate ($1\,\text{kHz}$) control loops.
-- **Cache Hierarchies & Write Policies $\longrightarrow$ High-Bandwidth Sensor Pipelines:** Camera frames and LiDAR buffers streaming via DMA require proper understanding of cache block alignment, Write-Through vs. Write-Back dirty lines, and conflict misses.
-- **RISC-V ABI & Stack Frames $\longrightarrow$ Bare-Metal Firmware & RTOS Context Switches:** Interrupt handlers, system calls, and RTOS task switchers rely directly on stack-pointer (`sp`) discipline and caller/callee-saved register conventions (`ra`, `t0`–`t6`, `s0`–`s11`).
+- **Pipelined Datapaths:** On embedded RISC-V and ARM Cortex-M flight controllers, understanding Load-Use stalls, forwarding paths, and compiler instruction scheduling prevents timing jitter in high-rate ($1\,\text{kHz}$) control loops.
+- **Cache Hierarchies:** Camera frames and LiDAR buffers streaming via DMA require cache block alignment, Write-Through vs. Write-Back dirty-line management, and conflict-miss avoidance.
+- **RISC-V ABI:** Interrupt handlers, system calls, and RTOS context switchers rely directly on stack-pointer (`sp`) discipline and caller/callee-saved register conventions (`ra`, `t0`–`t6`, `s0`–`s11`).

@@ -130,9 +130,9 @@ Under the hood, the assembler expands `la rd, label` into a two-instruction PC-r
 
 In RARS and Venus, every console operation sets the service code in **`a7`** (`x17`), passes arguments in **`a0`** and **`a1`**, and receives any return value in **`a0`**. Because `ecall` invokes external handler code, treat caller-saved registers as potentially volatile across system calls and keep long-lived C variables in `s0`–`s11` once subroutines enter play.
 
-#### Printing Output (`a7 = 1`, `4`, `11`)
+#### Console Output Services
 
-C `printf` format strings are decomposed into a sequence of elementary `ecall` operations—one per literal chunk or `%d` / `%s` / `%c` specifier:
+C `printf` format strings are decomposed into a sequence of elementary `ecall` operations—one per literal chunk or `%d` / `%s` / `%c` specifier (`a7 = 1, 4, 11`):
 
 ```asm
 # Equivalent to: printf("Sum = %d\n", s2);
@@ -149,11 +149,11 @@ li   a7, 11              # Service 11: PrintChar (prints low 8 bits of a0)
 ecall
 ```
 
-#### Reading Integers and Strings (`a7 = 5`, `8`)
+#### Console Input Services
 
-**`ReadInt` (`a7 = 5`)** parses a signed decimal integer from keyboard input, strips leading whitespace, and returns the 32-bit two's complement value in **`a0`** (matching `scanf("%d", &x)`). Move `a0` immediately into the variable's target register (`mv s0, a0`).
+**`ReadInt`** (`a7 = 5`) parses a signed decimal integer from keyboard input, strips leading whitespace, and returns the 32-bit two's complement value in **`a0`** (matching `scanf("%d", &x)`). Move `a0` immediately into the variable's target register (`mv s0, a0`).
 
-**`ReadString` (`a7 = 8`)** reads characters from the console into a destination byte buffer whose base address is in **`a0`** and whose total byte capacity is in **`a1`**:
+**`ReadString`** (`a7 = 8`) reads characters from the console into a destination byte buffer whose base address is in **`a0`** and whose total byte capacity is in **`a1`**:
 
 ```asm
 # Read into a 16-byte buffer pointed to by s1:
@@ -180,9 +180,9 @@ zero_nl:
 strip_done:
 ```
 
-#### Clean Program Termination (`a7 = 10`)
+#### Program Exit
 
-Unlike C, where reaching the closing brace `}` of `main` implicitly invokes `exit(0)`, a RISC-V CPU simply increments `PC` by `4` forever. If helper subroutines such as `strlen` are placed below `main` in `.text` and you omit `li a7, 10; ecall`, execution **falls straight through** into the first instruction of `strlen` with garbage arguments, causing infinite loops or illegal memory accesses. Every standalone `main` must end with:
+Unlike C, where reaching the closing brace `}` of `main` implicitly invokes `exit(0)`, a RISC-V CPU simply increments `PC` by `4` forever. If helper subroutines such as `strlen` are placed below `main` in `.text` and you omit `li a7, 10; ecall`, execution **falls straight through** into the first instruction of `strlen` with garbage arguments, causing infinite loops or illegal memory accesses. Every standalone `main` must end with service `a7 = 10`:
 
 ```asm
 li   a7, 10              # Service 10: Exit
@@ -193,7 +193,7 @@ ecall
 
 Why must console I/O go through `ecall` instead of reading keyboard registers directly? On multi-tasking processors (Linux on RV64/RV32), user applications run in unprivileged **User Mode (U-mode)** so a buggy program cannot corrupt another process's terminal or disk. Executing `ecall` raises a synchronous hardware exception: the CPU records the faulting PC in the exception program counter CSR (`sepc`), switches to privileged **Supervisor/Machine Mode**, jumps to the kernel trap vector, and dispatches the service requested in `a7` before returning via `sret`/`mret`.
 
-<Callout type="bridge" title="Embedded Firmware Bridge: Syscalls vs. Memory-Mapped UART">
+<Callout type="bridge" title="Syscalls and Memory-Mapped UART">
 
 On bare-metal microcontrollers without an operating system (such as STM32 or ESP32-C3 RISC-V flight controllers), there is no POSIX kernel listening to `ecall` service codes. Instead, `printf` retargets `putchar` directly to **Memory-Mapped I/O (MMIO)** hardware registers—polling a UART transmit-ready status bit (`lbu` from `0x40001014`) and writing each ASCII byte (`sb` to `0x40001000`), or queuing packets via non-blocking DMA so high-rate control loops never stall on slow serial baud rates.
 
@@ -227,18 +227,18 @@ On bare-metal microcontrollers without an operating system (such as STM32 or ESP
 
 ### Console Translation Procedure
 
-1. **Declare Static Literals in `.data`:** Split every `printf` format string at its `%d` / `%s` placeholders into separate `.asciz` labels (and use `li a0, 10; li a7, 11; ecall` for standalone `'\n'`).
-2. **Open `.text` and `.globl main`:** Begin execution at `main:`.
+1. **Declare Static Literals:** Split every `printf` format string in `.data` at its `%d` / `%s` placeholders into separate `.asciz` labels (and use `li a0, 10; li a7, 11; ecall` for standalone `'\n'`).
+2. **Open Code Section:** Begin execution with `.text` and `.globl main` at `main:`.
 3. **Translate Prompts and Reads:** Pair `la a0, prompt; li a7, 4; ecall` with `li a7, 5; ecall` (immediately followed by `mv reg, a0`) for integers, or `li a1, size; li a7, 8; ecall` for string buffers.
 4. **Chain Composite `printf` Calls:** Emit one `ecall` per segment (`a7 = 4` for text, `a7 = 1` for integers, `a7 = 11` for single ASCII characters).
 5. **Terminate Explicitly:** End `main` with `li a7, 10; ecall` before defining any helper labels below `main`.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Forgetting `mv reg, a0` After `ReadInt`:** Leaving the read integer inside `a0` while setting up `la a0, next_str` overwrites user input immediately.
-2. **Using `lw` Instead of `la` for Strings:** Writing `lw a0, str_prompt` loads 4 ASCII characters as a bogus memory address, triggering an unaligned/invalid address trap inside `PrintString`.
+1. **Overwriting `ReadInt` Output:** Leaving the read integer inside `a0` while setting up `la a0, next_str` overwrites user input immediately; always follow `a7 = 5` with `mv reg, a0`.
+2. **Using `lw` Instead of `la`:** Writing `lw a0, str_prompt` loads 4 ASCII characters as a bogus memory address, triggering an unaligned/invalid address trap inside `PrintString`.
 3. **Omitting `a1` Before `ReadString`:** Leaving garbage or zero in `a1` before `li a7, 8; ecall` either reads zero characters or overflows adjacent memory.
-4. **Falling Off the Bottom of `main`:** Omitting `li a7, 10; ecall` causes the CPU to execute whatever instructions or data follow `main` in memory.
+4. **Falling Off `main`:** Omitting `li a7, 10; ecall` causes the CPU to execute whatever instructions or data follow `main` in memory.
 
 </Callout>
 

@@ -16,9 +16,9 @@ A synchronous **Finite State Machine (FSM)** tracks historical input patterns us
 
 <Divider label="1 · Example" />
 
-### Dual-Branch Detector with Repetition and Overlap
+### Dual-Branch Frame Detector
 
-Consider Question 1 from the **January 2026 (Variant C1)** examination: design a 2-input Mealy FSM over $xy \in \{00, 01, 11, 10\}$ that asserts $u = 1$ whenever either consecutive sequence is recognized, including partially overlapping sequences:
+Consider designing a 2-input Mealy FSM over $xy \in \{00, 01, 11, 10\}$ that asserts $u = 1$ whenever either consecutive sequence is recognized, including partially overlapping sequences:
 
 $$\sigma_A = \{11, (10, \dots, 10), 11, (01, \dots, 01), 00\}, \qquad \sigma_B = \{11, (10, \dots, 10), (01, \dots, 01), 00\}$$
 
@@ -29,7 +29,7 @@ Both branches share the opening prefix $11$ followed by $(10)^+$, fork depending
 - **$S_0$ (Reset $\varepsilon$):** No valid prefix matched; awaits initial `11`.
 - **$S_1$ (Prefix `11`):** Matched opening `11`. A second consecutive `11` stays in $S_1 / 0$ (restarting the prefix), while `10` advances to $S_2 / 0$.
 - **$S_2$ (Loop `11, (10)+`):** At least one `10` matched. Additional `10` inputs self-loop ($S_2 \xrightarrow{10/0} S_2$); `11` branches to $S_3 / 0$ (Branch A); `01` jumps directly to $S_4 / 0$ (Branch B).
-- **$S_3$ (Prefix `11, (10)+, 11`):** Intermediate `11` of Branch A matched. Input `01` advances to $S_4 / 0$. What if `10` arrives instead? The recent stream ends in `11, 10`, which matches the exact prefix of $S_2$, so $S_3 \xrightarrow{10/0} S_2$! Similarly, `11` ends in `11`, routing $S_3 \xrightarrow{11/0} S_1$.
+- **$S_3$** (`11, (10)+, 11`): Intermediate `11` of Branch A matched. Input `01` advances to $S_4 / 0$. What if `10` arrives instead? The recent stream ends in `11, 10`, which matches the exact prefix of $S_2$, so $S_3 \xrightarrow{10/0} S_2$! Similarly, `11` ends in `11`, routing $S_3 \xrightarrow{11/0} S_1$.
 - **$S_4$ (Loop `..., (01)+`):** Inside the final `01` repetition loop of either branch (`01` self-loops to $S_4 / 0$). Input `11` restarts prefix $S_1 / 0$, `10` resets to $S_0 / 0$, and terminal input `00` completes the sequence with **$S_0 / 1$** (returning to $S_0$ because `00` cannot start a new `11`-headed sequence).
 
 <figure id="fig-mealy-fsm" className="dc-svg-wrap">
@@ -79,8 +79,8 @@ Because $xy^t$ feeds straight into $\lambda$, outputs belong to **transition arc
 
 Exam sequence specifications combine three structural patterns that follow strict mechanical rules:
 
-1. **Mandatory Repetition $(XY, \dots, XY) \equiv (XY)^+$:** At least one $XY$ is required. You must use a **forward arc** into a dedicated loop state on the first $XY$, then place a **self-loop** $S_k \xrightarrow{XY/0} S_k$ on that loop state to absorb any additional consecutive $XY$ symbols. Never place the self-loop on the preceding state, or zero occurrences of $XY$ would be accepted!
-2. **Longest Proper Prefix-Suffix (LPS) Mismatch Recovery:** When an unexpected symbol $xy$ arrives in state $S_i$, form the candidate history string $T = \text{History}(S_i) + [xy]$ and test suffixes of $T$ from longest to shortest. Route the arc ($u = 0$) to the state whose canonical prefix matches the longest valid suffix of $T$ (or to $S_0$ if none match).
+1. **Mandatory Repetition** $(XY)^+$: At least one $XY$ is required. You must use a **forward arc** into a dedicated loop state on the first $XY$, then place a **self-loop** $S_k \xrightarrow{XY/0} S_k$ on that loop state to absorb any additional consecutive $XY$ symbols. Never place the self-loop on the preceding state, or zero occurrences of $XY$ would be accepted!
+2. **LPS Mismatch Recovery:** When an unexpected symbol $xy$ arrives in state $S_i$, form the candidate history string $T = \text{History}(S_i) + [xy]$ and test suffixes of $T$ from longest to shortest (Longest Proper Prefix-Suffix, LPS). Route the arc ($u = 0$) to the state whose canonical prefix matches the longest valid suffix of $T$ (or to $S_0$ if none match).
 3. **Overlapping Terminal Return:** When the final symbol $xy$ completes a target sequence ($u = 1$), apply the exact same LPS suffix test to $W = \text{History}(S_i) + [xy]$. If the ending symbol(s) of the completed sequence also form a valid opening prefix (for example, a sequence both starting and ending with `00`), route the `u = 1` arc directly to that prefix state ($S_1$) rather than $S_0$.
 
 ### State Count and Branch Merging
@@ -88,8 +88,8 @@ Exam sequence specifications combine three structural patterns that follow stric
 Three structural sizing rules govern how many states and table entries a Mealy detector requires:
 
 1. **Fixed-Length State Count:** Recognizing a single fixed sequence of length $L$ symbols requires exactly **$L$ states** ($S_0$ for $\varepsilon$ through $S_{L-1}$ for the $(L-1)$-symbol prefix). No $(L+1)$-th recognition state is needed because the $L$-th symbol asserts $u = 1$ directly on the outgoing arc from $S_{L-1}$ while transitioning straight to the LPS overlap target.
-2. **Branch Merging Criterion:** In a multi-branch specification, branches share a common opening trunk for identical leading symbols, and may merge into a **shared closing loop state only if** their remaining required symbols and terminal recognition outputs are identical. If two branches end with the same `(01)+` repetition block but one recognizes on `10` while the other recognizes on `00`, their closing loop states must remain **separate** so each branch asserts $u = 1$ on its own terminal symbol.
-3. **Cross-Branch LPS and Table Completeness:** When evaluating the LPS suffix of $\text{History}(S_i) + [xy]$ on any mismatch or completion arc, test suffixes against **all** defined state prefixes across **all** branches (allowing a mismatch in Branch A to land inside Branch B's prefix). For an $m$-bit parallel input bus ($2^m$ input symbols, so $2^2 = 4$ for $xy \in \{00, 01, 11, 10\}$), a complete state table must populate all $2^m \times \lvert S \rvert = 4 \times \lvert S \rvert$ compound entries $S^{t+1} / u$.
+2. **Branch Merging Criterion:** In a multi-branch specification, branches share a common opening trunk for identical leading symbols, and may merge into a **shared closing loop** state only if their remaining required symbols and terminal recognition outputs are identical. If two branches end with the same `(01)+` repetition block but one recognizes on `10` while the other recognizes on `00`, their closing loop states must remain **separate** so each branch asserts $u = 1$ on its own terminal symbol.
+3. **Cross-Branch LPS:** When evaluating the LPS suffix of $\text{History}(S_i) + [xy]$ on any mismatch or completion arc, test suffixes against **all** defined state prefixes across **all** branches (allowing a mismatch in Branch A to land inside Branch B's prefix). For an $m$-bit parallel input bus ($2^m$ input symbols, so $2^2 = 4$ for $xy \in \{00, 01, 11, 10\}$), a complete state table must populate all $2^m \times \lvert S \rvert = 4 \times \lvert S \rvert$ compound entries $S^{t+1} / u$.
 
 <Callout type="tip" title="Practical Hardware Perspective">
 
@@ -111,15 +111,15 @@ In embedded robotics communication links—such as **SBUS** (`0x0F` header byte)
 | Transition Case in State $S_i$ | Next-State Rule ($S^{t+1}$) | Output ($u$) |
 | :--- | :--- | :---: |
 | **Forward Mandatory Symbol** | Advance to next prefix state $S_{\text{next}}$ | $0$ |
-| **Repeating Symbol in Active $(XY)^+$ State** | Self-loop to current state $S_i$ | $0$ |
+| **Repeating Symbol** ($(XY)^+$ state) | Self-loop to current state $S_i$ | $0$ |
 | **Terminal Symbol Completing Sequence** | Longest valid prefix matching a proper suffix of $\text{History}(S_i) + [xy]$ | **$1$** |
 | **Unexpected / Divergent Symbol** | Longest valid prefix matching a proper suffix of $\text{History}(S_i) + [xy]$ (else $S_0$) | $0$ |
 
 ### Synthesis Procedure
 
-1. **Parse Minimal Paths and Trunk:** Replace every $(XY, \dots, XY)$ with one $XY$ to list each branch's shortest accepted string; merge shared opening symbols and merge closing loops only if their terminal exit symbols match.
+1. **Parse Minimal Paths:** Replace every $(XY, \dots, XY)$ with one $XY$ to list each branch's shortest accepted string; merge shared opening symbols and merge closing loops only if their terminal exit symbols match.
 2. **Allocate Prefix States:** Assign $S_0$ to $\varepsilon$, allocate one state per mandatory step ($L$ states for a fixed length-$L$ pattern), and place an entry arc plus self-loop ($XY / 0$) on every $(XY)^+$ state.
-3. **Resolve All Transitions via LPS:** For every state and all 4 inputs, test $\text{History}(S_i) + [xy]$ against all branch prefixes for both mismatches ($u = 0$) and terminal completions ($u = 1$).
+3. **Resolve Transitions via LPS:** For every state and all 4 inputs, test $\text{History}(S_i) + [xy]$ against all branch prefixes for both mismatches ($u = 0$) and terminal completions ($u = 1$).
 4. **Tabulate in Gray Order:** Populate all $4 \times \lvert S \rvert$ cells (`NextState / Output`) across columns `00, 01, 11, 10` and verify $u = 1$ appears solely on terminal arcs.
 
 <Callout type="warning" title="Common Mistakes">
@@ -133,7 +133,7 @@ In embedded robotics communication links—such as **SBUS** (`0x0F` header byte)
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-2-1" title="Exercise 2.1 — Dual-Branch Mealy Detector (Feb 2026 C1)" level="Exam" hint="Both branches begin with 00 (state S1). Notice that Branch B ends on 00—so its u = 1 recognition arc must return to S1, not S0! Also check suffix {00, 10} when xy = 10 arrives after a 00 state.">
+<Exercise client:load id="ex-2-1" title="Exercise 2.1 — Dual-Branch Mealy Detector" level="Exam" hint="Both branches begin with 00 (state S1). Notice that Branch B ends on 00—so its u = 1 recognition arc must return to S1, not S0! Also check suffix {00, 10} when xy = 10 arrives after a 00 state.">
 
 Design the state definitions and 4-column Mealy state transition table for a 2-input detector ($xy \in \{00, 01, 11, 10\}$) recognizing partially overlapping occurrences of:
 
@@ -161,8 +161,8 @@ with minimal sequences $\{00, 01, 00, 01, 10\}$ and $\{00, 10, 00, 01, 00\}$.
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **State Prefix Definitions (8 States):**
-   Unlike the January 2026 problem where both branches terminated on `00`, here Branch A terminates on `10` while Branch B terminates on `00`, so their final `(01)+` loops must stay separate ($S_5$ vs. $S_7$):
+1. **State Prefix Definitions** (8 States):
+   Unlike the earlier example where both branches terminated on `00`, here Branch A terminates on `10` while Branch B terminates on `00`, so their final `(01)+` loops must stay separate ($S_5$ vs. $S_7$):
    - **$S_0$:** Reset ($\varepsilon$), awaiting `00`.
    - **$S_1$:** Matched opening `00`. (`01` forks to Branch A $S_2$; `10` forks to Branch B loop $S_4$; `00` stays in $S_1$).
    - **$S_2$:** Branch A prefix `{00, 01}`. (`00` enters loop $S_3$).
@@ -172,7 +172,7 @@ with minimal sequences $\{00, 01, 00, 01, 10\}$ and $\{00, 10, 00, 01, 00\}$.
    - **$S_6$:** Branch B prefix `{00, (10)+, 00}` (last symbol is `00`). (`01` enters loop $S_7$; `00` preserves prefix `00` $\implies S_1 / 0$; `10` forms suffix `{00, 10}` $\implies S_4 / 0$).
    - **$S_7$:** Branch B loop `{00, (10)+, 00, (01)+}`. (`01` self-loops to $S_7$; `00` completes Branch B and overlaps opening `00` $\implies \mathbf{S_1 / 1}$!).
 
-2. **Complete 4-Column Mealy State Table:**
+2. **Mealy State Table:**
 
    | Present State $S^t$ | $xy = 00$ ($S^{t+1}/u$) | $xy = 01$ ($S^{t+1}/u$) | $xy = 11$ ($S^{t+1}/u$) | $xy = 10$ ($S^{t+1}/u$) |
    | :---: | :---: | :---: | :---: | :---: |

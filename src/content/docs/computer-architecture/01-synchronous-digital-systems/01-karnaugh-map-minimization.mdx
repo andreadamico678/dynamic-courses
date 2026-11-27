@@ -22,9 +22,9 @@ Consider the 5-variable switching function from a UniCT examination paper, speci
 
 $$f(a, b, c, d, e) = \sum m(4, 6, 12, 14, 15, 20) + d(7, 13, 22, 28, 29)$$
 
-Because $2^5 = 32$, we split the input space across the most significant bit $a$ into two stacked $4 \times 4$ Gray-coded layers over row bits $bc$ and column bits $de$: **Layer 0 ($a = 0$)** holds indices $0 \dots 15$, while **Layer 1 ($a = 1$)** holds indices $16 \dots 31$ at matching coordinates $(bc, de)$ shifted by $+16$.
+Because $2^5 = 32$, we split the input space across the most significant bit $a$ into two stacked $4 \times 4$ Gray-coded layers over row bits $bc$ and column bits $de$: **Layer 0** ($a = 0$) holds indices $0 \dots 15$, while **Layer 1** ($a = 1$) holds indices $16 \dots 31$ at matching coordinates $(bc, de)$ shifted by $+16$.
 
-**Layer 0 ($a = 0$, minterms $0 \dots 15$):**
+**Layer 0** ($a = 0$, minterms $0 \dots 15$):
 
 | $bc \backslash de$ | $00$ | $01$ | $11$ | $10$ |
 | :---: | :---: | :---: | :---: | :---: |
@@ -33,7 +33,7 @@ Because $2^5 = 32$, we split the input space across the most significant bit $a$
 | **$11$** | **$1$** ($m_{12}$) | **$X$** ($d_{13}$) | **$1$** ($m_{15}$) | **$1$** ($m_{14}$) |
 | **$10$** | $0$ | $0$ | $0$ | $0$ |
 
-**Layer 1 ($a = 1$, minterms $16 \dots 31$):**
+**Layer 1** ($a = 1$, minterms $16 \dots 31$):
 
 | $bc \backslash de$ | $00$ | $01$ | $11$ | $10$ |
 | :---: | :---: | :---: | :---: | :---: |
@@ -44,8 +44,8 @@ Because $2^5 = 32$, we split the input space across the most significant bit $a$
 
 Next, we expand every `1` into maximal power-of-two rectangles across planar, wrap-around, and inter-layer (3D) adjacencies:
 
-1. **Inter-Layer 3D Group $P_1 = \{m_4, m_{12}, m_{20}, d_{28}\}$:** Column $de = 00$ at rows $bc \in \{01, 11\}$ holds $\{1, 1\}$ on Layer 0 and $\{1, X\}$ at the exact same coordinates on Layer 1. Merging all 4 cells across both layers eliminates $a$ ($0 \to 1$) and $b$ ($0 \to 1$), leaving $c = 1, d = 0, e = 0 \implies c\overline{d}\overline{e}$. Covers active minterms $\{4, 12, 20\}$.
-2. **Planar Group $P_2 = \{m_6, d_7, m_{14}, m_{15}\}$:** On Layer 0 ($a = 0$), rows $bc \in \{01, 11\}$ and columns $de \in \{11, 10\}$ form a $2 \times 2$ square. Here $a = 0$, $c = 1$, and $d = 1$ remain constant while $b$ and $e$ vary $\implies \overline{a}cd$. Covers active minterms $\{6, 14, 15\}$.
+1. **Group $P_1$** ($\{m_4, m_{12}, m_{20}, d_{28}\}$): Column $de = 00$ at rows $bc \in \{01, 11\}$ holds $\{1, 1\}$ on Layer 0 and $\{1, X\}$ at the exact same coordinates on Layer 1. Merging all 4 cells across both layers eliminates $a$ ($0 \to 1$) and $b$ ($0 \to 1$), leaving $c = 1, d = 0, e = 0 \implies c\overline{d}\overline{e}$. Covers active minterms $\{4, 12, 20\}$.
+2. **Group $P_2$** ($\{m_6, d_7, m_{14}, m_{15}\}$): On Layer 0 ($a = 0$), rows $bc \in \{01, 11\}$ and columns $de \in \{11, 10\}$ form a $2 \times 2$ square. Here $a = 0$, $c = 1$, and $d = 1$ remain constant while $b$ and $e$ vary $\implies \overline{a}cd$. Covers active minterms $\{6, 14, 15\}$.
 3. **Alternate 4-Cell Candidates:** Row $bc = 11$ on Layer 0 gives $P_3 = \{m_{12}, d_{13}, m_{15}, m_{14}\} = \overline{a}bc$ (covering $\{12, 14, 15\}$), while outer columns $de \in \{00, 10\}$ at row $bc = 01$ across both layers give $P_4 = \{m_4, m_6, m_{20}, d_{22}\} = \overline{b}c\overline{e}$ (covering $\{4, 6, 20\}$).
 
 Selecting $P_1$ and $P_2$ covers all six `1`-minterms ($\{4, 12, 20\} \cup \{6, 14, 15\} = \{4, 6, 12, 14, 15, 20\}$) with zero uncovered `1`s, yielding a minimal 2-term, 6-literal SOP expression (note that $P_4 + P_3 = \overline{b}c\overline{e} + \overline{a}bc$ is an equally minimal dual cover):
@@ -75,7 +75,7 @@ Whenever two minterms match in every variable except one complemented bit (Hammi
 
 $$00 \longrightarrow 01 \longrightarrow 11 \longrightarrow 10$$
 
-Because `10` and `00` also differ in only one bit, opposite edges wrap around like a torus: the top row (`00`) is adjacent to the bottom row (`10`), the leftmost column (`00`) is adjacent to the rightmost column (`10`), and the four outer corner cells form a valid $2 \times 2$ group of four.
+Because `10` and `00` also differ in only one bit, opposite edges wrap around toroidally: the top row (`00`) is adjacent to the bottom row (`10`), the leftmost column (`00`) is adjacent to the rightmost column (`10`), and the four outer corner cells form a valid $2 \times 2$ group of four.
 
 For a 4-variable function $f(a, b, c, d)$, decimal minterms $m_0 \dots m_{15}$ map onto $(ab, cd)$ as follows—note how $m_2, m_3$ and rows `11, 10` swap relative to binary counting:
 
@@ -95,18 +95,18 @@ For a 4-variable function $f(a, b, c, d)$, decimal minterms $m_0 \dots m_{15}$ m
 ### Five-Variable Superposition
 
 For $f(a, b, c, d, e)$, splitting on $a$ stacks two $4 \times 4$ maps over $(bc, de)$:
-- **Layer 0 ($a = 0$):** Minterms $m_0 \dots m_{15}$.
-- **Layer 1 ($a = 1$):** Minterms $m_{16} \dots m_{31}$, where cell $(bc, de)$ holds index $m_k + 16$.
+- **Layer 0** ($a = 0$): Minterms $m_0 \dots m_{15}$.
+- **Layer 1** ($a = 1$): Minterms $m_{16} \dots m_{31}$, where cell $(bc, de)$ holds index $m_k + 16$.
 
-In addition to planar and wrap-around grouping inside a single layer, any cell at $(bc, de)$ in Layer 0 is adjacent to the **identical $(bc, de)$ cell in Layer 1**. Whenever a group of size $2^k$ on Layer 0 aligns with a matching block of `1`s or `X`s at the exact same coordinates on Layer 1, merge them into one 3D group of size $2^{k+1}$ and drop the literal $a$.
+In addition to planar and wrap-around grouping inside a single layer, any cell at $(bc, de)$ in Layer 0 is adjacent to the **matching $(bc, de)$ cell** in Layer 1. Whenever a group of size $2^k$ on Layer 0 aligns with a matching block of `1`s or `X`s at the exact same coordinates on Layer 1, merge them into one 3D group of size $2^{k+1}$ and drop the literal $a$.
 
-### Don't-Cares and Literal Extraction
+### Don't-Cares and Literals
 
 When an input combination cannot occur (for example, unused flip-flop state codes in [Flip-Flop Excitation Synthesis](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/05-flip-flop-excitation-synthesis/)), its cell is marked **`X`** (don't-care):
 
 - **Wildcard Expansion Rule:** Include an `X` cell inside a group **only** when it doubles the size of a power-of-two block that already covers at least one `1`-minterm. Never form a group consisting exclusively of `X` cells, and leave any unused `X` cells uncovered (implicitly set to `0`).
 - **Reading Invariant Literals:** For an $n$-variable function ($n = 4$ or $n = 5$), a valid group of $2^k$ cells eliminates $k$ changing variables and leaves exactly $n - k$ invariant literals. Inspect each variable across the group: keep $x$ if fixed at `1`, keep $\overline{x}$ if fixed at `0`, and omit $x$ if it takes both values.
-- **Minimal SOP Cost and Ties:** Sum (`+`) the chosen product terms. A minimal SOP expression minimizes the number of product terms first and the **total literal count** (sum of literals across all selected terms) second. When residual `1`s can be covered by two equally large non-essential prime implicants, both resulting SOP expressions are equally minimal.
+- **Minimal SOP Cost:** Sum (`+`) the chosen product terms. A minimal SOP expression minimizes the number of product terms first and the **total literal count** (sum of literals across all selected terms) second. When residual `1`s can be covered by two equally large non-essential prime implicants, both resulting SOP expressions are equally minimal.
 
 <Callout type="tip" title="Practical Hardware Perspective">
 
@@ -148,9 +148,9 @@ On small FPGA/CPLD peripheral blocks—such as custom PWM motor-channel decoders
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Row or Column Swap (`10` Before `11`):** Labeling axes `00, 01, 10, 11` places $d_H = 2$ neighbors next to each other (`01` vs. `10`), invalidating every implicant crossing the middle boundary.
+1. **Swapped Axes** (`10` before `11`): Labeling axes `00, 01, 10, 11` places $d_H = 2$ neighbors next to each other (`01` vs. `10`), invalidating every implicant crossing the middle boundary.
 2. **Non-Power-of-Two Blocks:** Grouping 3 or 6 contiguous cells is algebraically illegal; valid sizes are strictly $1, 2, 4, 8, 16, 32$.
-3. **Treating Don't-Cares as Mandatory `1`s:** Covering `X` cells that contain no uncovered `1`s injects extra product gates into your circuit.
+3. **Forced Don't-Care Coverage:** Covering `X` cells that contain no uncovered `1`s injects extra product gates into your circuit.
 4. **Missing Inter-Layer Merges:** Leaving two identical groups separate on Layer 0 and Layer 1 produces $\overline{a}P + aP$ instead of factoring out $P$.
 
 </Callout>
@@ -186,7 +186,7 @@ $$f(a, b, c, d, e) = \sum m(0, 2, 5, 7, 20, 21) + d(4, 16, 17, 18, 23)$$
 1. **Dual-Layer Karnaugh Maps:**
    Splitting indices across $a = 0$ ($0 \dots 15$) and $a = 1$ ($16 \dots 31$, offset $+16$):
 
-   **Layer 0 ($a = 0$):**
+   **Layer 0** ($a = 0$):
 
    | $bc \backslash de$ | $00$ | $01$ | $11$ | $10$ |
    | :---: | :---: | :---: | :---: | :---: |
@@ -195,7 +195,7 @@ $$f(a, b, c, d, e) = \sum m(0, 2, 5, 7, 20, 21) + d(4, 16, 17, 18, 23)$$
    | **$11$** | $0$ | $0$ | $0$ | $0$ |
    | **$10$** | $0$ | $0$ | $0$ | $0$ |
 
-   **Layer 1 ($a = 1$):**
+   **Layer 1** ($a = 1$):
 
    | $bc \backslash de$ | $00$ | $01$ | $11$ | $10$ |
    | :---: | :---: | :---: | :---: | :---: |
@@ -204,10 +204,10 @@ $$f(a, b, c, d, e) = \sum m(0, 2, 5, 7, 20, 21) + d(4, 16, 17, 18, 23)$$
    | **$11$** | $0$ | $0$ | $0$ | $0$ |
    | **$10$** | $0$ | $0$ | $0$ | $0$ |
 
-2. **Maximal Prime Implicants & Essentiality:**
-   - **Group 1 ($\{m_0, m_2, d_{16}, d_{18}\}$):** Outer columns $de \in \{00, 10\}$ on row $bc = 00$ wrap around on Layer 0 and align with $\{d_{16}, d_{18}\}$ on Layer 1, forming a 4-cell 3D group. Variables: $a$ cancels, $bc = 00 \implies \overline{b}\overline{c}$, $e = 0 \implies \overline{e}$. Term: $\overline{b}\overline{c}\overline{e}$. Uniquely covers $m_0$ and $m_2$ $\implies$ **EPI**.
-   - **Group 2 ($\{m_5, m_7, m_{21}, d_{23}\}$):** Row $bc = 01$, columns $de \in \{01, 11\}$ on Layer 0 align with $\{m_{21}, d_{23}\}$ on Layer 1, forming a 4-cell 3D group. Variables: $a$ cancels, $bc = 01 \implies \overline{b}c$, $e = 1 \implies e$. Term: $\overline{b}ce$. Uniquely covers $m_7$ $\implies$ **EPI**.
-   - **Group 3 ($\{d_{16}, d_{17}, m_{20}, m_{21}\}$):** Planar $2 \times 2$ block on Layer 1 ($a = 1$) across rows $bc \in \{00, 01\}$ ($\overline{b}$) and columns $de \in \{00, 01\}$ ($\overline{d}$). Term: $a\overline{b}\overline{d}$. Notice that $m_{20}$ is covered by two equally large 4-cell prime implicants—planar $a\overline{b}\overline{d}$ and 3D $\{d_4, m_5, m_{20}, m_{21}\} = \overline{b}c\overline{d}$—so neither is strictly essential, and choosing either gives an equally minimal 3-literal residual term.
+2. **Prime Implicants & Essentiality:**
+   - **Group 1** ($\{m_0, m_2, d_{16}, d_{18}\}$): Outer columns $de \in \{00, 10\}$ on row $bc = 00$ wrap around on Layer 0 and align with $\{d_{16}, d_{18}\}$ on Layer 1, forming a 4-cell 3D group. Variables: $a$ cancels, $bc = 00 \implies \overline{b}\overline{c}$, $e = 0 \implies \overline{e}$. Term: $\overline{b}\overline{c}\overline{e}$. Uniquely covers $m_0$ and $m_2$ $\implies$ **EPI**.
+   - **Group 2** ($\{m_5, m_7, m_{21}, d_{23}\}$): Row $bc = 01$, columns $de \in \{01, 11\}$ on Layer 0 align with $\{m_{21}, d_{23}\}$ on Layer 1, forming a 4-cell 3D group. Variables: $a$ cancels, $bc = 01 \implies \overline{b}c$, $e = 1 \implies e$. Term: $\overline{b}ce$. Uniquely covers $m_7$ $\implies$ **EPI**.
+   - **Group 3** ($\{d_{16}, d_{17}, m_{20}, m_{21}\}$): Planar $2 \times 2$ block on Layer 1 ($a = 1$) across rows $bc \in \{00, 01\}$ ($\overline{b}$) and columns $de \in \{00, 01\}$ ($\overline{d}$). Term: $a\overline{b}\overline{d}$. Notice that $m_{20}$ is covered by two equally large 4-cell prime implicants—planar $a\overline{b}\overline{d}$ and 3D $\{d_4, m_5, m_{20}, m_{21}\} = \overline{b}c\overline{d}$—so neither is strictly essential, and choosing either gives an equally minimal 3-literal residual term.
 
 3. **Minimal SOP Expression:**
    All six minterms $\{0, 2, 5, 7, 20, 21\}$ are covered:

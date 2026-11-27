@@ -16,9 +16,9 @@ Initial state machines—and the 6-state specifications given in Exam Question 2
 
 <Divider label="1 · Example" />
 
-### Six-State Reduction via Implication Passes
+### Six-State Implication Reduction
 
-Consider the 6-state Mealy machine from **January 2026 (Question 2)** with single-bit input $X \in \{0, 1\}$:
+Consider reducing the following 6-state Mealy machine with single-bit input $X \in \{0, 1\}$:
 
 | Present State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) | Output Signature $(u_{X=0}, u_{X=1})$ |
 | :---: | :---: | :---: | :---: |
@@ -29,8 +29,8 @@ Consider the 6-state Mealy machine from **January 2026 (Question 2)** with singl
 | **$E$** | $F / 0$ | $C / 0$ | $(0, 0)$ |
 | **$F$** | $D / 0$ | $E / 0$ | $(0, 0)$ |
 
-1. **Pass 1 — Output Compatibility Cross-Out:** State $D$ has unique output signature $(1, 0)$, whereas $\{A, B, C, E, F\}$ all emit $(0, 0)$. Every pair containing $D$—namely $(D, A), (D, B), (D, C), (E, D), (F, D)$—is immediately crossed out with **X**.
-2. **Pass 2 — Implied Next-State Pairs:** For each uncrossed cell $(S_i, S_j)$ in the lower-triangular grid (rows $B \dots F$, columns $A \dots E$), we list the next-state pairs $(\delta(S_i, 0), \delta(S_j, 0))$ and $(\delta(S_i, 1), \delta(S_j, 1))$, omitting identical pairs like $(F, F)$ or $(C, C)$:
+1. **Pass 1** (Output Cross-Out): State $D$ has unique output signature $(1, 0)$, whereas $\{A, B, C, E, F\}$ all emit $(0, 0)$. Every pair containing $D$—namely $(D, A), (D, B), (D, C), (E, D), (F, D)$—is immediately crossed out with **X**.
+2. **Pass 2** (Implied Pairs): For each uncrossed cell $(S_i, S_j)$ in the lower-triangular grid (rows $B \dots F$, columns $A \dots E$), we list the next-state pairs $(\delta(S_i, 0), \delta(S_j, 0))$ and $(\delta(S_i, 1), \delta(S_j, 1))$, omitting identical pairs like $(F, F)$ or $(C, C)$:
 
 | Row $\backslash$ Col | $A$ | $B$ | $C$ | $D$ | $E$ |
 | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -40,16 +40,16 @@ Consider the 6-state Mealy machine from **January 2026 (Question 2)** with singl
 | **$E$** | $(B, F), (C, E)$ | $(D, F)$ | $(A, C)$ | **X** | — |
 | **$F$** | $(B, D)$ | $(C, E)$ | $(D, F), (A, E)$ | **X** | $(D, F), (C, E)$ |
 
-3. **Pass 3 — Iterative Cascade Elimination:**
+3. **Pass 3** (Cascade Elimination):
    - **Sweep 1:** Cells $(B, A)$, $(C, B)$, $(E, B)$, $(F, A)$, $(F, C)$, and $(F, E)$ each depend on $(B, D)$ or $(D, F)$, which are already **X** $\implies$ cross out all six cells with **X**.
    - **Sweep 2:** Check the four surviving cells:
      - $(C, A)$ implies $(B, F)$ and $(A, E)$ — both uncrossed!
      - $(E, A)$ implies $(B, F)$ and $(C, E)$ — both uncrossed!
      - $(E, C)$ implies $(A, C)$ — uncrossed!
      - $(F, B)$ implies $(C, E)$ — uncrossed!
-     Zero new cross-outs occur (**fixed point reached**).
+     Zero new cross-outs occur (**fixed point** reached).
 
-4. **Equivalence Classes & Minimal Table:**
+4. **Equivalence Classes:**
    Surviving cells give $A \equiv C$, $A \equiv E$, $C \equiv E$, and $B \equiv F$. By transitivity, we obtain **3 equivalence classes**:
 
 $$S_A = \{A, C, E\}, \qquad S_B = \{B, F\}, \qquad S_D = \{D\}$$
@@ -79,7 +79,7 @@ Below, we define state equivalence for both Mealy and Moore machines, show how t
 
 Two states $S_i$ and $S_j$ of a completely specified FSM are **equivalent** ($S_i \equiv S_j$) if and only if starting the machine in $S_i$ versus $S_j$ yields identical output sequences for every possible future input sequence. Step by step, $S_i \equiv S_j$ holds precisely when two conditions hold across **every** input symbol $x$:
 
-1. **Immediate Output Compatibility:**
+1. **Output Compatibility:**
    - **Mealy FSM:** $\lambda(S_i, x) = \lambda(S_j, x)$ for every input $x$ (identical output signature vector across all input columns).
    - **Moore FSM:** $\lambda(S_i) = \lambda(S_j)$ (identical state output bit $u$ in the single `Output u` column).
 2. **Next-State Compatibility:** $\delta(S_i, x) \equiv \delta(S_j, x)$ — both states transition into identical or equivalent next states for every input $x$.
@@ -89,8 +89,8 @@ If their immediate outputs differ on even a single input (Mealy) or in their sta
 ### Lower-Triangular Grid Geometry
 
 An $N$-state machine has exactly $\binom{N}{2} = \frac{N(N - 1)}{2}$ unordered pairs of distinct states $\{S_i, S_j\}$ ($i > j$). To test each pair exactly once without redundant mirror cells or diagonal self-pairs, draw a lower-triangular matrix of size $(N - 1) \times (N - 1)$:
-- **Rows (top to bottom):** $S_1, S_2, \dots, S_{N-1}$ (omit the first state $S_0$).
-- **Columns (left to right):** $S_0, S_1, \dots, S_{N-2}$ (omit the last state $S_{N-1}$).
+- **Rows** (top to bottom): $S_1, S_2, \dots, S_{N-1}$ (omit the first state $S_0$).
+- **Columns** (left to right): $S_0, S_1, \dots, S_{N-2}$ (omit the last state $S_{N-1}$).
 
 ```text
 Row \ Col
@@ -106,9 +106,9 @@ Row \ Col
 
 Once Pass 1 crosses out every output-incompatible pair with **X**, each surviving cell $(S_i, S_j)$ records the implied next-state pairs $(P, Q) = (\delta(S_i, x), \delta(S_j, x))$ across all inputs $x$ under three simplification rules:
 
-- **Identities and Self-Implications Drop Out:** Any pair with $P = Q$ is trivially equivalent, and any self-implication $\{P, Q\} = \{S_i, S_j\}$ holds automatically under the hypothesis $S_i \equiv S_j$. If no unresolved pairs remain for a cell, mark it **$\checkmark$** (unconditionally equivalent).
-- **Fixed-Point Cascade Elimination:** If any implied pair $(P, Q)$ inside cell $(S_i, S_j)$ already holds **X**, then $S_i$ and $S_j$ become distinguishable one cycle later, so cross out $(S_i, S_j)$ with **X**. Repeat top-to-bottom sweeps until a full pass adds **zero new `X` marks** (fixed point).
-- **Transitive Equivalence Classes & Flip-Flop Savings:** Because equivalence on a completely specified FSM is reflexive, symmetric, and **transitive** ($S_i \equiv S_j$ and $S_j \equiv S_k \implies S_i \equiv S_k$), surviving uncrossed cells partition the $N$ original states into $\lvert S_{\text{min}} \rvert$ disjoint classes. Replacing each state by its class representative yields the minimal table and saves:
+- **Identities and Self-Implications:** Any pair with $P = Q$ is trivially equivalent, and any self-implication $\{P, Q\} = \{S_i, S_j\}$ holds automatically under the hypothesis $S_i \equiv S_j$. If no unresolved pairs remain for a cell, mark it **$\checkmark$** (unconditionally equivalent).
+- **Fixed-Point Cascade Elimination:** If any implied pair $(P, Q)$ inside cell $(S_i, S_j)$ already holds **X**, then $S_i$ and $S_j$ become distinguishable one cycle later, so cross out $(S_i, S_j)$ with **X**. Repeat top-to-bottom sweeps until a full pass adds **zero new `X`s** (fixed point).
+- **Transitive Equivalence Classes:** Because equivalence on a completely specified FSM is reflexive, symmetric, and **transitive** ($S_i \equiv S_j$ and $S_j \equiv S_k \implies S_i \equiv S_k$), surviving uncrossed cells partition the $N$ original states into $\lvert S_{\text{min}} \rvert$ disjoint classes. Replacing each state by its class representative yields the minimal table and saves:
 
 $$\Delta k = \lceil \log_2 N \rceil - \lceil \log_2 \lvert S_{\text{min}} \rvert \rceil \text{ flip-flops}$$
 
@@ -137,32 +137,32 @@ In Question 2 of the exam, Implication Table reduction directly feeds [Flip-Flop
 | :--- | :--- |
 | **Output mismatch** $\lambda(S_i, x) \neq \lambda(S_j, x)$ on any $x$ | Cross out immediately with **X** (Pass 1) |
 | **Identical next states** ($P = Q$) or **self-pair** ($\{P, Q\} = \{S_i, S_j\}$) | Discard constraint; mark **$\checkmark$** if all inputs reduce to this |
-| **Implied pair $(P, Q)$ already marked `X`** | Cross out $(S_i, S_j)$ with **X** (Pass 2 / Cascade Pass 3) |
-| **Implied pair $(P, Q)$ currently uncrossed** | Write $(P, Q)$ inside cell and re-check in Cascade Pass 3 |
-| **Cell survives fixed-point pass without `X`** | Merge $S_i \equiv S_j$ into the same transitive equivalence class |
+| **Implied `X` pair** $(P, Q)$ | Cross out $(S_i, S_j)$ with **X** (Pass 2 / Cascade Pass 3) |
+| **Unresolved implied pair** $(P, Q)$ | Write $(P, Q)$ inside cell and re-check in Cascade Pass 3 |
+| **Uncrossed at fixed point** | Merge $S_i \equiv S_j$ into the same transitive equivalence class |
 
 ### Minimization Procedure
 
 1. **Draw Lower-Triangular Grid:** Label rows $S_1 \dots S_{N-1}$ and columns $S_0 \dots S_{N-2}$, giving $\binom{N}{2} = N(N-1)/2$ cells.
-2. **Pass 1 — Output Cross-Out (`X`):** Partition states by output signature (vector $\mathbf{u}$ for Mealy; state bit $u$ for Moore) and mark every cross-partition cell with **X**.
-3. **Pass 2 — Implied Pair Insertion:** For each uncrossed cell, list next-state pairs $(\delta(S_i, x), \delta(S_j, x))$, dropping identities ($P = Q$) and self-implications ($\{P, Q\} = \{S_i, S_j\}$); mark **$\checkmark$** if none remain, or **X** if any implied pair is already **X**.
-4. **Pass 3 — Fixed-Point Cascade Sweep:** Repeatedly cross out any cell referencing an **X**-marked pair until a full top-to-bottom scan adds zero new **X** marks.
-5. **Merge & Verify Reduced Table:** Group surviving pairs by transitivity into minimal equivalence classes, substitute one representative per class, and check that every member of a class maps to the same next-state class on every input.
+2. **Pass 1** (Output Cross-Out): Partition states by output signature (vector $\mathbf{u}$ for Mealy; state bit $u$ for Moore) and mark every cross-partition cell with **X**.
+3. **Pass 2** (Implied Pairs): For each uncrossed cell, list next-state pairs $(\delta(S_i, x), \delta(S_j, x))$, dropping identities ($P = Q$) and self-implications ($\{P, Q\} = \{S_i, S_j\}$); mark **$\checkmark$** if none remain, or **X** if any implied pair is already **X**.
+4. **Pass 3** (Cascade Sweep): Repeatedly cross out any cell referencing an **X**-marked pair until a full top-to-bottom scan adds zero new **X** marks.
+5. **Merge Equivalence Classes:** Group surviving pairs by transitivity into minimal equivalence classes, substitute one representative per class, and check that every member of a class maps to the same next-state class on every input.
 
 <Callout type="warning" title="Common Mistakes">
 
 1. **Duplicate Axis Labels:** Putting $A \dots F$ on both axes creates useless $(A, A)$ diagonal cells and mirrored $(A, B) / (B, A)$ cells where an `X` in one mirror is easily missed in the other.
-2. **Halting Cascade Elimination Early:** Crossing out $(B, E)$ at the bottom of Pass 1 may invalidate $(A, D)$ higher up in Pass 2; never stop until an entire top-to-bottom scan adds zero new `X`s.
-3. **Ignoring Broken Transitivity:** In a completely specified FSM, equivalence is transitive. If $(B, A)$ and $(C, B)$ survive while $(C, A)$ is marked `X`, you made a lookup error—audit those three states immediately!
-4. **Dropping Self-Loops Incorrectly:** Self-implication $(A, E)$ inside cell $(E, A)$ does **not** cause a cross-out; it is trivially satisfied under the hypothesis $A \equiv E$.
+2. **Early Cascade Termination:** Crossing out $(B, E)$ at the bottom of Pass 1 may invalidate $(A, D)$ higher up in Pass 2; never stop until an entire top-to-bottom scan adds zero new `X`s.
+3. **Broken Transitivity:** In a completely specified FSM, equivalence is transitive. If $(B, A)$ and $(C, B)$ survive while $(C, A)$ is marked `X`, you made a lookup error—audit those three states immediately!
+4. **Dropping Self-Loops:** Self-implication $(A, E)$ inside cell $(E, A)$ does **not** cause a cross-out; it is trivially satisfied under the hypothesis $A \equiv E$.
 
 </Callout>
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-4-1" title="Exercise 4.1 — Six-State Implication Reduction (Feb 2026 C1)" level="Exam" hint="Split states by output signature first: {A, B, C, E} emit (0, 0) while {D, F} emit (1, 0). Check (E, A) before resolving (F, D).">
+<Exercise client:load id="ex-4-1" title="Exercise 4.1 — Six-State Implication Reduction" level="Exam" hint="Split states by output signature first: {A, B, C, E} emit (0, 0) while {D, F} emit (1, 0). Check (E, A) before resolving (F, D).">
 
-Minimize the following 6-state Mealy machine from **February 2026 (Variant C1, Question 2)**:
+Minimize the following 6-state Mealy machine:
 
 | State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
 | :---: | :---: | :---: |
@@ -188,12 +188,12 @@ Minimize the following 6-state Mealy machine from **February 2026 (Variant C1, Q
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Pass 1 — Output Partitioning:**
+1. **Pass 1** (Output Partitioning):
    - Output $(0, 0)$: $\{A, B, C, E\}$
    - Output $(1, 0)$: $\{D, F\}$
    - All $4 \times 2 = 8$ cross-group cells—$(D, A), (D, B), (D, C), (E, D), (F, A), (F, B), (F, C), (F, E)$—are immediately marked **X**.
 
-2. **Pass 2 & Pass 3 — Implied Pairs and Cascade Elimination:**
+2. **Passes 2 and 3** (Implied Pairs and Cascade):
    Evaluating the remaining 7 intra-group cells:
    - $(B, A)$: $X=0 \to (B, B)$ (drop); $X=1 \to (C, A)$ $\implies$ write $(C, A)$.
    - $(C, A)$: $X=0 \to (C, B)$; $X=1 \to (D, A)$ which is **X** $\implies$ **X**!
@@ -213,7 +213,7 @@ Minimize the following 6-state Mealy machine from **February 2026 (Variant C1, Q
    | **$E$** | **$\checkmark$** | ~~$(E, C)$~~ **X** | **X** | **X** | — |
    | **$F$** | **X** | **X** | **X** | $(E, A)$ **$\checkmark$** | **X** |
 
-3. **Minimal Equivalence Classes & Reduced 4-State Table:**
+3. **Reduced 4-State Table:**
    Classes: $S_A = \{A, E\}$, $S_B = \{B\}$, $S_C = \{C\}$, $S_D = \{D, F\}$ ($k = \lceil \log_2 4 \rceil = 2$ flip-flops, saving 1 flip-flop):
 
    | Minimal State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
@@ -254,10 +254,10 @@ Minimize the following 5-state Moore machine ($X \in \{0, 1\}$) and determine ho
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Pass 1 — Moore Output Cross-Out:**
+1. **Pass 1** (Moore Output Cross-Out):
    State $E$ outputs $u = 1$ while $\{A, B, C, D\}$ output $u = 0$ $\implies$ cross out $(E, A), (E, B), (E, C), (E, D)$ with **X**.
 
-2. **Pass 2 & Cascade Sweeps on $\{A, B, C, D\}$:**
+2. **Pass 2 and Cascade** on $\{A, B, C, D\}$:
    - $(B, A)$: $X=1 \to (E, C) = \mathbf{X} \implies$ **X**.
    - $(C, A)$: $X=0 \to (B, B)$ (drop); $X=1 \to (A, C)$ (self) $\implies$ **$\checkmark$** ($A \equiv C$)!
    - $(C, B)$: $X=1 \to (A, E) = \mathbf{X} \implies$ **X**.

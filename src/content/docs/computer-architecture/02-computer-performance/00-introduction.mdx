@@ -20,13 +20,13 @@ Part II establishes **elapsed CPU execution time** ($T_{\text{exec}}$) as the so
 - **Compiler and Microarchitecture Co-Design:** Aggressive compiler optimizations (`-O2`, `-O3`) eliminate fast single-cycle arithmetic instructions, shrinking $\text{IC}$ and cutting wall-clock runtime even when the surviving memory-heavy mix exhibits a *higher* average $\text{CPI}$.
 - **Hardware Accelerator Budgeting:** Offloading matrix or vision kernels onto a SIMD unit, GPU, or edge NPU pays off only in proportion to the baseline runtime fraction $F$. Amdahl's asymptotic ceiling $S_{\max} = \frac{1}{1 - F}$ prevents engineering teams from over-investing silicon area on bottlenecks bounded by serial I/O.
 
-### Shared Benchmark Workload
+### Running Example
 
-Across Chapters 6 and 7, we revisit a single running benchmark: a real-time **RV32IM state-estimation control iteration** executing $\text{IC} = 10^6$ dynamic instructions per $1.0\text{ ms}$ frame across arithmetic, load, store, and branch operations. In Chapter 6, we evaluate competing processor cores on this instruction mix to compute weighted $\text{CPI}$ and exact execution time $T_{\text{exec}}$. In Chapter 7, we profile the dominant matrix-filtering phase ($F = 0.75$ of runtime) against serial sensor I/O ($1 - F = 0.25$) to quantify vector-coprocessor speedup and inverse design targets.
+Across Chapters 6 and 7, we revisit a single running benchmark: a real-time **RV32IM control iteration** executing $\text{IC} = 10^6$ dynamic instructions per $1.0\text{ ms}$ frame across arithmetic, load, store, and branch operations. In Chapter 6, we evaluate competing processor cores on this instruction mix to compute weighted $\text{CPI}$ and exact execution time $T_{\text{exec}}$. In Chapter 7, we profile the dominant matrix-filtering phase ($F = 0.75$ of runtime) against serial sensor I/O ($1 - F = 0.25$) to quantify vector-coprocessor speedup and inverse design targets.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[6. CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/)** — Compute total execution time $T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}}$, evaluate weighted instruction-mix $\text{CPI}$, form exact speedup ratios, and avoid throughput metric traps.
-2. **[7. Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/)** — Derive $S_{\text{tot}} = \frac{1}{(1 - F) + F/S}$, determine the asymptotic speedup ceiling $\frac{1}{1 - F}$, and solve inverse feasibility problems for required local speedup $S$ or enhanced fraction $F$.
+- [6. CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/) — Compute total execution time $T_{\text{exec}} = \text{IC} \times \text{CPI} \times T_{\text{clk}}$, evaluate weighted instruction-mix $\text{CPI}$, form exact speedup ratios, and avoid throughput metric traps.
+- [7. Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/) — Derive $S_{\text{tot}} = \frac{1}{(1 - F) + F/S}$, determine the asymptotic speedup ceiling $\frac{1}{1 - F}$, and solve inverse feasibility problems for required local speedup $S$ or enhanced fraction $F$.

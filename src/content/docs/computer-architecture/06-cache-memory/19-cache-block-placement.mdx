@@ -29,11 +29,11 @@ Let us trace exactly where block $j = 450$ is allowed to reside under each place
    Block $450$ can sit **only in Block 194**, verified by $1$ tag comparator.
 2. **2-Way Set-Associative ($N = 2$):** Pairing slots into $2$-block sets yields $NS = 256 / 2 = 128\text{ sets}$ (numbered $0$ through $127$):
    $$\text{Set Index} = 450 \bmod 128 = 450 - (3 \times 128) = 450 - 384 = 66$$
-   Block $450$ maps to **Set 66** and may occupy **either Way 0 or Way 1**, checked in parallel by $2$ tag comparators.
+   Block $450$ maps to **Set 66** and may occupy **Way 0 or 1**, checked in parallel by $2$ tag comparators.
 3. **4-Way Set-Associative ($N = 4$):** Grouping $4$ blocks per set yields $NS = 256 / 4 = 64\text{ sets}$:
    $$\text{Set Index} = 450 \bmod 64 = 450 - (7 \times 64) = 450 - 448 = 2$$
    Block $450$ maps to **Set 2** and may occupy **any of its 4 ways** (Ways $0\text{--}3$), checked by $4$ parallel comparators.
-4. **Fully Associative ($N = 256$):** All $256$ slots form a single set ($NS = 1$). Block $450$ may reside in **any of the 256 blocks**, requiring $256$ parallel tag comparators.
+4. **Fully Associative** ($N = 256$): All $256$ slots form a single set ($NS = 1$). Block $450$ may reside in **any cache slot**, requiring $256$ parallel tag comparators.
 
 [The placement diagram](#fig-cache-placement-taxonomy) illustrates the same geometric progression on a compact $8$-block cache ($NB = 8$) for main memory block $j = 12$: Direct-Mapped pins it to Block $12 \bmod 8 = 4$; $2$-Way ($NS = 4$) allows either way of Set $12 \bmod 4 = 0$; Fully Associative opens all $8$ slots.
 
@@ -83,8 +83,8 @@ $$NS = \frac{NB}{N}, \qquad \text{Set Index} = j \bmod NS = j \bmod \left(\frac{
 
 Main memory block $j$ maps to a single deterministic set ($j \bmod NS$), but may be placed in **any of the $N$ ways** inside that set:
 
-- **Set-Collision and Coexistence Rule:** Two distinct memory blocks $j_1 \neq j_2$ map to the same set if and only if $|j_1 - j_2|$ is an integer multiple of $NS$. Up to $N$ distinct colliding active blocks coexist simultaneously without evicting one another; holding $k$ colliding blocks without thrashing therefore requires $N \ge k$ ways. Revisiting $j_1 = 18$ and $j_2 = 82$ in an $NB = 64$, $2$-way cache ($NS = 32$): both map to Set $18$ ($18 \bmod 32 = 82 \bmod 32 = 18$) and occupy Way $0$ and Way $1$ with zero conflict evictions.
-- **Hardware Cost:** Because the requested block could sit in any way of the indexed set, the cache must inspect all $N$ ways simultaneously using **$N$ parallel tag comparators** and an **$N$-to-$1$ multiplexer** to route the matching data word, slightly increasing $t_{\text{hit}}$ compared to Direct-Mapped.
+1. **Set-Collision Rule:** Two distinct memory blocks $j_1 \neq j_2$ map to the same set if and only if $|j_1 - j_2|$ is an integer multiple of $NS$. Up to $N$ distinct colliding active blocks coexist simultaneously without evicting one another; holding $k$ colliding blocks without thrashing therefore requires $N \ge k$ ways. Revisiting $j_1 = 18$ and $j_2 = 82$ in an $NB = 64$, $2$-way cache ($NS = 32$): both map to Set $18$ ($18 \bmod 32 = 82 \bmod 32 = 18$) and occupy Way $0$ and Way $1$ with zero conflict evictions.
+2. **Hardware Cost:** Because the requested block could sit in any way of the indexed set, the cache must inspect all $N$ ways simultaneously using **$N$ tag comparators** and an **$N$-to-$1$ multiplexer** to route the matching data word, slightly increasing $t_{\text{hit}}$ compared to Direct-Mapped.
 
 ### Fully Associative Organization
 
@@ -92,17 +92,17 @@ Setting $N = NB$ collapses the cache into a **single set** ($NS = NB / NB = 1$):
 
 $$NS = 1 \implies \text{no modulo index } (n = 0\text{ bits})$$
 
-Main memory block $j$ can occupy **any slot anywhere in the cache**, eliminating set-collision misses completely. However, checking all $NB$ slots in one cycle demands **$NB$ parallel comparators** (content-addressable memory), whose silicon area, wiring capacitance, and power restrict full associativity to small structures such as $16\text{--}64\text{-entry}$ Translation Lookaside Buffers (TLBs). Notice that Direct-Mapped ($N = 1$) and Fully Associative ($N = NB$) are simply the two endpoints of the general $N$-way formula $NS = NB / N$.
+Main memory block $j$ can occupy **any cache slot**, eliminating set-collision misses completely. However, checking all $NB$ slots in one cycle demands **$NB$ parallel comparators** (content-addressable memory), whose silicon area, wiring capacitance, and power restrict full associativity to small structures such as $16\text{--}64\text{-entry}$ Translation Lookaside Buffers (TLBs). Notice that Direct-Mapped ($N = 1$) and Fully Associative ($N = NB$) are simply the two endpoints of the general $N$-way formula $NS = NB / N$.
 
 ### Block Replacement Policies
 
 Whenever a cache miss targets a set whose $N$ ways are all valid and occupied, the controller must pick a **victim way** to overwrite:
 
-1. **Least Recently Used (LRU):** Evicts the way in the target set that has gone unreferenced (neither read nor written) for the longest time. LRU directly tracks temporal locality and achieves the lowest miss rate among practical policies, at the cost of maintaining age state bits per set (exact LRU is straightforward for $N = 2$ with $1$ status bit per set and $N = 4$, and approximated via Pseudo-LRU for $N \ge 8$).
-2. **First-In, First-Out (FIFO):** Evicts the way that was loaded into the set earliest, regardless of subsequent hits, using a simple modulo-$N$ counter per set.
+1. **Least Recently Used** (LRU): Evicts the way in the target set that has gone unreferenced (neither read nor written) for the longest time. LRU directly tracks temporal locality and achieves the lowest miss rate among practical policies, at the cost of maintaining age state bits per set (exact LRU is straightforward for $N = 2$ with $1$ status bit per set and $N = 4$, and approximated via Pseudo-LRU for $N \ge 8$).
+2. **First-In, First-Out** (FIFO): Evicts the way that was loaded into the set earliest, regardless of subsequent hits, using a simple modulo-$N$ counter per set.
 3. **Random:** Picks a victim way uniformly via a hardware pseudorandom counter, requiring zero per-set state bits while approaching LRU miss rates for larger $N$.
 
-In a **Direct-Mapped** cache ($N = 1$), each set holds only one slot—the incoming block unconditionally overwrites that slot, so **no replacement policy or tracking hardware exists**.
+In a **Direct-Mapped** cache ($N = 1$), each set holds only one slot—the incoming block unconditionally overwrites that slot, so **zero replacement hardware** exists.
 
 <StepCheck
   client:load
@@ -117,7 +117,7 @@ In a **Direct-Mapped** cache ($N = 1$), each set holds only one slot—the incom
   explanation="In Direct-Mapped ($NS = 64$), $18 \bmod 64 = 18$ and $82 \bmod 64 = 18$, so both compete for the single Block 18 slot. In 2-Way ($NS = 32$), $18 \bmod 32 = 18$ and $82 \bmod 32 = 18$, placing one block in Way 0 and the other in Way 1 of Set 18."
 />
 
-<Callout type="bridge" title="Embedded & Robotics Bridge: Sensor Buffer Stride Padding">
+<Callout type="bridge" title="Sensor Buffer Stride Padding">
 
 In embedded vision and LiDAR pipelines, allocating multiple $16\text{ KiB}$ or $32\text{ KiB}$ sensor buffers at exact power-of-two byte offsets causes corresponding pixels `frameA[i]` and `frameB[i]` to differ by an exact multiple of $NS \times B$, mapping every pair to the identical cache set. Padding buffer allocations by one extra $64\text{-byte}$ cache line shifts $j_B$ by $+1$, distributing accesses cleanly across sets without hardware changes.
 
@@ -137,15 +137,15 @@ In embedded vision and LiDAR pipelines, allocating multiple $16\text{ KiB}$ or $
 
 ### Placement Calculation Procedure
 
-1. **Find Total Cache Blocks:** If given capacity $C$ and block size $B$, compute $NB = C / B$.
-2. **Find Total Cache Sets:** Divide by associativity $N$ to obtain $NS = NB / N$ (with $N = 1 \implies NS = NB$, and Fully Associative $\implies NS = 1$).
-3. **Convert Byte Address (if needed):** Compute main memory block address $j = \lfloor \text{Byte Address} / B \rfloor$.
+1. **Find Total Blocks:** If given capacity $C$ and block size $B$, compute $NB = C / B$.
+2. **Find Total Sets:** Divide by associativity $N$ to obtain $NS = NB / N$ (with $N = 1 \implies NS = NB$, and Fully Associative $\implies NS = 1$).
+3. **Convert Byte Address:** If given a raw byte address instead of $j$, compute main memory block address $j = \lfloor \text{Byte Address} / B \rfloor$.
 4. **Apply Set Modulo:** Compute $\text{Set Index} = j \bmod NS = j - NS \cdot \lfloor j / NS \rfloor$. State both the target set index and the number of candidate ways ($N$).
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Modulo by $NB$ Instead of $NS$:** In an $N$-way set-associative cache, always write $NS = NB / N$ *first* and take $j \bmod NS$. Taking $j \bmod NB$ computes a nonexistent set whenever $j \bmod NB \ge NS$.
-2. **Byte Address vs. Block Address:** Read carefully whether the problem gives block address $j$ directly or a raw byte address that must first be integer-divided by $B$.
+1. **Using $NB$ Not $NS$:** In an $N$-way set-associative cache, always write $NS = NB / N$ *first* and take $j \bmod NS$. Taking $j \bmod NB$ computes a nonexistent set whenever $j \bmod NB \ge NS$.
+2. **Byte vs. Block Address:** Read carefully whether the problem gives block address $j$ directly or a raw byte address that must first be integer-divided by $B$.
 3. **Replacement in Direct-Mapped:** Never assign LRU or FIFO overhead to a Direct-Mapped cache; with $1$ slot per set, eviction is unconditional.
 
 </Callout>
@@ -185,14 +185,14 @@ Given $NB = 64\text{ blocks}$ and main memory block $j = 50$:
      $$NS = \frac{64}{4} = 16 \implies \text{Set Index} = 50 \bmod 16 = 50 - (3 \times 16) = 2$$
      Placed in **Set 2** (any of Ways $0, 1, 2, 3$).
 
-2. **Index Bit Widths ($n = \log_2 NS$):**
+2. **Index Widths** ($n = \log_2 NS$):
    - Direct-Mapped: $n = \log_2(64) = 6\text{ bits}$.
    - 2-Way: $n = \log_2(32) = 5\text{ bits}$.
    - 4-Way: $n = \log_2(16) = 4\text{ bits}$.
 
-3. **Fully Associative ($N = 64$):**
+3. **Fully Associative** ($N = 64$):
    $$NS = \frac{64}{64} = 1\text{ set} \quad (n = 0\text{ index bits})$$
-   Block $j = 50$ may be placed in **any of the 64 block slots** in the cache.
+   Block $j = 50$ may be placed in **any 64-block slot** in the cache.
 
 </details>
 
@@ -256,18 +256,18 @@ In a vector kernel similar to those in [Arrays and Strings](/dynamic-courses/com
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Main Memory Block Addresses ($j = \lfloor \text{Addr} / 64 \rfloor$):**
+1. **Block Addresses** ($j = \lfloor \text{Addr} / 64 \rfloor$):
    $$j_A = \frac{1{,}152}{64} = 18, \qquad j_B = \frac{5{,}248}{64} = 82, \qquad j_C = \frac{9{,}344}{64} = 146$$
    Notice that $82 - 18 = 64$ and $146 - 82 = 64$: the three arrays are separated by exact multiples of $64\text{ blocks}$ ($4{,}096\text{ bytes}$).
 
 2. **Mapped Indices Across Associativities:**
-   - **Direct-Mapped ($N = 1, NS = 64$):**
+   - **Direct-Mapped** ($N = 1, NS = 64$):
      $$18 \bmod 64 = 18, \qquad 82 \bmod 64 = 18, \qquad 146 \bmod 64 = 18$$
      All three blocks compete for **Block 18** ($1$ slot) and evict each other on every access.
-   - **2-Way Set-Associative ($N = 2, NS = 32$):**
+   - **2-Way Set-Associative** ($N = 2, NS = 32$):
      $$18 \bmod 32 = 18, \qquad 82 \bmod 32 = 18, \qquad 146 \bmod 32 = 18$$
      All three blocks map to **Set 18**, which has only **2 ways**. Under LRU, accessing $A \to B \to C \to A \dots$ continuously evicts the oldest of the three, causing $100\%$ misses!
-   - **4-Way Set-Associative ($N = 4, NS = 16$):**
+   - **4-Way Set-Associative** ($N = 4, NS = 16$):
      $$18 \bmod 16 = 2, \qquad 82 \bmod 16 = 2, \qquad 146 \bmod 16 = 2$$
      All three blocks map to **Set 2**, which provides **4 ways**—enough to hold $j_A$, $j_B$, and $j_C$ simultaneously with $1$ spare way left over.
 

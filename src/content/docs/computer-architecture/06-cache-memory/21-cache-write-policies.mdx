@@ -20,12 +20,12 @@ On a memory read (`lw`), the cache reads SRAM data and compares the Tag **in par
 
 Suppose our $2\text{ GHz}$ RV32IM core ($0.5\text{ ns}$ cycle) executes a $1{,}000$-iteration loop that repeatedly updates a counter in memory via `sw t0, 0(s0)` (`A[0]`), where DRAM takes $50\text{ ns}$ ($100\text{ cycles}$) per write and `A[0]` is initially absent from an empty (clean) `L1D` cache:
 
-1. **Write-Through + No-Write-Allocate + 4-Entry Write Buffer:**
-   - On iteration $1$, `sw` misses in `L1D`. Under **No-Write-Allocate**, `A[0]`'s block is *not* fetched into cache; the store goes straight into the **4-entry FIFO Write Buffer** in $1\text{ cycle}$ so the CPU can keep running while DRAM drains the entry over $100\text{ cycles}$.
-   - Even if `A[0]` were already resident in `L1D`, **Write-Through** forwards *every* store to DRAM—generating **$1{,}000$ off-chip DRAM writes**. If the loop issues stores faster than $1$ per $100\text{ cycles}$, entries $1\text{--}4$ fill the FIFO and iteration $5$ **stalls the CPU** on a full Write Buffer!
-2. **Write-Back + Write-Allocate:**
+1. **Write-Through Policy** (+ Write Buffer):
+   - On iteration $1$, `sw` misses in `L1D`. Under **No-Write-Allocate**, `A[0]`'s block is *not* fetched into cache; the store goes straight into the **4-entry FIFO** Write Buffer in $1\text{ cycle}$ so the CPU can keep running while DRAM drains the entry over $100\text{ cycles}$.
+   - Even if `A[0]` were already resident in `L1D`, **Write-Through** forwards *every* store to DRAM—generating **$1{,}000$ DRAM writes**. If the loop issues stores faster than $1$ per $100\text{ cycles}$, entries $1\text{--}4$ fill the FIFO and iteration $5$ **stalls the CPU** on a full Write Buffer!
+2. **Write-Back Policy** (+ Write-Allocate):
    - On iteration $1$, `sw` misses in `L1D`. Under **Write-Allocate**, the controller fetches `A[0]`'s $64\text{-byte}$ block from DRAM ($1$ bus read), writes `t0` into SRAM, and sets $\text{Dirty} = 1$.
-   - Iterations $2$ through $1{,}000$ ($999$ stores) **all hit in `L1D` SRAM** in $1\text{ cycle}$ each with **$0$ DRAM bus writes**.
+   - Iterations $2$ through $1{,}000$ ($999$ stores) **hit in `L1D`** in $1\text{ cycle}$ each with **$0$ bus writes**.
    - Only much later, when another block eventually evicts `A[0]`'s dirty line, does the controller perform **$1$ DRAM write-back**—cutting total DRAM bus transactions across all $1{,}000$ stores from $1{,}000$ down to **$2$** ($1$ fetch $+ 1$ eventual write-back).
 
 [The Write Buffer datapath](#fig-write-buffer) illustrates how a hardware FIFO sits between a Write-Through cache and main DRAM to absorb isolated stores without stalling the pipeline—until a store burst saturates all FIFO slots.
@@ -96,11 +96,11 @@ Although all four combinations are logically legal, real processors pair them al
   explanation="Isolated stores complete in 1 cycle by entering the FIFO. Write stalls occur when sustained store bursts exceed DRAM drain bandwidth ($\text{Rate}_{\text{CPU}} > \text{Rate}_{\text{DRAM}}$), filling all 4 FIFO slots."
 />
 
-<Callout type="bridge" title="Embedded & Robotics Bridge: DMA Coherence Maintenance">
+<Callout type="bridge" title="DMA Coherence Maintenance">
 
 On ARM Cortex-M7 and embedded RISC-V microcontrollers with **Write-Back** data caches and non-snooping DMA engines, two bugs arise if software forgets cache maintenance:
-- **TX (CPU $\to$ Peripheral DMA):** CPU writes packet bytes into SRAM (`Dirty = 1`), then triggers DMA—which reads stale bytes from DRAM unless firmware first executes a **Cache Clean / Flush** (`cbo.clean`) to push dirty lines out to DRAM.
-- **RX (Camera/ADC DMA $\to$ CPU):** DMA writes fresh sensor data directly into DRAM; if an old cached copy sits in `L1D`, the CPU reads stale SRAM data unless firmware executes a **Cache Invalidate** (`cbo.inval`) before reading the buffer.
+- **TX Path** (CPU $\to$ DMA): CPU writes packet bytes into SRAM (`Dirty = 1`), then triggers DMA—which reads stale bytes from DRAM unless firmware first executes a **Cache Clean / Flush** (`cbo.clean`) to push dirty lines out to DRAM.
+- **RX Path** (DMA $\to$ CPU): DMA writes fresh sensor data directly into DRAM; if an old cached copy sits in `L1D`, the CPU reads stale SRAM data unless firmware executes a **Cache Invalidate** (`cbo.inval`) before reading the buffer.
 
 </Callout>
 
@@ -129,8 +129,8 @@ On ARM Cortex-M7 and embedded RISC-V microcontrollers with **Write-Back** data c
 <Callout type="warning" title="Common Mistakes">
 
 1. **Inverted Policy Pairings:** Never pair Write-Through with Write-Allocate or Write-Back with No-Write-Allocate as standard defaults—always state **Write-Through + No-Write-Allocate** and **Write-Back + Write-Allocate**.
-2. **Claiming Write Buffers Prevent All Stalls:** Always specify that a Write Buffer eliminates stalls *only until the FIFO fills up* under high-frequency store bursts.
-3. **Forgetting Dirty Eviction Order:** On a Write-Back miss replacing a `Dirty = 1` line, the controller must write back (or latch into a write-back buffer) the old block *before* overwriting its SRAM data with the newly fetched block.
+2. **Overselling Write Buffers:** Always specify that a Write Buffer eliminates stalls *only until the FIFO fills up* under high-frequency store bursts.
+3. **Wrong Eviction Order:** On a Write-Back miss replacing a `Dirty = 1` line, the controller must write back (or latch into a write-back buffer) the old block *before* overwriting its SRAM data with the newly fetched block.
 
 </Callout>
 
@@ -155,14 +155,14 @@ A processor uses a $4$-way set-associative **Write-Back + Write-Allocate** data 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Hardware Sequence on a Dirty Write Miss (Write-Back + Write-Allocate):**
-   - **Step 1 (Tag Lookup & Victim Selection):** Index the target set, compare all $4$ tags in parallel (miss), and consult LRU to pick the victim way (`Valid = 1, Dirty = 1`).
-   - **Step 2 (Victim Write-Back):** Reconstruct the victim's block address from its stored `(Tag, Index)` and write the entire modified victim block back to main DRAM.
-   - **Step 3 (Target Block Fetch):** Issue a DRAM block read to fetch the $B$-byte block containing the `sw` target address into the freed cache way.
-   - **Step 4 (SRAM Update & Metadata):** Write the CPU's 32-bit store word at the target Byte Offset inside the block, store the new `Tag`, set `Valid = 1`, and set **`Dirty = 1`**.
+1. **Dirty Write Miss** (Write-Back + Write-Allocate):
+   - **Step 1** (Tag & Victim): Index the target set, compare all $4$ tags in parallel (miss), and consult LRU to pick the victim way (`Valid = 1, Dirty = 1`).
+   - **Step 2** (Victim Write-Back): Reconstruct the victim's block address from its stored `(Tag, Index)` and write the entire modified victim block back to main DRAM.
+   - **Step 3** (Target Block Fetch): Issue a DRAM block read to fetch the $B$-byte block containing the `sw` target address into the freed cache way.
+   - **Step 4** (SRAM Update): Write the CPU's 32-bit store word at the target Byte Offset inside the block, store the new `Tag`, set `Valid = 1`, and set **`Dirty = 1`**.
 
-2. **500 Loop Writes to Resident `X[0]` Followed by Eviction:**
-   - **Write-Through:** Generates **$500$ DRAM bus writes** (one per `sw`), plus $0$ writes on clean eviction $= 500\text{ writes}$.
+2. **500 Writes to Resident `X[0]`:**
+   - **Write-Through:** Generates **$500$ DRAM writes** (one per `sw`), plus $0$ writes on clean eviction $= 500\text{ writes}$.
    - **Write-Back:** Iteration $1$ flips `Dirty` from $0 \to 1$; iterations $2\text{--}500$ update SRAM silently ($0$ bus writes); final eviction writes the dirty block once $= \mathbf{1\text{ DRAM write}}$ (saving $499$ bus writes).
 
 </details>
@@ -188,12 +188,12 @@ A $2\text{ GHz}$ processor ($0.5\text{ ns}$ per clock cycle) uses a **Write-Thro
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **DRAM Drain Latency in Clock Cycles:**
+1. **DRAM Drain Latency:**
    $$\text{Cycles}_{\text{DRAM}} = \frac{50\text{ ns}}{0.5\text{ ns/cycle}} = 100\text{ CPU cycles per write}$$
 
 2. **Cycle-by-Cycle FIFO Occupancy:**
-   - **Cycle 0 (`sw #1`):** Enters FIFO slot $1$ ($1/4$ full); controller immediately begins the $100$-cycle DRAM transfer for `sw #1` (completes at cycle $100$).
-   - **Cycles 1, 2, 3 (`sw #2`, `sw #3`, `sw #4`):** Enter FIFO slots $2, 3, 4$ with **$0$ stall cycles**. At the end of cycle $3$, all $4$ entries are occupied ($4/4$ full) and `sw #1` still has $96\text{ cycles}$ of DRAM transfer remaining.
+   - **Cycle 0** (`sw #1`): Enters FIFO slot $1$ ($1/4$ full); controller immediately begins the $100$-cycle DRAM transfer for `sw #1` (completes at cycle $100$).
+   - **Cycles 1–3** (`sw #2`–`#4`): Enter FIFO slots $2, 3, 4$ with **$0$ stall cycles**. At the end of cycle $3$, all $4$ entries are occupied ($4/4$ full) and `sw #1` still has $96\text{ cycles}$ of DRAM transfer remaining.
    - **Cycle 4 (`sw #5`):** Finds the Write Buffer **completely saturated ($4/4$ full)** and stalls the CPU pipeline for $96\text{ cycles}$ until `sw #1` finishes draining at cycle $100$ (`sw #6` then stalls another $99\text{ cycles}$ waiting for `sw #2`).
 
 </details>

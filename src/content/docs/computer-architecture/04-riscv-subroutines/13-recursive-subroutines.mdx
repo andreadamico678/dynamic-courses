@@ -12,7 +12,7 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Recursive Subroutines
 
-To a RISC-V processor, recursion is not a special hardware mode—it is an ordinary `call` (`jal ra, label`) whose jump target happens to be the function's own entry label. Because every recursive invocation calls a subroutine, **every recursive function is a non-leaf function** ([Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/)): each activation must allocate its own 16-byte-aligned stack frame to preserve **`ra`** and any live arguments or partial results needed after the recursive `jal` returns.
+To a RISC-V processor, recursion is not a special hardware mode—it is an ordinary `call` (`jal ra, label`) whose jump target happens to be the function's own entry label. Because every recursive invocation calls a subroutine, every recursive function is a **non-leaf function** ([Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/)): each activation must allocate its own 16-byte-aligned stack frame to preserve **`ra`** and any live arguments or partial results needed after the recursive `jal` returns.
 
 <Divider label="1 · Example" />
 
@@ -84,9 +84,9 @@ We generalize the factorial trace into four principles: preserving `ra` and live
 Every recursive C-to-RISC-V translation enforces two hardware invariants at each activation level:
 
 1. **Unconditional `ra` Preservation:** Even though the deepest base-case activation executes no further `call`, every outer activation executes `call self` (`jal ra, self`), which overwrites `ra` with the instruction address immediately after `call self` *inside the recursive function*. If a recursive routine omits `sw ra, 12(sp)` and `lw ra, 12(sp)`, the base case returns once to `call self + 4`, and that level's `ret` jumps right back to `call self + 4` forever—trapping the CPU in an infinite loop.
-2. **Shielding Live Values Across `jal`:** Register `a0` plays three conflicting roles: it brings in parameter $n$, must be overwritten with the child argument (such as $n - 1$), and returns holding $f(n - 1)$. Any value from before `call self` that appears in an expression *after* `call self` returns must be saved in the current frame using either of two equivalent ABI idioms:
-   - **Caller-Slot Idiom (`sw a0, 8(sp)`):** Spill `a0` directly to a dedicated word slot in the prologue and reload it into a temporary (`lw t1, 8(sp)`) right after `call self`.
-   - **Callee-Saved Idiom (`sw s0, 8(sp)`):** Save caller's `s0` in the prologue, copy `mv s0, a0`, compute child argument `addi a0, s0, -1`, and after `call self` combine `mul a0, s0, a0` before restoring `lw s0, 8(sp)` in the epilogue.
+2. **Shielding Live Values:** Register `a0` plays three conflicting roles across `jal`: it brings in parameter $n$, must be overwritten with the child argument (such as $n - 1$), and returns holding $f(n - 1)$. Any value from before `call self` that appears in an expression *after* `call self` returns must be saved in the current frame using either of two equivalent ABI idioms:
+   - **Caller-Slot Idiom** (`sw a0, 8(sp)`): Spill `a0` directly to a dedicated word slot in the prologue and reload it into a temporary (`lw t1, 8(sp)`) right after `call self`.
+   - **Callee-Saved Idiom** (`sw s0, 8(sp)`): Save caller's `s0` in the prologue, copy `mv s0, a0`, compute child argument `addi a0, s0, -1`, and after `call self` combine `mul a0, s0, a0` before restoring `lw s0, 8(sp)` in the epilogue.
 
 Both idioms allocate the exact same **16-byte** frame (`ra` + 1 word = 8 bytes, rounded up to 16 bytes) and earn full marks in Question 6; the `s0` idiom becomes especially convenient when $n$ is referenced multiple times after a call.
 
@@ -153,7 +153,7 @@ $$B_{\text{peak}} = D_{\max} \cdot K$$
 
 Notice that in dual-branching `fib(n)`, `fib(n - 1)` completely unwinds and pops all its frames *before* `fib(n - 2)` is called; therefore, even though dynamic instruction count grows exponentially ($\mathcal{O}(2^n)$), peak stack depth remains linear ($D_{\max} = n$, so $B_{\text{peak}} = 16n\text{ bytes}$ for $n \ge 1$). Conversely, if a recursive call is in **tail position** (the recursive call is the very last operation before `return`, with no post-call multiplication or addition), optimizing compilers (`gcc -O2`) apply **Tail-Call Optimization (TCO)**—updating `a0` in place and jumping (`j`) to the loop header with $\mathcal{O}(1)$ stack space. In hand-written Exam Q6 translations, however, always preserve the explicit recursive stack frame when the C prompt is recursive.
 
-<Callout type="bridge" title="Embedded Firmware Bridge: Bounded Recursion in Flight Control">
+<Callout type="bridge" title="Bounded Recursion in Avionics">
 
 Safety-critical firmware standards (**MISRA-C**, **DO-178C** avionics) ban unbounded recursion because data-dependent call depths make worst-case stack sizing undecidable. When robotics engineers implement recursive octree spatial queries or depth-first planners on embedded hardware, they either pass an explicit `depth` guard (`if (depth >= MAX_DEPTH) return ERR_BOUND;`) so $D_{\max} \cdot K$ is provably bounded, or convert the recursion into an iterative loop over a fixed-capacity static array.
 
@@ -186,16 +186,16 @@ Safety-critical firmware standards (**MISRA-C**, **DO-178C** avionics) ban unbou
 ### Recursive Translation Procedure
 
 1. **Identify Live Post-Call Values:** Circle every variable or partial call result in the C `return` expression that is used *after* a recursive call returns.
-2. **Allocate Aligned Frame & Spill:** Subtract $K = 16$ (or $32$ if $> 3$ saved words), store `ra` at `(K - 4)(sp)`, and save either incoming `a0` or callee-saved `s0`, `s1`, ... at descending word offsets.
+2. **Allocate Aligned Frame:** Subtract $K = 16$ (or $32$ if $> 3$ saved words), store `ra` at `(K - 4)(sp)`, and save either incoming `a0` or callee-saved `s0`, `s1`, ... at descending word offsets.
 3. **Code Base Case(s) First:** Test termination conditions before any `call`; load the base return value into `a0` and `j func_epilogue`.
-4. **Code Recursive Call(s) & Recombine:** Load child arguments into `a0`, `a1`, ..., execute `call func`, reload/shield live values from stack slots or `s0`–`s1`, and compute the return value into `a0`.
+4. **Recurse and Recombine:** Load child arguments into `a0`, `a1`, ..., execute `call func`, reload/shield live values from stack slots or `s0`–`s1`, and compute the return value into `a0`.
 5. **Single Shared Epilogue:** Restore `s` registers and `ra`, execute `addi sp, sp, K`, and `ret`.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Multiplying by `a0` Instead of Reloaded `n`:** Writing `call fact; mul a0, a0, a0` squares $f(n - 1)$ instead of multiplying by $n$ because `a0` no longer contains $n$.
-2. **Early `ret` Skipping `addi sp, sp, 16`:** Returning directly from the base case after already allocating `-16` bytes misaligns `sp` and crashes the first caller unwind.
-3. **Storing First Branch Result in `t0`:** In `F(n - 1) + F(n - 2)`, keeping `F(n - 1)` in `t0` across the second recursive call overwrites ancestor results at deeper levels.
+1. **Multiplying by Clobbered `a0`:** Writing `call fact; mul a0, a0, a0` squares $f(n - 1)$ instead of multiplying by $n$ because `a0` no longer contains $n$.
+2. **Skipping Epilogue Deallocation:** Executing an early `ret` from the base case after already allocating `-16` bytes misaligns `sp` and crashes the first caller unwind.
+3. **Keeping Intermediate Results in `t0`:** In `F(n - 1) + F(n - 2)`, storing `F(n - 1)` in `t0` across the second recursive call overwrites ancestor results at deeper levels.
 4. **Missing Base-Case Branch:** Using `blt` instead of `ble` on `n <= 0` lets negative or zero inputs recurse forever until stack memory overflows.
 
 </Callout>

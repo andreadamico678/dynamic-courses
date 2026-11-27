@@ -20,7 +20,7 @@ Part IV builds the mechanical **Application Binary Interface (ABI)** rules that 
 - **Deterministic RTOS Stack Budgets:** On embedded RISC-V and ARM Cortex-M controllers running FreeRTOS or Zephyr, each real-time task owns a fixed stack buffer (typically $1\text{–}4\text{ KiB}$). Computing exact 16-byte-aligned frame sizes and bounding call depth prevents runtime stack overflows from corrupting adjacent task memory.
 - **Zero-Friction C/Assembly Interop:** Interrupt service routines, DSP filters, and cryptographic primitives written in hand-tuned assembly link cleanly into compiled C firmware only when every routine honors the ABI split between volatile scratch registers and preserved registers.
 
-### Shared Running Program
+### Running Example
 
 Across Chapters 11–13, we progressively translate every layer of a single interactive C program that reads a sensor tag into a local stack buffer, validates an integer order $n$, computes a recursive factorial, and prints a formatted summary:
 
@@ -49,14 +49,14 @@ int main(void) {
 }
 ```
 
-- **Console I/O Layer:** `.data` string literals, `la` address loading, `printf`/`scanf` via `ecall` (`a7` codes `4`, `8`, `5`, `1`, `11`), the `do-while` bounds check, and clean exit (`a7 = 10`).
-- **Non-Leaf Stack Frame Layer:** `main`'s 32-byte aligned stack frame holding local array `tag[16]` at `0(sp)`, saved `ra`, and callee-saved locals (`len`, `n`, `res`) across `call strlen` and `call fact`, paired with a zero-stack leaf `strlen`.
-- **Recursive Activation Layer:** `fact(n)` allocating a fresh 16-byte frame per recursive call so `ra` and live parameter `n` survive `jal` down to the base case and back.
+- **Console I/O:** `.data` string literals, `la` address loading, `printf`/`scanf` via `ecall` (`a7` codes `4`, `8`, `5`, `1`, `11`), the `do-while` bounds check, and clean exit (`a7 = 10`).
+- **Non-Leaf Frames:** `main`'s 32-byte aligned stack frame holding local array `tag[16]` at `0(sp)`, saved `ra`, and callee-saved locals (`len`, `n`, `res`) across `call strlen` and `call fact`, paired with a zero-stack leaf `strlen`.
+- **Recursive Activation:** `fact(n)` allocating a fresh 16-byte frame per recursive call so `ra` and live parameter `n` survive `jal` down to the base case and back.
 
 <Divider />
 
 ## Chapter Roadmap
 
-1. **[11. System Calls](/dynamic-courses/computer-architecture/04-riscv-subroutines/11-system-calls/)** — Declare static `.data` buffers and strings, load addresses with `la`, invoke RARS console I/O services (`a7 = 1, 4, 5, 8, 10, 11`), and build validated input loops.
-2. **[12. Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/)** — Partition caller-saved and callee-saved registers, size 16-byte-aligned stack frames, allocate local C buffers via `sp`, and write exact prologue/epilogue pairs.
-3. **[13. Recursive Subroutines](/dynamic-courses/computer-architecture/04-riscv-subroutines/13-recursive-subroutines/)** — Translate single linear and dual-branching recursive C functions by preserving `ra`, live arguments, and partial results across `jal`.
+- [11. System Calls](/dynamic-courses/computer-architecture/04-riscv-subroutines/11-system-calls/) — Declare static `.data` buffers and strings, load addresses with `la`, invoke RARS console I/O services (`a7 = 1, 4, 5, 8, 10, 11`), and build validated input loops.
+- [12. Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/) — Partition caller-saved and callee-saved registers, size 16-byte-aligned stack frames, allocate local C buffers via `sp`, and write exact prologue/epilogue pairs.
+- [13. Recursive Subroutines](/dynamic-courses/computer-architecture/04-riscv-subroutines/13-recursive-subroutines/) — Translate single linear and dual-branching recursive C functions by preserving `ra`, live arguments, and partial results across `jal`.
