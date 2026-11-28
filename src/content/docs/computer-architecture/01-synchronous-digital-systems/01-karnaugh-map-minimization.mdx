@@ -165,20 +165,7 @@ $$f(a, b, c, d, e) = \sum m(0, 2, 5, 7, 20, 21) + d(4, 16, 17, 18, 23)$$
 
 1. Construct the dual-layer Gray-coded Karnaugh map ($bc \backslash de$ for $a = 0$ and $a = 1$).
 2. Identify all prime implicants covering the active minterms and determine which ones are essential (EPIs).
-3. Write the minimal SOP expression for $f(a, b, c, d, e)$.
-
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="Which minimal SOP expression covers all active minterms of $f(a, b, c, d, e)$ above?"
-  options={[
-    "$\\overline{a}\\overline{b}\\overline{c}\\overline{e} + \\overline{b}ce + a\\overline{b}c\\overline{d}$",
-    "$\\overline{b}\\overline{c}\\overline{e} + \\overline{b}ce + a\\overline{b}\\overline{d}$",
-    "$\\overline{b}\\overline{c}\\overline{e} + \\overline{a}\\overline{b}c + a\\overline{b}\\overline{d}$"
-  ]}
-  correctIndex={1}
-  explanation="Both $\{m_0, m_2\}$ and $\{m_5, m_7, m_{21}\}$ expand across Layer 0 and Layer 1 into 4-cell 3D groups ($\overline{b}\overline{c}\overline{e}$ and $\overline{b}ce$), while $m_{20}$ expands with $\{d_{16}, d_{17}, m_{21}\}$ on Layer 1 into $a\overline{b}\overline{d}$."
-/>
+3. Write the minimal SOP expression for $f(a, b, c, d, e)$ on paper before checking the solution.
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
@@ -231,16 +218,7 @@ A 4-variable combinational output $u(a, b, c, d)$ driven by two state bits $ab$ 
 
 1. Find the maximal prime implicant covering the `1`s in columns $cd \in \{00, 01\}$.
 2. Find the maximal prime implicant covering the remaining `1`s at $(00, 10)$ and $(10, 10)$.
-3. Write the minimal SOP expression for $u(a, b, c, d)$ and count the total number of literals.
-
-<StepCheck
-  client:load
-  prompt="How many total literals appear in the minimal SOP expression for $u(a, b, c, d)$?"
-  expected={3}
-  tolerance={0.01}
-  unit="literals"
-  explanation="Columns $00, 01$ form an 8-cell block $\overline{c}$ (1 literal), and the four corners form a 4-cell block $\overline{b}\overline{d}$ (2 literals), giving $u = \overline{c} + \overline{b}\overline{d}$ with $1 + 2 = 3$ literals."
-/>
+3. Write the minimal SOP expression for $u(a, b, c, d)$ on paper and verify your literal count.
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>

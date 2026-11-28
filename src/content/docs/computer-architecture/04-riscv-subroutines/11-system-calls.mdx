@@ -189,15 +189,9 @@ li   a7, 10              # Service 10: Exit
 ecall
 ```
 
-### User Mode Trap Intuition
+### Console Translation Rules
 
-Why must console I/O go through `ecall` instead of reading keyboard registers directly? On multi-tasking processors (Linux on RV64/RV32), user applications run in unprivileged **User Mode (U-mode)** so a buggy program cannot corrupt another process's terminal or disk. Executing `ecall` raises a synchronous hardware exception: the CPU records the faulting PC in the exception program counter CSR (`sepc`), switches to privileged **Supervisor/Machine Mode**, jumps to the kernel trap vector, and dispatches the service requested in `a7` before returning via `sret`/`mret`.
-
-<Callout type="bridge" title="Syscalls and Memory-Mapped UART">
-
-On bare-metal microcontrollers without an operating system (such as STM32 or ESP32-C3 RISC-V flight controllers), there is no POSIX kernel listening to `ecall` service codes. Instead, `printf` retargets `putchar` directly to **Memory-Mapped I/O (MMIO)** hardware registers—polling a UART transmit-ready status bit (`lbu` from `0x40001014`) and writing each ASCII byte (`sb` to `0x40001000`), or queuing packets via non-blocking DMA so high-rate control loops never stall on slow serial baud rates.
-
-</Callout>
+Because `ecall` invokes external handler code, treat caller-saved registers (`t0`–`t6`, `a0`–`a7`) as volatile across system calls and keep long-lived C variables in `s0`–`s11` once subroutines enter play.
 
 <StepCheck
   client:load
@@ -256,15 +250,6 @@ Write a complete standalone RISC-V program using `.data` and `.text` that:
 1. Prompts `"Name: "` and reads a user string into a 32-byte static buffer `name_buf`.
 2. Prompts `"Age: "` and reads an integer `age`.
 3. Computes `months = age * 12` and prints `"Months = <months>\n"` followed by clean termination.
-
-<StepCheck
-  client:load
-  prompt="Which service code must be loaded into `a7` to print the single trailing newline character `'\n'` (`ASCII 10`) without declaring a `.asciz` newline string?"
-  expected={11}
-  tolerance={0}
-  unit=""
-  explanation="Service `11` (`PrintChar`) outputs the low 8-bit ASCII character stored in `a0` (`li a0, 10; li a7, 11; ecall`)."
-/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
@@ -352,19 +337,6 @@ int main(void) {
 }
 ```
 
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="With `n` stored in `t0`, `t1 = 1`, and `t2 = 20`, which branch pair accurately re-runs `ask_n` whenever `n < 1 || n > 20`?"
-  options={[
-    "`blt t0, t1, ask_n` followed by `bge t0, t2, ask_n`",
-    "`blt t0, t1, ask_n` followed by `blt t2, t0, ask_n`",
-    "`bge t0, t1, ask_n` followed by `bge t2, t0, ask_n`"
-  ]}
-  correctIndex={1}
-  explanation="`n < 1` maps directly to `blt t0, t1, ask_n`, and `n > 20` is equivalent to `20 < n`, which maps to `blt t2, t0, ask_n` (or pseudo-instruction `bgt t0, t2, ask_n`) without rejecting `n = 20`."
-/>
-
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
@@ -441,15 +413,6 @@ Write a complete standalone RISC-V program that combines Part III byte-level str
 2. Scan `line_buf` byte-by-byte until encountering either `'\0'` (`0`) or `'\n'` (`10`).
 3. For every ASCII decimal digit (`'0'`–`'9'`, ASCII `48`–`57`), convert it to its numeric value `0`–`9` and accumulate `digit_sum`. Ignore all non-digit characters.
 4. Print `"Digit sum = <digit_sum>\n"` and exit cleanly.
-
-<StepCheck
-  client:load
-  prompt="If the user types `A7-39` and presses Enter, what numerical value does the program print for `digit_sum`?"
-  expected={19}
-  tolerance={0}
-  unit=""
-  explanation="`'A'` (`65`), `'-'` (`45`), and `'\n'` (`10`) fall outside `[48, 57]`; the digits `'7'`, `'3'`, and `'9'` convert to `7 + 3 + 9 = 19`."
-/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>

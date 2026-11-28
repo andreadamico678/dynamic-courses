@@ -25,10 +25,11 @@ Use plain topic titles inside `<Exercise id="..." title="Exercise N.k — Topic"
   2. **Conceptual Distinctions & Comparisons:** Test the clean boundaries established in Theory (e.g., Mask ROM vs. Flash, write-back vs. refresh, Latch vs. Flip-Flop, NOR vs. NAND) using `<StepCheck mode="choice">` + a concise, clear model oral explanation inside `<details className="dc-solution">`.
   3. **Minimal Quantitative Checks (Optional, 0–1 max):** Include a simple, direct plug-in calculation *only* if a core formula is central to the chapter (and never make numerical computation the focus of the section).
 
-#### Track B — Procedural / Written-Exam Courses (e.g., *Systems Theory / Automatica*, quantitative chapters)
-1. **`Exercise N.1`:** Complete solved exam-style problem with a `<StepCheck>` before `<details className="dc-solution">`.
-2. **`Exercise N.2`:** Problem that gives the setup/first step and asks the student to finish the critical step via `<StepCheck>` before expanding `<details className="dc-solution">`.
-3. **`Exercise N.3+`:** Synthesis problem combining the current chapter's method with earlier chapters' tools (linking back to those chapters).
+#### Track B — Procedural / Written-Exam Courses (e.g., *Systems Theory / Automatica*, *Computer Architecture*)
+Choose the exercise format that matches what the written exam actually grades—**never force a single-number `<StepCheck>` box where the real deliverable is a state table, assembly program, or open-ended written answer**:
+1. **Quantitative Exam Drills** (numeric/choice `<StepCheck>` + `<details className="dc-solution">`): Use `<StepCheck>` when the exam answer is a concrete number, expression, or set/bit count (`CPI`, `AMAT`, bounds, K-map/FSM counts), progressing from `Exercise N.1` (worked) $\to$ `N.2` (guided) $\to$ `N.3+` (synthesis).
+2. **Full Written & Lab Artifacts** (`<Exercise>` + `<details className="dc-solution">`, optional `<StepCheck>`): When the exam requires producing a full artifact (4-column Mealy/Moore table, 6-state JK/SR synthesis, or complete C-to-RISC-V `.asm` program), provide the full exam prompt, a brief self-check rubric, and the complete worked table/code inside `<details className="dc-solution">`.
+3. **Written Theory Essays** (no forced numeric `<StepCheck>`): When the exam includes an open-ended written theory question (such as *Computer Architecture* Q5), give an authentic exam prompt and include inside `<details className="dc-solution">` both a concise **Grading Checklist** (required points for full marks) and a **Model Written Answer** (with any required timing table or before/after code snippet).
 
 ### 4. `<StepCheck>` Math Formatting
 

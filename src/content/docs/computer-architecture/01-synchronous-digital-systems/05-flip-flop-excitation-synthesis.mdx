@@ -159,103 +159,120 @@ Modern RTL compilers (`always_ff @(posedge clk)` in SystemVerilog) synthesize sy
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-5-1" title="Exercise 5.1 — Three-State SR Flip-Flop Synthesis" level="Exam" hint="Apply SR rules 0->0: (0,X), 0->1: (1,0), 1->0: (0,1), 1->1: (X,0). When copying into Gray K-maps (00, 01, 11, 10), remember state C (10) goes in row 4 while unused 11 goes in row 3!">
+<Exercise client:load id="ex-5-1" title="Exercise 5.1 — Full 6-State Minimization and JK Synthesis" level="Exam" hint="In the 15-cell implication table, split {D, F} (output 0, 1) from {A, B, C, E} (output 0, 0). The 3 minimal classes encode onto 2 JK flip-flops (00, 01, 10), leaving 11 as a full row of X don't-cares.">
 
-Given the minimal 3-state Mealy table with binary state assignment $A = 00$, $B = 01$, $C = 10$ (and `11` unused):
+Perform the complete Question 2 synthesis procedure (modeled on the July 2026 exam) for the 6-state Mealy sequential circuit below:
 
-| State ($Q_1 Q_0$) | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
+| Present State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
 | :---: | :---: | :---: |
-| **$A$ ($00$)** | $B / 0$ | $A / 0$ |
-| **$B$ ($01$)** | $C / 0$ | $A / 0$ |
-| **$C$ ($10$)** | $A / 1$ | $B / 0$ |
+| **$A$** | $C / 0$ | $E / 0$ |
+| **$B$** | $D / 0$ | $A / 0$ |
+| **$C$** | $A / 0$ | $B / 0$ |
+| **$D$** | $B / 0$ | $A / 1$ |
+| **$E$** | $F / 0$ | $C / 0$ |
+| **$F$** | $E / 0$ | $C / 1$ |
 
-1. Construct the 8-row transition and excitation table using **SR flip-flops** ($S_1, R_1, S_0, R_0, u$).
-2. Plot the five 3-variable Gray-coded Karnaugh maps ($Q_1 Q_0 \backslash X$) incorporating unused state `11` as `X`.
-3. Derive the minimal SOP expressions for $S_1, R_1, S_0, R_0$, and $u$.
-
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="Which minimal SOP pair correctly gives $(S_0, R_0)$ for flip-flop $Q_0$ in Exercise 5.1?"
-  options={[
-    "$S_0 = \\overline{Q}_1 \\overline{X} + Q_1 X, \\quad R_0 = 1$",
-    "$S_0 = \\overline{Q}_1 \\overline{Q}_0 \\overline{X} + Q_1 X, \\quad R_0 = Q_0$",
-    "$S_0 = \\overline{Q}_1 \\overline{Q}_0 \\overline{X}, \\quad R_0 = Q_0 \\overline{X}$"
-  ]}
-  correctIndex={1}
-  explanation="Unlike JK, SR sets $(01, 0) \to 10$ to $(S_0, R_0) = (0, 1)$ rather than $(X, 1)$, so $(00, 0) = 1$ in $S_0$ cannot merge with $(01, 0) = 0$ and stays $\overline{Q}_1 \overline{Q}_0 \overline{X}$, while $(10, 1) = 1$ merges with unused $(11, 1) = X$ into $Q_1 X$, and $R_0$ merges rows $01, 11$ into $Q_0$."
-/>
+1. Minimize the states using a lower-triangular Implication Table ([Implication Table Minimization](/dynamic-courses/computer-architecture/01-synchronous-digital-systems/04-implication-table-minimization/)) and write the minimal equivalent state table.
+2. Encode the minimal states in binary ($S_0 = 00, S_1 = 01, S_2 = 10$, leaving `11` unused) and construct the full transition and **JK flip-flop** excitation table.
+3. Plot the 3-variable Gray-coded Karnaugh maps (`00, 01, 11, 10`) and write the minimal SOP expressions for $J_1, K_1, J_0, K_0$, and $u$.
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **SR Excitation Table:**
+1. **State Minimization (Implication Table):**
+   - **Pass 1 (Output Signatures):** $\{D, F\}$ emit $(0, 1)$, while $\{A, B, C, E\}$ emit $(0, 0)$. Cross out all cross-group pairs.
+   - **Pass 2 & Cascade:**
+     - $(F, D)$: $X=0 \to (E, B)$; $X=1 \to (C, A)$.
+     - $(C, A)$: $X=0 \to (A, C)$ (self); $X=1 \to (B, E)$.
+     - $(E, B)$: $X=0 \to (F, D)$; $X=1 \to (C, A)$.
+     - Every other pair inside $\{A, B, C, E\}$ implies a pair containing $D$ or $F$ and crosses out (e.g., $(B, A) \to (D, C) = \mathbf{X}$).
+   - **Minimal Classes (3 States):** $S_0 = \{A, C\}$, $S_1 = \{B, E\}$, $S_2 = \{D, F\}$.
 
-   | $Q_1 Q_0$ | $X$ | $Q_1^* Q_0^*$ | $S_1$ | $R_1$ | $S_0$ | $R_0$ | $u$ |
+   | Minimal State ($Q_1 Q_0$) | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
+   | :---: | :---: | :---: |
+   | **$S_0$ ($00$)** | $S_0 / 0$ | $S_1 / 0$ |
+   | **$S_1$ ($01$)** | $S_2 / 0$ | $S_0 / 0$ |
+   | **$S_2$ ($10$)** | $S_1 / 0$ | $S_0 / 1$ |
+
+2. **JK Transition and Excitation Table** ($k = \lceil \log_2 3 \rceil = 2$ flip-flops, `11` unused):
+
+   | $Q_1 Q_0$ | $X$ | $Q_1^* Q_0^*$ | $J_1$ | $K_1$ | $J_0$ | $K_0$ | $u$ |
    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-   | **$00$ ($A$)** | $0$ | $01$ ($B$) | $0$ | $X$ | $1$ | $0$ | $0$ |
-   | **$00$ ($A$)** | $1$ | $00$ ($A$) | $0$ | $X$ | $0$ | $X$ | $0$ |
-   | **$01$ ($B$)** | $0$ | $10$ ($C$) | $1$ | $0$ | $0$ | $1$ | $0$ |
-   | **$01$ ($B$)** | $1$ | $00$ ($A$) | $0$ | $X$ | $0$ | $1$ | $0$ |
-   | **$10$ ($C$)** | $0$ | $00$ ($A$) | $0$ | $1$ | $0$ | $X$ | $1$ |
-   | **$10$ ($C$)** | $1$ | $01$ ($B$) | $0$ | $1$ | $1$ | $0$ | $0$ |
+   | **$00$ ($S_0$)** | $0$ | $00$ | $0$ | $X$ | $0$ | $X$ | $0$ |
+   | **$00$ ($S_0$)** | $1$ | $01$ | $0$ | $X$ | $1$ | $X$ | $0$ |
+   | **$01$ ($S_1$)** | $0$ | $10$ | $1$ | $X$ | $X$ | $1$ | $0$ |
+   | **$01$ ($S_1$)** | $1$ | $00$ | $0$ | $X$ | $X$ | $1$ | $0$ |
+   | **$10$ ($S_2$)** | $0$ | $01$ | $X$ | $1$ | $1$ | $X$ | $0$ |
+   | **$10$ ($S_2$)** | $1$ | $00$ | $X$ | $1$ | $0$ | $X$ | $1$ |
    | **$11$ (Unused)** | $0$ | $XX$ | $X$ | $X$ | $X$ | $X$ | $X$ |
    | **$11$ (Unused)** | $1$ | $XX$ | $X$ | $X$ | $X$ | $X$ | $X$ |
 
-2. **Karnaugh Map Grouping** (Gray rows `00, 01, 11, 10`):
-   - **$S_1$:** Single `1` at $(01, 0)$ merges with unused $(11, 0) = X \implies S_1 = Q_0 \overline{X}$.
-   - **$R_1$:** `1`s at $(10, 0)$ and $(10, 1)$ merge with row `11` (`X, X`) into a 4-cell block $\implies R_1 = Q_1$ (merging with row `00` (`X, X`) gives the equally minimal $R_1 = \overline{Q}_0$).
-   - **$S_0$:** `1` at $(00, 0)$ is surrounded by `0`s at $(00, 1), (01, 0), (10, 0)$ $\implies$ isolated EPI $\overline{Q}_1 \overline{Q}_0 \overline{X}$. Second `1` at $(10, 1)$ merges with $(11, 1) = X \implies Q_1 X$.
-   - **$R_0$:** `1`s at $(01, 0)$ and $(01, 1)$ merge with row `11` (`X, X`) into a 4-cell block $\implies R_0 = Q_0$.
-   - **$u$:** Single `1` at $(10, 0)$ merges with $(11, 0) = X \implies u = Q_1 \overline{X}$.
+3. **Minimal SOP Equations (from Gray rows `00, 01, 11, 10`):**
+   - **$J_1$:** `1` at $(01, 0)$ merges with unused $(11, 0) = X \implies J_1 = Q_0 \overline{X}$.
+   - **$K_1$:** All 8 cells are `1` or `X` $\implies K_1 = 1$.
+   - **$J_0$:** $(00, 1) + (01, 1)$ gives $\overline{Q}_1 X$, and $(10, 0) + (11, 0)$ gives $Q_1 \overline{X} \implies J_0 = \overline{Q}_1 X + Q_1 \overline{X}$.
+   - **$K_0$:** All 8 cells are `1` or `X` $\implies K_0 = 1$.
+   - **$u$:** $(10, 1) + (11, 1) \implies u = Q_1 X$.
 
-3. **Minimal SOP Equations:**
-
-$$S_1 = Q_0 \overline{X}, \qquad R_1 = Q_1, \qquad S_0 = \overline{Q}_1 \overline{Q}_0 \overline{X} + Q_1 X, \qquad R_0 = Q_0, \qquad u = Q_1 \overline{X}$$
+$$J_1 = Q_0 \overline{X}, \qquad K_1 = 1, \qquad J_0 = \overline{Q}_1 X + Q_1 \overline{X}, \qquad K_0 = 1, \qquad u = Q_1 X$$
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-5-2" title="Exercise 5.2 — Synthesis with D and T Flip-Flops" level="Exam" hint="For D flip-flops, plot Q1* and Q0* directly. For T flip-flops, compute Ti = Qi XOR Qi* (1 whenever bit i flips) and exploit unused row 11 as X.">
+<Exercise client:load id="ex-5-2" title="Exercise 5.2 — Full 6-State Minimization and SR Synthesis" level="Exam" hint="Notice {D, F} emit (1, 0) while {A, B, C, E} emit (0, 0). Here A ≡ E and D ≡ F reduce 6 states to 4 minimal states (00, 01, 10, 11), leaving zero unused codes! Apply strict SR rules 0->1: (1, 0) and 1->0: (0, 1).">
 
-For the exact same 3-state machine from Exercise 5.1 ($A = 00, B = 01, C = 10$, unused `11`), synthesize the minimal SOP flip-flop input equations using:
-1. **D flip-flops** ($D_1, D_0$).
-2. **T (Toggle) flip-flops** ($T_1, T_0$).
+Perform the complete Question 2 synthesis procedure (modeled on the February 2026 C1 exam) for the 6-state Mealy machine below:
 
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="What is the minimal SOP equation for toggle input $T_1$ in Exercise 5.2?"
-  options={[
-    "$T_1 = Q_0 \\overline{X}$",
-    "$T_1 = Q_1 + Q_0 \\overline{X}$",
-    "$T_1 = \\overline{Q}_1 Q_0 \\overline{X} + Q_1 \\overline{Q}_0$"
-  ]}
-  correctIndex={1}
-  explanation="Bit $Q_1$ toggles ($T_1 = 1$) at $(01, 0): 0 \to 1$, $(10, 0): 1 \to 0$, and $(10, 1): 1 \to 0$. Combining unused row $11$ ($X, X$) merges rows $11, 10$ into $Q_1$ and $(01, 0) + (11, 0)$ into $Q_0 \overline{X}$, giving $T_1 = Q_1 + Q_0 \overline{X}$."
-/>
+| Present State | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
+| :---: | :---: | :---: |
+| **$A$** | $B / 0$ | $A / 0$ |
+| **$B$** | $B / 0$ | $C / 0$ |
+| **$C$** | $C / 0$ | $D / 0$ |
+| **$D$** | $A / 1$ | $F / 0$ |
+| **$E$** | $B / 0$ | $E / 0$ |
+| **$F$** | $E / 1$ | $D / 0$ |
+
+1. Minimize the states via the Implication Table and write the minimal equivalent state table.
+2. Encode the minimal states in binary ($00, 01, 10, 11$) and build the transition and **SR flip-flop** excitation table.
+3. Extract minimal SOP expressions for $S_1, R_1, S_0, R_0$, and $u$ using Gray-coded K-maps (`00, 01, 11, 10`). *(Insurance check: what change happens if **D** or **T** flip-flops are requested instead?)*
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **D Flip-Flop Synthesis ($D_i = Q_i^*$):**
-   Reading next-state bits $Q_1^*, Q_0^*$ directly from the table (with row `11` set to `X`):
-   - **$D_1$:** `1` only at $(01, 0)$, merging with $(11, 0) = X \implies D_1 = Q_0 \overline{X}$.
-   - **$D_0$:** `1` at $(00, 0)$ (isolated from `0` neighbors) and $(10, 1)$ (merges with $(11, 1) = X$) $\implies D_0 = \overline{Q}_1 \overline{Q}_0 \overline{X} + Q_1 X$.
+1. **State Minimization:**
+   From the 15-cell Implication Table, $A \equiv E$ unconditionally and $D \equiv F$ follows (while $B$ and $C$ fail compatibility because $C \xrightarrow{X=1} D$). The 6 states compress into **4 minimal states** ($k = \lceil \log_2 4 \rceil = 2$ flip-flops, zero unused states): $S_0 = \{A, E\} = 00$, $S_1 = \{B\} = 01$, $S_2 = \{C\} = 10$, $S_3 = \{D, F\} = 11$.
 
-2. **T Flip-Flop Synthesis ($T_i = Q_i \oplus Q_i^*$):**
-   Evaluating $Q_i \oplus Q_i^*$ across all 6 reachable rows (plus `X` on row `11`):
+   | Minimal State ($Q_1 Q_0$) | $X = 0$ ($S^{t+1} / u$) | $X = 1$ ($S^{t+1} / u$) |
+   | :---: | :---: | :---: |
+   | **$S_0$ ($00$)** | $S_1 / 0$ | $S_0 / 0$ |
+   | **$S_1$ ($01$)** | $S_1 / 0$ | $S_2 / 0$ |
+   | **$S_2$ ($10$)** | $S_2 / 0$ | $S_3 / 0$ |
+   | **$S_3$ ($11$)** | $S_0 / 1$ | $S_3 / 0$ |
 
-   | $Q_1 Q_0 \backslash X$ | $0$ ($T_1$) | $1$ ($T_1$) | $0$ ($T_0$) | $1$ ($T_0$) |
-   | :---: | :---: | :---: | :---: | :---: |
-   | **$00$** | $0$ | $0$ | **$1$** | $0$ |
-   | **$01$** | **$1$** | $0$ | **$1$** | **$1$** |
-   | **$11$** | **$X$** | **$X$** | **$X$** | **$X$** |
-   | **$10$** | **$1$** | **$1$** | $0$ | **$1$** |
+2. **SR Excitation Table:**
 
-   - **$T_1$:** Rows `11, 10` form a 4-cell block $Q_1$, and $(01, 0) + (11, 0)$ forms $Q_0 \overline{X} \implies T_1 = Q_1 + Q_0 \overline{X}$.
-   - **$T_0$:** Rows `01, 11` form 4-cell block $Q_0$ (essential for $(01, 1)$), $(00, 0) + (01, 0)$ forms EPI $\overline{Q}_1 \overline{X}$, and $(10, 1) + (11, 1)$ forms EPI $Q_1 X \implies T_0 = Q_0 + \overline{Q}_1 \overline{X} + Q_1 X$.
+   | $Q_1 Q_0$ | $X$ | $Q_1^* Q_0^*$ | $S_1$ | $R_1$ | $S_0$ | $R_0$ | $u$ |
+   | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+   | **$00$ ($S_0$)** | $0$ | $01$ | $0$ | $X$ | $1$ | $0$ | $0$ |
+   | **$00$ ($S_0$)** | $1$ | $00$ | $0$ | $X$ | $0$ | $X$ | $0$ |
+   | **$01$ ($S_1$)** | $0$ | $01$ | $0$ | $X$ | $X$ | $0$ | $0$ |
+   | **$01$ ($S_1$)** | $1$ | $10$ | $1$ | $0$ | $0$ | $1$ | $0$ |
+   | **$10$ ($S_2$)** | $0$ | $10$ | $X$ | $0$ | $0$ | $X$ | $0$ |
+   | **$10$ ($S_2$)** | $1$ | $11$ | $X$ | $0$ | $1$ | $0$ | $0$ |
+   | **$11$ ($S_3$)** | $0$ | $00$ | $0$ | $1$ | $0$ | $1$ | $1$ |
+   | **$11$ ($S_3$)** | $1$ | $11$ | $X$ | $0$ | $X$ | $0$ | $0$ |
+
+3. **Minimal SOP Equations (Gray rows `00, 01, 11, 10`):**
+   - **$S_1$:** `(01, 1) = 1` merges with `(11, 1) = X` $\implies S_1 = Q_0 X$.
+   - **$R_1$:** `(11, 0) = 1` merges with `(01, 0) = X` $\implies R_1 = Q_0 \overline{X}$.
+   - **$S_0$:** `(00, 0) + (01, 0)` gives $\overline{Q}_1 \overline{X}$; `(10, 1) + (11, 1)` gives $Q_1 X \implies S_0 = \overline{Q}_1 \overline{X} + Q_1 X$.
+   - **$R_0$:** `(01, 1) + (00, 1)` gives $\overline{Q}_1 X$; `(11, 0) + (10, 0)` gives $Q_1 \overline{X} \implies R_0 = \overline{Q}_1 X + Q_1 \overline{X}$.
+   - **$u$:** Isolated `1` at $(11, 0) \implies u = Q_1 Q_0 \overline{X}$.
+
+$$S_1 = Q_0 X, \quad R_1 = Q_0 \overline{X}, \quad S_0 = \overline{Q}_1 \overline{X} + Q_1 X, \quad R_0 = \overline{Q}_1 X + Q_1 \overline{X}, \quad u = Q_1 Q_0 \overline{X}$$
+
+   *(If **D** flip-flops are requested instead: $D_1 = Q_1 \overline{Q}_0 + Q_0 X$ and $D_0 = \overline{Q}_1 \overline{X} + Q_1 X$. If **T** flip-flops are requested: $T_1 = \overline{Q}_1 Q_0 X + Q_1 Q_0 \overline{X}$ and $T_0 = \overline{Q}_1 \overline{Q}_0 \overline{X} + \overline{Q}_1 Q_0 X + Q_1 \overline{Q}_0 X + Q_1 Q_0 \overline{X}$.)*
 
 </details>
 

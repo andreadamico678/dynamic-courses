@@ -1,26 +1,59 @@
 #flashcards/automatica/05_02_bode_phase
 
-Qual è il contributo costante di fase introdotto da un polo nell'origine di molteplicità $g$ ($1/s^g$)?
+Why do Bode plots examine open-loop $L(s) = C(s)G(s)$ to assess stability of a unity negative-feedback loop $W_{\text{CL}}(s) = \frac{L(s)}{1 + L(s)}$?
 ?
-Una fase costante su tutte le frequenze pari a:
-$$\Delta\phi = -g \cdot 90^\circ$$
+Closed-loop poles solve $1 + L(s) = 0 \iff L(s) = -1$, so proximity of $L(j\omega)$ to $(-1 + j0) = (0\text{ dB}, -180^\circ)$ measures closed-loop stability margins.
 
-Qual è il contributo asintotico totale di fase introdotto da un polo reale stabile $(1 + sT)$ con $T > 0$?
-?
-Un ritardo di fase che parte da $0^\circ$ per $\omega \ll 1/T$, vale esattamente $-45^\circ$ alla pulsazione di taglio $\omega = 1/T$, e tende asintoticamente a $-90^\circ$ per $\omega \gg 1/T$.
+---
 
-Qual è il contributo asintotico totale di fase introdotto da uno zero reale a parte reale negativa $(1 + s\tau)$ con $\tau > 0$?
+What is the exact low-frequency phase limit $\varphi(0^+)$ of a minimum-phase transfer function with Bode gain $K_B$ and type $g$?
 ?
-Un anticipo di fase che parte da $0^\circ$, vale $+45^\circ$ a $\omega = 1/\tau$, e tende asintoticamente a $+90^\circ$ ad alte frequenze.
+$$\varphi(0^+) = \arg(K_B) - g \cdot 90^\circ$$
 
-Se il guadagno di Bode $K_B$ è negativo ($K_B < 0$), qual è la fase iniziale a bassissima frequenza ($\omega \to 0$)?
-?
-La fase parte da $-180^\circ$ (oppure $+180^\circ$), dovuta all'argomento di una costante reale negativa.
+---
 
-Per una coppia di poli complessi coniugati $s^2 + 2\xi\omega_n s + \omega_n^2$, quanto vale esattamente lo sfasamento alla pulsazione naturale $\omega = \omega_n$?
+What baseline phase shift $\arg(K_B)$ occurs when $K_B > 0$ versus when $K_B < 0$?
 ?
-Vale esattamente $-90^\circ$, con uno sfasamento complessivo ad alta frequenza pari a $-180^\circ$.
+$0^\circ$ when $K_B > 0$, and $-180^\circ$ across all frequencies when $K_B < 0$.
 
-Cosa accade alla pendenza della curva di fase nei pressi di $\omega_n$ quando lo smorzamento $\xi$ diventa molto piccolo ($\xi \to 0$)?
+---
+
+What is the exact high-frequency phase limit $\varphi(\infty)$ of a minimum-phase rational function with $n$ total poles and $m$ finite zeros?
 ?
-La transizione della fase tra $0^\circ$ e $-180^\circ$ diventa estremamente ripida, approssimando un salto discontinuo a gradino di $-180^\circ$ per $\xi = 0$.
+$$\varphi(\infty) = \arg(K_B) - (n - m)\cdot 90^\circ$$
+
+---
+
+Over what frequency band does the 3-segment linear phase ramp of a simple real pole $(1 + s/\omega_c)^{-1}$ run, and with what slope?
+?
+From $0.1\omega_c$ to $10\omega_c$ with slope $-45^\circ/\text{decade}$, passing exactly through $(\omega_c, -45^\circ)$.
+
+---
+
+What is the maximum error between the 3-segment asymptotic phase ramp and $-\arctan(\omega/\omega_c)$, and where does it occur?
+?
+$\arctan(0.1) \approx 5.71^\circ$, occurring at the two ramp endpoints $\omega = 0.1\omega_c$ and $\omega = 10\omega_c$.
+
+---
+
+At $\omega = \omega_n$, what is the exact phase and normalized slope $d\varphi_{p2}/d(\omega/\omega_n)$ of a second-order complex pole pair?
+?
+Exact phase is always $-90^\circ$ regardless of $\zeta$, and the slope at $\omega = \omega_n$ equals $-1/\zeta\text{ rad}$.
+
+---
+
+How are the gain crossover frequency $\omega_{gc}$ and phase margin $\varphi_m$ defined on open-loop $L(j\omega)$?
+?
+$\omega_{gc}$ solves $|L(j\omega_{gc})| = 1$ ($0\text{ dB}$), and $\varphi_m = 180^\circ + \arg L(j\omega_{gc})$.
+
+---
+
+How are the phase crossover frequency $\omega_\pi$ and gain margin $K_{m,\text{dB}}$ defined on open-loop $L(j\omega)$?
+?
+$\omega_\pi$ solves $\arg L(j\omega_\pi) = -180^\circ$, and $K_{m,\text{dB}} = -|L(j\omega_\pi)|_{\text{dB}} = 20\log_{10}(1/|L(j\omega_\pi)|)$.
+
+---
+
+What trigonometric identity solves $\arctan(\omega_\pi/\omega_1) + \arctan(\omega_\pi/\omega_2) = 90^\circ$ algebraically for $\omega_\pi$?
+?
+$\arctan(a) + \arctan(b) = 90^\circ \iff a \cdot b = 1$, yielding $\omega_\pi = \sqrt{\omega_1 \omega_2}$.

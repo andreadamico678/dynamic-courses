@@ -59,7 +59,7 @@ $$
 R_{in} = R_S \parallel \frac{1}{g_m + g_{mb}} \approx \frac{1}{g_m}
 $$
 
-Si tratta di un valore molto basso (tipicamente $20\text{--}200\,\Omega$), regolabile agendo sulla corrente di polarizzazione DC per adattare direttamente linee a $50\,\Omega$. Se si considera $r_o$ finita, una parte della corrente al Source si richiude attraverso $r_o$ verso il carico al Drain $R_D \parallel R_L$, facendo crescere leggermente la resistenza vista nel Source a $\frac{r_o + (R_D \parallel R_L)}{1 + (g_m + g_{mb})r_o}$: per carichi resistivi normali ($R_D \parallel R_L \ll r_o$), l'approssimazione $\frac{1}{g_m + g_{mb}}$ resta comunque molto accurata.
+Si tratta di un valore molto basso (tipicamente $20\text{--}200\,\Omega$), regolabile agendo sulla corrente di polarizzazione DC per adattare direttamente linee a $50\,\Omega$.
 
 #### Guadagno Non Invertente e Buffer di Corrente
 
@@ -69,15 +69,7 @@ $$
 A_v = \frac{v_{out}}{v_{in}} \approx +(g_m + g_{mb})(R_D \parallel r_o \parallel R_L) \approx +g_m (R_D \parallel R_L)
 $$
 
-Includendo il partitore d'ingresso formato con la resistenza interna della sorgente $R_{sig}$, il guadagno complessivo dalla sorgente vale:
-
-$$
-A_{vs} = \frac{v_{out}}{v_{sig}} = \frac{R_{in}}{R_{sig} + R_{in}} \cdot A_v
-$$
-
-Occorre prestare molta attenzione a questo partitore: poiché $R_{in} \approx 1/g_m$ è piccola, se $R_{sig}$ è confrontabile o maggiore di $1/g_m$, il partitore attenua sensibilmente il segnale già all'ingresso. A titolo di verifica numerica rapida, con $1/g_m = 50\,\Omega$, $R_S = 1\,\text{k}\Omega$, $R_{sig} = 50\,\Omega$ e $R_D \parallel R_L = 2\,\text{k}\Omega$ ($r_o \to \infty, g_{mb} = 0$), risulta $R_{in} = 1000 \parallel 50 \approx 47.6\,\Omega$, un partitore d'ingresso di $\approx 0.49$, $A_v = +20\,\text{mA/V} \cdot 2\,\text{k}\Omega = +40\,\text{V/V}$ e quindi $A_{vs} \approx +19.5\,\text{V/V}$.
-
-Se si osserva lo stadio dal punto di vista della corrente (ponendo l'uscita in cortocircuito AC, $R_L \to 0$, con $R_S \gg 1/g_m$), quasi tutta la corrente entrante nel Source attraversa il canale ed esce dal Drain: il guadagno di corrente è unitario ($A_i \approx +1$). Per questa ragione il Common Gate è definito un **buffer di corrente**: accetta corrente su un nodo a bassa impedenza e la replica su un nodo d'uscita ad alta impedenza ($R_{out} = R_D \parallel r_o$ se il Source è guidato da un generatore di corrente, oppure $R_D \parallel [r_o(1 + g_m R_{sig}') + R_{sig}']$ con $R_{sig}' = R_{sig} \parallel R_S$).
+Includendo il partitore d'ingresso formato con la resistenza interna della sorgente $R_{sig}$, il guadagno complessivo vale $A_{vs} = \frac{R_{in}}{R_{sig} + R_{in}} A_v$: poiché $R_{in} \approx 1/g_m$ è bassa, $R_{sig}$ può attenuare sensibilmente il segnale d'ingresso. Dal punto di vista della corrente (con $R_L \to 0$ e $R_S \gg 1/g_m$), quasi tutta la corrente entrante nel Source fluisce verso il Drain ($A_i \approx +1$) verso un nodo d'uscita ad alta impedenza ($R_{out} \approx R_D \parallel r_o$): per questo il Common Gate è detto **buffer di corrente**.
 
 #### Schermo Elettrostatico e Assenza di Effetto Miller
 
@@ -99,61 +91,27 @@ Nessuno stadio a singolo transistore soddisfa contemporaneamente alta resistenza
 * **Cascata orizzontale CS–CD:** un primo stadio Common Source fornisce alto $R_{in}$ e guadagno di tensione, mentre un buffer Common Drain a valle abbassa $R_{out}$ per pilotare carichi resistivi bassi senza attenuazione.
 * **Struttura impilata Cascode (CS–CG):** due transistori condividono la stessa corrente DC in serie verticale; il CS d'ingresso converte la tensione in corrente su un nodo intermedio a bassa impedenza ($\approx 1/g_{m2}$), mentre il CG superiore isola il nodo di uscita aumentando la resistenza d'uscita fino a $\sim g_m r_o^2$ ed eliminando l'effetto Miller sul transistore d'ingresso.
 
-### Teoria — Cascata CS–CD e Architettura Cascode
+### Teoria — Principio della Cascata CS–CD e dello Stadio Cascode
 
 #### Cascata CS–CD
 
-La configurazione a due stadi **CS–CD** ([figura seguente](#fig-multistage-cs-cd)) affianca uno stadio Common Source ($M_1$) per ottenere alto guadagno e alta resistenza d'ingresso, seguito da un buffer Common Drain ($M_2$) per pilotare un carico resistivo piccolo $R_L$. I condensatori di accoppiamento isolano i punti di lavoro DC di ciascuno stadio ma a centro banda uniscono i due blocchi in AC.
+La configurazione a due stadi **CS–CD** ([figura seguente](#fig-multistage-cs-cd)) affianca uno stadio Common Source ($M_1$) per ottenere alto guadagno e alta resistenza d'ingresso, seguito da un buffer Common Drain ($M_2$) per pilotare un carico resistivo piccolo $R_L$. I condensatori di accoppiamento isolano i punti di lavoro DC dei due stadi ma li collegano in cascata a centro banda.
 
 <figure id="fig-multistage-cs-cd" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-multistage-cs-cd.svg" alt="Amplificatore multistadio accoppiato in AC costituito da uno stadio Common Source (M_1, guadagno di tensione) seguito da un buffer Common Drain (M_2, adattatore d'impedenza verso il carico R_L)." />
   <figcaption>Amplificatore multistadio accoppiato in AC costituito da uno stadio Common Source ($M_1$, guadagno di tensione) seguito da un buffer Common Drain ($M_2$, adattatore d'impedenza verso il carico $R_L$).</figcaption>
 </figure>
 
-L'analisi a centro banda di una cascata di stadi si esegue sistematicamente **da destra verso sinistra**, partendo dal carico finale $R_L$ fino alla sorgente $v_{sig}$, poiché la resistenza d'ingresso di ogni stadio funge da resistenza di carico per lo stadio immediatamente a monte:
-
-1. **Secondo stadio (CD, $M_2$):** vede sul Source il carico finale $R_L$ in parallelo a $R_{S2}$ e $r_{o2}$. La sua bassa resistenza d'uscita ($R_{out2} \approx 1/g_{m2}$) pilota efficacemente $R_L$, generando un guadagno vicino all'unità ($0 \lt A_{v2} \lt 1$):
-
-$$
-A_{v2} = \frac{v_{out}}{v_{i2}} = \frac{g_{m2} R_{L2}'}{1 + (g_{m2} + g_{mb2}) R_{L2}'}, \qquad R_{L2}' = R_{S2} \parallel r_{o2} \parallel R_L
-$$
-
-2. **Primo stadio (CS, $M_1$):** il Drain di $M_1$ non è più collegato direttamente a $R_L$, bensì alla grande resistenza d'ingresso del buffer $R_{in2} = R_{G3} \parallel R_{G4}$. Poiché $R_{in2} \gg R_{D1}$, lo stadio CS conserva quasi tutto il proprio guadagno a vuoto:
-
-$$
-A_{v1} = \frac{v_{i2}}{v_{i1}} = -g_{m1} (R_{D1} \parallel r_{o1} \parallel R_{in2})
-$$
-
-3. **Guadagno complessivo e impedenze terminali:** la resistenza d'ingresso dell'intero amplificatore coincide con quella del primo stadio ($R_{in} = R_{in1} = R_{G1} \parallel R_{G2}$), la resistenza d'uscita coincide con quella dell'ultimo stadio ($R_{out} = R_{out2} \approx 1/g_{m2}$) e il guadagno totale dalla sorgente è il prodotto dei singoli rapporti:
-
-$$
-A_{vs} = \frac{v_{out}}{v_{sig}} = \left(\frac{R_{in1}}{R_{sig} + R_{in1}}\right) \cdot A_{v1} \cdot A_{v2}
-$$
+Nell'analisi da destra verso sinistra, il buffer $M_2$ presenta sul Gate una resistenza d'ingresso elevata $R_{in2} = R_{G3} \parallel R_{G4} \gg R_{D1}$ che preserva il guadagno a vuoto dello stadio CS ($A_{v1} \approx -g_{m1}(R_{D1} \parallel r_{o1} \parallel R_{in2})$), mentre sul Source offre una bassa resistenza d'uscita ($\approx 1/g_{m2}$) che trasferisce il segnale su $R_L$ con $A_{v2} \lesssim 1$, dando un guadagno complessivo pari al prodotto $A_{vs} = \frac{R_{in1}}{R_{sig} + R_{in1}} \cdot A_{v1} \cdot A_{v2}$.
 
 #### Architettura Cascode
 
-Nei circuiti integrati analogici è fondamentale l'architettura **Cascode**, ottenuta impilando verticalmente un transistore Common Gate ($M_2$, con Gate tenuto a tensione DC fissa quindi a massa AC) direttamente sopra il Drain di un transistore Common Source ($M_1$), condividendo la stessa corrente DC senza condensatori intermedi.
+Lo stadio **Cascode** impila verticalmente un transistore Common Gate ($M_2$, Gate a tensione DC fissa quindi a massa AC) direttamente sopra il Drain di un Common Source ($M_1$), condividendo la stessa corrente DC:
 
-Questa combinazione risolve contemporaneamente due limiti del singolo stadio Common Source:
+1. **Riduzione dell'effetto Miller:** il Drain di $M_1$ vede la bassa impedenza al Source di $M_2$ ($\approx 1/g_{m2}$), quindi il guadagno tra Gate e Drain di $M_1$ resta vicino a $-1\,\text{V/V}$ e l'effetto Miller su $C_{gd1}$ si riduce drasticamente, ampliando la banda superiore $f_H$.
+2. **Altissima resistenza d'uscita:** $M_2$ (Common Gate) vede sul proprio Source la resistenza $r_{o1}$ di $M_1$, che ne degenera il canale moltiplicando la resistenza d'uscita fino a $R_{out,\text{cascode}} \approx g_{m2} r_{o2} r_{o1}$ ([Capitolo 13](/dynamic-courses/elettronica/04-amplificatori-frequenza/13-common-source/)).
 
-1. **Eliminazione dell'effetto Miller e banda larga:** la tensione d'ingresso $v_{in}$ pilota il Gate di $M_1$ (alta $R_{in}$) generando la corrente di segnale $i_{d1} = g_{m1} v_{in}$. Il Drain di $M_1$ è collegato al Source del Common Gate $M_2$, che presenta una bassissima resistenza d'ingresso pari a $\approx 1/g_{m2}$. Di conseguenza, la variazione di tensione sul Drain di $M_1$ resta piccolissima ($A_{v1} \approx -g_{m1}/g_{m2} \approx -1\,\text{V/V}$ se i due MOSFET sono uguali): non essendoci un grande guadagno invertente tra Gate e Drain di $M_1$, l'effetto Miller su $C_{gd1}$ si abbatte, estendendo enormemente la banda superiore $f_H$.
-2. **Altissima resistenza d'uscita e alto guadagno:** la corrente $i_{d1}$ entra nel Source di $M_2$ ed esce quasi inalterata sul nodo d'uscita al Drain di $M_2$. Guardando dentro il Drain di $M_2$, esso vede sul proprio Source la resistenza interna $r_{o1}$ di $M_1$, che agisce esattamente come una resistenza di degenerazione di Source. Applicando il risultato del [Capitolo 13](/dynamic-courses/elettronica/04-amplificatori-frequenza/13-common-source/), la resistenza d'uscita del Cascode viene moltiplicata fino a:
-
-$$
-R_{out,\text{cascode}} = r_{o2}(1 + g_{m2} r_{o1}) + r_{o1} \approx g_{m2} r_{o2} r_{o1}
-$$
-
-Come vedremo nel [Capitolo 16](/dynamic-courses/elettronica/04-amplificatori-frequenza/16-specchi-corrente/), abbinando uno stadio Cascode a un carico attivo ad alta impedenza si ottengono guadagni di migliaia di volt per volt da un singolo ramo di corrente.
-
-<Callout type="tip" title="Ruoli Applicativi di CG e Cascode">
-
-Il Common Gate trova due applicazioni principali:
-1. **Front-end RF a $50\,\Omega$:** tarando la corrente finché $1/g_m = 50\,\Omega$, il CG adatta una linea coassiale senza resistori rumorosi.
-2. **Stadio Cascode (CS + CG):** il transistore CG superiore scherma il nodo d'uscita dall'ingresso del CS, abbattendo l'effetto Miller e moltiplicando $R_{out}$ fino a $\approx g_m r_o^2$.
-
-</Callout>
-
-<StepCheck client:load lang="it" mode="choice" prompt="In uno stadio Cascode (CS $M_1$ sotto, CG $M_2$ sopra), perché l'effetto Miller sul transistore d'ingresso $M_1$ viene drasticamente ridotto?" options={["Perché $M_1$ è spento alle alte frequenze", "Perché il Drain di $M_1$ vede la bassa resistenza al Source di $M_2$ ($\approx 1/g_{m2}$), mantenendo il guadagno locale di $M_1$ intorno a $-1\\,\\text{V/V}$", "Perché il Gate di $M_1$ è collegato direttamente al Drain di $M_2$", "Perché il condensatore $C_{gd1}$ viene cortocircuitato a massa"]} correctIndex={1} explanation="Il carico visto dal Drain di $M_1$ è la bassa impedenza d'ingresso del Common Gate $M_2$ ($\approx 1/g_{m2}$): il guadagno tra Gate e Drain di $M_1$ resta vicino a $-1$, eliminando la moltiplicazione di Miller." />
+<StepCheck client:load lang="it" mode="choice" prompt="In uno stadio Cascode (CS $M_1$ sotto, CG $M_2$ sopra), perché l'effetto Miller sul transistore d'ingresso $M_1$ viene drasticamente ridotto?" options={["Perché $M_1$ è spento alle alte frequenze", "Perché il Drain di $M_1$ vede la bassa resistenza al Source di $M_2$ ($\\approx 1/g_{m2}$), mantenendo il guadagno locale di $M_1$ intorno a $-1\\,\\text{V/V}$", "Perché il Gate di $M_1$ è collegato direttamente al Drain di $M_2$", "Perché il condensatore $C_{gd1}$ viene cortocircuitato a massa"]} correctIndex={1} explanation="Il carico visto dal Drain di $M_1$ è la bassa impedenza d'ingresso del Common Gate $M_2$ ($\approx 1/g_{m2}$): il guadagno tra Gate e Drain di $M_1$ resta vicino a $-1$, eliminando la moltiplicazione di Miller." />
 
 <Divider label="3 · Sintesi" />
 
@@ -162,14 +120,13 @@ Il Common Gate trova due applicazioni principali:
 | **Resistenza d'ingresso $R_{in}$** | $R_S \parallel \frac{1}{g_m + g_{mb}}$ (bassa) | $R_{G1} \parallel R_{G2}$ (alta) | $R_{G1} \parallel R_{G2}$ (alta) |
 | **Guadagno $A_v$** | $+(g_m + g_{mb})(R_D \parallel R_L)$ (in fase) | $A_{v1} \cdot A_{v2}$ (invertente) | $\approx -g_{m1} (R_D \parallel R_{out,\text{cascode}})$ |
 | **Resistenza d'uscita $R_{out}$** | $R_D$ (media-alta) | $\approx 1/g_{m2}$ (bassa) | $\approx g_{m2} r_{o2} r_{o1}$ (altissima) |
-| **Effetto Miller** | Assente (Gate a massa AC) | Presente su $M_1$ | Eliminato su $M_1$ ($\lvert A_{v1}\rvert \approx 1$) |
+| **Effetto Miller** | Assente (Gate a massa AC) | Presente su $M_1$ | Minimizzato su $M_1$ ($\lvert A_{v1}\rvert \approx 1$) |
 
 ### Procedura di Analisi
 
-1. **Common Gate singolo:** calcolare $R_{in} = R_S \parallel \frac{1}{g_m + g_{mb}}$, determinare il partitore d'ingresso $\frac{R_{in}}{R_{sig} + R_{in}}$ e moltiplicare per $A_v \approx +(g_m + g_{mb})(R_D \parallel R_L)$.
-2. **Cascata multistadio (da destra a sinistra):** calcolare il guadagno dell'ultimo stadio sul carico $R_L$; usare poi la resistenza d'ingresso dello stadio $k+1$ come carico aggiuntivo in parallelo sull'uscita dello stadio $k$.
-3. **Guadagno totale e impedenze di cascata:** moltiplicare il partitore della sorgente per il prodotto $A_{v1} \cdot A_{v2} \cdots$; $R_{in}$ coincide con quella del primo stadio e $R_{out}$ con quella dell'ultimo stadio.
-4. **Cascode:** trattare $M_1$ come CS caricato da $1/g_{m2}$ al Drain e $M_2$ come CG degenerato da $r_{o1}$ al Source.
+1. **Common Gate singolo:** calcolare $R_{in} = R_S \parallel \frac{1}{g_m + g_{mb}}$, il partitore d'ingresso $\frac{R_{in}}{R_{sig} + R_{in}}$ e il guadagno positivo $A_v \approx +(g_m + g_{mb})(R_D \parallel R_L)$.
+2. **Cascata CS–CD:** procedere da destra a sinistra usando $R_{in2}$ del CD come carico del CS a monte e moltiplicando i guadagni.
+3. **Cascode:** ricordare a livello concettuale che $M_2$ fissa un carico $\approx 1/g_{m2}$ sul Drain di $M_1$ (niente Miller) ed eleva $R_{out}$ a $\approx g_{m2} r_{o2} r_{o1}$.
 
 <Callout type="warning" title="Errori Comuni">
 
@@ -190,14 +147,14 @@ Uno stadio Common Gate viene impiegato come primo stadio di un ricevitore ad alt
 <details className="dc-solution">
 <summary>Mostra Risposta Orale Modello</summary>
 
-1. **Bassa resistenza d'ingresso:** poiché il Gate è ancorato a massa AC tramite $C_B$ ($v_g = 0$), una variazione $+v_{in}$ sul Source impone $v_{gs} = v_{bs} = -v_{in}$, richiamando una corrente entrante nel Source pari a $(g_m + g_{mb})v_{in}$. La resistenza vista nel MOSFET vale dunque $\frac{1}{g_m + g_{mb}} \approx \frac{1}{g_m}$: regolando la corrente di riposo DC per avere $g_m = 20\,\text{mA/V}$, si ottiene $R_{in} \approx 50\,\Omega$ senza aggiungere resistori rumorosi.
-2. **Assenza di effetto Miller:** nel Common Source $C_{gd}$ fa da ponte tra il nodo d'ingresso (Gate) e il nodo d'uscita invertito (Drain). Nel Common Gate, invece, il Gate a massa AC separa elettrostaticamente le due porte: $C_{gs}$ resta collegata tra Source e massa AC, e $C_{gd}$ tra Drain e massa AC, eliminando qualsiasi moltiplicazione capacitiva.
+1. **Bassa resistenza d'ingresso:** poiché il Gate è ancorato a massa AC ($v_g = 0$), una variazione $+v_{in}$ sul Source impone $v_{gs} = v_{bs} = -v_{in}$, richiamando una corrente entrante nel Source pari a $(g_m + g_{mb})v_{in}$ e dando $R_{in} \approx \frac{1}{g_m}$, tarabile su $50\,\Omega$.
+2. **Assenza di effetto Miller:** il Gate a massa AC separa elettrostaticamente ingresso (Source) e uscita (Drain), confinando $C_{gs}$ e $C_{gd}$ verso massa senza capacità ponte amplificate.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-15-2" title="Esercizio 15.2 — Confronto tra Cascata CS–CD e Cascode CS–CG" level="Intermedio" hint="Chiediti quale problema risolve ciascuna delle due architetture: carico resistivo piccolo all'uscita vs. banda larga e alta $R_{out}$.">
+<Exercise client:load lang="it" id="ex-15-2" title="Esercizio 15.2 — Confronto Concettuale tra Cascata CS–CD e Cascode CS–CG" level="Intermedio" hint="Chiediti quale problema risolve ciascuna delle due architetture: carico resistivo piccolo all'uscita vs. banda larga e alta $R_{out}$.">
 
 Un progettista dispone di due configurazioni a due transistori: la cascata **CS–CD** e lo stadio **Cascode (CS–CG)**.
 
@@ -206,26 +163,8 @@ Un progettista dispone di due configurazioni a due transistori: la cascata **CS�
 <details className="dc-solution">
 <summary>Mostra Risposta Orale Modello</summary>
 
-1. **Ruolo della cascata CS–CD:** si sceglie quando il carico finale $R_L$ ha una resistenza piccola (ad esempio $500\,\Omega$). Il buffer Common Drain ($M_2$) presenta al CS ($M_1$) un'alta impedenza $R_{in2}$ che ne preserva il guadagno $A_{v1}$, e offre al carico una bassa resistenza d'uscita $R_{out} \approx 1/g_{m2}$.
-2. **Ruolo del Cascode (CS–CG):** si sceglie nei circuiti integrati (tipicamente con carichi ad alta impedenza) quando si vogliono ottenere insieme **larga banda** (eliminando l'effetto Miller su $M_1$ grazie al carico $1/g_{m2}$ visto al Drain di $M_1$) e **altissima resistenza d'uscita** ($\approx g_{m2} r_{o2} r_{o1}$), cosa incompatibile con carichi resistivi piccoli collegati direttamente al Drain di $M_2$.
-
-</details>
-
-</Exercise>
-
-<Exercise client:load lang="it" id="ex-15-3" title="Esercizio 15.3 — Verifica Rapida su Common Gate e Partitore d'Ingresso" level="Base" hint="Calcola $R_{in} = R_S \parallel (1/g_m)$, poi $A_v = +g_m (R_D \parallel R_L)$ e infine moltiplica per $\frac{R_{in}}{R_{sig} + R_{in}}$.">
-
-Uno stadio Common Gate ($r_o \to \infty$, $g_{mb} = 0$) è polarizzato con $g_m = 20\,\text{mA/V}$ e $R_S \to \infty$ (generatore di corrente ideale), collega una linea con $R_{sig} = 50\,\Omega$ e ha $R_D = 1.5\,\text{k}\Omega$, $R_L = 1.5\,\text{k}\Omega$.
-
-<StepCheck client:load lang="it" prompt="Calcola il guadagno complessivo dalla sorgente $A_{vs} = v_{out}/v_{sig}$ (con segno):" expected={7.5} tolerance={0.2} unit="$\text{V/V}$" explanation="$R_{in} = 1/g_m = 50\,\Omega$, quindi il partitore con $R_{sig} = 50\,\Omega$ vale $0.5$. Con $R_L' = 1.5 \parallel 1.5 = 0.75\,\text{k}\Omega$, $A_v = +20 \cdot 0.75 = +15\,\text{V/V}$ e $A_{vs} = 0.5 \cdot 15 = +7.5\,\text{V/V}$." />
-
-<StepCheck client:load lang="it" mode="choice" prompt="Se in una cascata CS–CD il buffer finale $M_2$ ha $R_{in2} = 100\,\text{k}\Omega$ mentre lo stadio CS a monte ha $R_{D1} \parallel r_{o1} = 4.5\,\text{k}\Omega$, quale resistenza di carico vede praticamente il Drain di $M_1$?" options={["Circa $R_L$", "Circa $4.31\\,\\text{k}\\Omega$, quasi uguale al carico a vuoto $R_{D1} \\parallel r_{o1}$", "Circa $100\\,\\text{k}\\Omega$", "Circa $1/g_{m2}$"]} correctIndex={1} explanation="Il carico su $M_1$ è il parallelo $4.5\,\text{k}\Omega \parallel 100\,\text{k}\Omega \approx 4.31\,\text{k}\Omega$: grazie all'alta $R_{in2}$ del buffer, $M_1$ non risente del carico finale $R_L$." />
-
-<details className="dc-solution">
-<summary>Mostra Risposta Orale Modello</summary>
-
-1. **Common Gate adattato:** con $g_m = 20\,\text{mA/V}$ e $R_S \to \infty$, la resistenza d'ingresso vale $R_{in} = 1/g_m = 50\,\Omega$, uguale a $R_{sig}$. Il segnale d'ingresso al Source viene quindi dimezzato ($v_{in}/v_{sig} = 0.5$). Al Drain il carico equivalente è $R_L' = 1.5 \parallel 1.5 = 0.75\,\text{k}\Omega$, da cui $A_v = +g_m R_L' = +20 \cdot 0.75 = +15\,\text{V/V}$ e $A_{vs} = 0.5 \cdot 15 = +7.5\,\text{V/V}$.
-2. **Disaccoppiamento in cascata CS–CD:** il Drain di $M_1$ vede in parallelo $R_{D1} \parallel r_{o1} = 4.5\,\text{k}\Omega$ e l'alta resistenza d'ingresso del buffer $R_{in2} = 100\,\text{k}\Omega$, ottenendo $R_{L1}' = 4.5 \parallel 100 \approx 4.31\,\text{k}\Omega$, preservando oltre il $95\%$ del proprio guadagno a vuoto.
+1. **Cascata CS–CD:** si sceglie quando il carico finale $R_L$ è piccolo: il buffer CD ($M_2$) presenta al CS ($M_1$) un'alta impedenza d'ingresso che ne conserva il guadagno e offre al carico una bassa $R_{out} \approx 1/g_{m2}$.
+2. **Cascode (CS–CG):** si sceglie nei circuiti integrati ad alta impedenza quando servono insieme **larga banda** (eliminando l'effetto Miller su $M_1$) e **altissima resistenza d'uscita** ($\approx g_{m2} r_{o2} r_{o1}$).
 
 </details>
 

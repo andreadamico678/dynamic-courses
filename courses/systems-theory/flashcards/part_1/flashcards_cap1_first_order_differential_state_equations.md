@@ -1,57 +1,77 @@
 #flashcards/automatica/01_01_state_equations
 
-Qual è la definizione formale di stato $\mathbf{x}(t_0)$ per un sistema dinamico?
+What is the formal definition of the state $\mathbf{x}(t_0)$ of a dynamical system?
 ?
-È il numero minimo di variabili $\{x_1(t_0), \dots, x_n(t_0)\}$ la cui conoscenza a $t_0$, unita alla conoscenza dell'ingresso $\mathbf{u}(t)$ per $t \ge t_0$, determina univocamente l'evoluzione futura dello stato e dell'uscita per ogni $t \ge t_0$.
+It is the minimal vector $\{x_1(t_0), \dots, x_n(t_0)\}$ whose value at $t_0$, together with future inputs $\mathbf{u}(t)$ for $t \ge t_0$, uniquely determines $\mathbf{x}(t)$ and $\mathbf{y}(t)$ for all $t \ge t_0$.
 
-Nel modello di stato LTI continuo $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$, cosa rappresenta dimensionalmente $n$?
-?
-L'ordine (*order*) del sistema dinamico, coincidente con la dimensione del vettore di stato $\mathbf{x}(t) \in \mathbb{R}^n$.
+---
 
-Cosa rappresentano fisicamente le componenti del vettore di stato $\mathbf{x}(t)$ nell'architettura circuitale analogica di un sistema?
+What signals correspond to the state variables $\mathbf{x}(t)$ in an analog integrator block diagram?
 ?
-Le uscite degli $n$ integratori ideali ($\int dt$) presenti nel circuito.
+The outputs of the $n$ scalar integrator blocks ($\int dt$), since each stores continuous-time memory.
 
-Sotto quale specifica condizione fisica la matrice di trasmissione diretta $\mathbf{D}$ è identicamente nulla ($\mathbf{D} = \mathbf{0}$)?
-?
-Quando il sistema è strettamente proprio (*strictly proper*), ovvero possiede inerzia finita (massa o induttanza/capacità) che impedisce salti istantanei dell'uscita a fronte di gradini di ingresso.
+---
 
-In un sistema meccanico a masse traslazionali, quante variabili di stato sono necessarie per ciascun grado di libertà (massa)?
+In the LTI state-space model $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$, $\mathbf{y} = \mathbf{C}\mathbf{x} + \mathbf{D}\mathbf{u}$, what are the dimensions of $\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D}$ for $n$ states, $m$ inputs, and $p$ outputs?
 ?
-Due variabili di stato per ciascuna massa: la posizione $p_i(t)$ e la velocità $\dot{p}_i(t)$.
+$\mathbf{A} \in \mathbb{R}^{n \times n}$, $\mathbf{B} \in \mathbb{R}^{n \times m}$, $\mathbf{C} \in \mathbb{R}^{p \times n}$, and $\mathbf{D} \in \mathbb{R}^{p \times m}$.
 
-Nel passaggio da un'equazione differenziale scalare di ordine $n$ alla forma canonica compagna di Frobenius (*phase-variable form*), come sono definite le variabili di stato?
-?
-$$x_1(t) = y(t), \quad x_2(t) = \dot{y}(t), \quad \dots, \quad x_n(t) = y^{(n-1)}(t)$$
+---
 
-In una matrice compagna di Frobenius $\mathbf{A} \in \mathbb{R}^{n \times n}$, dove compaiono i coefficienti dell'equazione differenziale scalare ordinaria?
+Which state-space matrix governs autonomous internal coupling between states when $\mathbf{u}(t) \equiv \mathbf{0}$?
 ?
-Nell'ultima riga della matrice, con segno cambiato e in ordine crescente di derivata: $\begin{bmatrix} -a_0 & -a_1 & \dots & -a_{n-1} \end{bmatrix}$.
+The dynamic matrix $\mathbf{A} \in \mathbb{R}^{n \times n}$.
 
-Cosa accade alla matrice $\mathbf{B}$ quando un sistema SISO di ordine $n$ è espresso in forma canonica di Frobenius per variabili di fase?
-?
-Tutti gli elementi sono nulli tranne l'ultimo: $\mathbf{B} = \begin{bmatrix} 0 & 0 & \dots & b_0 \end{bmatrix}^T$.
+---
 
-In un sistema a due masse collegate da molla $k$ e smorzatore $B_1$, perché la forza elastica sulla seconda massa dipende dalla differenza di posizione $(p_1 - p_2)$?
+Which state-space matrix distributes external actuator inputs $\mathbf{u}(t)$ into state derivatives $\dot{\mathbf{x}}(t)$?
 ?
-Per la legge di Hooke: la forza di richiamo è proporzionale all'allungamento relativo della molla rispetto alla sua lunghezza di riposo.
+The input matrix $\mathbf{B} \in \mathbb{R}^{n \times m}$.
 
-Cosa descrive concettualmente la matrice di stato $A \in \mathbb{R}^{n \times n}$?
-?
-Descrive la dinamica autonoma interna (*dynamics*) del sistema quando l'ingresso esterno è spento ($u(t) = 0$).
+---
 
-Cosa determina concettualmente la matrice di ingresso $B \in \mathbb{R}^{n \times m}$?
+Which state-space matrix projects internal states $\mathbf{x}(t)$ onto measured sensor channels $\mathbf{y}(t)$?
 ?
-Determina il modo in cui le influenze forzanti esterne (*external influences*) iniettano energia (*inject energy*) all'interno dello stato del sistema.
+The output matrix $\mathbf{C} \in \mathbb{R}^{p \times n}$.
 
-Cosa mappa concettualmente la matrice di uscita $C \in \mathbb{R}^{p \times n}$?
-?
-Mappa la distribuzione interna dell'energia (*internal energy distribution*) sui segnali fisicamente misurati dai sensori (*sensor signals*).
+---
 
-Cosa rappresenta concettualmente la matrice di legame diretto $D \in \mathbb{R}^{p \times m}$ (*direct feedthrough*)?
+What physical property causes the direct feedthrough matrix $\mathbf{D}$ to be zero in physical mechanical or electrical plants?
 ?
-Rappresenta l'accoppiamento algebrico istantaneo (*coupling*) diretto tra ingresso e uscita ($\text{Input} \leftrightarrow \text{Output}$).
+Finite inertia (mass, inductance, or capacitance), which prevents an instantaneous output jump under finite inputs (making the system strictly proper).
 
-Perché nei sistemi fisici reali vale universalmente la condizione $D \approx 0$?
+---
+
+How many state variables does a translational multi-body system require for $k$ independent moving masses?
 ?
-Per l'inerzia fisica intrinseca (masse, capacità, induttanze) che impedisce il trasferimento istantaneo di energia dall'ingresso ai sensori senza attraversare la dinamica di stato (*strictly proper system*).
+$n = 2k$ states: one position $p_i(t)$ and one velocity $\dot{p}_i(t)$ per mass.
+
+---
+
+How are phase variables defined when converting $y^{(n)} + a_{n-1}y^{(n-1)} + \dots + a_0 y = b_0 u$ into Frobenius companion form?
+?
+$x_1 = y, \; x_2 = \dot{y}, \; \dots, \; x_n = y^{(n-1)}$.
+
+---
+
+In Frobenius companion form, where do the ODE coefficients appear in $\mathbf{A}$ and with what signs and ordering?
+?
+Along the bottom row in ascending derivative order and negated: $\begin{bmatrix} -a_0 & -a_1 & \dots & -a_{n-1} \end{bmatrix}$.
+
+---
+
+What step is mandatory before reading companion coefficients from $c_n y^{(n)} + \dots + c_0 y = d_0 u$?
+?
+Divide the entire equation by $c_n$ so the leading $y^{(n)}$ coefficient is $1$.
+
+---
+
+If a scalar differential equation has non-zero coefficient $b_0$ on $u(t)$ in Frobenius companion form, what are $\mathbf{B}$ and $\mathbf{C}$?
+?
+$\mathbf{B} = \begin{bmatrix} 0 & \dots & 0 & b_0 \end{bmatrix}^T$ and $\mathbf{C} = \begin{bmatrix} 1 & 0 & \dots & 0 \end{bmatrix}$.
+
+---
+
+In a two-cart mechanical chain with coupling spring $k$ between $p_1$ and $p_2$, what sign does the spring force $k(p_2 - p_1)$ take on cart 1 versus cart 2?
+?
+$+k(p_2 - p_1)$ accelerates cart 1 forward, whereas $-k(p_2 - p_1)$ pulls cart 2 backward.

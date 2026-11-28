@@ -1,27 +1,47 @@
 #flashcards/automatica/08_03_separation_principle
 
-Come è realizzata la legge di controllo in retroazione dello stato quando le variabili di stato fisiche $\mathbf{x}(t)$ non sono direttamente misurabili?
+What composite $2n \times 2n$ state matrix $\overline{\mathbf{A}}$ governs $(\mathbf{x}, \hat{\mathbf{x}})$ when closing the loop with $\mathbf{u} = -\mathbf{K}\hat{\mathbf{x}} + \mathbf{v}$?
 ?
-Alimentando il controllore con lo stato stimato $\hat{\mathbf{x}}(t)$ fornito dall'osservatore di Luenberger:
-$$\mathbf{u}(t) = -\mathbf{K}\hat{\mathbf{x}}(t) + \mathbf{v}(t)$$
+$$\overline{\mathbf{A}} = \begin{bmatrix} \mathbf{A} & -\mathbf{B}\mathbf{K} \\ \mathbf{L}\mathbf{C} & \mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C} \end{bmatrix}$$
 
-Qual è la dimensione complessiva dello spazio di stato del sistema a ciclo chiuso con compensatore dinamico basato su osservatore?
-?
-La dimensione è pari a $2n$: $n$ stati per il processo fisico $\mathbf{x}(t)$ e $n$ stati per l'osservatore $\hat{\mathbf{x}}(t)$ (oppure per l'errore di stima $\mathbf{e}(t)$).
+---
 
-Qual è la struttura a blocchi triangolare superiore della matrice dinamica del sistema esteso nello stato $[\mathbf{x}^T \quad \mathbf{e}^T]^T$?
+What involutory coordinate transformation $\mathbf{T}_{\text{sep}}$ switches from $(\mathbf{x}, \hat{\mathbf{x}})$ to error coordinates $(\mathbf{x}, \mathbf{e})$ with $\mathbf{e} = \mathbf{x} - \hat{\mathbf{x}}$?
 ?
-$$\begin{bmatrix} \dot{\mathbf{x}} \\ \dot{\mathbf{e}} \end{bmatrix} = \begin{bmatrix} \mathbf{A} - \mathbf{B}\mathbf{K} & \mathbf{B}\mathbf{K} \\ \mathbf{0} & \mathbf{A} - \mathbf{L}\mathbf{C} \end{bmatrix} \begin{bmatrix} \mathbf{x} \\ \mathbf{e} \end{bmatrix}$$
+$$\begin{bmatrix} \mathbf{x} \\ \mathbf{e} \end{bmatrix} = \begin{bmatrix} \mathbf{I}_n & \mathbf{0} \\ \mathbf{I}_n & -\mathbf{I}_n \end{bmatrix}\begin{bmatrix} \mathbf{x} \\ \hat{\mathbf{x}} \end{bmatrix}, \qquad (\mathbf{T}_{\text{sep}}^{-1} = \mathbf{T}_{\text{sep}})$$
 
-Cosa afferma formalmente il Principio di Separazione (*Separation Principle*) per la stabilità a ciclo chiuso?
-?
-I poli del controllore $\mathbf{K}$ e i poli dell'osservatore $\mathbf{L}$ possono essere progettati in modo totalmente indipendente; lo spettro complessivo del sistema a ciclo chiuso è l'unione disgiunta dei poli del controllore e dei poli dell'osservatore:
-$$\det(s\mathbf{I} - \mathbf{A}_{ext}) = \det(s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K})) \cdot \det(s\mathbf{I} - (\mathbf{A} - \mathbf{L}\mathbf{C}))$$
+---
 
-Qual è la funzione di trasferimento $C_{comp}(s)$ del compensatore dinamico basato su osservatore che elabora l'errore di uscita per generare l'ingresso di controllo $\mathbf{U}(s) = -C_{comp}(s) \mathbf{Y}(s)$?
+What block upper-triangular state matrix $\mathbf{A}_{\text{total}}$ emerges in $(\mathbf{x}, \mathbf{e})$ coordinates?
 ?
-$$C_{comp}(s) = \mathbf{K} \left( s\mathbf{I} - (\mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C}) \right)^{-1} \mathbf{L}$$
+$$\begin{bmatrix} \dot{\mathbf{x}} \\ \dot{\mathbf{e}} \end{bmatrix} = \begin{bmatrix} \mathbf{A} - \mathbf{B}\mathbf{K} & \mathbf{B}\mathbf{K} \\ \mathbf{0} & \mathbf{A} - \mathbf{L}\mathbf{C} \end{bmatrix}\begin{bmatrix} \mathbf{x} \\ \mathbf{e} \end{bmatrix} + \begin{bmatrix} \mathbf{B} \\ \mathbf{0} \end{bmatrix}\mathbf{v}$$
 
-Il principio di separazione garantisce che il transitorio del sistema controllato con osservatore sia identico a quello con retroazione dallo stato ideale misurato?
+---
+
+What does the Separation Principle prove for the characteristic polynomial and eigenvalues of the $2n$-dimensional closed loop?
 ?
-No: sebbene gli autovalori asintotici siano gli stessi, la presenza dell'errore di stima $\mathbf{e}(0) \neq \mathbf{0}$ introduce un transitorio addizionale (*peaking phenomenon*) e zeri aggiuntivi nella funzione di trasferimento a ciclo chiuso.
+$\det(s\mathbf{I}_{2n} - \mathbf{A}_{\text{total}}) = \det(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K}))\det(s\mathbf{I}_n - (\mathbf{A} - \mathbf{L}\mathbf{C}))$, so controller poles and observer poles are completely decoupled ($\mathbf{K}$ and $\mathbf{L}$ are designed independently).
+
+---
+
+In $(\mathbf{x}, \mathbf{e})$ coordinates, why do the $n$ observer poles cancel out of the closed-loop transfer matrix $\mathbf{W}_{\text{CL}}(s)$ from $\mathbf{V}(s)$ to $\mathbf{Y}(s)$?
+?
+Because $\mathbf{B}_{\text{total}} = [\mathbf{B}^T \; \mathbf{0}^T]^T$ leaves all error modes $\mathbf{e}(t)$ uncontrollable from the reference command $\mathbf{v}(t)$, leaving $\mathbf{W}_{\text{CL}}(s) = \mathbf{C}(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K}))^{-1}\mathbf{B}$.
+
+---
+
+How does a non-zero initial estimation error $\mathbf{e}(0) \neq \mathbf{0}$ affect the plant trajectory $\mathbf{x}(t)$ despite spectral decoupling?
+?
+The off-diagonal coupling block $\mathbf{B}\mathbf{K}$ injects a decaying disturbance $\mathbf{B}\mathbf{K}e^{(\mathbf{A}-\mathbf{L}\mathbf{C})t}\mathbf{e}(0)$ into $\dot{\mathbf{x}}(t)$, motivating observer poles $2\text{–}5\times$ faster than controller poles.
+
+---
+
+What is the $n$-th order dynamic compensator transfer function $C(s)$ mapping sensor output $\mathbf{Y}(s)$ to $\mathbf{U}(s) = -C(s)\mathbf{Y}(s)$ (with $\mathbf{v} = \mathbf{0}$)?
+?
+$$C(s) = \mathbf{K}\big(s\mathbf{I}_n - (\mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C})\big)^{-1}\mathbf{L}$$
+
+---
+
+Do the eigenvalues of the standalone compensator matrix $\mathbf{A}_{\text{comp}} = \mathbf{A} - \mathbf{B}\mathbf{K} - \mathbf{L}\mathbf{C}$ equal the closed-loop poles?
+?
+No; $\sigma(\mathbf{A}_{\text{comp}})$ are the *open-loop* poles of $C(s)$ alone (and may even be unstable), whereas closing the loop places the $2n$ poles at $\sigma(\mathbf{A} - \mathbf{B}\mathbf{K}) \cup \sigma(\mathbf{A} - \mathbf{L}\mathbf{C})$.

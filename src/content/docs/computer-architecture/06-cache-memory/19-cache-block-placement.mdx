@@ -236,42 +236,28 @@ With $NB = 8{,}192 / 64 = 128\text{ blocks}$ and $j = 245$:
 
 </Exercise>
 
-<Exercise client:load id="ex-19-3" title="Exercise 19.3 — Resolving Three-Array Set Collisions" level="Exam" hint="Convert each hexadecimal base byte address to decimal, divide by $B = 64$ to find $j_A, j_B, j_C$, and test $j \bmod NS$ for $N = 1, 2, 4$.">
+<Exercise client:load id="ex-19-3" title="Exercise 19.3 — Written Theory: Block Placement Policies Comparison" level="Exam" hint="Define Direct-Mapped, N-Way Set-Associative, and Fully Associative placement, then compare all three explicitly on Miss Rate (conflict misses) and Hit Time (comparators + mux).">
 
-In a vector kernel similar to those in [Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/), every iteration computes `C[0] = A[0] + B[0]` using three base byte addresses `A = 0x00000480` ($1{,}152$), `B = 0x00001480` ($5{,}248$), and `C = 0x00002480` ($9{,}344$). The data cache holds $NB = 64\text{ blocks}$ of $B = 64\text{ bytes}$ each and uses LRU replacement.
-
-1. Compute the main memory block numbers $j_A$, $j_B$, and $j_C$.
-2. Evaluate their mapped indices in Direct-Mapped ($N = 1$), $2$-Way ($N = 2$), and $4$-Way ($N = 4$) organizations.
-3. Determine the minimum power-of-two associativity $N \in \{1, 2, 4, 8\}$ that allows all three array blocks to remain resident simultaneously without evicting one another across loop iterations.
-
-<StepCheck
-  client:load
-  prompt="What is the minimum power-of-two associativity $N$ required so that `A[0]`, `B[0]`, and `C[0]` coexist in cache with zero evictions after the first iteration?"
-  expected={4}
-  tolerance={0}
-  unit="ways"
-  explanation="Blocks $j_A = 18$, $j_B = 82$, and $j_C = 146$ differ by multiples of $64$, so they map to the same set for $N = 1$ ($NS = 64$), $N = 2$ ($NS = 32$), and $N = 4$ ($NS = 16$). Because 3 distinct blocks share that set, $N = 2$ still thrashes (only 2 ways), whereas $N = 4$ provides 4 ways in Set 2 and holds all 3 blocks simultaneously."
-/>
+*(Written Theory Exam Question — June 2025 & July 2024)* **Discutere delle politiche di block placement nella memoria cache. Confrontare tali politiche rispetto a miss rate e hit time.**
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Reveal Grading Checklist & Model Written Answer</summary>
 
-1. **Block Addresses** ($j = \lfloor \text{Addr} / 64 \rfloor$):
-   $$j_A = \frac{1{,}152}{64} = 18, \qquad j_B = \frac{5{,}248}{64} = 82, \qquad j_C = \frac{9{,}344}{64} = 146$$
-   Notice that $82 - 18 = 64$ and $146 - 82 = 64$: the three arrays are separated by exact multiples of $64\text{ blocks}$ ($4{,}096\text{ bytes}$).
+**Grading Checklist (Full Marks):**
+- **Direct-Mapped ($N = 1$):** Block $j$ maps to one fixed slot ($j \bmod NB$); $1$ comparator, no way mux $\implies$ **lowest hit time**, **highest miss rate** (conflict thrashing).
+- **$N$-Way Set-Associative ($NS = NB / N$):** Block $j$ maps to one set ($j \bmod NS$) and any of its $N$ ways; $N$ parallel comparators + $N$-to-$1$ mux $\implies$ **balanced** (sharply lower conflict misses than DM, slightly slower hit time).
+- **Fully Associative ($N = NB, NS = 1$):** Block $j$ can sit anywhere in the cache; $NB$ parallel comparators $\implies$ **zero conflict misses (lowest miss rate)**, **slowest hit time** and highest hardware cost.
+- Explicit **Miss Rate vs. Hit Time trade-off** across the three organizations (and note that reducing miss rate by increasing $N$ does not always improve AMAT if $t_{\text{hit}}$ grows too much).
 
-2. **Mapped Indices Across Associativities:**
-   - **Direct-Mapped** ($N = 1, NS = 64$):
-     $$18 \bmod 64 = 18, \qquad 82 \bmod 64 = 18, \qquad 146 \bmod 64 = 18$$
-     All three blocks compete for **Block 18** ($1$ slot) and evict each other on every access.
-   - **2-Way Set-Associative** ($N = 2, NS = 32$):
-     $$18 \bmod 32 = 18, \qquad 82 \bmod 32 = 18, \qquad 146 \bmod 32 = 18$$
-     All three blocks map to **Set 18**, which has only **2 ways**. Under LRU, accessing $A \to B \to C \to A \dots$ continuously evicts the oldest of the three, causing $100\%$ misses!
-   - **4-Way Set-Associative** ($N = 4, NS = 16$):
-     $$18 \bmod 16 = 2, \qquad 82 \bmod 16 = 2, \qquad 146 \bmod 16 = 2$$
-     All three blocks map to **Set 2**, which provides **4 ways**—enough to hold $j_A$, $j_B$, and $j_C$ simultaneously with $1$ spare way left over.
-
-3. **Minimum Required Associativity:** **$N = 4$ ($4$-Way Set-Associative)**.
+**Model Written Answer:**
+> **Block placement policies** determine where a main memory block $j$ can be stored inside an $NB$-block cache:
+> 1. **Direct-Mapped ($N = 1$):** Each block maps to a single fixed location, $\text{Index} = j \bmod NB$. Hardware checks only $1$ tag with no way-selection multiplexer.
+> 2. **$N$-Way Set-Associative:** The cache is partitioned into $NS = NB / N$ sets of $N$ ways each. Block $j$ maps to $\text{Set Index} = j \bmod NS$ and can occupy any of the $N$ ways inside that set, requiring $N$ parallel tag comparators and an $N$-to-$1$ data multiplexer (plus a replacement policy such as LRU/Random when a set is full).
+> 3. **Fully Associative ($NS = 1$):** Block $j$ can be placed in any of the $NB$ cache slots, requiring $NB$ parallel tag comparators.
+>
+> **Comparison (Miss Rate vs. Hit Time):**
+> - **Miss Rate:** Direct-Mapped suffers the **highest miss rate** due to conflict misses whenever active blocks map to the same index. Increasing associativity ($2$-way, $4$-way) sharply reduces conflict misses, and Fully Associative achieves the **lowest miss rate** (zero conflict misses).
+> - **Hit Time:** Direct-Mapped achieves the **fastest hit time** (1 tag check, no mux). Increasing $N$ adds parallel comparators and a wider output multiplexer, **increasing hit time**—making Fully Associative the slowest and most power-hungry. Consequently, moderate associativity ($2$-way or $4$-way) typically minimizes $\text{AMAT}$.
 
 </details>
 

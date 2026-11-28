@@ -87,26 +87,12 @@ Il bit $b_1$ pesa $V_{ref}/2$ e il passo minimo vale $\Delta V_{LSB} = V_{ref}/2
 
 #### DAC a Scala R-2R
 
-La **rete a scala $R\text{-}2R$** ([la figura](#fig-r2r-dac)) aggira completamente il problema della dispersione dei valori usando esclusivamente resistori di valore $R$ e $2R$ (dove $2R$ si ottiene semplicemente ponendo due unità $R$ in serie).
+La **rete a scala $R\text{-}2R$** ([la figura](#fig-r2r-dac)) risolve il problema della dispersione dei resistori usando esclusivamente due valori identici, $R$ e $2R$. Applicando gli equivalenti di Thévenin da sinistra verso destra, ogni sezione della scala presenta verso massa la stessa resistenza equivalente $2R$ ($2R \parallel 2R + R = 2R$), dimezzando esattamente di un fattore $2$ il peso della corrente convogliata nella massa virtuale da ciascun bit successivo. Ciò permette di raggiungere risoluzioni elevate con componenti integrati accoppiati sullo stesso chip.
 
 <figure id="fig-r2r-dac" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-r2r-dac.svg" alt="Convertitore Digitale-Analogico a scala R-2R a 3 bit con sommatore di corrente su massa virtuale." />
   <figcaption>Convertitore Digitale-Analogico a scala $R\text{-}2R$ a 3 bit con sommatore di corrente su massa virtuale.</figcaption>
 </figure>
-
-Il segreto risiede nell'**invarianza della resistenza equivalente** lungo la scala:
-
-1. Partendo dall'estremità sinistra della rete ([la figura](#fig-r2r-dac)), il primo ramo a massa vale $2R$ e si trova in parallelo al ramo verticale di $b_3$ (anch'esso di valore $2R$ e connesso a $0\,\text{V}$ quando calcoliamo il contributo degli altri bit per sovrapposizione). Il parallelo $2R \parallel 2R$ vale esattamente $R$.
-2. Sommato in serie al resistore orizzontale $R$ successivo, si riottiene $R + R = 2R$. Lo schema si ripete identico a ogni nodo successivo verso destra!
-3. Di conseguenza, applicando $V_{ref}$ su un generico bit $b_k = 1$ (con gli altri ingressi a zero volt), il partitore e la legge di Ohm dimezzano esattamente di un fattore $2$ la corrente convogliata nel nodo di massa virtuale $v^-$ man mano che ci si allontana dall'Op-Amp: il ramo $b_1$ inietta $I_1 = \frac{V_{ref}}{2R}$, il ramo $b_2$ inietta $I_2 = \frac{V_{ref}}{4R}$, e in generale il ramo $b_k$ inietta $I_k = \frac{V_{ref}}{2^k R}$.
-
-Sommando le correnti su $R_f$ nella massa virtuale $v^- = 0\,\text{V}$, l'uscita vale $v_o = -R_f \sum_{k=1}^{N} b_k \frac{V_{ref}}{2^k R}$. Con $R_f = 2R$ (come indicato in [la figura](#fig-r2r-dac)) si ottiene:
-
-$$
-v_o = -2\,V_{ref} \sum_{k=1}^{N} \frac{b_k}{2^k}
-$$
-
-(scegliendo invece $R_f = R$, il fattore davanti alla sommatoria si riduce esattamente a $-V_{ref}$). Poiché l'intera rete è replicata a partire da un'unica cella elementare di valore $R$, l'accoppiamento relativo tra i rami resta accuratissimo anche al variare della temperatura.
 
 <StepCheck client:load lang="it" mode="choice" prompt="Qual è il motivo fisico per cui nei DAC integrati ad alta risoluzione si preferisce la scala $R\text{-}2R$ rispetto al DAC a pesi binari?" options={["Perché la scala $R\\text{-}2R$ non richiede l'amplificatore operazionale in uscita", "Perché la scala $R\\text{-}2R$ utilizza solo due valori resistivi ($R$ e $2R$), evitando rapporti estremi $2^{N-1}$ difficili da integrare con precisione", "Perché il DAC a pesi binari non può funzionare con ingressi digitali a 0 e 1", "Perché la scala $R\\text{-}2R$ annulla la tensione di offset $V_{OS}$ dell'Op-Amp"]} correctIndex={1} explanation="Nel DAC a pesi binari il rapporto tra il resistore dell'LSB e quello dell'MSB cresce come $2^{N-1}$ (2048 a 12 bit). La scala $R\text{-}2R$ usa invece solo resistori identici $R$ e $2R$, garantendo precisione di rapporto e compattezza sul silicio." />
 

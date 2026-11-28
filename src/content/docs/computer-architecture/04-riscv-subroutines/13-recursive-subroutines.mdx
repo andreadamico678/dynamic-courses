@@ -12,7 +12,7 @@ import StepCheck from "@components/StepCheck.tsx";
 
 ## Recursive Subroutines
 
-To a RISC-V processor, recursion is not a special hardware mode—it is an ordinary `call` (`jal ra, label`) whose jump target happens to be the function's own entry label. Because every recursive invocation calls a subroutine, every recursive function is a **non-leaf function** ([Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/)): each activation must allocate its own 16-byte-aligned stack frame to preserve **`ra`** and any live arguments or partial results needed after the recursive `jal` returns.
+To a RISC-V processor, recursion is not a special hardware mode—it is an ordinary `call` (`jal ra, label`) whose jump target happens to be the function's own entry label. Because every recursive invocation calls a subroutine, every recursive function is a **non-leaf function** ([Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/)): each activation must allocate its own word-aligned stack frame to preserve **`ra`** and any live arguments or partial results needed after the recursive `jal` returns.
 
 <Divider label="1 · Example" />
 
@@ -77,126 +77,55 @@ As shown in [the figure](#fig-recursive-stack), calling `fact(3)` pushes three d
 
 <Divider label="2 · Theory" />
 
-We generalize the factorial trace into four principles: preserving `ra` and live values across self-calls, funneling every base case through a shared epilogue, scaling the idiom to dual-branching recurrences that require two preserved values, and bounding peak stack depth $B_{\text{peak}}$.
+Every recursive C-to-RISC-V translation enforces two hardware invariants at each activation level (note that recursion is an **insurance topic**—`0/7` 2026 exams used recursion, as exam Question 6 favors iterative helpers, so mastering single-call recursion below is sufficient):
 
 ### Recursive Frame Invariants
 
-Every recursive C-to-RISC-V translation enforces two hardware invariants at each activation level:
-
-1. **Unconditional `ra` Preservation:** Even though the deepest base-case activation executes no further `call`, every outer activation executes `call self` (`jal ra, self`), which overwrites `ra` with the instruction address immediately after `call self` *inside the recursive function*. If a recursive routine omits `sw ra, 12(sp)` and `lw ra, 12(sp)`, the base case returns once to `call self + 4`, and that level's `ret` jumps right back to `call self + 4` forever—trapping the CPU in an infinite loop.
-2. **Shielding Live Values:** Register `a0` plays three conflicting roles across `jal`: it brings in parameter $n$, must be overwritten with the child argument (such as $n - 1$), and returns holding $f(n - 1)$. Any value from before `call self` that appears in an expression *after* `call self` returns must be saved in the current frame using either of two equivalent ABI idioms:
+1. **Unconditional `ra` Preservation:** Even though the deepest base-case activation executes no further `call`, every outer activation executes `call self` (`jal ra, self`), which overwrites `ra` with the instruction address immediately after `call self` *inside the recursive function*. If a recursive routine omits `sw ra` and `lw ra`, the base case returns once to `call self + 4`, and that level's `ret` jumps right back to `call self + 4` forever.
+2. **Shielding Live Values:** Register `a0` plays three conflicting roles across `jal`: it brings in parameter $n$, must be overwritten with the child argument (such as $n - 1$), and returns holding $f(n - 1)$. Any value from before `call self` that appears in an expression *after* `call self` returns must be saved in the current frame using either of two equivalent idioms:
    - **Caller-Slot Idiom** (`sw a0, 8(sp)`): Spill `a0` directly to a dedicated word slot in the prologue and reload it into a temporary (`lw t1, 8(sp)`) right after `call self`.
    - **Callee-Saved Idiom** (`sw s0, 8(sp)`): Save caller's `s0` in the prologue, copy `mv s0, a0`, compute child argument `addi a0, s0, -1`, and after `call self` combine `mul a0, s0, a0` before restoring `lw s0, 8(sp)` in the epilogue.
 
-Both idioms allocate the exact same **16-byte** frame (`ra` + 1 word = 8 bytes, rounded up to 16 bytes) and earn full marks in Question 6; the `s0` idiom becomes especially convenient when $n$ is referenced multiple times after a call.
-
 ### Base Case Teardown
 
-Always route every return path—both base case(s) and recursive step(s)—through a **single shared epilogue label** (`func_epilogue:`). Once `addi sp, sp, -16` executes at the top of the function, jumping to `ret` directly from the base case without executing `addi sp, sp, 16` leaves `sp` shifted by $-16$ bytes, corrupting the caller's stack pointer and reloading the wrong `ra`! Routing `j func_epilogue` guarantees symmetric `+16` deallocation on every exit path.
-
-### Dual-Branching Recursion
-
-When a recursive C function makes **two** recursive calls in the same body—such as `fib(n) = fib(n - 1) + fib(n - 2)`—two separate live values must survive across `jal`:
-
-1. Input parameter **`n`** must survive the **first** recursive call (`call fib` for `n - 1`) so we can still compute `n - 2` for the second call.
-2. Partial result **`fib(n - 1)`** (returned in `a0` by the first call) must survive the **second** recursive call (`call fib` for `n - 2`), which overwrites `a0` and may freely trash `t0`–`t6`!
-
-Using the callee-saved idiom with **`s0`** (for `n`) and **`s1`** (for `fib(n - 1)`) keeps the code clean inside a single **16-byte** frame (`ra` + `s0` + `s1` = $12\text{ B} \implies 16\text{ B}$ aligned):
-
-```asm
-# int fib(int n) { if (n <= 0) return 0; if (n == 1) return 1; return fib(n-1) + fib(n-2); }
-fib:
-    addi sp, sp, -16
-    sw   ra, 12(sp)          # 12(sp): return address
-    sw   s0, 8(sp)           #  8(sp): caller's s0 (we store n in s0)
-    sw   s1, 4(sp)           #  4(sp): caller's s1 (we store fib(n - 1) in s1)
-
-    mv   s0, a0              # s0 = n
-
-    # Base cases: n <= 0 -> 0, n == 1 -> 1
-    ble  s0, zero, fib_ret_0
-    li   t0, 1
-    beq  s0, t0, fib_ret_1
-
-    # First recursive branch: fib(n - 1)
-    addi a0, s0, -1          # a0 = n - 1
-    call fib
-    mv   s1, a0              # Shield fib(n - 1) in callee-saved s1!
-
-    # Second recursive branch: fib(n - 2)
-    addi a0, s0, -2          # s0 still holds original n -> a0 = n - 2
-    call fib                 # Returns with a0 = fib(n - 2); s1 is intact!
-
-    add  a0, s1, a0          # a0 = fib(n - 1) + fib(n - 2)
-    j    fib_epilogue
-
-fib_ret_0:
-    li   a0, 0
-    j    fib_epilogue
-
-fib_ret_1:
-    li   a0, 1
-
-fib_epilogue:
-    lw   s1, 4(sp)
-    lw   s0, 8(sp)
-    lw   ra, 12(sp)
-    addi sp, sp, 16
-    ret
-```
-
-### Stack Depth Bounds
-
-If an execution path reaches a maximum simultaneous nesting depth of $D_{\max}$ active calls and each activation allocates an aligned frame of $K$ bytes, peak stack memory consumption is:
-
-$$B_{\text{peak}} = D_{\max} \cdot K$$
-
-Notice that in dual-branching `fib(n)`, `fib(n - 1)` completely unwinds and pops all its frames *before* `fib(n - 2)` is called; therefore, even though dynamic instruction count grows exponentially ($\mathcal{O}(2^n)$), peak stack depth remains linear ($D_{\max} = n$, so $B_{\text{peak}} = 16n\text{ bytes}$ for $n \ge 1$). Conversely, if a recursive call is in **tail position** (the recursive call is the very last operation before `return`, with no post-call multiplication or addition), optimizing compilers (`gcc -O2`) apply **Tail-Call Optimization (TCO)**—updating `a0` in place and jumping (`j`) to the loop header with $\mathcal{O}(1)$ stack space. In hand-written Exam Q6 translations, however, always preserve the explicit recursive stack frame when the C prompt is recursive.
-
-<Callout type="bridge" title="Bounded Recursion in Avionics">
-
-Safety-critical firmware standards (**MISRA-C**, **DO-178C** avionics) ban unbounded recursion because data-dependent call depths make worst-case stack sizing undecidable. When robotics engineers implement recursive octree spatial queries or depth-first planners on embedded hardware, they either pass an explicit `depth` guard (`if (depth >= MAX_DEPTH) return ERR_BOUND;`) so $D_{\max} \cdot K$ is provably bounded, or convert the recursion into an iterative loop over a fixed-capacity static array.
-
-</Callout>
+Always route every return path—both base case(s) and recursive step(s)—through a **single shared epilogue label** (`func_epilogue:`). Once `addi sp, sp, -K` executes at the top of the function, jumping to `ret` directly from the base case without executing `addi sp, sp, K` leaves `sp` shifted, corrupting the caller's stack pointer and reloading the wrong `ra`. Routing `j func_epilogue` guarantees symmetric `+K` deallocation on every exit path.
 
 <StepCheck
   client:load
   mode="choice"
-  prompt="In `fib(n)` above, what bug occurs if you replace `mv s1, a0` with `mv t1, a0` (storing `fib(n - 1)` in temporary `t1`) before calling `fib(n - 2)`?"
+  prompt="In `fact(n)` above, why must `fact` save `ra` on the stack even though the base case (`n <= 1`) makes zero function calls?"
   options={[
-    "The assembler rejects `add a0, t1, a0`",
-    "The child call `fib(n - 2)` executes `li t0, 1` and may freely overwrite any `t` register (`t0`–`t6`), leaving `t1` unprotected across `call fib`",
-    "Temporary registers cannot hold signed integers"
+    "Because `mul` overwrites `ra`",
+    "Because every recursive `call fact` overwrites `ra` with the return point inside `fact`, clobbering `main`'s original return address",
+    "Because RARS forbids `ret` without `lw ra`"
   ]}
   correctIndex={1}
-  explanation="Because `t0`–`t6` are caller-saved, `fib(n - 2)` has zero obligation to preserve `t1` (and any change or `li t1, ...` inside `fib` destroys every ancestor's partial result!). Callee-saved `s1` (backed up at `4(sp)`) preserves each activation's own `fib(n - 1)`."
+  explanation="Whenever `n > 1`, `call fact` executes `jal ra, fact`, overwriting `ra`. Saving `ra` in the prologue preserves each activation's own return address across its recursive call."
 />
 
 <Divider label="3 · Summary" />
 
 ### Recursion Pattern Reference
 
-| Recursion Pattern | Live Values Across `call` | Saved Slots Needed | Aligned Frame $K$ | Post-Call Recombination |
-| :--- | :--- | :--- | :---: | :--- |
-| **Single Linear (`fact(n)`)** | Parameter `n` | `ra` + `a0` (or `s0`) = $8\text{ B}$ | $16\text{ B}$ | `lw t1, 8(sp)` $\to$ `mul a0, t1, a0` |
-| **Two-Arg Linear (`power(b, e)`)** | Parameter `b` (`a0`) | `ra` + `a0` (or `s0`) = $8\text{ B}$ | $16\text{ B}$ | `lw t0, 8(sp)` $\to$ `mul a0, t0, a0` |
-| **Array Linear (`sum(arr, n)`)** | Element `arr[n-1]` (or `arr`, `n`) | `ra` + `s0` = $8\text{ B}$ | $16\text{ B}$ | `add a0, s0, a0` |
-| **Dual-Branching (`fib(n)`)** | Input `n` **and** 1st result | `ra` + `s0` + `s1` = $12\text{ B}$ | $16\text{ B}$ | `mv s1, a0` (1st) $\to$ `add a0, s1, a0` (2nd) |
+| Recursion Pattern | Live Values Across `call` | Saved Slots Needed | Post-Call Recombination |
+| :--- | :--- | :--- | :--- |
+| **Single Linear (`fact(n)`)** | Parameter `n` | `ra` + `a0` (or `s0`) | `lw t1, 8(sp)` $\to$ `mul a0, t1, a0` |
+| **Two-Arg Linear (`power(b, e)`)** | Parameter `b` (`a0`) | `ra` + `a0` (or `s0`) | `lw t0, 8(sp)` $\to$ `mul a0, t0, a0` |
+| **Array Linear (`sum(arr, n)`)** | Element `arr[n-1]` | `ra` + `s0` | `add a0, s0, a0` |
 
 ### Recursive Translation Procedure
 
-1. **Identify Live Post-Call Values:** Circle every variable or partial call result in the C `return` expression that is used *after* a recursive call returns.
-2. **Allocate Aligned Frame:** Subtract $K = 16$ (or $32$ if $> 3$ saved words), store `ra` at `(K - 4)(sp)`, and save either incoming `a0` or callee-saved `s0`, `s1`, ... at descending word offsets.
-3. **Code Base Case(s) First:** Test termination conditions before any `call`; load the base return value into `a0` and `j func_epilogue`.
-4. **Recurse and Recombine:** Load child arguments into `a0`, `a1`, ..., execute `call func`, reload/shield live values from stack slots or `s0`–`s1`, and compute the return value into `a0`.
-5. **Single Shared Epilogue:** Restore `s` registers and `ra`, execute `addi sp, sp, K`, and `ret`.
+1. **Identify Live Post-Call Values:** Circle every variable in the C `return` expression that is used *after* the recursive call returns.
+2. **Allocate Frame:** Subtract $K$ (word- or 16-byte-aligned), store `ra` at `(K - 4)(sp)`, and save either incoming `a0` or callee-saved `s0` at the next word slot.
+3. **Code Base Case First:** Test termination conditions before any `call`; load the base return value into `a0` and `j func_epilogue`.
+4. **Recurse and Recombine:** Load child arguments into `a0`, `a1`, execute `call func`, reload live values from the stack or `s0`, and compute the return value into `a0`.
+5. **Single Shared Epilogue:** Restore `s0` (if used) and `ra`, execute `addi sp, sp, K`, and `ret`.
 
 <Callout type="warning" title="Common Mistakes">
 
 1. **Multiplying by Clobbered `a0`:** Writing `call fact; mul a0, a0, a0` squares $f(n - 1)$ instead of multiplying by $n$ because `a0` no longer contains $n$.
-2. **Skipping Epilogue Deallocation:** Executing an early `ret` from the base case after already allocating `-16` bytes misaligns `sp` and crashes the first caller unwind.
-3. **Keeping Intermediate Results in `t0`:** In `F(n - 1) + F(n - 2)`, storing `F(n - 1)` in `t0` across the second recursive call overwrites ancestor results at deeper levels.
-4. **Missing Base-Case Branch:** Using `blt` instead of `ble` on `n <= 0` lets negative or zero inputs recurse forever until stack memory overflows.
+2. **Skipping Epilogue Deallocation:** Executing an early `ret` from the base case after already allocating `-K` bytes misaligns `sp` and crashes the caller unwind.
+3. **Missing Base-Case Branch:** Using `blt` instead of `ble` on `n <= 0` lets negative or zero inputs recurse forever until stack memory overflows.
 
 </Callout>
 
@@ -205,316 +134,73 @@ Safety-critical firmware standards (**MISRA-C**, **DO-178C** avionics) ban unbou
 <Exercise
   client:load
   id="ex-13-1"
-  title="Exercise 13.1 — Recursive Integer Power"
-  level="Warm-Up"
-  hint="Incoming arguments are `a0 = base` and `a1 = exp`. Save `ra` at `12(sp)` and `a0` (`base`) at `8(sp)`; decrement `a1` (`addi a1, a1, -1`) for the recursive call, then reload `base` from `8(sp)` and multiply."
+  title="Exercise 13.1 — Recursive Integer Power and Array Sum"
+  level="Exam"
+  hint="For `power`, save `ra` and `a0` (`base`), decrement `a1`, recurse, then reload `base` and multiply. For `sum_arr`, fetch `arr[n - 1]` into `s0` *before* calling `sum_arr(arr, n - 1)`, saving `ra` and `s0` in the prologue."
 >
 
-Translate the following recursive C function into complete RISC-V assembly with a 16-byte-aligned stack frame:
+Translate both single-recursion C functions below into complete RISC-V assembly (as insurance in case Question 6 includes a recursive helper):
 
 ```c
 int power(int base, int exp) {
     if (exp <= 0) return 1;
     return base * power(base, exp - 1);
 }
-```
 
-<StepCheck
-  client:load
-  prompt="When `power(3, 3)` executes, how many total times is the label `power:` entered (including the base-case activation `exp = 0`)?"
-  expected={4}
-  tolerance={0}
-  unit="calls"
-  explanation="The activation chain is `power(3, 3)` -> `power(3, 2)` -> `power(3, 1)` -> `power(3, 0)` (base case returning `1`), totaling `4` invocations (`64` bytes peak stack)."
-/>
-
-<details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
-
-```asm
-# Arguments: a0 = base, a1 = exp
-# Returns:   a0 = base^exp
-power:
-    addi sp, sp, -16
-    sw   ra, 12(sp)              # Save return address
-    sw   a0, 8(sp)               # Save base across recursive call
-
-    # Base case: if (exp <= 0) return 1
-    bgt  a1, zero, pow_rec
-    li   a0, 1
-    j    pow_epilogue
-
-pow_rec:
-    addi a1, a1, -1              # Arg 2: exp - 1 (a0 already holds base)
-    call power                   # Returns with a0 = power(base, exp - 1)
-
-    lw   t0, 8(sp)               # Reload original base
-    mul  a0, t0, a0              # a0 = base * power(base, exp - 1)
-
-pow_epilogue:
-    lw   ra, 12(sp)
-    addi sp, sp, 16
-    ret
-```
-
-</details>
-
-</Exercise>
-
-<Exercise
-  client:load
-  id="ex-13-2"
-  title="Exercise 13.2 — Recursive Integer Array Sum"
-  level="Intermediate"
-  hint="Load `arr[n - 1]` *before* the recursive call (`addi t0, a1, -1`, `slli t0, t0, 2`, `add t0, a0, t0`, `lw s0, 0(t0)`) and keep that integer in saved `s0` while calling `sum_arr(arr, n - 1)`!"
->
-
-Combine Part III scaled word addressing ([Arrays and Strings](/dynamic-courses/computer-architecture/03-riscv-instructions/10-arrays-and-strings/)) with recursive stack preservation to translate `sum_arr`:
-
-```c
 int sum_arr(int *arr, int n) {
     if (n <= 0) return 0;
     return arr[n - 1] + sum_arr(arr, n - 1);
 }
 ```
 
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="If you load `arr[n - 1]` into `s0` *before* calling `sum_arr(arr, n - 1)`, which registers must be saved in `sum_arr`'s 16-byte prologue?"
-  options={[
-    "Only `ra` (`4` bytes)",
-    "`ra` and `s0` (`8` bytes inside a 16-byte frame), since `arr[n - 1]` is already fetched into `s0` and neither `arr` nor `n` is needed after `call`",
-    "`ra`, `a0`, `a1`, `t0`, and `s0` (`20` bytes inside a 32-byte frame)"
-  ]}
-  correctIndex={1}
-  explanation="Fetching `s0 = arr[n - 1]` before `call sum_arr` means only `s0` (plus `ra`) is needed after the child call returns, fitting cleanly in a 16-byte frame (`sw ra, 12(sp); sw s0, 8(sp)`)."
-/>
-
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
 ```asm
-# Arguments: a0 = int *arr, a1 = int n
-# Returns:   a0 = arr[0] + ... + arr[n - 1]
-sum_arr:
-    addi sp, sp, -16
-    sw   ra, 12(sp)
-    sw   s0, 8(sp)               # Preserve caller's s0
+# 1. power(a0 = base, a1 = exp) -> a0 = base^exp
+power:
+    addi sp, sp, -8
+    sw   ra, 4(sp)               # Save return address
+    sw   a0, 0(sp)               # Save base across recursive call
 
-    # Base case: if (n <= 0) return 0
-    bgt  a1, zero, sum_rec
+    bgt  a1, zero, pow_rec       # Base case: if (exp <= 0) return 1
+    li   a0, 1
+    j    pow_epilogue
+
+pow_rec:
+    addi a1, a1, -1              # exp - 1 (a0 already holds base)
+    call power                   # Returns a0 = power(base, exp - 1)
+    lw   t0, 0(sp)               # Reload original base
+    mul  a0, t0, a0              # a0 = base * power(base, exp - 1)
+
+pow_epilogue:
+    lw   ra, 4(sp)
+    addi sp, sp, 8
+    ret
+
+# 2. sum_arr(a0 = int *arr, a1 = int n) -> a0 = arr[0] + ... + arr[n - 1]
+sum_arr:
+    addi sp, sp, -8
+    sw   ra, 4(sp)
+    sw   s0, 0(sp)               # Preserve caller's s0
+
+    bgt  a1, zero, sum_rec       # Base case: if (n <= 0) return 0
     li   a0, 0
     j    sum_epilogue
 
 sum_rec:
-    # Fetch arr[n - 1] into callee-saved s0 BEFORE calling sum_arr(arr, n - 1)
-    addi a1, a1, -1              # a1 = n - 1 (also prepares Arg 2 for child call!)
+    addi a1, a1, -1              # a1 = n - 1 (also prepares Arg 2!)
     slli t0, a1, 2               # Byte offset = (n - 1) * 4
-    add  t0, a0, t0              # Address &arr[n - 1]
+    add  t0, a0, t0              # &arr[n - 1]
     lw   s0, 0(t0)               # s0 = arr[n - 1] (survives across call!)
 
-    # Arg 1 (a0 = arr) and Arg 2 (a1 = n - 1) are both ready
-    call sum_arr                 # Returns with a0 = sum_arr(arr, n - 1)
-
+    call sum_arr                 # Returns a0 = sum_arr(arr, n - 1)
     add  a0, s0, a0              # a0 = arr[n - 1] + sum_arr(arr, n - 1)
 
 sum_epilogue:
-    lw   s0, 8(sp)
-    lw   ra, 12(sp)
-    addi sp, sp, 16
-    ret
-```
-
-</details>
-
-</Exercise>
-
-<Exercise
-  client:load
-  id="ex-13-3"
-  title="Exercise 13.3 — Complete Interactive Pell-Number Program"
-  level="Exam"
-  hint="Assemble all three Part IV layers: `main` allocates a 32-byte frame (`tag[16]` at `0(sp)`, `s1` at `20(sp)`, `s0` at `24(sp)`, `ra` at `28(sp)`), calls leaf `strlen` and dual-branching `pell(n)` (`2 * pell(n - 1) + pell(n - 2)`), prints via `ecall`, and exits via `a7 = 10`."
->
-
-Bring together [System Calls](/dynamic-courses/computer-architecture/04-riscv-subroutines/11-system-calls/), [Subroutine Stack Frames](/dynamic-courses/computer-architecture/04-riscv-subroutines/12-subroutine-stack-frames/), and dual-branching recursion to translate this complete Question 6 program into a standalone RARS file:
-
-```c
-int pell(int n) {
-    if (n <= 0) return 0;
-    if (n == 1) return 1;
-    return 2 * pell(n - 1) + pell(n - 2);
-}
-
-int main(void) {
-    char tag[16];
-    int len, n, ans;
-
-    printf("Sensor tag: ");
-    scanf("%s", tag);
-    len = strlen(tag);
-
-    do {
-        printf("Order n (0..10): ");
-        scanf("%d", &n);
-    } while (n < 0 || n > 10);
-
-    ans = pell(n);
-    printf("[%d] Pell = %d\n", len, ans);
-    return 0;
-}
-```
-
-<StepCheck
-  client:load
-  prompt="Evaluate `pell(4)` from the recurrence $P(0)=0$, $P(1)=1$, $P(n) = 2P(n-1) + P(n-2)$."
-  expected={12}
-  tolerance={0}
-  unit=""
-  explanation="$P(2) = 2(1) + 0 = 2$; $P(3) = 2(2) + 1 = 5$; $P(4) = 2(5) + 2 = 12$."
-/>
-
-<details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
-
-```asm
-.data
-str_tag:  .asciz "Sensor tag: "
-str_ord:  .asciz "Order n (0..10): "
-str_lbr:  .asciz "["
-str_mid:  .asciz "] Pell = "
-
-.text
-.globl main
-
-# ==============================================================================
-# MAIN: tag[16] (0..15) + pad (16..19) + s1 (20) + s0 (24) + ra (28) = 32 B
-# ==============================================================================
-main:
-    addi sp, sp, -32
-    sw   ra, 28(sp)
-    sw   s0, 24(sp)              # s0 = len
-    sw   s1, 20(sp)              # s1 = validated n, then ans
-
-    # 1. Read tag into stack buffer [sp + 0 .. sp + 15] and compute len
-    la   a0, str_tag
-    li   a7, 4
-    ecall
-
-    addi a0, sp, 0
-    li   a1, 16
-    li   a7, 8
-    ecall
-
-    addi a0, sp, 0
-    call strlen
-    mv   s0, a0                  # s0 = len
-
-    # 2. Validate 0 <= n <= 10
-ask_order:
-    la   a0, str_ord
-    li   a7, 4
-    ecall
-
-    li   a7, 5                   # ReadInt
-    ecall
-    mv   s1, a0                  # s1 = n
-
-    blt  s1, zero, ask_order     # Retry if n < 0
-    li   t0, 10
-    blt  t0, s1, ask_order       # Retry if n > 10
-
-    # 3. ans = pell(n)
-    mv   a0, s1
-    call pell
-    mv   s1, a0                  # s1 = ans
-
-    # 4. printf("[%d] Pell = %d\n", len, ans)
-    la   a0, str_lbr
-    li   a7, 4
-    ecall
-
-    mv   a0, s0                  # len
-    li   a7, 1
-    ecall
-
-    la   a0, str_mid
-    li   a7, 4
-    ecall
-
-    mv   a0, s1                  # ans
-    li   a7, 1
-    ecall
-
-    li   a0, 10                  # '\n'
-    li   a7, 11
-    ecall
-
-    # 5. Epilogue & Clean Exit
-    lw   s1, 20(sp)
-    lw   s0, 24(sp)
-    lw   ra, 28(sp)
-    addi sp, sp, 32
-
-    li   a7, 10
-    ecall
-
-# ==============================================================================
-# RECURSIVE HELPER: pell(a0 = n) -> a0 = 2 * pell(n - 1) + pell(n - 2)
-# Frame: 16 B (ra at 12(sp), s0 = n at 8(sp), s1 = 2*pell(n-1) at 4(sp))
-# ==============================================================================
-pell:
-    addi sp, sp, -16
-    sw   ra, 12(sp)
-    sw   s0, 8(sp)
-    sw   s1, 4(sp)
-
-    mv   s0, a0                  # s0 = n
-    ble  s0, zero, pell_zero
-    li   t0, 1
-    beq  s0, t0, pell_one
-
-    # First recursive call: 2 * pell(n - 1)
-    addi a0, s0, -1
-    call pell
-    slli s1, a0, 1               # s1 = 2 * pell(n - 1) (shielded in s1!)
-
-    # Second recursive call: pell(n - 2)
-    addi a0, s0, -2
-    call pell                    # a0 = pell(n - 2)
-
-    add  a0, s1, a0              # a0 = 2 * pell(n - 1) + pell(n - 2)
-    j    pell_epilogue
-
-pell_zero:
-    li   a0, 0
-    j    pell_epilogue
-
-pell_one:
-    li   a0, 1
-
-pell_epilogue:
-    lw   s1, 4(sp)
-    lw   s0, 8(sp)
-    lw   ra, 12(sp)
-    addi sp, sp, 16
-    ret
-
-# ==============================================================================
-# LEAF HELPER: strlen(a0 = char *str) -> a0 = length (excluding '\n' and '\0')
-# ==============================================================================
-strlen:
-    mv   t0, a0
-    li   t2, 10
-sl_loop:
-    lbu  t1, 0(t0)
-    beqz t1, sl_done
-    beq  t1, t2, sl_done
-    addi t0, t0, 1
-    j    sl_loop
-sl_done:
-    sub  a0, t0, a0
+    lw   s0, 0(sp)
+    lw   ra, 4(sp)
+    addi sp, sp, 8
     ret
 ```
 

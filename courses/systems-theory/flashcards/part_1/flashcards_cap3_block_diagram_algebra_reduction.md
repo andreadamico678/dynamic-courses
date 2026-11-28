@@ -1,41 +1,65 @@
 #flashcards/automatica/01_03_block_diagrams
 
-Qual è la funzione di trasferimento equivalente $W(s)$ di due blocchi $G_1(s)$ e $G_2(s)$ connessi in cascata (serie)?
+What is the equivalent transfer function of two blocks $G_1(s)$ and $G_2(s)$ connected in cascade (series)?
 ?
-$$W(s) = G_1(s) \cdot G_2(s)$$
+The product $W(s) = G_2(s) G_1(s)$ (or $G_1(s) G_2(s)$ for scalar SISO blocks).
 
-Qual è la funzione di trasferimento equivalente $W(s)$ di due blocchi $G_1(s)$ e $G_2(s)$ connessi in parallelo con somma algebrica?
+---
+
+What is the equivalent transfer function of two non-interacting blocks $G_1(s)$ and $G_2(s)$ summed or subtracted in parallel?
 ?
-$$W(s) = G_1(s) + G_2(s)$$
+$W(s) = G_1(s) \pm G_2(s)$.
 
-Qual è la formula di riduzione in forma chiusa per un anello in retroazione negativa con catena diretta $G(s)$ e catena di reazione $H(s)$?
+---
+
+What is the closed-loop transfer function $W(s) = Y(s)/U(s)$ for forward path $G(s)$ and feedback return path $H(s)$ under negative feedback?
 ?
 $$W(s) = \frac{G(s)}{1 + G(s)H(s)}$$
 
-Qual è la formula di riduzione per un anello in retroazione positiva con catena diretta $G(s)$ e catena di reazione $H(s)$?
-?
-$$W(s) = \frac{G(s)}{1 - G(s)H(s)}$$
+---
 
-Cosa si deve inserire sul ramo di ingresso quando si sposta un sommatore da monte a valle di un blocco $G(s)$?
+How does positive feedback at the summing junction alter the canonical closed-loop transfer function formula?
 ?
-Il blocco diretto $G(s)$ sul ramo che entra nel sommatore.
+The denominator sign flips from plus to minus: $W(s) = \frac{G(s)}{1 - G(s)H(s)}$.
 
-Cosa si deve inserire sul ramo di ingresso quando si sposta un sommatore da valle a monte di un blocco $G(s)$?
-?
-Il blocco reciproco $\frac{1}{G(s)}$ sul ramo che entra nel sommatore.
+---
 
-Cosa si deve inserire sul ramo derivato quando si sposta un punto di diramazione (prelievo) da monte a valle di un blocco $G(s)$?
+In the canonical feedback loop, how do the forward-path transfer function $G(s)$ and loop transfer function $L(s)$ differ?
 ?
-Il blocco reciproco $\frac{1}{G(s)}$ sul ramo derivato.
+$L(s) \triangleq G(s)H(s)$ is the full open-loop product entering the denominator $1 \pm L(s)$, whereas only $G(s)$ appears in the numerator.
 
-Cosa si deve inserire sul ramo derivato quando si sposta un punto di diramazione da valle a monte di un blocco $G(s)$?
-?
-Il blocco diretto $G(s)$ sul ramo derivato.
+---
 
-È lecito scambiare direttamente l'ordine di due nodi sommatori consecutivi adiacenti senza blocchi intermedi?
+Why is the numerator of a non-unity negative-feedback loop equal to $G(s)$ rather than $G(s)H(s)$?
 ?
-Sì, per la proprietà associativa e commutativa della somma algebrica.
+Because the forward signal $U(s) \to Y(s)$ passes only through $G(s)$, while $H(s)$ sits in the return path ($E = U - HY$, $Y = GE$).
 
-È lecito scambiare direttamente un nodo sommatore con un punto di diramazione senza modificare i blocchi?
+---
+
+To move a summing junction from *before* block $G(s)$ to *after* $G(s)$, what block must be inserted on the arriving side branch?
 ?
-No: un sommatore e un punto di diramazione non commutano algebricamente e richiedono l'introduzione di blocchi di compensazione.
+Multiply the arriving side branch by $G(s)$ so $G(U_1 \pm U_2) = GU_1 \pm GU_2$ holds.
+
+---
+
+To move a summing junction from *after* block $G(s)$ to *before* $G(s)$, what block must be inserted on the arriving side branch?
+?
+Multiply the arriving side branch by $\frac{1}{G(s)}$ so $G(U_1 \pm \frac{1}{G}U_2) = GU_1 \pm U_2$.
+
+---
+
+To move a takeoff (pickoff) point from *before* block $G(s)$ to *after* $G(s)$, what block must be added to the tapped branch?
+?
+Insert $\frac{1}{G(s)}$ on the tapped branch to undo $G(s)$ and recover $U(s) = \frac{1}{G}(GU)$.
+
+---
+
+To move a takeoff (pickoff) point from *after* block $G(s)$ to *before* $G(s)$, what block must be added to the tapped branch?
+?
+Insert $G(s)$ on the tapped branch so the tapped output stays equal to $G(s)U(s)$.
+
+---
+
+Can an adjacent summing junction and takeoff point be swapped directly without adding compensating blocks?
+?
+No; summing junctions commute with other summing junctions, and takeoff points commute with other takeoff points, but a summer and a takeoff point do not commute.

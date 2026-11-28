@@ -1,17 +1,41 @@
 #flashcards/automatica/04_05_parametric_stability
 
-Come si impiega la tabella di Routh per determinare l'intervallo di stabilità di un guadagno di retroazione parametrico $K$?
+For a unity negative-feedback loop with plant $G(s) = N(s)/D(s)$ and proportional gain $K$, what is the parameterized closed-loop characteristic polynomial $p(s, K)$?
 ?
-Si compila la tabella di Routh mantenendo $K$ come parametro algebrico e si impone che tutte le espressioni della prima colonna siano contemporaneamente e strettamente positive ($c_i(K) > 0$).
+$$p(s, K) = D(s) + K N(s) = 0$$
 
-A cosa corrisponde il valore di guadagno $K_{crit}$ per cui un elemento della prima colonna della tabella di Routh si annulla diventando zero?
-?
-Al valore critico al limite di stabilità (*marginal stability*), in corrispondenza del quale una coppia di poli a ciclo chiuso attraversa l'asse immaginario ($s = \pm j\omega_{osc}$).
+---
 
-Come si determina analiticamente la pulsazione di oscillazione $\omega_{osc}$ al limite di stabilità associata a un guadagno $K_{crit}$?
+Why must you verify $N(s)$ and $D(s)$ share no unstable common factors before relying on $p(s, K) = D(s) + K N(s) = 0$?
 ?
-Sostituendo $K_{crit}$ nel polinomio ausiliario $A(s) = a_2 s^2 + a_0 = 0$ ottenuto dalla riga precedente e risolvendo per $s = \pm j\sqrt{a_0 / a_2}$.
+An unstable pole-zero cancellation hides an RHP mode inside the loop even when the reduced roots look stable.
 
-Cosa accade alla stabilità del sistema a ciclo chiuso se il guadagno $K$ esce dall'intervallo ammissibile $[K_{min}, K_{max}]$ determinato da Routh?
+---
+
+How do you compute the stabilizing gain interval $(K_{\min}, K_{\max})$ from a symbolic Routh array?
 ?
-Uno o più elementi della prima colonna cambiano segno, generando variazioni di segno e portando uno o più poli nel semipiano destro instabile ($\operatorname{Re}(s) > 0$).
+Enforce Stodola's bounds $a_i(K) > 0$ and solve $c_{k,1}(K) > 0$ for every Column 1 entry simultaneously.
+
+---
+
+When a Column 1 entry is a rational expression $f(K)/g(K)$, why does stability reduce to checking only $f(K) > 0$?
+?
+Its denominator $g(K)$ is the pivot of the row above, which is already forced strictly positive by its own Column 1 inequality.
+
+---
+
+Which two boundary conditions correspond to closed-loop poles crossing the imaginary axis as $K$ varies?
+?
+A real pole crosses at $s = 0$ when $a_0(K) = 0$, or a complex conjugate pair crosses at $\pm j\omega_{\text{osc}}$ when row $s^1$ vanishes.
+
+---
+
+When row $s^1$ vanishes at $K = K_{\text{crit}}$ for any polynomial degree $n \ge 3$, which Routh row gives the auxiliary equation $A(s) = \alpha_1 s^2 + \alpha_2 = 0$?
+?
+Row $s^2$ (entries $[\alpha_1, \alpha_2]$) immediately above the vanishing $s^1$ row—never row $s^{n-2}$ when $n \ge 4$.
+
+---
+
+What is the sustained oscillation frequency $\omega_{\text{osc}}$ at $K = K_{\text{crit}}$ from row $s^2 = [\alpha_1, \alpha_2]$?
+?
+$$\omega_{\text{osc}} = \sqrt{\frac{\alpha_2(K_{\text{crit}})}{\alpha_1(K_{\text{crit}})}}$$

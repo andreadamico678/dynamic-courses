@@ -279,15 +279,6 @@ int classify_sample(int x, int lo, int hi) {
 }
 ```
 
-<StepCheck
-  client:load
-  prompt="When `x = 20`, `lo = 5`, and `hi = 20`, what integer value does `classify_sample` return in `a0`?"
-  expected={0}
-  tolerance={0.01}
-  unit=""
-  explanation="At boundary `x = 20`, the strict upper test `x < hi` (`20 < 20`) is false (`bge a0, a2, check_neg` is taken). Since `20 < 0` is also false, execution enters `else` and returns `0`."
-/>
-
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
@@ -346,20 +337,6 @@ int last_index(char *str, int len, char target) {
 1. Write the exact loop header exit branch for `i >= 0` (with `i` in `t0`).
 2. Write the complete `last_index:` leaf subroutine using `t0`–`t3`.
 
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="With `i` stored in `t0`, which instruction at `scan_loop:` correctly implements the inverted loop exit test for `for (int i = len - 1; i >= 0; i--)`?"
-  options={[
-    "`ble t0, zero, scan_done`",
-    "`blt t0, zero, scan_done`",
-    "`bge t0, zero, scan_done`",
-    "`bltu t0, zero, scan_done`"
-  ]}
-  correctIndex={1}
-  explanation="Index `i = 0` is a valid element (`str[0]`), so the loop must continue at `0` and exit only when signed `i` drops to `-1` (`i < 0` $\implies$ `blt t0, zero, scan_done`). Note `bltu` against `zero` can never be true!"
-/>
-
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
@@ -417,15 +394,6 @@ int collatz_bound(int n, int limit) {
     return steps;
 }
 ```
-
-<StepCheck
-  client:load
-  prompt="Trace `collatz_bound(5, 4)`: what integer value of `steps` is returned in `a0`?"
-  expected={3}
-  tolerance={0.01}
-  unit="steps"
-  explanation="Pass 1: `5` is odd so `n = 16`, `steps = 1` (`16 > 4` repeats). Pass 2: `16` is even so `n = 8`, `steps = 2` (`8 > 4` repeats). Pass 3: `8` is even so `n = 4`, `steps = 3` (`4 > 4` is false, exiting)."
-/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>

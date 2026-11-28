@@ -1,25 +1,53 @@
 #flashcards/automatica/08_01_luenberger_observer
 
-Qual è l'equazione differenziale dello stato stimato $\hat{\mathbf{x}}(t)$ nell'osservatore asintotico di Luenberger a tempo continuo?
+What differential equation defines a full-order Luenberger state observer with gain matrix $\mathbf{L} \in \mathbb{R}^{n \times p}$?
 ?
-$$\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\left(\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)\right)$$
+$$\dot{\hat{\mathbf{x}}}(t) = \mathbf{A}\hat{\mathbf{x}}(t) + \mathbf{B}\mathbf{u}(t) + \mathbf{L}\big(\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)\big)$$
 
-Cosa rappresenta il termine $\mathbf{y}(t) - \mathbf{C}\hat{\mathbf{x}}(t)$ nell'osservatore di Luenberger?
+---
+
+For an open-loop state simulator without innovation feedback ($\mathbf{L} = \mathbf{0}$), what equation governs the estimation error $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$?
 ?
-L'errore di predizione dell'uscita (*output estimation error* o innovazione), che corregge la simulazione a modello aperto.
+$\dot{\mathbf{e}}(t) = \mathbf{A}\mathbf{e}(t)$, so errors diverge on unstable plants, stall on integrators, and drift under disturbances.
 
-Qual è l'equazione differenziale che governa l'errore di stima dello stato $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$?
+---
+
+Under innovation correction $+\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$, what differential equation governs $\mathbf{e}(t) = \mathbf{x}(t) - \hat{\mathbf{x}}(t)$?
 ?
 $$\dot{\mathbf{e}}(t) = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}(t)$$
 
-Perché la dinamica dell'errore $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e}$ è un'equazione autonoma priva dei termini di forzamento $\mathbf{u}(t)$ e $\mathbf{y}(t)$?
-?
-Perché nella sottrazione $\dot{\mathbf{x}} - \dot{\hat{\mathbf{x}}}$, il termine $\mathbf{B}\mathbf{u}(t)$ si cancella e l'uscita reale $\mathbf{y} = \mathbf{C}\mathbf{x}$ si combina con $\mathbf{C}\hat{\mathbf{x}}$, lasciando l'errore indipendente dall'ingresso di controllo.
+---
 
-Sotto quale condizione algebrica l'errore di stima $\mathbf{e}(t)$ converge asintoticamente a zero ($\lim_{t \to \infty} \mathbf{e}(t) = \mathbf{0}$) da qualunque condizione iniziale $\mathbf{e}(0)$?
+Why does the control input term $\mathbf{B}\mathbf{u}(t)$ vanish completely from the Luenberger estimation error dynamics $\dot{\mathbf{e}}(t)$?
 ?
-Se e solo se la matrice dinamica dell'osservatore $(\mathbf{A} - \mathbf{L}\mathbf{C})$ è una matrice di Hurwitz (tutti gli autovalori hanno $\operatorname{Re}(\lambda) < 0$).
+Because $\mathbf{B}\mathbf{u}(t)$ enters both the plant $\dot{\mathbf{x}}$ and the observer $\dot{\hat{\mathbf{x}}}$ identically and cancels on subtraction.
 
-Qual è la regola euristica fondamentale per allocare i poli dell'osservatore rispetto ai poli del controllore a retroazione dello stato?
+---
+
+What is the necessary and sufficient condition for $\mathbf{L}$ to assign arbitrary observer error eigenvalues $\sigma(\mathbf{A} - \mathbf{L}\mathbf{C})$?
 ?
-I poli dell'osservatore devono essere da 3 a 5 volte più veloci (parte reale negativa più marcata) rispetto ai poli del controllore, in modo che l'errore di stima converga prima che il controllore agisca.
+The pair $(\mathbf{A}, \mathbf{C})$ must be completely observable ($\operatorname{rank}(\mathcal{O}) = n$).
+
+---
+
+When can an asymptotic observer ($\lim_{t \to \infty} \mathbf{e}(t) = \mathbf{0}$) still exist even if $(\mathbf{A}, \mathbf{C})$ is not completely observable?
+?
+If and only if $(\mathbf{A}, \mathbf{C})$ is detectable: every unobservable eigenvalue already has $\operatorname{Re}(\lambda_i) < 0$.
+
+---
+
+What common sign or order mistakes corrupt observer synthesis $\mathbf{A}_o = \mathbf{A} - \mathbf{L}\mathbf{C}$?
+?
+Subtracting $-\mathbf{L}(\mathbf{y} - \mathbf{C}\hat{\mathbf{x}})$ (giving $\mathbf{A} + \mathbf{L}\mathbf{C}$) or reversing the matrix product to $\mathbf{C}\mathbf{L}$ instead of $\mathbf{L}\mathbf{C}$.
+
+---
+
+Where should observer poles $\beta_i$ typically be placed relative to the dominant controller poles $\mu_{\text{dom}}$?
+?
+Roughly $2$ to $5$ times deeper in the LHP: $|\operatorname{Re}(\beta_i)| \approx (2 \text{ to } 5) \times |\operatorname{Re}(\mu_{\text{dom}})|$.
+
+---
+
+What trade-off prevents placing observer poles $20\times$ or $50\times$ faster than the controller?
+?
+In $\dot{\mathbf{e}} = (\mathbf{A} - \mathbf{L}\mathbf{C})\mathbf{e} + \mathbf{w}_d - \mathbf{L}\mathbf{v}_m$, overly large $\mathbf{L}$ amplifies high-frequency measurement noise $\mathbf{v}_m(t)$ into actuator chatter.

@@ -1,22 +1,47 @@
 #flashcards/automatica/07_02_ackermann_formula
 
-Qual è l'espressione analitica compatta della Formula di Ackermann per il calcolo del vettore $\mathbf{K}$ in un sistema SISO di ordine $n$?
+What is Ackermann's Formula for the single-input state-feedback gain $\mathbf{K} \in \mathbb{R}^{1 \times n}$?
 ?
-$$\mathbf{K} = \begin{bmatrix} 0 & 0 & \dots & 1 \end{bmatrix} \mathcal{P}^{-1} \alpha_{des}(\mathbf{A})$$
+$$\mathbf{K} = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix} \mathcal{R}^{-1} p^*(\mathbf{A}) = \mathbf{t}_n^T p^*(\mathbf{A})$$
 
-Cosa rappresenta la matrice $\alpha_{des}(\mathbf{A})$ nella Formula di Ackermann?
-?
-È il polinomio caratteristico desiderato a ciclo chiuso valutato nella matrice dinamica a ciclo aperto $\mathbf{A}$:
-$$\alpha_{des}(\mathbf{A}) = \mathbf{A}^n + \alpha_{n-1}\mathbf{A}^{n-1} + \dots + \alpha_1\mathbf{A} + \alpha_0\mathbf{I}$$
+---
 
-Quale vettore riga seleziona il termine $\begin{bmatrix} 0 & 0 & \dots & 1 \end{bmatrix} \mathcal{P}^{-1}$ nella Formula di Ackermann?
+What structural prerequisite must hold before Ackermann's formula can be applied?
 ?
-Seleziona esattamente l'ultima riga della matrice di controllabilità invertita $\mathcal{P}^{-1}$.
+The pair $(\mathbf{A}, \mathbf{B})$ must be single-input ($m = 1$) and completely controllable ($\det(\mathcal{R}) \neq 0$).
 
-Sotto quale specifica precondizione algebrica è valida e applicabile la Formula di Ackermann?
-?
-Il sistema deve essere strettamente a singolo ingresso (SISO, $m=1$) e completamente controllabile ($\det(\mathcal{P}) \neq 0$).
+---
 
-Cosa accade se si tenta di applicare la formula di Ackermann a un sistema che non è a pieno rango di controllabilità?
+Why does Ackermann's formula eliminate the need to compute open-loop polynomial coefficients $a_i$?
 ?
-L'inversa $\mathcal{P}^{-1}$ non esiste ($\det(\mathcal{P}) = 0$) e la formula fallisce per divisione per zero.
+By the Cayley-Hamilton theorem $p(\mathbf{A}) = \mathbf{0}$, so $p^*(\mathbf{A}) = p^*(\mathbf{A}) - p(\mathbf{A})$ automatically encodes all coefficient differences $(\alpha_i - a_i)$.
+
+---
+
+How do you solve for the generator row vector $\mathbf{t}_n^T = \mathbf{e}_n^T \mathcal{R}^{-1}$ without inverting the entire matrix $\mathcal{R}$?
+?
+Solve the single $n$-unknown linear system $\mathbf{t}_n^T \mathcal{R} = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}$.
+
+---
+
+How does left-to-right vector propagation avoid computing full $n \times n$ matrix powers $\mathbf{A}^2, \dots, \mathbf{A}^n$ when evaluating Ackermann's formula?
+?
+Set $\mathbf{w}_0^T = \mathbf{t}_n^T$, compute $\mathbf{w}_k^T = \mathbf{w}_{k-1}^T\mathbf{A}$ recursively, and sum $\mathbf{K} = \mathbf{w}_n^T + \alpha_{n-1}\mathbf{w}_{n-1}^T + \dots + \alpha_0\mathbf{w}_0^T$.
+
+---
+
+What common algebra error occurs when writing $p^*(\mathbf{A}) = \mathbf{A}^n + \dots + \alpha_1 \mathbf{A} + \alpha_0$ explicitly as a matrix?
+?
+Omitting the identity matrix $\mathbf{I}_n$ on the constant term $\alpha_0$; it must be $\alpha_0 \mathbf{I}_n$, shifting only the diagonal.
+
+---
+
+In Ackermann's formula, on which side of $p^*(\mathbf{A})$ must $\mathbf{e}_n^T \mathcal{R}^{-1}$ be multiplied, and why?
+?
+On the **left**, because $\mathbf{t}_n^T \in \mathbb{R}^{1 \times n}$ is a row vector yielding the $1 \times n$ gain row $\mathbf{K}$.
+
+---
+
+Which feedback control law convention matches $\mathbf{K} = \mathbf{e}_n^T \mathcal{R}^{-1} p^*(\mathbf{A})$ directly?
+?
+Negative state feedback $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$, yielding $\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$.

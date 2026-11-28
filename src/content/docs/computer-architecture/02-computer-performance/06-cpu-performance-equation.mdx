@@ -234,69 +234,7 @@ $$S = \frac{T_{\text{exec},\alpha}}{T_{\text{exec},\beta}} = \frac{0.85\text{ ms
 <Exercise
   client:load
   id="ex-6-2"
-  title="Exercise 6.2 — Compiler Optimization and MIPS Paradox"
-  level="Intermediate"
-  hint="Compute the absolute dynamic instruction count $\text{IC}_i$ and cycle count $\text{IC}_i \cdot \text{CPI}_i$ for each class before and after removing $40\%$ of ALU instructions, then divide new total cycles by $\text{IC}_{\text{new}}$."
->
-
-A $2.0\text{ GHz}$ processor executes an unoptimized program (`-O0`) of $\text{IC}_{\text{old}} = 2.0 \times 10^8$ dynamic instructions with the following mix:
-
-- **ALU:** $50\%$ ($\text{CPI}_{\text{ALU}} = 1$)
-- **Load:** $25\%$ ($\text{CPI}_{\text{Load}} = 3$)
-- **Store:** $10\%$ ($\text{CPI}_{\text{Store}} = 2$)
-- **Branch:** $15\%$ ($\text{CPI}_{\text{Branch}} = 2$)
-
-Recompiling with `-O2` eliminates $40\%$ of the ALU instructions while leaving the dynamic counts and $\text{CPI}_i$ values of Loads, Stores, and Branches completely unchanged.
-
-1. Compute the baseline $\text{CPI}_{\text{old}}$, execution time $T_{\text{exec,old}}$ (in $\text{ms}$), and $\text{MIPS}_{\text{old}}$.
-2. Compute the new instruction count $\text{IC}_{\text{new}}$, new average $\text{CPI}_{\text{new}}$, and new execution time $T_{\text{exec,new}}$ (in $\text{ms}$).
-3. Calculate the true speedup $S = T_{\text{exec,old}} / T_{\text{exec,new}}$ alongside $\text{MIPS}_{\text{new}}$, and explain why $\text{MIPS}$ moves in the opposite direction of true performance.
-
-<StepCheck
-  client:load
-  prompt="What is the new weighted average $\mathrm{CPI}_{\mathrm{new}}$ after eliminating $40\%$ of the ALU instructions?"
-  expected={1.9375}
-  tolerance={0.01}
-  unit="cycles/instr"
-  explanation="Total cycles drop from $3.50 \times 10^8$ to $3.10 \times 10^8$, while $\mathrm{IC}_{\mathrm{new}}$ drops from $2.00 \times 10^8$ to $1.60 \times 10^8$, giving $\mathrm{CPI}_{\mathrm{new}} = 3.10 / 1.60 = 1.9375$."
-/>
-
-<details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
-
-1. **Baseline (`-O0`) Metrics:**
-
-$$\text{CPI}_{\text{old}} = 0.50(1) + 0.25(3) + 0.10(2) + 0.15(2) = 0.50 + 0.75 + 0.20 + 0.30 = 1.75$$
-
-   Total baseline clock cycles are $C_{\text{old}} = 2.0 \times 10^8 \times 1.75 = 3.50 \times 10^8\text{ cycles}$. At $f_{\text{clk}} = 2.0 \times 10^9\text{ Hz}$ ($T_{\text{clk}} = 0.50\text{ ns}$):
-
-$$T_{\text{exec,old}} = \frac{3.50 \times 10^8}{2.0 \times 10^9\text{ Hz}} = 0.175\text{ s} = 175\text{ ms}, \qquad \text{MIPS}_{\text{old}} = \frac{2000\text{ MHz}}{1.75} \approx 1142.9\text{ MIPS}$$
-
-2. **Optimized (`-O2`) Metrics:**
-   Baseline ALU count was $0.50 \times 2.0 \times 10^8 = 1.00 \times 10^8$ instructions. Removing $40\%$ removes $0.40 \times 10^8$ single-cycle ALU instructions (saving $0.40 \times 10^8$ cycles) and leaves $0.60 \times 10^8$ ALU instructions:
-
-$$\text{IC}_{\text{new}} = (2.00 - 0.40) \times 10^8 = 1.60 \times 10^8\text{ instructions}$$
-
-$$C_{\text{new}} = (3.50 - 0.40) \times 10^8 = 3.10 \times 10^8\text{ cycles}$$
-
-$$\text{CPI}_{\text{new}} = \frac{C_{\text{new}}}{\text{IC}_{\text{new}}} = \frac{3.10 \times 10^8}{1.60 \times 10^8} = \frac{31}{16} = 1.9375\text{ cycles/instr}$$
-
-$$T_{\text{exec,new}} = \frac{3.10 \times 10^8}{2.0 \times 10^9\text{ Hz}} = 0.155\text{ s} = 155\text{ ms}$$
-
-3. **Speedup vs. $\text{MIPS}$:**
-
-$$S = \frac{175\text{ ms}}{155\text{ ms}} = \frac{35}{31} \approx 1.129\times \quad (12.9\% \text{ faster}), \qquad \text{MIPS}_{\text{new}} = \frac{2000\text{ MHz}}{1.9375} \approx 1032.3\text{ MIPS}$$
-
-   Although the `-O2` binary finishes $20\text{ ms}$ faster ($S = 1.129\times$), $\text{MIPS}$ drops by nearly $10\%$ because the compiler stripped away cheap $1$-cycle instructions, leaving a denser mix of useful $2$- and $3$-cycle memory and branch operations.
-
-</details>
-
-</Exercise>
-
-<Exercise
-  client:load
-  id="ex-6-3"
-  title="Exercise 6.3 — Target Clock Rate for Deeper Pipelining"
+  title="Exercise 6.2 — Target Clock Rate for Deeper Pipelining"
   level="Exam"
   hint="Compute $\text{CPI}_{\text{old}}$ and $\text{CPI}_{\text{new}}$ first, then set $S_{\text{target}} = \frac{\text{CPI}_{\text{old}} \cdot f_{\text{clk,new}}}{\text{CPI}_{\text{new}} \cdot f_{\text{clk,old}}} = 1.50$ and solve for $f_{\text{clk,new}}$."
 >

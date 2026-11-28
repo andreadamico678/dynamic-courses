@@ -282,15 +282,6 @@ int to_upper_count(char *str) {
 }
 ```
 
-<StepCheck
-  client:load
-  prompt="If `str` points to the 7-byte buffer `Rv32i!` followed by `'\0'`, what integer value does `to_upper_count` return in `a0`?"
-  expected={2}
-  tolerance={0.01}
-  unit=""
-  explanation="Only `'v'` (`118`) and `'i'` (`105`) fall inside `[97, 122]`, converting the buffer in place to `RV32I!` with `changed = 2`."
-/>
-
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
@@ -356,15 +347,6 @@ int positive_dot(int *vec, int *weights, int n) {
 1. Write the exact three-instruction sequence that loads `vec[i]` into `t4` given `a0 = vec` and `t1 = i`.
 2. Write the complete `positive_dot:` leaf subroutine using only `t0`–`t5`.
 
-<StepCheck
-  client:load
-  prompt="For `vec = {4, -3, 5}`, `weights = {2, 6, 3}`, and `n = 3`, what value does `positive_dot` return in `a0`?"
-  expected={23}
-  tolerance={0.01}
-  unit=""
-  explanation="The elementwise products are $4 \times 2 = +8$ (kept), $(-3) \times 6 = -18$ (skipped via `ble t4, zero, dot_next`), and $5 \times 3 = +15$ (kept), summing to $8 + 15 = 23$."
-/>
-
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
@@ -428,15 +410,6 @@ int histogram_sum(char *let, int *bins, int len) {
     return total;
 }
 ```
-
-<StepCheck
-  client:load
-  prompt="Suppose `bins = {0, 0, 0}` (`len = 3`) initially and `let` points to the null-terminated string `'B'`, `'9'`, `'B'`, `'\0'` (`'B' = 66`, `'9' = 57`). What integer value does `histogram_sum` return in `a0`?"
-  expected={6}
-  tolerance={0.01}
-  unit=""
-  explanation="First `'B'`: `idx = 66 - 65 = 1` (in `[0, 3)`), `bins[1]` becomes `1`, `total += 1 * (1 + 1) = 2`. Next `'9'`: `idx = 57 - 65 = -8` (skipped by `blt`). Second `'B'`: `idx = 1`, `bins[1]` becomes `2`, `total += 2 * 2 = 4`, giving `total = 2 + 4 = 6`."
-/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>

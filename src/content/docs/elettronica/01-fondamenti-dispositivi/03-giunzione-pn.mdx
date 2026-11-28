@@ -37,37 +37,29 @@ Si forma così una regione quasi completamente priva di portatori mobili, chiama
   <figcaption>Struttura fisica della giunzione p-n all'equilibrio termodinamico: distribuzione della densità di carica spaziale fissa $\rho(x)$ e andamento triangolare del campo elettrico interno controtendente $\mathcal{E}(x)$.</figcaption>
 </figure>
 
-#### Potenziale di Contatto $V_0$
+#### Potenziale di Contatto $V_0$ e Ampiezza della SCR
 
 Il campo elettrico interno integrato attraverso la SCR produce una barriera spontanea di potenziale tra il lato N (a potenziale più alto) e il lato P, detta **potenziale di contatto** (*built-in*) $V_0$:
 
 $$
-V_0 = V_T \ln\left( \frac{N_A N_D}{n_i^2} \right)
+V_0 = V_T \ln\left( \frac{N_A N_D}{n_i^2} \right) = \phi_{Fp} + \phi_{Fn}
 $$
 
-Questa relazione si dimostra imponendo l'annullamento della corrente totale di lacune all'equilibrio ($J_p = q p \mu_p \mathcal{E} - q D_p \frac{dp}{dx} = 0$). Sostituendo $\mathcal{E} = -\frac{d\phi}{dx}$ e applicando la relazione di Einstein ($D_p / \mu_p = V_T$), si ottiene $d\phi = -V_T \frac{dp}{p}$; integrando dal lato P neutro ($p \approx N_A$) al lato N neutro ($p = n_i^2 / N_D$) si ricava immediatamente $V_0 = \phi_N - \phi_P = V_T \ln\left(\frac{N_A N_D}{n_i^2}\right)$, che equivale alla somma dei due potenziali di Fermi $\phi_{Fp} + \phi_{Fn}$ visti nel [Capitolo 2](/dynamic-courses/elettronica/01-fondamenti-dispositivi/02-fisica-stato-solido). Ad esempio, per una giunzione asimmetrica $p^+$-$n$ a $300\,\text{K}$ ($V_T = 25.85\,\text{mV}$, $n_i = 1.5 \times 10^{10}\,\text{cm}^{-3}$) con $N_A = 10^{18}\,\text{cm}^{-3}$ e $N_D = 10^{16}\,\text{cm}^{-3}$, si ottiene $V_0 \approx 0.812\,\text{V}$.
+Questa relazione nasce dal pareggio tra deriva e diffusione all'equilibrio ($J_p = 0$ con la relazione di Einstein) ed equivale alla somma dei due potenziali di Fermi del [Capitolo 2](/dynamic-courses/elettronica/01-fondamenti-dispositivi/02-fisica-stato-solido). Per una giunzione al silicio tipica a $300\,\text{K}$, $V_0$ vale circa $0.65\text{--}0.85\,\text{V}$ (non misurabile con un multimetro esterno perché compensata dai contatti metallici).
 
-<Callout type="tip" title="Osservazione Pratica: Perché non possiamo misurare V_0 con un multimetro">
-
-Anche se tra le regioni neutre P ed N esiste una barriera interna $V_0 \approx 0.7\text{--}0.8\,\text{V}$, collegando un voltmetro ai terminali esterni del diodo si legge esattamente zero e non si può estrarre lavoro. I contatti metallici saldati alle due estremità del silicio formano infatti altre due giunzioni metallo-semiconduttore le cui tensioni di contatto si sommano lungo la maglia chiusa compensando esattamente $V_0$ all'equilibrio termico.
-
-</Callout>
-
-#### Ampiezza della Zona di Carica Spaziale
-
-Nell'approssimazione di svuotamento brusco, le densità di carica fissa ai due lati della giunzione formano due gradini rettangolari ([la figura](#fig-pn-junction-physics)). Per la conservazione della carica globale, la carica negativa scoperta in P deve eguagliare quella positiva scoperta in N:
+Per la neutralità della SCR, la carica negativa scoperta sul lato P deve eguagliare quella positiva scoperta sul lato N:
 
 $$
 N_A x_p = N_D x_n
 $$
 
-Di conseguenza, in una giunzione asimmetrica (come $p^+$-$n$, dove $N_A \gg N_D$) la SCR penetra molto più in profondità nel lato meno drogato ($x_n \gg x_p$). Integrando la carica fissa tramite l'equazione di Poisson ($\frac{d\mathcal{E}}{dx} = \frac{\rho}{\varepsilon_s}$) si ottiene un profilo triangolare del campo elettrico con picco all'interfaccia pari a $\lvert\mathcal{E}_{\max}\rvert = \frac{q N_A x_p}{\varepsilon_s}$. Uguagliando l'area del triangolo di $\lvert\mathcal{E}(x)\rvert$ al salto di potenziale totale $(V_0 - V_D)$ in presenza di una tensione esterna applicata $V_D$, si ricava l'ampiezza totale $W(V_D) = x_p + x_n$:
+Di conseguenza, in una giunzione asimmetrica ($p^+$-$n$, dove $N_A \gg N_D$) la SCR penetra quasi interamente nel lato meno drogato ($x_n \gg x_p$). Integrando l'equazione di Poisson si ottiene l'ampiezza totale della zona svuotata in funzione della tensione applicata $V_D$:
 
 $$
 W(V_D) = \sqrt{\frac{2\varepsilon_s}{q} \left( \frac{1}{N_A} + \frac{1}{N_D} \right) (V_0 - V_D)}
 $$
 
-In **polarizzazione diretta** ($V_D > 0$) la barriera si riduce a $V_0 - V_D$ e la SCR si **restringe**; in **polarizzazione inversa** ($V_D = -V_R < 0$) la barriera cresce a $V_0 + V_R$ e la SCR si **allarga** (ad esempio, nella giunzione $p^+$-$n$ vista sopra passa da $0.33\,\mu\text{m}$ all'equilibrio a $0.87\,\mu\text{m}$ a $V_D = -5\,\text{V}$).
+In **polarizzazione diretta** ($V_D > 0$) la barriera scende a $V_0 - V_D$ e la SCR si **restringe**; in **polarizzazione inversa** ($V_D = -V_R < 0$) la barriera cresce a $V_0 + V_R$ e la SCR si **allarga**.
 
 <StepCheck client:load lang="it" mode="choice" prompt="In una giunzione asimmetrica $p^+$-$n$ ($N_A \gg N_D$), dove si estende prevalentemente la Zona di Carica Spaziale e perché?" options={["Nel lato $p^+$, perché avendo più accettori $N_A$ attira più portatori mobili", "In parti uguali su entrambi i lati per simmetria geometrica del cristallo", "Nel lato $n$ meno drogato, perché serve un volume maggiore per esporre la stessa quantità di carica fissa presente nel lato $p^+$", "Solo lungo la linea di interfaccia senza penetrare in nessuna delle due regioni"]} correctIndex={2} explanation="Per la neutralità della SCR deve valere $N_A x_p = N_D x_n$: poiché $N_A \gg N_D$, l'estensione $x_n$ nel lato meno drogato deve essere proporzionalmente molto maggiore di $x_p$." />
 

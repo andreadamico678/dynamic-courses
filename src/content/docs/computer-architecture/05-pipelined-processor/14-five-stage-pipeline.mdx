@@ -219,22 +219,7 @@ sw   s2, 8(s0)       # I3: fetched in Cycle 3
 ```
 
 1. Identify which pipeline stage each of $I_1, I_2, I_3$ occupies **during Clock Cycle 4**.
-2. State the binary values of `(MemRead, MemWrite, RegWrite)` currently driving stage `MEM` and waiting inside `EX/MEM` during Clock Cycle 4.
-3. State the binary values of `(ALUSrc, MemWrite, RegWrite)` being read out of `ID/EX` during Clock Cycle 4, using the convention `ALUSrc = 0` for register operand `Data2` and `ALUSrc = 1` for immediate `Imm`.
-
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="During Clock Cycle 4, what are the values of `(MemRead, MemWrite, RegWrite)` held in the `EX/MEM` register (driving stage `MEM` for $I_1$)?"
-  options={[
-    "(0, 0, 1)",
-    "(1, 0, 1)",
-    "(0, 1, 0)",
-    "(1, 0, 0)"
-  ]}
-  correctIndex={1}
-  explanation="$I_1$ (`lw t0, 0(s0)`) entered IF in Cycle 1, ID in Cycle 2, EX in Cycle 3, and is in stage MEM during Cycle 4. A load reads Data Memory (`MemRead = 1`), does not write Data Memory (`MemWrite = 0`), and will write `t0` in WB (`RegWrite = 1`)."
-/>
+2. Explain which interstage pipeline registers (`IF/ID`, `ID/EX`, `EX/MEM`, `MEM/WB`) hold the control signals (`MemRead`, `MemWrite`, `RegWrite`) for $I_1, I_2, I_3$ during Clock Cycle 4 and why control bits must travel alongside data.
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
@@ -243,48 +228,10 @@ sw   s2, 8(s0)       # I3: fetched in Cycle 3
    - $I_1$ (`lw t0, 0(s0)`): `IF` (C1) $\to$ `ID` (C2) $\to$ `EX` (C3) $\to$ **`MEM` (C4)**.
    - $I_2$ (`add s2, s2, t3`): `IF` (C2) $\to$ `ID` (C3) $\to$ **`EX` (C4)**.
    - $I_3$ (`sw s2, 8(s0)`): `IF` (C3) $\to$ **`ID` (C4)**.
-2. **`EX/MEM` Signals** ($I_1$: `lw` in Cycle 4):
-   - `MemRead = 1` (reading word at `0 + Reg[s0]` in `MEM` right now), `MemWrite = 0`, and `RegWrite = 1` (traveling onward to `MEM/WB` for Cycle 5 write-back into `t0`), giving **`(1, 0, 1)`**.
-3. **`ID/EX` Signals** ($I_2$: `add` in Cycle 4):
-   - R-type `add` selects second register `t3` (`ALUSrc = 0`), performs no memory write (`MemWrite = 0`), and writes back to `s2` (`RegWrite = 1`), giving **`(0, 0, 1)`**. Meanwhile, $I_3$ (`sw`) is currently in `ID` generating `(ALUSrc = 1, MemWrite = 1, RegWrite = 0)` to be latched into `ID/EX` at the end of Cycle 4.
-
-</details>
-
-</Exercise>
-
-<Exercise
-  client:load
-  id="ex-14-3"
-  title="Exercise 14.3 — Splitting a Bottleneck Stage"
-  level="Exam"
-  hint="After splitting MEM into two 200 ps sub-stages, check ALL six stage delays to find the new maximum before adding the 20 ps register overhead!"
->
-
-An embedded 5-stage RISC-V processor has combinational delays $\text{IF} = 200\text{ ps}$, $\text{ID} = 160\text{ ps}$, $\text{EX} = 240\text{ ps}$, $\text{MEM} = 400\text{ ps}$, and $\text{WB} = 140\text{ ps}$, with combined interstage register overhead $t_{\text{setup}} + t_{\text{cq}} = 20\text{ ps}$. To raise clock frequency, architects split Data Memory into two balanced pipelined sub-stages `MEM1` $= 200\text{ ps}$ and `MEM2` $= 200\text{ ps}$, creating a **6-stage pipeline**.
-
-1. Compute the clock period $T_{\text{clk},5}$ and clock frequency $f_{\text{clk},5}$ (in $\text{GHz}$) of the original 5-stage pipeline.
-2. Compute the new clock period $T_{\text{clk},6}$ and clock frequency $f_{\text{clk},6}$ (in $\text{GHz}$) of the 6-stage pipeline.
-3. Suppose the extra memory stage increases effective $\text{CPI}$ from $1.15$ to $1.25$ due to wider Load-Use penalties. Using the [CPU Performance Equation](/dynamic-courses/computer-architecture/02-computer-performance/06-cpu-performance-equation/), compute the net execution-time speedup $S = T_{\text{exec},5} / T_{\text{exec},6}$ for a large program ($\text{IC}$ unchanged).
-
-<StepCheck
-  client:load
-  prompt="What is the net execution-time speedup $S = T_{\text{exec},5} / T_{\text{exec},6}$ (rounded to two decimal places)?"
-  expected={1.49}
-  tolerance={0.02}
-  unit="x"
-  explanation="$T_{\text{clk},5} = 400 + 20 = 420\;\mathrm{ps}$, while $T_{\text{clk},6} = \max(200, 160, 240, 200, 200, 140) + 20 = 260\;\mathrm{ps}$. Thus $S = (1.15 \times 420) / (1.25 \times 260) = 483 / 325 = 1.486 \approx 1.49\times$."
-/>
-
-<details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
-
-1. **Original 5-Stage Pipeline:**
-   $$T_{\text{clk},5} = \max(200, 160, 240, 400, 140) + 20 = 400 + 20 = 420\text{ ps} \implies f_{\text{clk},5} = \frac{1}{0.420\text{ ns}} = 2.381\text{ GHz}$$
-2. **Redesigned 6-Stage Pipeline** (`IF`, `ID`, `EX`, `MEM1`, `MEM2`, `WB`): Once `MEM` splits into two $200\text{ ps}$ stages, stage **`EX` ($240\text{ ps}$)** becomes the new critical-path bottleneck (an immediate illustration of [Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/) limiting clock scaling once the primary bottleneck is removed):
-   $$T_{\text{clk},6} = \max(200, 160, 240, 200, 200, 140) + 20 = 240 + 20 = 260\text{ ps} \implies f_{\text{clk},6} = \frac{1}{0.260\text{ ns}} = 3.846\text{ GHz}$$
-3. **Net Execution-Time Speedup:** With dynamic instruction count $\text{IC}$ constant across both designs:
-   $$S = \frac{T_{\text{exec},5}}{T_{\text{exec},6}} = \frac{\text{IC} \times \text{CPI}_5 \times T_{\text{clk},5}}{\text{IC} \times \text{CPI}_6 \times T_{\text{clk},6}} = \frac{1.15 \times 420\text{ ps}}{1.25 \times 260\text{ ps}} = \frac{483}{325} = 1.486\times$$
-   Despite the $8.7\%$ rise in $\text{CPI}$, shrinking $T_{\text{clk}}$ from $420\text{ ps}$ to $260\text{ ps}$ delivers a **$48.6\%$ overall speedup**.
+2. **Interstage Control Propagation:**
+   - **`EX/MEM`** holds $I_1$'s active `MEM` and `WB` controls (`MemRead = 1`, `MemWrite = 0`, `RegWrite = 1`).
+   - **`ID/EX`** holds $I_2$'s `EX`, `MEM`, and `WB` controls (`ALUSrc = 0`, `MemWrite = 0`, `RegWrite = 1`).
+   - $I_3$ is decoded in `ID` and latches its controls (`MemWrite = 1`, `RegWrite = 0`) into `ID/EX` at the end of Cycle 4. Propagating controls through the barrier registers ensures $I_3$'s `RegWrite = 0` cannot overwrite $I_1$'s `RegWrite = 1`.
 
 </details>
 

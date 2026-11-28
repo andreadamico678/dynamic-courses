@@ -19,7 +19,7 @@ In [Cache Block Placement](/dynamic-courses/computer-architecture/06-cache-memor
 
 ### Decoding a Cache Address
 
-Take our shared RV32IM data cache (`L1D`) with capacity $C = 16\text{ KiB} = 16{,}384\text{ bytes}$, block size $B = 64\text{ bytes}$, and **4-Way Set-Associative** organization ($N = 4$), operating under a Write-Back policy. Let us partition the 32-bit address bus, decode the concrete load address `0x004012AC`, and count the total SRAM bits on silicon:
+Take our shared RV32IM data cache (`L1D`) with capacity $C = 16\text{ KiB} = 16{,}384\text{ bytes}$, block size $B = 64\text{ bytes}$, and **4-Way Set-Associative** organization ($N = 4$). Let us partition the 32-bit CPU address bus into Offset, Index, and Tag widths:
 
 1. **Blocks and Sets:**
    $$NB = \frac{16{,}384}{64} = 256\text{ blocks}, \qquad NS = \frac{256}{4} = 64\text{ sets}$$
@@ -27,12 +27,6 @@ Take our shared RV32IM data cache (`L1D`) with capacity $C = 16\text{ KiB} = 16{
    - **Byte Offset** ($m$): $m = \log_2(64) = 6\text{ bits} \implies \text{Addr}[5:0]$.
    - **Set Index** ($n$): $n = \log_2(64) = 6\text{ bits} \implies \text{Addr}[11:6]$.
    - **Tag** ($t$): $t = 32 - (6 + 6) = 20\text{ bits} \implies \text{Addr}[31:12]$.
-3. **Decoding `0x004012AC`:** Expand the lowest three hex digits `0x2AC` into 12 binary bits (`0010 1010 1100`):
-   - $\text{Offset} = \text{Addr}[5:0] = 101100_2 = 44$ (`0x2C`, selecting bytes $44\text{--}47$ for a 32-bit `lw`).
-   - $\text{Index} = \text{Addr}[11:6] = 001010_2 = 10$ (**Set 10**, matching $j \bmod 64 = 65{,}610 \bmod 64 = 10$).
-   - $\text{Tag} = \text{Addr}[31:12] = \text{0x00401}$ (compared in parallel against all $4$ stored tags in Set $10$).
-4. **Total Physical SRAM:** Each of the $NB = 256$ cache blocks stores $64 \times 8 = 512\text{ data bits}$, $20\text{ Tag bits}$, $1\text{ Valid bit}$, and $1\text{ Dirty bit}$:
-   $$\text{Total SRAM Bits} = 256 \times (512 + 20 + 1 + 1) = 256 \times 534 = 136{,}704\text{ bits}$$
 
 [The address-decoding datapath](#fig-cache-address-decoding) shows how these three wire bundles drive the SRAM array: `Index` selects the row, `Tag` feeds the comparator gated with `Valid` to assert `Hit`, and `Block Offset` multiplexes the requested word out of the $B$-byte line.
 
@@ -56,7 +50,7 @@ Adjust `Ways N` from `1 (Direct-Mapped)` through `8-Way` in the simulator below 
 
 <Divider label="2 · Theory" />
 
-We first derive the exact widths and bit-slice boundaries of the Offset, Index, and Tag fields from cache geometry, then examine how those widths trade off under the 32-bit conservation law as associativity changes, and finally sum data and metadata bits to calculate total physical SRAM storage.
+We first derive the exact widths and bit-slice boundaries of the Offset, Index, and Tag fields from cache geometry, then examine how those widths trade off under the 32-bit conservation law as associativity changes.
 
 ### Field Width Derivation
 
@@ -94,30 +88,13 @@ Writing cache parameters as powers of two ($C = 2^c\text{ B}$, $B = 2^m\text{ B}
 - **Offset Invariance:** Because $m = \log_2(B)$ depends solely on physical block size, $m$ **never changes** across Direct-Mapped, $2$-Way, $4$-Way, or Fully Associative organizations.
 - **Associativity Bit Shift:** Doubling associativity ($N \to 2N$) halves the number of sets ($NS \to NS / 2$), shrinking `Index` by $1\text{ bit}$ ($n \to n - 1$) and expanding `Tag` by $1\text{ bit}$ ($t \to t + 1$). More generally, moving from Direct-Mapped ($N = 1$) to $N$-Way shifts $\log_2(N)$ bits directly from `Index` into `Tag`.
 
-### Total SRAM Storage Bits
-
-A cache advertised with capacity $C$ bytes (e.g., $32\text{ KiB}$) specifies **payload data bytes only**. On silicon, every single one of the $NB = C / B$ cache blocks must also store hardware control metadata:
-
-- **Data Field:** $8 \cdot B\text{ bits}$ ($B$ bytes $\times\ 8\text{ bits/byte}$).
-- **Tag Field:** $t\text{ bits}$ for comparator matching.
-- **Valid Bit ($V$):** $1\text{ bit}$ per block ($V = 0$ at power-on reset so random SRAM startup states cannot cause false hits; set to $V = 1$ when a block is loaded).
-- **Dirty Bit ($D$):** $1\text{ bit}$ per block **present only in Write-Back caches** to record whether the CPU has modified the line relative to DRAM. Write-Through caches update DRAM on every store and therefore allocate **$0$ Dirty bits**.
-
-Multiplying the per-block bit width by total block count $NB = C / B$ gives the exact physical SRAM bit budgets:
-
-$$\text{Bits}_{\text{SRAM, Write-Through}} = NB \times (8B + t + 1)$$
-
-$$\text{Bits}_{\text{SRAM, Write-Back}} = NB \times (8B + t + 2)$$
-
-Notice that increasing associativity $N$ at fixed $C$ and $B$ leaves $NB$ unchanged while increasing $t$ by $+\log_2(N)$, adding $NB \cdot \log_2(N)$ extra tag SRAM bits across the array.
-
 <StepCheck
   client:load
-  prompt="A Direct-Mapped Write-Through cache has $NB = 512$ blocks and block size $B = 32\text{ bytes}$ on a 32-bit CPU. How many metadata bits (excluding the $256$ data bits) are stored in each cache block?"
+  prompt="A 32-bit CPU connects to a 2-way set-associative cache with $NB = 512$ blocks and block size $B = 32\text{ bytes}$. How many bits wide is the Tag field $t$?"
   expected={19}
   tolerance={0}
   unit="bits"
-  explanation="Here $m = \log_2(32) = 5\text{ bits}$ and $n = \log_2(512) = 9\text{ bits}$, so $t = 32 - 9 - 5 = 18\text{ Tag bits}$. Because a Write-Through cache has 1 Valid bit and 0 Dirty bits per block, metadata per block is $18 + 1 = 19\text{ bits}$."
+  explanation="Here $m = \log_2(32) = 5\text{ bits}$ and $NS = 512 / 2 = 256 \implies n = \log_2(256) = 8\text{ bits}$, so $t = 32 - 8 - 5 = 19\text{ Tag bits}$."
 />
 
 <Callout type="bridge" title="DMA Scanline Alignment">
@@ -135,22 +112,19 @@ In embedded camera pipelines (e.g., $640 \times 480$ or $1024 \times 768$ graysc
 | **Offset Width** | $m$ | $\log_2(B)$ | $\text{Addr}[m-1 : 0]$ |
 | **Index Width** | $n$ | $\log_2(NS)$ | $\text{Addr}[n+m-1 : m]$ ($0$ if $NS=1$) |
 | **Tag Width** | $t$ | $32 - n - m$ | $\text{Addr}[31 : n+m]$ |
-| **SRAM (Write-Through)** | $\text{Bits}_{\text{WT}}$ | $NB \times (8B + t + 1)$ | $+1$ Valid bit ($0$ Dirty bits) |
-| **SRAM (Write-Back)** | $\text{Bits}_{\text{WB}}$ | $NB \times (8B + t + 2)$ | $+1$ Valid bit $+1$ Dirty bit |
 
 ### Address Partitioning Procedure
 
-1. **Convert Powers of Two:** Express capacity $C$ in bytes ($1\text{ KiB} = 2^{10} = 1{,}024\text{ B}$, $16\text{ KiB} = 2^{14}\text{ B}$, $32\text{ KiB} = 2^{15}\text{ B}$, $64\text{ KiB} = 2^{16}\text{ B}$) and compute $NB = C / B$ and $NS = NB / N$.
+1. **Convert Powers of Two:** If capacity $C$ is given in KiB, convert to bytes ($1\text{ KiB} = 1{,}024\text{ B}$, $32\text{ KiB} = 32{,}768\text{ B}$) and compute $NB = C / B$ and $NS = NB / N$.
 2. **Compute Field Widths:** Evaluate $m = \log_2(B)$, then $n = \log_2(NS)$, then $t = 32 - (n + m)$.
-3. **Verify Bit Boundaries:** Label $\text{Offset } [m-1:0]$, $\text{Index } [n+m-1:m]$, and $\text{Tag } [31:n+m]$, confirming $(31 - (n+m) + 1) + n + m = 32$.
-4. **Decode Hex Addresses:** Expand the hex address into 8 nibbles (32 bits), slice off the right-most $m$ bits for Offset, the next $n$ bits for Index, and regroup the upper $t$ bits from right to left into hex for Tag.
-5. **Sum SRAM Bits:** Multiply $NB$ by $(8B + t + 1)$ for Write-Through or $(8B + t + 2)$ for Write-Back.
+3. **Verify Bit Boundaries:** Label $\text{Offset } [m-1:0]$, $\text{Index } [n+m-1:m]$, and $\text{Tag } [31:n+m]$, confirming $t + n + m = 32$.
+4. **Sanity-Check Associativity Shifts:** Verify that each doubling of $N$ subtracts $1\text{ bit}$ from $n$ and adds $1\text{ bit}$ to $t$ while leaving $m$ unchanged.
 
 <Callout type="warning" title="Common Mistakes">
 
-1. **Bytes vs. Bits:** Offset $m = \log_2(B)$ uses block size in **bytes** (not bits!), whereas SRAM data storage per block uses $8 \times B$ **bits**.
+1. **Forgetting the Offset Bits $m$:** Never compute $\text{Tag} = 32 - n$! You must subtract **both** Index ($n$) and Byte Offset ($m = \log_2 B$): $t = 32 - n - m$.
 2. **Off-by-One Ranges:** With $m = 6$ and $n = 10$, Offset is `[5:0]` ($6$ bits), Index is `[15:6]` ($10$ bits), and Tag is `[31:16]` ($16$ bits)—never `[6:0]` or `[16:6]`.
-3. **Phantom Dirty Bits:** Only include $+1$ Dirty bit per block when the cache uses **Write-Back**.
+3. **Mixing $NB$ and $NS$:** Always divide $NB$ by $N$ *first* before taking $\log_2(NS)$ for the Index width.
 
 </Callout>
 
@@ -194,79 +168,61 @@ $$m = \log_2(64) = 6\text{ bits} \quad \big(\text{Addr}[5:0]\big)$$
 
 </Exercise>
 
-<Exercise client:load id="ex-20-2" title="Exercise 20.2 — Write-Back Cache Total SRAM Sizing" level="Exam" hint="Convert $32\text{ KiB} = 32{,}768\text{ B}$ to find $NB = 1{,}024$. For Write-Back, each block holds $8B + t + 1_{\text{valid}} + 1_{\text{dirty}}$ bits.">
+<Exercise client:load id="ex-20-2" title="Exercise 20.2 — Large-Cache Tag and Index Partitioning" level="Exam" hint="Start with $m = \log_2(32) = 5\text{ bits}$. Then compute $NS = 2{,}048 / N$ for $N = 1, 2, 4$ to find $n$ and $t = 32 - n - m$.">
 
-A 32-bit processor uses a cache with data capacity $C = 32\text{ KiB}$ ($32{,}768\text{ bytes}$) and $B = 32\text{-byte}$ blocks ($NB = 32{,}768 / 32 = 1{,}024\text{ blocks}$).
+*(Modeled on February 2026 C2 Question 4)* A 32-bit processor connects to a cache memory of $NB = 2{,}048\text{ blocks}$ of $B = 32\text{ bytes}$ each. How many bits are required for the **Index** ($n$) and for the **Tag** ($t$) in the following three organizations?
 
-1. Compute $(m, n, t)$ and bit slices if the cache is **Direct-Mapped**.
-2. Compute $(m, n, t)$ and bit slices if the cache is **4-Way Set-Associative**.
-3. Compute the **total physical SRAM bits** required to build the **4-Way Set-Associative** cache under a **Write-Back** policy ($1$ Valid bit and $1$ Dirty bit per block).
+1. **Direct-Mapped ($N = 1$)**
+2. **2-Way Set-Associative ($N = 2$)**
+3. **4-Way Set-Associative ($N = 4$)**
 
 <StepCheck
   client:load
-  prompt="What is the total number of physical SRAM bits required for the 4-way set-associative Write-Back cache?"
-  expected={283648}
+  prompt="How many bits wide is the Tag field $t$ in the 4-way set-associative case ($N = 4$)?"
+  expected={18}
   tolerance={0}
   unit="bits"
-  explanation="For 4-way: $m = 5$, $n = \log_2(256) = 8$, $t = 19$. Each block needs $32 \times 8 + 19 + 1 + 1 = 277\text{ bits}$. Across $NB = 1024$ blocks: $1024 \times 277 = 283{,}648\text{ bits}$."
+  explanation="Offset is $m = \log_2(32) = 5\text{ bits}$. For 4-way, $NS = 2{,}048 / 4 = 512 \implies n = \log_2(512) = 9\text{ bits}$, giving $t = 32 - (9 + 5) = 18\text{ bits}$."
 />
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-With $C = 32{,}768\text{ B}$ and $B = 32\text{ B}$, total blocks are $NB = 1{,}024$ and Byte Offset is $m = \log_2(32) = 5\text{ bits}$ (`Addr[4:0]`).
+For all three cases, $m = \log_2(32) = 5\text{ bits}$ (`Addr[4:0]`):
 
-1. **Direct-Mapped ($N = 1$):**
-   - $NS = 1{,}024 \implies n = \log_2(1{,}024) = 10\text{ bits}$ (`Addr[14:5]`).
-   - $t = 32 - (10 + 5) = 17\text{ bits}$ (`Addr[31:15]`).
-2. **4-Way Set-Associative ($N = 4$):**
-   - $NS = 1{,}024 / 4 = 256 \implies n = \log_2(256) = 8\text{ bits}$ (`Addr[12:5]`).
-   - $t = 32 - (8 + 5) = 19\text{ bits}$ (`Addr[31:13]`).
-3. **Total SRAM Bits (4-Way Write-Back):**
-   - Per-block bits: $(32 \times 8)\text{ data} + 19\text{ tag} + 1\text{ valid} + 1\text{ dirty} = 256 + 21 = 277\text{ bits/block}$.
-   - Total SRAM bits:
-     $$\text{Bits}_{\text{WB}} = 1{,}024 \times 277 = 283{,}648\text{ bits} \quad (35{,}456\text{ bytes} = 34.625\text{ KiB})$$
+1. **Direct-Mapped ($N = 1$):** $NS = 2{,}048 \implies n = \log_2(2{,}048) = \mathbf{11\text{ bits}}$, $t = 32 - (11 + 5) = \mathbf{16\text{ bits}}$.
+2. **2-Way Set-Associative ($N = 2$):** $NS = 2{,}048 / 2 = 1{,}024 \implies n = \log_2(1{,}024) = \mathbf{10\text{ bits}}$, $t = 32 - (10 + 5) = \mathbf{17\text{ bits}}$.
+3. **4-Way Set-Associative ($N = 4$):** $NS = 2{,}048 / 4 = 512 \implies n = \log_2(512) = \mathbf{9\text{ bits}}$, $t = 32 - (9 + 5) = \mathbf{18\text{ bits}}$.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-20-3" title="Exercise 20.3 — Hexadecimal Address Decoding" level="Exam" hint="Write `0x00A3801C` in binary as `0000 0000 1010 0011 1000 0000 0001 1100`, then slice off the lowest $m = 4$ bits and the next $n = 9$ bits.">
+<Exercise client:load id="ex-20-3" title="Exercise 20.3 — Capacity-Derived Address Bit Ranges" level="Exam" hint="Convert $32\text{ KiB} = 32{,}768\text{ B}$ and divide by $B = 64\text{ B}$ to obtain $NB = 512\text{ blocks}$, then compute $(m, n, t)$ for each associativity.">
 
-A 32-bit RISC-V core accesses a **Direct-Mapped** data cache of capacity $C = 8\text{ KiB}$ ($8{,}192\text{ bytes}$) with $B = 16\text{-byte}$ blocks.
+A 32-bit RISC-V processor uses a cache of total data capacity $C = 32\text{ KiB}$ ($32{,}768\text{ bytes}$) with $B = 64\text{-byte}$ blocks. Determine the Offset ($m$), Index ($n$), and Tag ($t$) bit widths and exact bit-slice ranges (`[msb:lsb]`) if the cache is:
 
-1. Compute the bit widths $(m, n, t)$ of Byte Offset, Block Index, and Tag.
-2. Given CPU load address `0x00A3801C`, extract the decimal **Byte Offset**, decimal **Block Index**, and hexadecimal **Tag**.
-3. Immediately afterward, the CPU executes `lw` at `0x00A38018`. Does this second load hit in the cache block just fetched?
+1. **Direct-Mapped ($N = 1$)**
+2. **4-Way Set-Associative ($N = 4$)**
+3. **8-Way Set-Associative ($N = 8$)**
 
 <StepCheck
   client:load
-  prompt="What is the decimal Block Index decoded from address `0x00A3801C`?"
-  expected={1}
+  prompt="How many bits wide is the Tag field $t$ in the 8-way set-associative configuration?"
+  expected={20}
   tolerance={0}
-  unit=""
-  explanation="With $m = 4$ and $n = 9$, Index occupies `Addr[12:4]`. The lower 16 bits `0x801C` are `1000 0000 0001 1100`, so bits `[12:4]` are `000000001` = 1."
+  unit="bits"
+  explanation="$NB = 32{,}768 / 64 = 512$, $m = \log_2(64) = 6\text{ bits}$. For 8-way, $NS = 512 / 8 = 64 \implies n = 6\text{ bits}$, so $t = 32 - 6 - 6 = 20\text{ bits}$."
 />
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Field Widths:**
-   - $NB = 8{,}192 / 16 = 512\text{ blocks}$; Direct-Mapped ($N = 1$) gives $NS = 512$.
-   - $m = \log_2(16) = 4\text{ bits}$ (`Addr[3:0]`).
-   - $n = \log_2(512) = 9\text{ bits}$ (`Addr[12:4]`).
-   - $t = 32 - (9 + 4) = 19\text{ bits}$ (`Addr[31:13]`).
+With $NB = 32{,}768 / 64 = 512\text{ blocks}$ and $m = \log_2(64) = 6\text{ bits}$ (`Addr[5:0]`):
 
-2. **Binary Slice of `0x00A3801C`:**
-   Expanding all 8 hex digits into 32 bits:
-   $$\texttt{0000 0000 1010 0011 1000 0000 0001 1100}_2$$
-   - **Byte Offset** (`Addr[3:0]`, $4\text{ bits}$): `1100_2` $= \mathbf{12}$ (`0xC`).
-   - **Block Index** (`Addr[12:4]`, $9\text{ bits}$): `0 0000 0001_2` $= \mathbf{1}$ (**Block 1**).
-   - **Tag Field** (`Addr[31:13]`, $19\text{ bits}$): Take the upper 19 bits (`0000 0000 1010 0011 100_2`, where bits `15:13` are the upper three bits `100` of nibble `0x8`) and regroup into 4-bit hex nibbles from bit $13$ upward: `000 0000 0101 0001 1100_2` $= \mathbf{\texttt{0x0051C}}$.
-     - Quick check: $(\texttt{0x51C} \ll 13) + (1 \ll 4) + 12 = (1{,}308 \times 8{,}192) + 16 + 12 = 10{,}715{,}164 = \texttt{0x00A3801C}$.
-
-3. **Spatial Locality Check on `0x00A38018`:**
-   Only the lowest nibble changes from `C` ($12$) to `8` ($8$). Both `Tag` (`0x0051C`) and `Index` ($1$) are identical, so `0x00A38018` resides in the exact same $16\text{-byte}$ block (`0x00A38010`–`0x00A3801F`) and **hits immediately in Block 1**.
+1. **Direct-Mapped ($N = 1$):** $NS = 512 \implies n = 9\text{ bits}$ (`Addr[14:6]`), $t = 32 - 9 - 6 = \mathbf{17\text{ bits}}$ (`Addr[31:15]`).
+2. **4-Way Set-Associative ($N = 4$):** $NS = 512 / 4 = 128 \implies n = 7\text{ bits}$ (`Addr[12:6]`), $t = 32 - 7 - 6 = \mathbf{19\text{ bits}}$ (`Addr[31:13]`).
+3. **8-Way Set-Associative ($N = 8$):** $NS = 512 / 8 = 64 \implies n = 6\text{ bits}$ (`Addr[11:6]`), $t = 32 - 6 - 6 = \mathbf{20\text{ bits}}$ (`Addr[31:12]`).
 
 </details>
 

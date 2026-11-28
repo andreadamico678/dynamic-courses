@@ -1,23 +1,53 @@
 #flashcards/automatica/04_06_bibo_stability
 
-Qual è la definizione formale di stabilità BIBO (*Bounded-Input Bounded-Output*) per un sistema LTI continuo?
+What initial-state assumption defines Bounded-Input Bounded-Output (BIBO) stability?
 ?
-A fronte di qualunque segnale di ingresso limitato in ampiezza ($\exists M_u < \infty : |u(t)| \le M_u, \forall t \ge 0$), la risposta di uscita forzata è anch'essa limitata in ampiezza ($\exists M_y < \infty : |y(t)| \le M_y, \forall t \ge 0$).
+Zero initial state ($\mathbf{x}(0) = \mathbf{0}$), isolating purely the forced input-output map.
 
-Qual è la condizione necessaria e sufficiente sulla risposta all'impulso $w(t)$ per la BIBO stabilità?
-?
-La risposta all'impulso deve essere assolutamente integrabile su $[0, \infty)$:
-$$\|w\|_1 = \int_0^\infty |w(t)|\,dt < \infty$$
+---
 
-Qual è la condizione necessaria e sufficiente sui poli della funzione di trasferimento $W(s)$ per la BIBO stabilità?
+What is the formal time-domain definition of BIBO stability?
 ?
-Tutti i poli di $W(s)$ devono avere parte reale strettamente negativa:
-$$\forall i, \quad \operatorname{Re}(p_i) < 0$$
+Every bounded input ($\sup_{t \ge 0} |u(t)| \le M_u < \infty$) produces a bounded output ($\sup_{t \ge 0} |y(t)| \le M_y < \infty$).
 
-Un sistema con un polo sull'asse immaginario (es. integratore ideale $W(s) = 1/s$) è BIBO-stabile?
-?
-No: applicando un ingresso limitato sinusoidale risonante o un gradino unitario $u(t) = 1(t)$, l'uscita diverge illimitatamente nel tempo ($y(t) = t$), violando la condizione BIBO.
+---
 
-Qual è la relazione fondamentale tra stabilità asintotica interna (secondo Lyapunov) e stabilità BIBO esterna?
+What is the exact necessary and sufficient impulse-response condition for BIBO stability of an LTI system?
 ?
-L'asintotica stabilità interna implica sempre la stabilità BIBO; il viceversa vale solo se la realizzazione di stato è in forma minima (priva di cancellazioni polo-zero instabili).
+Absolute integrability of the impulse response ($L_1$ norm): $\|w\|_1 = \int_0^\infty |w(t)|\,dt < \infty$.
+
+---
+
+What adversarial bounded input proves necessity of $\|w\|_1 < \infty$ over a horizon $T$?
+?
+Setting $u_T(t) = \operatorname{sgn}(w(T - t))$ ($|u_T| \le 1$) drives $y(T) = \int_0^T |w(\tau)|\,d\tau \to \infty$ if $\|w\|_1 = \infty$.
+
+---
+
+What is the necessary and sufficient $s$-domain pole condition for BIBO stability of a rational transfer function $W(s)$?
+?
+After cancelling any common numerator-denominator factors, every pole $p_k$ of reduced $W(s)$ satisfies $\operatorname{Re}(p_k) < 0$.
+
+---
+
+Are an integrator $W(s) = 1/s$ or an undamped oscillator $W(s) = 1/(s^2 + \omega_0^2)$ BIBO stable?
+?
+No; they are internally simply stable, but their impulse responses are not absolutely integrable and bounded resonant inputs drive unbounded outputs.
+
+---
+
+Does internal asymptotic stability of $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ always imply BIBO stability?
+?
+Yes, because $\operatorname{poles}(W(s)) \subseteq \sigma(\mathbf{A})$, so all $\operatorname{Re}(\lambda_i) < 0$ forces all $\operatorname{Re}(p_k) < 0$.
+
+---
+
+Why does BIBO stability of $W(s)$ fail to guarantee internal asymptotic stability in general?
+?
+An unstable eigenvalue ($\operatorname{Re}(\lambda_i) \ge 0$) can cancel from $W(s)$ if that mode is uncontrollable or unobservable, leaving $W(s)$ stable while states diverge.
+
+---
+
+Under what exact structural condition are BIBO stability and internal asymptotic stability equivalent?
+?
+If and only if $(\mathbf{A}, \mathbf{B}, \mathbf{C})$ is minimal (completely controllable and completely observable), preventing pole-zero cancellations.

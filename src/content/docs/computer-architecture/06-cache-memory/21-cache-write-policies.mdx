@@ -136,100 +136,68 @@ On ARM Cortex-M7 and embedded RISC-V microcontrollers with **Write-Back** data c
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-21-1" title="Exercise 21.1 — Dirty Write-Miss Sequence and Loop Traffic" level="Exam" hint="Remember that replacing a `Dirty = 1` line requires writing back the victim block before fetching the target block.">
+<Exercise client:load id="ex-21-1" title="Exercise 21.1 — Written Theory: Write-Through Policy" level="Exam" hint="Explain what happens on a write hit, state its main advantage over Write-Back (coherence / simpler control), note its bus traffic / write stall drawback (and Write Buffer fix), and identify No-Write-Allocate.">
 
-A processor uses a $4$-way set-associative **Write-Back + Write-Allocate** data cache.
-
-1. List the exact step-by-step sequence of hardware operations when a `sw` instruction misses in `L1D` and the LRU replacement victim in the target set currently has `Valid = 1` and `Dirty = 1`.
-2. Next, suppose an array element `X[0]` is already resident and clean (`Dirty = 0`) in cache before a $500$-iteration loop executes `sw` to `X[0]` on every iteration, followed later by eviction of `X[0]`. How many off-chip DRAM write transactions are generated under **Write-Through** versus **Write-Back**?
-
-<StepCheck
-  client:load
-  prompt="In part 2 (where `X[0]` starts already resident in cache, is written 500 times, and is later evicted), how many DRAM write transactions are saved by Write-Back compared to Write-Through?"
-  expected={499}
-  tolerance={0}
-  unit="writes"
-  explanation="Write-Through sends all 500 stores to DRAM (500 writes). Write-Back absorbs all 500 hits in SRAM (setting Dirty = 1) and performs just 1 DRAM write-back upon eventual eviction, saving $500 - 1 = 499$ DRAM writes."
-/>
+*(Question 5 Written Essay — February 16, 2026 C1 Exam)* **Discutere della politica write through per la scrittura della memoria cache. Qual è il principale vantaggio del write through rispetto al write back? Quale politica di Write miss viene solitamente abbinata al write through?**
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Reveal Grading Checklist & Model Written Answer</summary>
 
-1. **Dirty Write Miss** (Write-Back + Write-Allocate):
-   - **Step 1** (Tag & Victim): Index the target set, compare all $4$ tags in parallel (miss), and consult LRU to pick the victim way (`Valid = 1, Dirty = 1`).
-   - **Step 2** (Victim Write-Back): Reconstruct the victim's block address from its stored `(Tag, Index)` and write the entire modified victim block back to main DRAM.
-   - **Step 3** (Target Block Fetch): Issue a DRAM block read to fetch the $B$-byte block containing the `sw` target address into the freed cache way.
-   - **Step 4** (SRAM Update): Write the CPU's 32-bit store word at the target Byte Offset inside the block, store the new `Tag`, set `Valid = 1`, and set **`Dirty = 1`**.
+**Grading Checklist (Full Marks):**
+- **Write-Through mechanism:** Every store writes simultaneously to **both** the cache block and lower-level memory (main DRAM).
+- **Main advantage over Write-Back:** Main memory is **always coherent / up to date** (simplifying DMA/multiprocessor consistency and eliminating dirty-line write-backs on eviction).
+- **Drawback & fix:** High memory-bus traffic and write latency (mitigated by a **Write Buffer**).
+- **Paired Write-Miss policy:** **No-Write-Allocate (Write-Around)** — on a write miss, the word is written directly to main memory without fetching the missing block into cache.
 
-2. **500 Writes to Resident `X[0]`:**
-   - **Write-Through:** Generates **$500$ DRAM writes** (one per `sw`), plus $0$ writes on clean eviction $= 500\text{ writes}$.
-   - **Write-Back:** Iteration $1$ flips `Dirty` from $0 \to 1$; iterations $2\text{--}500$ update SRAM silently ($0$ bus writes); final eviction writes the dirty block once $= \mathbf{1\text{ DRAM write}}$ (saving $499$ bus writes).
+**Model Written Answer:**
+> Under the **Write-Through** policy, every store instruction that hits in the cache updates **both** the cache line and main memory simultaneously. Because every write propagates immediately, cache evictions never require writing modified blocks back to DRAM and no `Dirty` bit is needed.
+>
+> - **Main advantage over Write-Back:** Main memory is **always coherent (up to date)** with the latest written values, which simplifies I/O (DMA) and shared-memory consistency and avoids slow dirty-block write-backs during cache replacements. Its main drawback—high bus traffic and DRAM write latency—is mitigated in hardware using a FIFO **Write Buffer**.
+> - **Paired Write-Miss policy:** Write-Through is normally paired with **No-Write-Allocate (Write-Around)**: on a write miss, the data is sent directly to lower-level memory without loading the missing block into the cache (since subsequent writes would still have to go to memory anyway).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-21-2" title="Exercise 21.2 — Write Buffer Saturation Stalls" level="Exam" hint="Count how many back-to-back stores fit into the empty 4-entry FIFO before the first entry finishes its 100-cycle DRAM transfer.">
+<Exercise client:load id="ex-21-2" title="Exercise 21.2 — Written Theory: Write-Back Policy" level="Exam" hint="Explain the Dirty bit and delayed write-back on eviction, state its main advantage over Write-Through (drastically lower memory bus traffic and write speed), and identify Write-Allocate.">
 
-A $2\text{ GHz}$ processor ($0.5\text{ ns}$ per clock cycle) uses a **Write-Through + No-Write-Allocate** cache equipped with an initially empty **4-entry FIFO Write Buffer**. Draining a single entry from the Write Buffer across the memory bus to DRAM requires $50\text{ ns}$.
-
-1. Express the DRAM write service time in CPU clock cycles.
-2. Suppose an unrolled block-clear routine executes $6$ consecutive `sw` instructions on clock cycles $0, 1, 2, 3, 4, 5$. Which store instruction ($1\text{st}$ through $6\text{th}$) is the **first** to stall the CPU pipeline, and why?
-
-<StepCheck
-  client:load
-  prompt="Which store instruction in the back-to-back burst (enter 1, 2, 3, 4, 5, or 6) is the FIRST one forced to stall on a full Write Buffer?"
-  expected={5}
-  tolerance={0}
-  unit=""
-  explanation="A $50\text{ ns}$ DRAM write takes $50 / 0.5 = 100$ CPU cycles. Stores 1, 2, 3, and 4 on cycles 0–3 fill all 4 FIFO entries while Entry 1 is still only 4 cycles into its 100-cycle DRAM transfer. Therefore, the 5th store on cycle 4 encounters a completely full FIFO and stalls."
-/>
+*(Question 5 Written Essay — February 16, 2026 C2 & September 18, 2026 Exams)* **Discutere della politica "write back" per la scrittura della memoria cache. Qual è il principale vantaggio del "write back" rispetto al "Write through"? Quale politica di Write miss viene solitamente abbinata al "write back"?**
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Reveal Grading Checklist & Model Written Answer</summary>
 
-1. **DRAM Drain Latency:**
-   $$\text{Cycles}_{\text{DRAM}} = \frac{50\text{ ns}}{0.5\text{ ns/cycle}} = 100\text{ CPU cycles per write}$$
+**Grading Checklist (Full Marks):**
+- **Write-Back mechanism:** Stores update **only** the cache SRAM line and set its **Dirty bit (`D = 1`)**; main memory is updated only when a `Dirty = 1` block is evicted.
+- **Main advantage over Write-Through:** **Drastically reduces memory-bus traffic** and improves write throughput because repeated writes to the same word or block are coalesced in fast cache SRAM without hitting slow DRAM.
+- **Trade-off:** Main memory holds stale data while `D = 1`, and evicting a dirty victim requires writing it back before fetching the new block.
+- **Paired Write-Miss policy:** **Write-Allocate (Fetch-on-Write)** — on a write miss, the block is fetched into the cache first and then updated in SRAM (`D = 1`), so subsequent writes hit in cache.
 
-2. **Cycle-by-Cycle FIFO Occupancy:**
-   - **Cycle 0** (`sw #1`): Enters FIFO slot $1$ ($1/4$ full); controller immediately begins the $100$-cycle DRAM transfer for `sw #1` (completes at cycle $100$).
-   - **Cycles 1–3** (`sw #2`–`#4`): Enter FIFO slots $2, 3, 4$ with **$0$ stall cycles**. At the end of cycle $3$, all $4$ entries are occupied ($4/4$ full) and `sw #1` still has $96\text{ cycles}$ of DRAM transfer remaining.
-   - **Cycle 4 (`sw #5`):** Finds the Write Buffer **completely saturated ($4/4$ full)** and stalls the CPU pipeline for $96\text{ cycles}$ until `sw #1` finishes draining at cycle $100$ (`sw #6` then stalls another $99\text{ cycles}$ waiting for `sw #2`).
+**Model Written Answer:**
+> Under the **Write-Back** policy, a write hit modifies **only** the cache block in SRAM and sets a per-block **Dirty bit** (`D = 1`), without immediately updating main memory. Main memory is updated only later, if and when that dirty block is chosen for replacement (`D = 0` clean blocks are overwritten at zero bus cost; `D = 1` blocks are written back before fetching the replacement).
+>
+> - **Main advantage over Write-Through:** It **greatly reduces off-chip memory bus traffic** and write stalls because repeated writes to the same variable or words within the same block are absorbed inside the fast cache, generating at most one block write-back upon eviction.
+> - **Paired Write-Miss policy:** Write-Back is normally paired with **Write-Allocate (Fetch-on-Write)**: on a write miss, the missing block is first loaded from DRAM into the cache (after evicting/writing back any dirty victim), then updated in cache with `D = 1` so subsequent writes to that block become fast cache hits.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-21-3" title="Exercise 21.3 — Block Initialization Bus Bandwidth" level="Exam" hint="256 words of 4 bytes equal $1{,}024\text{ bytes}$, which spans $1{,}024 / 64 = 16$ cache blocks. Count fetches + eventual dirty write-backs.">
+<Exercise client:load id="ex-21-3" title="Exercise 21.3 — Written Theory: Write-Through with Write Buffer" level="Exam" hint="Answer all 3 sub-questions explicitly: (1) Problem solved (CPU stalling for slow DRAM write latency on every store), (2) How it operates (small FIFO queue), (3) When write stalls still occur (FIFO saturation under store bursts).">
 
-A firmware routine initializes an uncached (cold) $256$-element `int32_t` array (`1,024 bytes` total, $4\text{ bytes}$ per `sw`) sequentially from `arr[0]` through `arr[255]`. The data cache has block size $B = 64\text{ bytes}$ ($16$ words per block), all candidate cache lines are initially clean (`Dirty = 0`), and long after the loop finishes, all $16$ array blocks are eventually evicted.
-
-1. Compute the total number of off-chip DRAM bus transactions generated by **Write-Through + No-Write-Allocate**.
-2. Compute the total number of off-chip DRAM bus transactions (block fetches plus eventual block write-backs) generated by **Write-Back + Write-Allocate**.
-
-<StepCheck
-  client:load
-  prompt="How many total DRAM bus transactions (block reads + eventual block write-backs) are generated by the Write-Back + Write-Allocate cache?"
-  expected={32}
-  tolerance={0}
-  unit="transactions"
-  explanation="The $1{,}024\text{-byte}$ array spans $1{,}024 / 64 = 16$ blocks. For each block, writing `arr[16k]` causes 1 write miss (1 DRAM block fetch, setting Dirty = 1), the next 15 words `arr[16k+1..16k+15]` hit in SRAM (0 DRAM traffic), and eventual eviction causes 1 DRAM block write-back: $16 \times (1 + 1) = 32$ total transactions."
-/>
+*(Question 5 Written Essay — July 16, 2026 Exam)* **Discutere della politica Write through con write buffer per la scrittura della memoria cache. Quale problema risolviamo con il write buffer? Come funziona il write Buffer? Quando si hanno stalli in scrittura in presenza di un write buffer?**
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Reveal Grading Checklist & Model Written Answer</summary>
 
-Total array bytes $= 256 \times 4\text{ B} = 1{,}024\text{ B}$, spanning $1{,}024 / 64 = 16$ contiguous $64\text{-byte}$ blocks ($16\text{ words}$ per block).
+**Grading Checklist (Full Marks):**
+- **Problem solved:** Eliminates the multi-cycle **write stall penalty** (`50–100` cycles) that pure Write-Through would suffer if the CPU had to wait for slow DRAM on every store.
+- **How it works:** A small hardware **FIFO queue** sits between the cache and main memory; the CPU writes `(Address, Data)` into the cache and pushes the store into the buffer in 1 cycle, then continues executing while the memory controller drains the FIFO to DRAM in the background.
+- **When write stalls still occur:** Whenever a sustained **burst of writes** arrives faster than DRAM can drain the buffer, **filling all FIFO entries (buffer saturation)**—the CPU must stall until an entry drains and frees a slot (plus a read miss targeting an address still in the buffer must wait or snoop).
 
-1. **Write-Through + No-Write-Allocate:**
-   Every `sw` misses in cache, bypasses SRAM allocation, and issues an individual word write to DRAM:
-   $$\text{DRAM Transactions}_{\text{WT}} = 256\text{ word writes}$$
-
-2. **Write-Back + Write-Allocate:**
-   - On the **first word** of each $64\text{-byte}$ block (`arr[0]`, `arr[16]`, ..., `arr[240]`): `sw` misses, triggers **$1$ DRAM block fetch** (since victim slots start clean, `Dirty = 0`), writes the word in SRAM, and sets `Dirty = 1` $\implies 16\text{ block reads}$.
-   - On the **remaining $15$ words** of each block: spatial locality guarantees **$15$ consecutive write hits** in SRAM at zero bus cost ($16 \times 15 = 240$ silent SRAM hits).
-   - Upon **eventual eviction** of all $16$ dirty blocks: each `Dirty = 1` block requires **$1$ DRAM block write-back** $\implies 16\text{ block writes}$.
-   - **Total DRAM Transactions:** $16\text{ fetches} + 16\text{ write-backs} = \mathbf{32\text{ transactions}}$ (an $8\times$ reduction in bus transactions!).
+**Model Written Answer:**
+> - **Problem solved:** In a pure **Write-Through** cache, every store must update slow main memory. Without a buffer, the CPU would have to stall for dozens of clock cycles on every single store instruction (**write stall**). A **Write Buffer** hides this DRAM write latency so the pipeline can continue executing immediately.
+> - **How it works:** The Write Buffer is a small hardware **FIFO queue** placed between the cache and main memory. When the CPU executes a store, it updates the cache (on a hit) and inserts the address and data into the Write Buffer in a single cycle, immediately advancing to the next instruction while the memory controller drains queued entries to DRAM asynchronously.
+> - **When write stalls occur:** A Write Buffer hides latency only as long as slots remain free. Write stalls still occur when the CPU issues a **burst of stores faster than DRAM can drain the buffer**, causing the **FIFO queue to fill completely (buffer saturation)**. Once the buffer is full, any subsequent store must stall the CPU until at least one entry finishes writing to main memory.
 
 </details>
 

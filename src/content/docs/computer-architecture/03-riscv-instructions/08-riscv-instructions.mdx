@@ -79,19 +79,13 @@ To allow separately written functions to call one another safely, RISC-V softwar
 - **Saved Local Registers** (`s0`–`s11`, $x_8$–$x_9$, $x_{18}$–$x_{27}$): **Callee-saved** registers guaranteed to retain their values across a subroutine call; a function that modifies any `s` register must save it on the stack on entry and restore it before returning.
 - **Control Pointers** (`ra` $x_1$, `sp` $x_2$, `gp` $x_3$, `tp` $x_4$): `ra` holds the return address placed by a call (`caller-saved` when making nested calls), while `sp` points to the top of the downward-growing stack (`callee-saved`).
 
-### Format Regularity and Sign Extension
+### Immediate Range and Constants
 
-Every RV32IM instruction is strictly $32$ bits ($4$ bytes) wide and encoded in one of six formats (`R`, `I`, `S`, `B`, `U`, `J`). Keeping `rs1` at `inst[19:15]`, `rs2` at `inst[24:20]`, and `rd` at `inst[11:7]` lets the register file begin reading source operands immediately in parallel with `opcode` decoding (`inst[6:0]`). Furthermore, across every immediate-bearing format, the immediate **sign bit** always sits at `inst[31]`, allowing sign-extension wiring to fan out from a single fixed bit.
-
-In **I-type** (`addi`, `lw`, `lb`, `lbu`, `andi`, `ori`, `xori`, `slti`, `jalr`) and **S-type** (`sw`, `sb`) instructions, the immediate field is $12$ bits wide in two's complement, spanning:
+Every RV32IM instruction is $32$ bits ($4$ bytes) wide across six regular formats (`R`, `I`, `S`, `B`, `U`, `J`). In **I-type** (`addi`, `lw`, `lb`, `lbu`, `andi`, `ori`, `xori`, `slti`, `jalr`) and **S-type** (`sw`, `sb`) instructions, the sign-extended 12-bit two's complement immediate spans:
 
 $$[-2^{11},\; 2^{11} - 1] = [-2048,\; +2047]$$
 
-Before reaching the 32-bit ALU, bit `11` of this 12-bit constant is replicated across bits `[31:12]`:
-
-$$\text{SignExt}_{32}(\text{imm}_{12}) = \bigl\{\underbrace{\text{imm}[11], \dots, \text{imm}[11]}_{20\text{ copies}},\; \text{imm}[11:0]\bigr\}$$
-
-When a C program needs a 32-bit constant outside $[-2048, +2047]$ (such as `li t0, 100000`), the assembler emits a two-instruction pair: **U-type** `lui` (*Load Upper Immediate*, placing 20 bits into `rd[31:12]` and clearing `rd[11:0]`) followed by `addi` to add the signed lower 12 bits.
+Any constant outside $[-2048, +2047]$ is loaded with the pseudo-instruction `li rd, value` (which the assembler expands automatically into `lui` + `addi`).
 
 ### Arithmetic, Shifts, and RV32M
 
@@ -220,15 +214,6 @@ Write minimal RV32IM instruction sequences for each isolated operation below (us
 3. Given a positive integer $n$ in `a0`, extract its **tens decimal digit** $\lfloor n / 10 \rfloor \bmod 10$ into `a0`.
 4. Store the lowest byte of `a2` into `buf[6]` (where `char *buf` is in `a1`), and store the 32-bit integer in `a2` into `arr[6]` (where `int *arr` is in `a3`).
 
-<StepCheck
-  client:load
-  prompt="In task 1 (`a0 * 8 - 12` without `mul`), what immediate shift count `k` is used in `slli t0, a0, k`?"
-  expected={3}
-  tolerance={0.01}
-  unit="bits"
-  explanation="Since $8 = 2^3$, shifting left by $k = 3$ bits computes `a0 * 8`."
-/>
-
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
@@ -325,15 +310,6 @@ int update_channel(int *raw, char *cfg, int scale) {
 1. Specify the exact ABI register holding each input parameter and the return value.
 2. Compute the byte offsets for `cfg[1]`, `raw[2]`, and `raw[3]`.
 3. Write the complete `update_channel:` assembly subroutine using only `t0`–`t3` as temporaries.
-
-<StepCheck
-  client:load
-  prompt="If `raw[2] = 100`, `cfg[1] = '5'` (ASCII `53`), and `scale = 20`, what integer value does `update_channel` store into `raw[3]` and return in `a0`?"
-  expected={52}
-  tolerance={0.01}
-  unit=""
-  explanation="`offset = 53 - 48 = 5`, `val = (100 + 5) * 20 = 2100`, and `2100 % 1024 = 2100 - 2048 = 52`."
-/>
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>

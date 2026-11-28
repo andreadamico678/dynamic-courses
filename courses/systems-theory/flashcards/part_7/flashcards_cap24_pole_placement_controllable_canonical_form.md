@@ -1,23 +1,53 @@
 #flashcards/automatica/07_01_controllable_canonical_form
 
-Qual è la legge di controllo per la retroazione lineare statica dello stato con ingresso di riferimento $\mathbf{v}(t)$?
+What closed-loop matrix replaces $\mathbf{A}$ under linear state feedback $\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$?
 ?
-$$\mathbf{u}(t) = -\mathbf{K}\mathbf{x}(t) + \mathbf{v}(t)$$
+$$\mathbf{A}_{\text{cl}} = \mathbf{A} - \mathbf{B}\mathbf{K}$$
 
-Qual è la matrice dinamica a ciclo chiuso $\mathbf{A}_{cl}$ risultante dalla retroazione dello stato $\mathbf{u} = -\mathbf{K}\mathbf{x}$?
-?
-$$\mathbf{A}_{cl} = \mathbf{A} - \mathbf{B}\mathbf{K}$$
+---
 
-Cosa afferma il Teorema di Allocazione Arbitraria degli Autovalori (*Eigenvalue Placement Theorem*)?
+For a single-input plant in Controllable Canonical Form $(\mathbf{A}_c, \mathbf{B}_c)$, what structure do $\mathbf{A}_c$ and $\mathbf{B}_c$ have?
 ?
-Se e solo se la coppia $(\mathbf{A}, \mathbf{B})$ è completamente controllabile, esiste una matrice di guadagno $\mathbf{K}$ tale per cui gli autovalori di $\mathbf{A} - \mathbf{B}\mathbf{K}$ possono essere allocati arbitrariamente nel piano complesso (a meno di simmetria coniugata complessa).
+$\mathbf{A}_c$ has $1$s on the superdiagonal and $[-a_0, -a_1, \dots, -a_{n-1}]$ along its bottom row, while $\mathbf{B}_c = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}^T$.
 
-In forma canonica di controllo (FCC), qual è la struttura dell'ultima riga della matrice dinamica $\mathbf{A}_{fcc}$?
-?
-Contiene direttamente i coefficienti negati del polinomio caratteristico a ciclo aperto:
-$$\begin{bmatrix} -a_0 & -a_1 & \dots & -a_{n-1} \end{bmatrix}$$
+---
 
-Qual è la formula elementare per i guadagni di retroazione $\mathbf{K}_{fcc} = \begin{bmatrix} k_0 & k_1 & \dots & k_{n-1} \end{bmatrix}$ nel sistema in forma canonica di controllo?
+Why does subtracting $\mathbf{B}_c \mathbf{K}_c$ leave the first $n - 1$ rows of $\mathbf{A}_c$ unchanged and decouple every coefficient of $p_{\text{cl}}(s)$?
 ?
-$$k_i = \alpha_i - a_i$$
-dove $\alpha_i$ sono i coefficienti desiderati a ciclo chiuso e $a_i$ sono i coefficienti a ciclo aperto.
+Because $\mathbf{B}_c = [0, \dots, 0, 1]^T$ confines $\mathbf{B}_c \mathbf{K}_c$ exclusively to the bottom row, shifting each $a_i$ to $a_i + k_{ci}$ independently.
+
+---
+
+For open-loop characteristic $p(s) = s^n + \sum_{i=0}^{n-1} a_i s^i$ and target polynomial $p^*(s) = s^n + \sum_{i=0}^{n-1} \alpha_i s^i$, how is canonical gain $\mathbf{K}_c = [k_{c0}, \dots, k_{c,n-1}]$ computed?
+?
+$$k_{ci} = \alpha_i - a_i \qquad \text{for } i = 0, 1, \dots, n - 1$$
+
+---
+
+In $\mathbf{K}_c = [k_{c0}, k_{c1}, \dots, k_{c,n-1}]$, which polynomial term does the leftmost entry $k_{c0}$ adjust?
+?
+The constant term $a_0$ (never the $s^{n-1}$ term $a_{n-1}$).
+
+---
+
+How is the generator row vector $\mathbf{t}_n^T$ extracted from the Kalman controllability matrix $\mathcal{R}$?
+?
+It is the last row of $\mathcal{R}^{-1}$: $\mathbf{t}_n^T = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}\mathcal{R}^{-1}$.
+
+---
+
+How is the inverse transformation matrix $\mathbf{T}^{-1}$ built from $\mathbf{t}_n^T$ and $\mathbf{A}$ to map physical coordinates $\mathbf{x} = \mathbf{T}\mathbf{z}$ into companion coordinates?
+?
+$$\mathbf{T}^{-1} = \begin{bmatrix} \mathbf{t}_n^T \\ \mathbf{t}_n^T\mathbf{A} \\ \vdots \\ \mathbf{t}_n^T\mathbf{A}^{n-1} \end{bmatrix}$$
+
+---
+
+Given canonical gain $\mathbf{K}_c$ and transformation $\mathbf{z} = \mathbf{T}^{-1}\mathbf{x}$, how is the physical feedback gain $\mathbf{K}$ recovered?
+?
+$$\mathbf{K} = \mathbf{K}_c \mathbf{T}^{-1}$$
+
+---
+
+What quick multiplication check confirms that the rows of $\mathbf{T}^{-1}$ are ordered correctly before computing $\mathbf{K}$?
+?
+Verify $\mathbf{T}^{-1}\mathbf{B} = \begin{bmatrix} 0 & \dots & 0 & 1 \end{bmatrix}^T$.

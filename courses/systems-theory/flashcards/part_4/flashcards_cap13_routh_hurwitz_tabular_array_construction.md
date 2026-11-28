@@ -1,26 +1,53 @@
 #flashcards/automatica/04_03_routh_tabular_array
 
-A quale scopo si costruisce la tabella di Routh-Hurwitz per un polinomio $P(s) = a_n s^n + a_{n-1} s^{n-1} + \dots + a_0$?
+What normalization must be applied to $p(s) = a_n s^n + \dots + a_0$ before testing Stodola's condition and building a Routh array?
 ?
-Per determinare il numero esatto di radici a parte reale positiva ($\operatorname{Re}(s) > 0$) senza dover calcolare esplicitamente le radici del polinomio.
+Ensure a strictly positive leading coefficient $a_n > 0$ (multiplying $p(s)$ by $-1$ if $a_n < 0$).
 
-Qual è la condizione necessaria (ma non sufficiente) per l'asintotica stabilità ricavabile dai coefficienti del polinomio caratteristico?
-?
-Tutti i coefficienti da $a_n$ ad $a_0$ devono essere strettamente positivi (o strettamente negativi): nessun coefficiente deve essere nullo e non devono esserci cambi di segno tra coefficienti successivi.
+---
 
-Come vengono disposti i coefficienti del polinomio nelle prime due righe ($s^n$ ed $s^{n-1}$) della tabella di Routh?
+What is Stodola's necessary condition for a polynomial $p(s) = a_n s^n + \dots + a_0$ ($a_n > 0$) to be strictly Hurwitz?
 ?
-- Riga $s^n$: i coefficienti di posto pari a partire da $a_n$ ($a_n, a_{n-2}, a_{n-4}, \dots$).
-- Riga $s^{n-1}$: i coefficienti dispari ($a_{n-1}, a_{n-3}, a_{n-5}, \dots$).
+All coefficients must be strictly present and strictly positive: $a_i > 0$ for every $i = 0, 1, \dots, n$.
 
-Qual è la formula algebrica per calcolare il primo elemento $b_1$ della riga $s^{n-2}$ dati gli elementi $a_n, a_{n-2}$ e $a_{n-1}, a_{n-3}$?
-?
-$$b_1 = \frac{a_{n-1} a_{n-2} - a_n a_{n-3}}{a_{n-1}}$$
+---
 
-Cosa sancisce il Teorema di Routh-Hurwitz in merito al numero di radici a parte reale positiva ($\operatorname{Re}(s) > 0$)?
+For which polynomial degrees is Stodola's condition ($a_i > 0$ for all $i$) both necessary and sufficient for strict Hurwitz stability?
 ?
-Il numero di radici del polinomio nel semipiano destro aperto ($\mathbb{C}^+$) è pari al numero di variazioni di segno presenti tra gli elementi della prima colonna della tabella di Routh.
+Only degrees $n = 1$ and $n = 2$; for $n \ge 3$ it is necessary only.
 
-Qual è la condizione necessaria e sufficiente affinché tutte le radici del polinomio si trovino nel semipiano sinistro ($\operatorname{Re}(s) < 0$)?
+---
+
+In the regular Routh table (rows $s^n = [a_n, a_{n-2}, \dots]$ and $s^{n-1} = [a_{n-1}, a_{n-3}, \dots]$), what is the formula for entry $b_j$ in row $s^{n-2}$?
 ?
-Tutti gli elementi della prima colonna della tabella di Routh devono essere strettamente concordi in segno (tutti strettamente positivi se $a_n > 0$).
+$$b_j = \frac{a_{n-1} a_{n-2j} - a_n a_{n-2j-1}}{a_{n-1}}$$
+
+---
+
+How does Routh's criterion determine strict Hurwitz stability and count right-half-plane roots in the regular case?
+?
+$p(s)$ is strictly Hurwitz iff all $(n + 1)$ entries in Column 1 are strictly positive; otherwise $n_{\text{RHP}}$ equals the number of sign changes in Column 1.
+
+---
+
+Which scalar row scaling operation is valid during Routh table construction, and which one corrupts the table?
+?
+Multiplying any entire row by $k > 0$ preserves all signs and ratios, whereas multiplying by $-1$ or a negative scalar flips Column 1 signs.
+
+---
+
+What is the closed-form Routh-Hurwitz sufficient condition for a normalized cubic $s^3 + a_2 s^2 + a_1 s + a_0$ ($a_2, a_1, a_0 > 0$)?
+?
+$$a_2 a_1 > a_0$$
+
+---
+
+What is the closed-form Routh-Hurwitz sufficient condition for a normalized quartic $s^4 + a_3 s^3 + a_2 s^2 + a_1 s + a_0$ ($a_i > 0$)?
+?
+$a_3 a_2 > a_1$ and $a_3 a_2 a_1 > a_1^2 + a_3^2 a_0$.
+
+---
+
+Can the Routh-Hurwitz criterion distinguish defective ($m_g < m_a$) from non-defective repeated eigenvalues on the $j\omega$-axis?
+?
+No; Routh-Hurwitz counts polynomial root locations only and requires a state-matrix rank check for geometric multiplicity.

@@ -204,6 +204,7 @@ Viene inoltre verificata la capacità di impostare lo svolgimento di esercizi nu
 ## 6. Mappa delle Domande FISSE d'Esame Orale
 
 Di seguito si elencano gli argomenti che vengono chiesti nel corso del colloquio orale.
+"Chiedo solo quello che c'è nella lista" - Il Prof
 
 ### Fisica dei Dispositivi
 - Concentrazione di portatori (silicio intrinseco, creazione di coppie elettrone-lacuna, densità intrinseca $n_i$)

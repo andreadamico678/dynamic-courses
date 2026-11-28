@@ -1,23 +1,41 @@
 #flashcards/automatica/03_03_lagrange_convolution
 
-Qual è la Formula di Lagrange completa per lo stato $\mathbf{x}(t)$ di un sistema LTI continuo con stato iniziale $\mathbf{x}(0)$ e ingresso $\mathbf{u}(t)$?
+What is Lagrange's complete state trajectory formula for $\dot{\mathbf{x}}(t) = \mathbf{A}\mathbf{x}(t) + \mathbf{B}\mathbf{u}(t)$ starting from $\mathbf{x}(0) = \mathbf{x}_0$?
 ?
-$$\mathbf{x}(t) = e^{\mathbf{A}t} \mathbf{x}(0) + \int_0^t e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau$$
+$$\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}_0 + \int_0^t e^{\mathbf{A}(t-\tau)}\mathbf{B}\mathbf{u}(\tau)\,d\tau$$
 
-Qual è la Formula di Lagrange per l'uscita $\mathbf{y}(t)$ di un sistema LTI continuo?
-?
-$$\mathbf{y}(t) = \mathbf{C} e^{\mathbf{A}t} \mathbf{x}(0) + \mathbf{C} \int_0^t e^{\mathbf{A}(t-\tau)} \mathbf{B} \mathbf{u}(\tau) \, d\tau + \mathbf{D} \mathbf{u}(t)$$
+---
 
-Nel dominio temporale, a quale operazione corrisponde l'evoluzione forzata dell'uscita $\mathbf{y}_f(t)$ per un sistema SISO con $D = 0$?
+How does Lagrange's formula partition the total response $\mathbf{y}(t)$ into free and forced components?
 ?
-Alla convoluzione temporale tra la risposta all'impulso $w(t)$ del sistema e l'ingresso applicato $u(t)$:
-$$y_f(t) = (w * u)(t) = \int_0^t w(t - \tau) u(\tau) \, d\tau$$
+$\mathbf{y}(t) = \mathbf{y}_l(t) + \mathbf{y}_f(t)$, where $\mathbf{y}_l(t)$ is from $\mathbf{x}_0$ with $\mathbf{u} \equiv \mathbf{0}$ and $\mathbf{y}_f(t)$ is from $\mathbf{u}(t)$ with $\mathbf{x}_0 = \mathbf{0}$.
 
-Come si calcola la risposta indiciale (al gradino unitario $u(t) = 1(t)$) $y_{step}(t)$ a partire dalla risposta all'impulso $w(t)$?
-?
-Tramite integrazione temporale:
-$$y_{step}(t) = \int_0^t w(\tau) \, d\tau \iff w(t) = \frac{d}{dt} y_{step}(t)$$
+---
 
-Nel dominio di Laplace, come si calcola l'evoluzione completa dell'uscita $Y(s)$ separando la componente libera da quella forzata?
+What is the difference between the free response $\mathbf{y}_l(t)$ and the total transient response $\mathbf{y}_{\text{trans}}(t)$?
 ?
-$$Y(s) = \underbrace{\mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1} \mathbf{x}(0)}_{Y_l(s) \text{ (libera)}} + \underbrace{\left[ \mathbf{C}(s\mathbf{I} - \mathbf{A})^{-1}\mathbf{B} + \mathbf{D} \right] U(s)}_{Y_f(s) \text{ (forzata)} = W(s)U(s)}$$
+$\mathbf{y}_l(t)$ comes solely from $\mathbf{x}_0$, whereas $\mathbf{y}_{\text{trans}}(t)$ combines decaying natural modes from *both* $\mathbf{y}_l(t)$ and $\mathbf{y}_f(t)$.
+
+---
+
+What is the continuous-time impulse response matrix $\mathbf{W}(t)$ (for $t \ge 0$) of $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$?
+?
+$$\mathbf{W}(t) = \mathbf{C}e^{\mathbf{A}t}\mathbf{B}\cdot 1(t) + \mathbf{D}\delta(t)$$
+
+---
+
+How is the forced output $\mathbf{y}_f(t)$ written as a convolution in the time domain and as a product in the Laplace domain?
+?
+$\mathbf{y}_f(t) = (\mathbf{W} * \mathbf{u})(t) = \int_0^t \mathbf{W}(t - \tau)\mathbf{u}(\tau)\,d\tau$, corresponding to $\mathbf{Y}_f(s) = \mathbf{W}(s)\mathbf{U}(s)$.
+
+---
+
+Under what condition does the forced output to a constant step $\mathbf{u}(t) = \mathbf{u}_0 \cdot 1(t)$ converge to $\mathbf{y}_{\text{ss}} = (-\mathbf{C}\mathbf{A}^{-1}\mathbf{B} + \mathbf{D})\mathbf{u}_0$?
+?
+Only when $\mathbf{A}$ is Hurwitz (all eigenvalues satisfy $\operatorname{Re}(\lambda_i) < 0$); otherwise the response either oscillates or diverges.
+
+---
+
+When solving $\mathbf{x}_f(t)$ or $\mathbf{y}_f(t)$ by hand under time pressure, why is Laplace inversion usually preferable to evaluating Lagrange's convolution integral directly?
+?
+$\mathcal{L}^{-1}\{(s\mathbf{I}-\mathbf{A})^{-1}\mathbf{B}\mathbf{U}(s)\}$ converts matrix convolution into partial fraction expansion without integrating exponentials.

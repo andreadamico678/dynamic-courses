@@ -259,44 +259,48 @@ Common stall components across both configurations:
 <Exercise
   client:load
   id="ex-18-3"
-  title="Exercise 18.3 — End-to-End Speedup Across Single-Cycle, Pipelining, and Split Caches"
+  title="Exercise 18.3 — Solo Stalli, ID Resolution, and Distance-2 Decoy"
   level="Exam"
-  hint="First compute $T_{\text{clk,single}}$ and $T_{\text{clk,pipe}}$ using Chapter 14's rules, then compute $\text{CPI}_{\text{pipe}}$ on the unified-memory pipeline, and finally take $T_{\text{exec,single}} / T_{\text{exec,pipe}}$."
+  hint="Check all four traps: (1) split memories -> 0 structural stalls; (2) Solo Stalli -> ignore 60% taken and stall 100% of branches; (3) Load -> ALU at distance k=2 resolves with 0 stalls via MEM/WB forwarding; (4) ALU -> Branch at k=1 with ID resolution adds +1 stall!"
 >
 
-A RISC-V datapath has stage delays $\text{IF} = 200\text{ ps}$, $\text{ID} = 150\text{ ps}$, $\text{EX} = 200\text{ ps}$, $\text{MEM} = 220\text{ ps}$, and $\text{WB} = 130\text{ ps}$. Adding 5-stage pipeline registers introduces $t_{\text{setup}} + t_{\text{cq}} = 30\text{ ps}$.
+*(Modeled on July 16, 2026 Question 3)* Evaluate $\text{CPI}_{\text{pipe}}$ for a 5-stage RISC-V processor with the following specification:
 
-On a large program ($\text{IC} = 10^7$), the instruction mix is `Load` $18\%$, `Store` $12\%$, `Branch` $15\%$ ($60\%$ taken), and `ALU` $55\%$. The 5-stage pipeline initially uses a **unified single-port memory**, **full forwarding**, and **Predict-Untaken** in stage **`EX`**, with $20\%$ of `ALU` instructions depending on an immediately preceding `Load` ($k = 1$) and $40\%$ of `ALU` instructions depending on an immediately preceding `ALU` ($k = 1$).
-
-1. Compute $T_{\text{clk,single}}$ ($\text{CPI}_{\text{single}} = 1.00$) and $T_{\text{clk,pipe}}$.
-2. Compute $\text{CPI}_{\text{pipe}}$ on the unified-memory 5-stage processor, and find its net execution-time speedup $S_{\text{pipe}}$ over the unpipelined single-cycle processor.
-3. Using [Amdahl's Law](/dynamic-courses/computer-architecture/02-computer-performance/07-amdahls-law/), compute the **additional** speedup $S_{\text{Harvard}}$ achieved over the unified-memory pipeline if split L1 `I-Cache` and `D-Cache` eliminate unified-memory stalls without changing $T_{\text{clk,pipe}}$.
+- **Instruction mix:** `Load` $22\%$, `Store` $13\%$, `Branch` $15\%$ ($60\%$ taken), `ALU` $50\%$.
+- **Memory topology:** Two separate memories for data and instructions.
+- **Control policy:** Stall-Always (**solo stalli**) with branch outcome resolved in stage **`ID`**.
+- **Data path:** Full hardware forwarding active.
+- **Dependencies:**
+  - $30\%$ of `ALU` instructions depend on the preceding `ALU` instruction at distance $k = 1$.
+  - $10\%$ of `ALU` instructions depend on a `Load` instruction at distance $k = 2$.
+  - $15\%$ of `ALU` instructions depend on the preceding `Load` instruction at distance $k = 1$.
+  - $30\%$ of `Branch` instructions depend on the preceding `ALU` instruction at distance $k = 1$.
 
 <StepCheck
   client:load
-  prompt="What is the net speedup $S_{\text{pipe}} = T_{\text{exec,single}} / T_{\text{exec,pipe}}$ of the unified-memory 5-stage pipeline over the single-cycle processor (rounded to two decimal places)?"
-  expected={2.26}
-  tolerance={0.02}
-  unit="x"
-  explanation="$T_{\text{clk,single}} = 900\;\mathrm{ps}$ and $T_{\text{clk,pipe}} = 220 + 30 = 250\;\mathrm{ps}$. $\text{CPI}_{\text{pipe}} = 1.00 + (0.18+0.12) + (0.55 \times 0.20) + (0.15 \times 0.60 \times 2) = 1.00 + 0.30 + 0.11 + 0.18 = 1.59$. Thus $S_{\text{pipe}} = 900 / (1.59 \times 250) = 900 / 397.5 = 2.264 \approx 2.26\times$."
+  prompt="What is the exact $\text{CPI}_{\text{pipe}}$ of this processor (to 3 decimal places)?"
+  expected={1.27}
+  tolerance={0.005}
+  unit="cycles/instr"
+  explanation="$\text{Stalls}_{\text{struct}} = 0$ (split memories); $\text{Stalls}_{\text{data}} = 0.50 \times 0.15 \times 1 = 0.075$ (`ALU->ALU` at $k=1$ and `Load->ALU` at $k=2$ both forward in 0 stalls!); $\text{Stalls}_{\text{ctrl}} = 0.15 \times 1.0 \times 1 = 0.15$ (*solo stalli* ignores $60\%$ taken); $\text{Stalls}_{\text{ALU}\to\text{Branch}} = 0.15 \times 0.30 \times 1 = 0.045$ (`ID` resolution). Sum: $1.00 + 0.075 + 0.15 + 0.045 = 1.270$."
 />
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Clock Periods:**
-   $$T_{\text{clk,single}} = 200 + 150 + 200 + 220 + 130 = 900\text{ ps}$$
-   $$T_{\text{clk,pipe}} = \max(200, 150, 200, 220, 130) + 30 = 220 + 30 = 250\text{ ps}$$
-2. **Unified-Memory CPI and Speedup:**
-   - $\text{Stalls}_{\text{struct}} = (0.18 + 0.12) \times 1 = 0.30$.
-   - $\text{Stalls}_{\text{data}} = 0.55 \times 0.20 \times 1 = 0.11$ (`ALU -> ALU` forwarding $= 0$).
-   - $\text{Stalls}_{\text{ctrl}} = 0.15 \times 0.60 \times 2 = 0.18$.
-   - $\text{CPI}_{\text{pipe}} = 1.00 + 0.30 + 0.11 + 0.18 = 1.59\text{ cycles/instr}$.
-   - Net speedup over single-cycle ($\text{IC} \gg 5$):
-     $$S_{\text{pipe}} = \frac{1.00 \times 900\text{ ps}}{1.59 \times 250\text{ ps}} = \frac{900}{397.5} = 2.264\times$$
-3. **Speedup From Split Caches:**
-   - Unified memory stalls account for $F_{\text{enh}} = 0.30 / 1.59 = 0.1887$ ($18.87\%$) of execution cycles; eliminating them ($S_{\text{enh}} \to \infty$) yields:
-     $$S_{\text{Harvard}} = \frac{1}{1 - 0.30 / 1.59} = \frac{1.59}{1.29} = 1.233\times \quad (\text{raising total speedup over single-cycle to } 900 / (1.29 \times 250) = 2.791\times)$$
+1. **Baseline:** $\text{CPI}_{\text{base}} = 1.00$ ($0.22 + 0.13 + 0.15 + 0.50 = 1.00$).
+2. **Structural Stalls:** Separate I/D memories $\implies \text{Stalls}_{\text{struct}} = 0$.
+3. **Data Stalls (Forwarding ON):**
+   - `ALU -> ALU` ($k = 1$): $0\text{ stalls}$ (`EX/MEM` bypass).
+   - `Load -> ALU` ($k = 2$): $0\text{ stalls}$ (`MEM/WB` bypass — decoy!).
+   - `Load -> ALU` ($k = 1$, Load-Use): $0.50 \times 0.15 \times 1 = 0.075\text{ cycles/instr}$.
+4. **Control Stalls (*Solo Stalli* in `ID`, $P_{\text{ID}} = 1$):**
+   Every branch stalls $1$ cycle regardless of the $60\%$ taken distractor:
+   $$\text{Stalls}_{\text{ctrl}} = 0.15 \times 1.00 \times 1 = 0.150\text{ cycles/instr}$$
+5. **`ALU -> Branch` (`ID` Resolution):**
+   $$\text{Stalls}_{\text{ALU}\to\text{Branch}} = 0.15 \times 0.30 \times 1 = 0.045\text{ cycles/instr}$$
+
+$$\text{CPI}_{\text{pipe}} = 1.00 + 0 + 0.075 + 0.150 + 0.045 = \mathbf{1.270\text{ cycles/instr}}$$
 
 </details>
 

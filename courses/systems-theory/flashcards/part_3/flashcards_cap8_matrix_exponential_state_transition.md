@@ -1,34 +1,59 @@
 #flashcards/automatica/03_01_matrix_exponential
 
-Qual è la definizione formale in serie di potenze della matrice esponenziale $e^{\mathbf{A}t}$?
+How is the matrix exponential $e^{\mathbf{A}t}$ defined via convergent infinite power series?
 ?
-$$e^{\mathbf{A}t} = \sum_{k=0}^{\infty} \frac{\mathbf{A}^k t^k}{k!} = \mathbf{I} + \mathbf{A}t + \frac{1}{2!} \mathbf{A}^2 t^2 + \dots$$
+$$e^{\mathbf{A}t} \triangleq \sum_{k=0}^\infty \frac{(\mathbf{A}t)^k}{k!} = \mathbf{I} + \mathbf{A}t + \frac{\mathbf{A}^2 t^2}{2!} + \dots$$
 
-Qual è il valore della matrice di transizione all'istante iniziale $t = 0$?
-?
-$$e^{\mathbf{A} \cdot 0} = \mathbf{I} \quad (\text{matrice identità } n \times n)$$
+---
 
-Qual è la proprietà fondamentale dell'inversa di $e^{\mathbf{A}t}$?
+How does the state transition matrix $e^{\mathbf{A}t}$ relate to the state resolvent matrix $(s\mathbf{I} - \mathbf{A})^{-1}$?
 ?
-$$\left(e^{\mathbf{A}t}\right)^{-1} = e^{-\mathbf{A}t}$$
+$$e^{\mathbf{A}t} = \mathcal{L}^{-1}\left\{(s\mathbf{I} - \mathbf{A})^{-1}\right\} \cdot 1(t)$$
 
-Qual è l'espressione della derivata temporale della matrice esponenziale $\frac{d}{dt} e^{\mathbf{A}t}$?
-?
-$$\frac{d}{dt} e^{\mathbf{A}t} = \mathbf{A} e^{\mathbf{A}t} = e^{\mathbf{A}t} \mathbf{A}$$
+---
 
-Perché la proprietà esponenziale $e^{\mathbf{A}t_1} e^{\mathbf{B}t_2} = e^{\mathbf{A}t_1 + \mathbf{B}t_2}$ non vale in generale per matrici $\mathbf{A}$ e $\mathbf{B}$ arbitrarie?
+What is the time derivative of $e^{\mathbf{A}t}$?
 ?
-Perché il prodotto matriciale non è commutativo ($\mathbf{A}\mathbf{B} \neq \mathbf{B}\mathbf{A}$). La proprietà vale solo se $\mathbf{A}$ e $\mathbf{B}$ commutano ($\mathbf{A}\mathbf{B} = \mathbf{B}\mathbf{A}$).
+$$\frac{d}{dt}e^{\mathbf{A}t} = \mathbf{A}e^{\mathbf{A}t} = e^{\mathbf{A}t}\mathbf{A}$$
 
-Come si calcola la matrice esponenziale $e^{\mathbf{A}t}$ se la matrice $\mathbf{A}$ è diagonalizzabile con autovettori $\mathbf{T}$ ($\mathbf{A} = \mathbf{T} \mathbf{\Lambda} \mathbf{T}^{-1}$)?
-?
-$$e^{\mathbf{A}t} = \mathbf{T} e^{\mathbf{\Lambda}t} \mathbf{T}^{-1} = \mathbf{T} \operatorname{diag}\left(e^{\lambda_1 t}, \dots, e^{\lambda_n t}\right) \mathbf{T}^{-1}$$
+---
 
-Cosa afferma il Teorema di Cayley-Hamilton applicato al calcolo di $e^{\mathbf{A}t}$ per una matrice di ordine $n$?
+What two boundary checks validate any hand-computed matrix exponential $e^{\mathbf{A}t}$?
 ?
-Poiché $\mathbf{A}^n$ è combinazione lineare delle potenze inferiori, $e^{\mathbf{A}t}$ può essere espresso esattamente come un polinomio di grado $n-1$:
-$$e^{\mathbf{A}t} = \sum_{k=0}^{n-1} \alpha_k(t) \mathbf{A}^k$$
+Verify $e^{\mathbf{A}\cdot 0} = \mathbf{I}$ and $\left.\frac{d}{dt}e^{\mathbf{A}t}\right|_{t=0} = \mathbf{A}$.
 
-Come si determinano i coefficienti scalari $\alpha_k(t)$ nel metodo di Cayley-Hamilton per il calcolo di $e^{\mathbf{A}t}$ per autovalori distinti $\lambda_i$?
+---
+
+What is the inverse of the state transition matrix $e^{\mathbf{A}t}$, and does it exist for all finite $t$?
 ?
-Imponendo l'uguaglianza sugli autovalori: per ogni $\lambda_i$, si risolve il sistema $e^{\lambda_i t} = \sum_{k=0}^{n-1} \alpha_k(t) \lambda_i^k$.
+$(e^{\mathbf{A}t})^{-1} = e^{-\mathbf{A}t}$, which exists for every finite $t \in \mathbb{R}$.
+
+---
+
+Under what algebraic condition does the matrix factorization $e^{(\mathbf{A}+\mathbf{B})t} = e^{\mathbf{A}t}e^{\mathbf{B}t}$ hold?
+?
+If and only if the two matrices commute ($\mathbf{A}\mathbf{B} = \mathbf{B}\mathbf{A}$).
+
+---
+
+Why is exponentiating each scalar entry $[e^{a_{ij}t}]$ invalid in general for computing $e^{\mathbf{A}t}$?
+?
+Entry-wise exponentiation holds only when $\mathbf{A}$ is strictly diagonal; off-diagonal couplings create mixed powers $\mathbf{A}^k$.
+
+---
+
+How does spectral decomposition compute $e^{\mathbf{A}t}$ when $\mathbf{A}$ has $n$ linearly independent eigenvectors?
+?
+With modal matrix $\mathbf{T} = [\mathbf{v}_1 \; \dots \; \mathbf{v}_n]$ and $\mathbf{\Lambda} = \operatorname{diag}(\lambda_1, \dots, \lambda_n)$, compute $e^{\mathbf{A}t} = \mathbf{T}e^{\mathbf{\Lambda}t}\mathbf{T}^{-1}$.
+
+---
+
+How does the Cayley-Hamilton method evaluate $e^{\mathbf{A}t}$ as a finite polynomial in $\mathbf{A}$?
+?
+Expand $e^{\mathbf{A}t} = \sum_{k=0}^{n-1} \alpha_k(t)\mathbf{A}^k$, solving for $\alpha_k(t)$ by equating $e^{\lambda_i t}$ (and its derivatives up to order $m_a - 1$ for repeated roots) to $\sum_{k=0}^{n-1}\alpha_k(t)\lambda_i^k$.
+
+---
+
+Under zero-order hold (ZOH) sampling at period $T_s$, what is the discrete state transition matrix $\mathbf{A}_d$ of $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$?
+?
+$$\mathbf{A}_d = e^{\mathbf{A} T_s}$$

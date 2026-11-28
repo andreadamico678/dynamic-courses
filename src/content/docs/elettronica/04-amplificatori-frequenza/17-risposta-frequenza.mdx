@@ -54,24 +54,18 @@ $$
 
 Il condensatore che presenta il termine $\frac{1}{R_{j,sc} C_j}$ più elevato (cioè il prodotto $R_{j,sc} C_j$ più piccolo) fissa il polo alla frequenza più alta rispetto allo zero e domina $f_L$.
 
-#### Applicazione a CS, CD e CG
+#### Applicazione allo Stadio Common Source
 
-Applicando la regola SCTC alle tre topologie fondamentali (con $R_G = R_1 \parallel R_2$), la resistenza vista da ciascun condensatore assume un significato fisico immediato:
-
-* **Common Source (CS):**
-  * Sul Gate, con $v_{sig} = 0$, $C_G$ vede in serie $R_{sig}$ da un lato e $R_G$ dall'altro: $R_{G,sc} = R_{sig} + R_G$.
-  * Sul Drain, con $C_G$ e $C_S$ in cortocircuito ($v_{gs} = 0$), il generatore controllato è spento e $C_D$ vede in serie $R_{out} = R_D \parallel r_o$ e il carico $R_L$: $R_{D,sc} = (R_D \parallel r_o) + R_L$.
-  * Sul Source, con $C_G$ e $C_D$ in cortocircuito e $v_{sig} = 0$, il Gate è a massa AC ($v_g = 0$). Guardando nel Source del MOSFET si vede la bassa resistenza $\frac{1}{g_m + g_{mb}}$ (proprio come nell'analisi di $R_{out}$ del CD), in parallelo a $R_S$ (e al percorso verso il Drain quando $r_o$ è finita):
+Applicando la regola SCTC al **Common Source** (con $R_G = R_1 \parallel R_2$):
+* Sul Gate, con $v_{sig} = 0$, $C_G$ vede in serie sorgente e partitore: $R_{G,sc} = R_{sig} + R_G$.
+* Sul Drain, con $C_G$ e $C_S$ in cortocircuito ($v_{gs} = 0$), $C_D$ vede in serie uscita e carico: $R_{D,sc} = (R_D \parallel r_o) + R_L$.
+* Sul Source, con $C_G$ e $C_D$ in cortocircuito ($v_g = 0$), $C_S$ vede in parallelo $R_S$ e la bassa resistenza guardando nel Source:
 
 $$
 R_{S,sc} \approx R_S \parallel \frac{1}{g_m + g_{mb}} \approx R_S \parallel \frac{1}{g_m}
 $$
 
-  Poiché $R_{S,sc}$ vale poche decine o centinaia di ohm contro i molti chilo-ohm visti da $C_G$ e $C_D$, il condensatore di bypass $C_S$ richiede una capacità molto maggiore per non dominare $f_L$.
-* **Common Drain (CD):** $C_G$ vede $R_{G,sc} = R_{sig} + R_G$, mentre al Source $C_D$ vede in serie la bassa resistenza d'uscita del follower e il carico: $R_{D,sc} = \left(R_S \parallel r_o \parallel \frac{1}{g_m + g_{mb}}\right) + R_L$.
-* **Common Gate (CG):** al Source $C_G$ vede in serie la sorgente e la bassa impedenza d'ingresso del CG, $R_{G,sc} = R_{sig} + \left(R_S \parallel \frac{1}{g_m + g_{mb}}\right)$, mentre al Drain $C_D$ vede $R_{D,sc} = R_D + R_L$ (per $r_o \to \infty$).
-
-Per verificarne subito gli ordini di grandezza su un Common Source ($g_m = 4\,\text{mA/V}$, $g_{mb} = 0$, $R_{sig} = 5\,\text{k}\Omega$, $R_G = 195\,\text{k}\Omega$, $R_S = 1\,\text{k}\Omega$, $R_D \parallel r_o = 5\,\text{k}\Omega$, $R_L = 5\,\text{k}\Omega$): con $C_G = 1\,\mu\text{F}$ si ha $R_{G,sc} = 200\,\text{k}\Omega$ ($f_{pG} \approx 0.8\,\text{Hz}$); con $C_D = 1\,\mu\text{F}$ si ha $R_{D,sc} = 10\,\text{k}\Omega$ ($f_{pD} \approx 15.9\,\text{Hz}$); con $C_S = 10\,\mu\text{F}$ si ha $R_{S,sc} = 1000 \parallel 250 = 200\,\Omega$ ($f_{pS} \approx 79.6\,\text{Hz}$), portando a $f_L \approx 0.8 + 15.9 + 79.6 = 96.3\,\text{Hz}$, dominato proprio da $C_S$ pur essendo dieci volte più grande degli altri due.
+Poiché $R_{S,sc}$ vale poche decine o centinaia di ohm contro i molti chilo-ohm visti da $C_G$ e $C_D$, il condensatore di bypass $C_S$ domina quasi sempre il taglio inferiore $f_L$ e richiede capacità sensibilmente più grandi.
 
 <StepCheck client:load lang="it" mode="choice" prompt="Perché nello stadio Common Source il condensatore di bypass $C_S$ domina quasi sempre la frequenza di taglio inferiore $f_L$, anche quando la sua capacità è molto più grande di $C_G$ e $C_D$?" options={["Perché $C_S$ si trova al Gate e vede $R_1 \\parallel R_2$", "Perché ai suoi capi $C_S$ vede la bassissima resistenza al Source $R_{S,sc} \\approx R_S \\parallel (1/g_m)$, rendendo molto grande il rapporto $1/(R_{S,sc} C_S)$", "Perché $C_S$ agisce in alta frequenza insieme a $C_{gd}$", "Perché in SCTC si devono moltiplicare tra loro tutte le capacità"]} correctIndex={1} explanation="Con il Gate a massa AC, la resistenza vista da $C_S$ è $R_S \parallel (1/g_m)$, tipicamente poche centinaia di ohm: il polo $1/(2\pi R_{S,sc} C_S)$ cade quindi a frequenza molto più alta rispetto a quelli di $C_G$ e $C_D$." />
 
@@ -81,19 +75,13 @@ Per verificarne subito gli ordini di grandezza su un Common Source ($g_m = 4\,\t
 
 Oltre il centro banda tutti i condensatori esterni si comportano come cortocircuiti ideali, mentre le capacità parassite interne ($C_{gs}, C_{gd}$) e di carico ($C_L$) iniziano a deviare corrente verso massa riducendo il guadagno oltre $f_H$.
 
-Nel Common Source la capacità $C_{gd}$ collega il Gate al Drain, la cui tensione oscilla in opposizione di fase con guadagno $-|A_v|$: la differenza di potenziale istantanea ai capi di $C_{gd}$ risulta pari a $(1 + |A_v|)\,v_g$, richiamando una corrente d'ingresso $(1 + |A_v|)$ volte maggiore rispetto a una capacità riferita a massa (**effetto Miller**). Questa capacità riflessa domina la costante di tempo dominante al Gate stimabile sistematicamente tramite il **metodo OCTC**.
+Nel Common Source la capacità $C_{gd}$ collega il Gate al Drain, la cui tensione oscilla in opposizione di fase con guadagno $-|A_v|$: la tensione istantanea ai capi di $C_{gd}$ risulta pari a $(1 + |A_v|)\,v_g$, richiamando una corrente d'ingresso $(1 + |A_v|)$ volte maggiore (**effetto Miller**). Questa capacità riflessa domina la banda superiore stimabile con il **metodo OCTC**.
 
 ### Teoria — Effetto Miller e Costanti di Tempo a Circuito Aperto
 
 #### Teorema di Miller e Moltiplicazione di $C_{gd}$
 
-Consideriamo un bipolo generico di ammettenza $Y$ collegato a ponte tra due nodi $1$ e $2$ di una rete lineare legati da un rapporto di tensione noto $K = V_2 / V_1$ ([figura seguente](#fig-miller-theorem)). La corrente che il bipolo assorbe dal nodo $1$ vale:
-
-$$
-I_1 = Y(V_1 - V_2) = Y(1 - K)V_1
-$$
-
-Allo stesso modo, la corrente assorbita dal nodo $2$ vale $I_2 = Y(V_2 - V_1) = Y(1 - 1/K)V_2$. Poiché le due porte risentono esattamente delle stesse correnti se sostituiamo il collegamento a ponte con due ammettenze separate verso massa, il **Teorema di Miller** afferma che il bipolo ponte è equivalente a:
+Consideriamo un bipolo generico di ammettenza $Y$ collegato a ponte tra due nodi $1$ e $2$ legati da un guadagno di tensione noto $K = V_2 / V_1$ ([figura seguente](#fig-miller-theorem)). Poiché $I_1 = Y(V_1 - V_2) = Y(1 - K)V_1$ e $I_2 = Y(1 - 1/K)V_2$, il **Teorema di Miller** sostituisce il ponte con due ammettenze separate verso massa:
 
 $$
 Y_1 = Y(1 - K), \qquad Y_2 = Y\left(1 - \frac{1}{K}\right)
@@ -104,56 +92,36 @@ $$
   <figcaption>Rappresentazione topologica del Teorema di Miller per un bipolo generico di impedenza $Z$ collegato tra due nodi di potenziale $V_1$ e $V_2$.</figcaption>
 </figure>
 
-Applicando il teorema alla capacità parassita $C_{gd}$ dello stadio Common Source ($Y = s C_{gd}$), dove tra Gate ($V_1$) e Drain ($V_2$) il guadagno invertente a centro banda è $K = A_v = -g_m R_L'$ (con $R_L' = R_D \parallel r_o \parallel R_L$), all'ingresso appare verso massa una **capacità equivalente di Miller** amplificata del fattore $(1 + |A_v|)$:
+Applicato a $C_{gd}$ nel Common Source ($K = A_v = -g_m R_L'$ con $R_L' = R_D \parallel r_o \parallel R_L$), all'ingresso appare una **capacità equivalente di Miller** amplificata:
 
 $$
 C_M = C_{gd}(1 - K) = C_{gd}(1 + g_m R_L') = C_{gd}(1 + |A_v|)
 $$
 
-Sul nodo di uscita al Drain, invece, il fattore vale $1 - 1/K = 1 + 1/|A_v| \approx 1$, quindi all'uscita si riflette essenzialmente soltanto la piccola $C_{gd}$ originaria. È per questo effetto moltiplicativo che $C_{gd}$, pur essendo spesso più piccola di $C_{gs}$, finisce per dominare la capacità totale di ingresso $C_{in,\text{tot}} = C_{gs} + C_M$ e costituisce il principale collo di bottiglia di banda del Common Source.
+Sul nodo di uscita resta invece essenzialmente la sola $C_{gd}$ ($1 + 1/|A_v| \approx 1$). È per questo effetto moltiplicativo che $C_{gd}$ domina la capacità totale al Gate ($C_{in,\text{tot}} = C_{gs} + C_M$) e limita la banda superiore del Common Source.
 
 #### Metodo OCTC e Applicazione al Common Source
 
-Il Teorema di Miller offre un'ottima intuizione fisica sul nodo di Gate, ma trascura l'interazione completa ad alta frequenza tra ingresso e uscita. Per stimare con precisione e generalità la frequenza di taglio superiore $f_H$ di qualunque stadio si usa il **metodo delle costanti di tempo a circuito aperto** (*Open-Circuit Time Constants*, **OCTC**).
+Per stimare la frequenza di taglio superiore $f_H$ si usa il **metodo delle costanti di tempo a circuito aperto** (**OCTC**):
 
-Alle alte frequenze tutti i condensatori esterni grandi sono cortocircuitati. Nella funzione di trasferimento passa-basso di uno stadio con $m$ capacità parassite, $A_v(s) = \frac{A_{v0}}{1 + b_1 s + b_2 s^2 + \dots}$, la teoria delle reti dimostra che il coefficiente $b_1$ (che vale $\sum_k 1/\omega_{pk}$ ed è uguale all'inverso della frequenza di polo dominante quando un polo prevale) coincide esattamente con la somma delle costanti di tempo associate a ciascuna capacità parassita $C_k$ quando tutte le altre capacità parassite sono sostituite da **circuiti aperti**:
-
-1. Si spegne il generatore $v_{sig}$ e si cortocircuitano i condensatori esterni grandi.
+1. Si spegne il generatore $v_{sig}$ e si cortocircuitano tutti i condensatori esterni grandi.
 2. Si sostituiscono tutte le **altre capacità parassite** con **circuiti aperti**.
-3. Si calcola la resistenza equivalente $R_{k0}$ vista ai morsetti della capacità $C_k$ e si sommano tutte le costanti di tempo $\tau_H = \sum_{k=1}^m R_{k0} C_k$:
+3. Si calcola la resistenza equivalente $R_{k0}$ vista ai capi di ciascuna capacità parassita $C_k$ e si sommano le costanti di tempo $\tau_H = \sum_{k=1}^m R_{k0} C_k$:
 
 $$
 \omega_H \approx \frac{1}{\tau_H} = \frac{1}{\sum_{k=1}^m R_{k0} C_k} \implies f_H \approx \frac{1}{2\pi \sum_{k=1}^m R_{k0} C_k}
 $$
 
-Applichiamo il metodo al modello ad alta frequenza del Common Source ([figura seguente](#fig-cs-octc-schematic)), definendo $R_{sig}' = R_{sig} \parallel R_G$ e $R_L' = R_D \parallel r_o \parallel R_L$:
-
-<figure id="fig-cs-octc-schematic" className="dc-svg-wrap">
-  <img src="/dynamic-courses/diagrams/elettronica/fig-cs-octc-schematic.svg" alt="Modello a piccolo segnale in alta frequenza per il calcolo OCTC delle resistenze equivalenti viste da C_gs, C_gd e C_L nello stadio Common Source." />
-  <figcaption>Modello a piccolo segnale in alta frequenza per il calcolo OCTC delle resistenze equivalenti viste da $C_{gs}$, $C_{gd}$ e $C_L$ nello stadio Common Source.</figcaption>
-</figure>
-
-* **Resistenza vista da $C_{gs}$:** con $C_{gd}$ e $C_L$ aperte, $C_{gs}$ è collegata tra Gate e Source (massa AC), vedendo semplicemente il parallelo al Gate: $R_{gs0} = R_{sig}'$.
-* **Resistenza vista da $C_L$:** con $C_{gs}$ e $C_{gd}$ aperte, $v_{gs} = 0$, il generatore controllato è spento e $C_L$ vede il carico equivalente al Drain: $R_{L0} = R_L'$.
-* **Resistenza vista da $C_{gd}$:** colleghiamo tra Drain ($+$) e Gate ($-$) un generatore di prova $v_x$ che preleva la corrente $i_x$ dal Gate e la inietta nel Drain. Poiché $i_x$ esce dal Gate attraverso $R_{sig}'$, la tensione al Gate diventa negativa ($v_g = v_{gs} = -i_x R_{sig}'$). Di conseguenza, il generatore controllato $g_m v_{gs} = -g_m R_{sig}' i_x$ spinge corrente **verso l'alto** nel nodo di Drain, sommandosi a $i_x$ nel percorrere $R_L'$ verso massa e fissando $v_d = R_L'(1 + g_m R_{sig}')i_x$. La tensione di prova totale vale $v_x = v_d - v_g = [R_{sig}'(1 + g_m R_L') + R_L']i_x$, per cui:
-
-$$
-R_{gd0} = R_{sig}'(1 + g_m R_L') + R_L'
-$$
-
-Sommando le tre costanti di tempo $\tau_H = R_{gs0} C_{gs} + R_{gd0} C_{gd} + R_{L0} C_L$ si ottiene:
+Nel modello ad alta frequenza del Common Source ([figura seguente](#fig-cs-octc-schematic)), posto $R_{sig}' = R_{sig} \parallel R_G$ e $R_L' = R_D \parallel r_o \parallel R_L$, risultano $R_{gs0} = R_{sig}'$, $R_{L0} = R_L'$ e $R_{gd0} = R_{sig}'(1 + g_m R_L') + R_L'$, che raggruppano la stima di Miller all'ingresso e il carico all'uscita:
 
 $$
 \tau_H = R_{sig}' \left[ C_{gs} + C_{gd}(1 + g_m R_L') \right] + R_L' (C_L + C_{gd})
 $$
 
-Si ritrova così esattamente la stima di Miller all'ingresso sommata al contributo $R_L'(C_L + C_{gd})$ all'uscita. Ad esempio, con $g_m = 4\,\text{mA/V}$, $R_L' = 5\,\text{k}\Omega$ ($|A_v| = 20$), $R_{sig}' = 2\,\text{k}\Omega$, $C_{gs} = 2.5\,\text{pF}$, $C_{gd} = 0.5\,\text{pF}$ e $C_L = 1.0\,\text{pF}$, la sola $C_M = 0.5 \cdot 21 = 10.5\,\text{pF}$ domina l'ingresso e $\tau_H = 2 \cdot 2.5 + 47 \cdot 0.5 + 5 \cdot 1.0 = 33.5\,\text{ns}$, limitando la banda a $f_H \approx 4.75\,\text{MHz}$.
-
-Ricordiamo infine che il limite intrinseco di velocità del singolo MOSFET (a uscita cortocircuitata) è espresso dalla **frequenza di transizione** a guadagno di corrente unitario:
-
-$$
-f_T = \frac{g_m}{2\pi (C_{gs} + C_{gd})}
-$$
+<figure id="fig-cs-octc-schematic" className="dc-svg-wrap">
+  <img src="/dynamic-courses/diagrams/elettronica/fig-cs-octc-schematic.svg" alt="Modello a piccolo segnale in alta frequenza per il calcolo OCTC delle resistenze equivalenti viste da C_gs, C_gd e C_L nello stadio Common Source." />
+  <figcaption>Modello a piccolo segnale in alta frequenza per il calcolo OCTC delle resistenze equivalenti viste da $C_{gs}$, $C_{gd}$ e $C_L$ nello stadio Common Source.</figcaption>
+</figure>
 
 Nel simulatore interattivo qui sotto alterna **Common Source**, **Common Drain** e **Common Gate** variando $C_{gd}$ e $g_m$: osserva come nel CD e nel CG la capacità equivalente di Miller $C_M$ si azzeri facendo crescere nettamente la banda superiore $f_H$.
 
@@ -161,67 +129,25 @@ Nel simulatore interattivo qui sotto alterna **Common Source**, **Common Drain**
 
 <StepCheck client:load lang="it" mode="choice" prompt="Perché nello stadio Common Source la capacità parassita $C_{gd}$, pur essendo tipicamente molto più piccola di $C_{gs}$, limita fortemente la banda superiore $f_H$?" options={["Perché $C_{gd}$ blocca la corrente continua sul Drain", "Perché tra Gate e Drain è presente un guadagno invertente che, per il Teorema di Miller, moltiplica $C_{gd}$ all'ingresso per $(1 + |A_v|)$", "Perché $C_{gd}$ compare nella somma delle frequenze SCTC", "Perché $C_{gd}$ riduce a zero la resistenza $R_D$"]} correctIndex={1} explanation="Poiché il nodo di Drain oscilla in opposizione di fase di $-|A_v| v_g$, la tensione ai capi di $C_{gd}$ è $(1 + |A_v|)$ volte maggiore di $v_g$, riflettendo all'ingresso una capacità $C_M = C_{gd}(1 + |A_v|)$." />
 
-<Divider label="3 · Alta Frequenza in Common Drain, Common Gate e Confronto" />
+<Divider label="3 · Confronto ad Alta Frequenza con CD, CG e Cascode" />
 
-### Eliminazione dell'Effetto Miller in CD, CG e Cascode
+### Eliminazione dell'Effetto Miller nelle Altre Topologie
 
-La limitazione di banda del Common Source nasce dalla presenza di una capacità ponte ($C_{gd}$) sottoposta a un guadagno invertente elevato. Eliminare l'inversione ad alto guadagno tra i terminali di controllo estende la frequenza di taglio superiore di circa un ordine di grandezza:
-* **Common Drain:** il Drain è a massa AC ($C_{gd}$ non vede amplificazione), mentre l'uscita sul Source insegue il Gate in fase con guadagno $\approx +1$, riducendo la tensione ai capi di $C_{gs}$ (*bootstrapping*) e la corrente reattiva richiesta alla sorgente.
-* **Common Gate e Cascode:** il Gate a massa AC isola fisicamente l'ingresso (Source) dall'uscita (Drain), confinando $C_{gs}$ e $C_{gd}$ verso massa senza alcun ponte capacitivo moltiplicato per il guadagno.
-
-### Teoria — Costanti OCTC di CD e CG e Confronto Topologico
-
-#### Common Drain ad Alta Frequenza
-
-Nel modello ad alta frequenza del Common Drain ([figura seguente](#fig-cd-cg-hf-models), a) il Drain è collegato a massa AC tramite $V_{DD}$ e non vi è guadagno invertente tra ingresso e uscita:
-
-* **$C_{gd}$:** è collegata direttamente tra il Gate e il Drain (massa AC), quindi non subisce alcun effetto Miller e vede semplicemente la resistenza equivalente al Gate: $R_{gd0} = R_{sig}'$.
-* **$C_{gs}$:** collega il Gate al Source (uscita). Poiché il Source insegue in fase il Gate con guadagno vicino a $1$ (*bootstrapping*), la differenza di tensione ai capi di $C_{gs}$ è molto piccola ($v_{gs} = v_g - v_s = v_g(1 - A_v)$) e in essa scorre pochissima corrente. Nell'analisi OCTC (con $v_{sig} = 0$ e $g_{mb} = 0$), l'azione del generatore controllato riduce la resistenza vista da $C_{gs}$ dividendola per $(1 + g_m R_L')$:
-
-$$
-R_{gs0} = \frac{R_{sig}' + R_L'}{1 + g_m R_L'}
-$$
-
-Grazie all'assenza di Miller su $C_{gd}$ e al fattore riduttivo $(1 + g_m R_L')$ su $C_{gs}$, il Source Follower raggiunge bande superiori di un ordine di grandezza maggiori rispetto al Common Source.
+La limitazione di banda del Common Source nasce dalla capacità ponte $C_{gd}$ sottoposta a un guadagno invertente elevato. Le altre configurazioni ([figura seguente](#fig-cd-cg-hf-models)) rimuovono questo collo di bottiglia:
+* **Common Drain:** il Drain è a massa AC ($C_{gd}$ non vede amplificazione), mentre il Source segue in fase il Gate con guadagno $\approx +1$ (*bootstrapping*), riducendo la tensione ai capi di $C_{gs}$ e portando $f_H$ circa un ordine di grandezza più in alto.
+* **Common Gate e Cascode:** il Gate a massa AC funge da schermo elettrostatico tra ingresso e uscita, confinando $C_{gs}$ e $C_{gd}$ verso massa senza alcuna capacità ponte moltiplicata (nel Cascode $M_1$ ha guadagno locale $\approx -1$, riducendo $C_M$ a $\approx 2C_{gd1}$).
 
 <figure id="fig-cd-cg-hf-models" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/elettronica/fig-cd-cg-hf-models.svg" alt="Modelli equivalenti in alta frequenza con sorgente spenta (v_sig=0) per il calcolo OCTC di (a) Common Drain (con Drain a massa AC) e (b) Common Gate (con Gate a massa AC)." />
-  <figcaption>Modelli equivalenti in alta frequenza con sorgente spenta ($v_{sig}=0$) per il calcolo OCTC di (a) Common Drain (con Drain a massa AC) e (b) Common Gate (con Gate a massa AC).</figcaption>
+  <figcaption>Modelli equivalenti in alta frequenza con sorgente spenta ($v_{sig}=0$) per (a) Common Drain (Drain a massa AC) e (b) Common Gate (Gate a massa AC).</figcaption>
 </figure>
 
-#### Common Gate ad Alta Frequenza
-
-Nel Common Gate ([seconda figura sopra](#fig-cd-cg-hf-models), b), il Gate è ancorato a massa AC tramite $C_B$ e separa elettrostaticamente il Source dal Drain, azzerando completamente l'effetto Miller:
-
-* **$C_{gs}$:** è confinata tra il Source e massa AC, vedendo il parallelo tra la sorgente e la bassissima resistenza d'ingresso nel Source: $R_{gs0} = R_{sig}' \parallel \frac{1}{g_m + g_{mb}}$. La costante di tempo d'ingresso risulta piccolissima (spesso nell'ordine delle decine di picosecondi).
-* **$C_{gd}$:** è confinata tra il Drain e massa AC, vedendo la resistenza di carico al Drain: $R_{gd0} = R_D \parallel R_L$ (per $r_o \to \infty$).
-
-La banda superiore del Common Gate si stima quindi direttamente come:
-
-$$
-f_H \approx \frac{1}{2\pi \left[ \left(R_{sig}' \parallel \frac{1}{g_m + g_{mb}}\right) C_{gs} + (R_D \parallel R_L) C_{gd} \right]}
-$$
-
-Analogamente, nello stadio **Cascode (CS + CG)** visto nel [Capitolo 15](/dynamic-courses/elettronica/04-amplificatori-frequenza/15-common-gate-multistadio/), il Common Gate impilato riduce il guadagno sul Drain del CS d'ingresso a $|A_{v1}| \approx 1$, abbattendo la capacità di Miller su $C_{gd1}$ a soli $2 C_{gd1}$ e combinando alto guadagno e banda molto larga.
-
-#### Confronto Completo delle Topologie
-
-| Topologia | Resistenza $R_{in}$ | Resistenza $R_{out}$ | Effetto Miller | Banda Superiore $f_H$ |
-| :--- | :--- | :--- | :--- | :--- |
-| **Common Source (CS)** | $R_G$ (alta) | $R_D \parallel r_o$ | **Massimo:** $C_M = C_{gd}(1 + g_m R_L')$ | Bassa (limitata dal polo d'ingresso) |
-| **Common Drain (CD)** | $R_G$ (alta) | $\frac{1}{g_m} \parallel R_S$ | **Assente:** $R_{gs0} = \frac{R_{sig}' + R_L'}{1 + g_m R_L'}$ | Molto elevata (ottimo buffer) |
-| **Common Gate (CG)** | $\frac{1}{g_m} \parallel R_S$ (bassa) | $R_D \parallel r_o$ | **Nullo:** Gate a massa scherma le porte | Elevatissima |
-| **Cascode (CS + CG)** | $R_G$ (alta) | $\approx g_m r_o^2$ | **Minimizzato:** $\lvert A_{v1}\rvert \approx 1$ | Massima (alto guadagno e larga banda) |
-
-<Callout type="tip" title="Colli di Bottiglia di Banda">
-
-Nell'analisi a ispezione di un amplificatore a MOSFET:
-* **In bassa frequenza ($f_L$):** il collo di bottiglia è quasi sempre il **condensatore di bypass** $C_S$, perché vede la piccolissima resistenza $1/g_m$ del Source.
-* **In alta frequenza ($f_H$):** nello stadio CS il collo di bottiglia è la **capacità ponte** $C_{gd}$ moltiplicata da Miller per $(1 + g_m R_L')$, superabile con un buffer CD o con l'architettura Cascode.
-
-</Callout>
-
-<StepCheck client:load lang="it" mode="choice" prompt="Perché nello stadio Common Drain la resistenza OCTC vista da $C_{gs}$ vale $R_{gs0} = \frac{R_{sig}' + R_L'}{1 + g_m R_L'}$ ed è quindi molto più piccola di $R_{sig}'$?" options={["Perché $C_{gs}$ è collegata al Drain a massa AC", "Perché il Source insegue in fase il Gate (bootstrapping), riducendo la tensione ai capi di $C_{gs}$ e dividendo la resistenza vista per $(1 + g_m R_L')$", "Perché $R_S$ cortocircuita il Gate", "Perché $C_{gs}$ viene moltiplicata per $(1 + g_m R_L')$"]} correctIndex={1} explanation="Quando il Gate sale, anche il Source sale in fase inseguendolo: la differenza $v_{gs}$ resta piccolissima, scorre poca corrente in $C_{gs}$ e la costante di tempo si riduce del fattore $(1 + g_m R_L')$." />
+| Topologia | Effetto Miller | Banda Superiore $f_H$ |
+| :--- | :--- | :--- |
+| **Common Source (CS)** | **Massimo:** $C_M = C_{gd}(1 + g_m R_L')$ | Bassa (limitata dal polo d'ingresso) |
+| **Common Drain (CD)** | **Assente:** Drain a massa AC, *bootstrapping* su $C_{gs}$ | Molto elevata |
+| **Common Gate (CG)** | **Nullo:** Gate a massa AC scherma le porte | Elevatissima |
+| **Cascode (CS + CG)** | **Minimizzato:** $\lvert A_{v1}\rvert \approx 1$ | Larga banda con alto guadagno |
 
 <Divider label="4 · Sintesi" />
 
@@ -234,14 +160,14 @@ Nell'analisi a ispezione di un amplificatore a MOSFET:
 
 ### Procedura di Analisi
 
-1. **Banda inferiore ($f_L$, SCTC):** spegnere $v_{sig}$, cortocircuitare gli altri condensatori esterni (aprendo tutte le capacità parassite), calcolare $R_{j,sc}$ ai capi di ogni condensatore esterno $C_j$ e sommare le frequenze $f_L \approx \frac{1}{2\pi}\sum_j \frac{1}{R_{j,sc} C_j}$.
-2. **Banda superiore ($f_H$, OCTC):** spegnere $v_{sig}$, cortocircuitare tutti i condensatori esterni grandi, aprire le altre capacità parassite, calcolare $R_{k0}$ ai capi di ogni capacità parassita $C_k$ e sommare le costanti di tempo $f_H \approx \frac{1}{2\pi \sum_k R_{k0} C_k}$.
+1. **Banda inferiore ($f_L$, SCTC):** spegnere $v_{sig}$, cortocircuitare gli altri condensatori esterni (parassiti aperti), calcolare $R_{j,sc}$ ai capi di ogni $C_j$ e sommare le frequenze $f_L \approx \frac{1}{2\pi}\sum_j \frac{1}{R_{j,sc} C_j}$.
+2. **Banda superiore ($f_H$, OCTC):** spegnere $v_{sig}$, cortocircuitare tutti i condensatori esterni, aprire le altre capacità parassite, calcolare $R_{k0}$ ai capi di ogni $C_k$ e sommare le costanti di tempo $f_H \approx \frac{1}{2\pi \sum_k R_{k0} C_k}$.
 
 <Callout type="warning" title="Errori Comuni">
 
-* **Invertire le regole di somma tra SCTC e OCTC:** in SCTC si sommano gli **inversi delle costanti di tempo** ($\omega_L \approx \sum 1/\tau_j$); in OCTC si sommano direttamente le **costanti di tempo** ($\tau_H = \sum \tau_k \implies \omega_H \approx 1/\tau_H$).
-* **Contare due volte $C_{gd}$:** se applichi il Teorema di Miller sostituendo $C_{gd}$ con $C_M = C_{gd}(1 + |A_v|)$ all'ingresso e $C_{gd}$ all'uscita, hai già incluso l'intero contributo $R_{gd0} C_{gd}$ dell'OCTC; non sommare una seconda volta il termine $R_{gd0} C_{gd}$.
-* **Dimenticare il parallelo $R_{sig}' = R_{sig} \parallel R_G$ in OCTC:** alle alte frequenze $C_G$ è un cortocircuito, quindi il Gate vede verso massa $R_{sig}$ in parallelo (non in serie) a $R_G = R_1 \parallel R_2$.
+* **Invertire le regole di somma tra SCTC e OCTC:** in SCTC si sommano gli **inversi delle costanti di tempo** ($\omega_L \approx \sum 1/\tau_j$); in OCTC si sommano le **costanti di tempo** ($\tau_H = \sum \tau_k \implies \omega_H \approx 1/\tau_H$).
+* **Contare due volte $C_{gd}$:** applicando Miller ($C_M = C_{gd}(1+|A_v|)$ al Gate e $C_{gd}$ al Drain) hai già incluso il contributo di $C_{gd}$ nell'OCTC.
+* **Dimenticare il parallelo $R_{sig}' = R_{sig} \parallel R_G$ in OCTC:** alle alte frequenze $C_G$ è un cortocircuito verso la sorgente.
 
 </Callout>
 
@@ -256,52 +182,24 @@ In uno stadio Common Source con $C_G = 1\,\mu\text{F}$, $C_D = 1\,\mu\text{F}$ e
 <details className="dc-solution">
 <summary>Mostra Risposta Orale Modello</summary>
 
-1. **Somma degli inversi in SCTC:** in bassa frequenza i condensatori esterni introducono un comportamento passa-alto; il taglio complessivo a $-3\,\text{dB}$ è dominato dal polo singolo posto alla frequenza più alta (cioè dalla costante di tempo più piccola). La somma $\omega_L \approx \sum_j \frac{1}{R_{j,sc} C_j}$ pesa correttamente ciascun polo in base alla sua frequenza di taglio individuale.
-2. **Dominanza di $C_S$:** mentre $C_G$ vede $R_{sig} + R_G$ (decine o centinaia di $\text{k}\Omega$) e $C_D$ vede $R_{out} + R_L$ (diversi $\text{k}\Omega$), il condensatore di bypass $C_S$ vede verso il Source del MOSFET la bassissima resistenza $R_{S,sc} \approx R_S \parallel \frac{1}{g_m + g_{mb}}$ (tipicamente $100\text{--}300\,\Omega$). Perciò, a parità di capacità, $C_S$ produce la costante di tempo più corta e il polo dominante in bassa frequenza.
+1. **Somma degli inversi in SCTC:** in bassa frequenza il taglio complessivo a $-3\,\text{dB}$ è dominato dal polo passa-alto posto alla frequenza più alta ($\omega_L \approx \sum_j \frac{1}{R_{j,sc} C_j}$).
+2. **Dominanza di $C_S$:** mentre $C_G$ e $C_D$ vedono resistenze dell'ordine dei $\text{k}\Omega$, $C_S$ vede $R_{S,sc} \approx R_S \parallel \frac{1}{g_m}$ (poche centinaia di ohm), producendo il polo più alto.
 
 </details>
 
 </Exercise>
 
-<Exercise client:load lang="it" id="ex-17-2" title="Esercizio 17.2 — Confronto di Banda Superiore tra CS, CD e CG" level="Intermedio" hint="Metti in relazione il legame di fase tra i due morsetti di $C_{gd}$ e $C_{gs}$ nelle tre topologie.">
+<Exercise client:load lang="it" id="ex-17-2" title="Esercizio 17.2 — Effetto Miller e Banda Superiore tra CS, CD e CG" level="Intermedio" hint="Metti in relazione il legame di fase tra i due morsetti di $C_{gd}$ e $C_{gs}$ nelle tre topologie.">
 
 A parità di transistore MOSFET ($g_m, C_{gs}, C_{gd}$), si confrontano le frequenze di taglio superiori $f_H$ degli stadi Common Source, Common Drain e Common Gate.
 
-<StepCheck client:load lang="it" mode="choice" prompt="Qual è il motivo fisico per cui Common Drain e Common Gate raggiungono bande superiori $f_H$ molto più elevate rispetto al Common Source?" options={["Perché in CD e CG $C_{gs}$ e $C_{gd}$ scompaiono fisicamente dal MOSFET", "Perché nel CS $C_{gd}$ collega ingresso e uscita in controfase subendo la moltiplicazione di Miller $(1 + |A_v|)$, mentre nel CD e nel CG non esiste guadagno invertente a ponte", "Perché in CD e CG $C_G$ rimane aperto anche ad alta frequenza", "Perché nel CS la resistenza $R_S$ non è mai presente"]} correctIndex={1} explanation="Nel CS l'amplificazione invertente tra Gate e Drain moltiplica $C_{gd}$ per $(1 + |A_v|)$. Nel CD il Drain è a massa AC ($C_{gd}$ senza Miller) e il Source insegue il Gate riducendo il peso di $C_{gs}$; nel CG il Gate a massa AC scherma ingresso e uscita." />
+<StepCheck client:load lang="it" mode="choice" prompt="Qual è il motivo fisico per cui Common Drain e Common Gate raggiungono bande superiori $f_H$ molto più elevate rispetto al Common Source?" options={["Perché in CD e CG $C_{gs}$ e $C_{gd}$ scompaiono fisicamente dal MOSFET", "Perché nel CS $C_{gd}$ collega ingresso e uscita in controfase subendo la moltiplicazione di Miller $(1 + |A_v|)$, mentre nel CD e nel CG non esiste guadagno invertente a ponte", "Perché in CD e CG $C_G$ rimane aperto anche ad alta frequenza", "Perché nel CS la resistenza $R_S$ non è mai presente"]} correctIndex={1} explanation="Nel CS l'amplificazione invertente tra Gate e Drain moltiplica $C_{gd}$ per $(1 + |A_v|)$. Nel CD il Drain è a massa AC ($C_{gd}$ senza Miller) e il Source insegue il Gate; nel CG il Gate a massa AC scherma ingresso e uscita." />
 
 <details className="dc-solution">
 <summary>Mostra Risposta Orale Modello</summary>
 
-1. **Limite del Common Source:** la capacità $C_{gd}$ fa da ponte tra il Gate e il Drain invertito ($K = -g_m R_L'$). Per il Teorema di Miller, essa appare all'ingresso moltiplicata come $C_M = C_{gd}(1 + g_m R_L')$, creando una grande costante di tempo $\tau_{gd} = [R_{sig}'(1 + g_m R_L') + R_L']C_{gd}$ che abbatte $f_H$.
-2. **Vantaggio del Common Drain:** il Drain è a massa AC, quindi $C_{gd}$ vede solo $R_{sig}'$ senza moltiplicazione; inoltre $C_{gs}$ beneficia del *bootstrapping* (il Source segue in fase il Gate), vedendo una resistenza ridotta a $R_{gs0} = \frac{R_{sig}' + R_L'}{1 + g_m R_L'}$.
-3. **Vantaggio del Common Gate:** il Gate a massa AC funge da schermo elettrostatico tra Source e Drain, confinanto $C_{gs}$ tra Source e massa ($R_{gs0} = R_{sig}' \parallel \frac{1}{g_m + g_{mb}}$) e $C_{gd}$ tra Drain e massa ($R_{gd0} = R_D \parallel R_L$), eliminando l'effetto Miller.
-
-</details>
-
-</Exercise>
-
-<Exercise client:load lang="it" id="ex-17-3" title="Esercizio 17.3 — Verifica Rapida su Miller e Metodo OCTC" level="Base" hint="Usa $C_M = C_{gd}(1 + |A_v|)$, poi calcola $\tau_H = R_{sig}'(C_{gs} + C_M) + R_L' C_{gd}$ e $f_H \approx 1 / (2\pi \tau_H)$.">
-
-Uno stadio Common Source ha $|A_v| = 15$, $C_{gs} = 4\,\text{pF}$, $C_{gd} = 1\,\text{pF}$, resistenza equivalente al Gate $R_{sig}' = R_{sig} \parallel R_G = 2\,\text{k}\Omega$ e al Drain $R_L' = 4\,\text{k}\Omega$ ($C_L = 0$).
-
-<StepCheck client:load lang="it" prompt="Calcola la capacità equivalente di Miller $C_M$ all'ingresso (in $\text{pF}$):" expected={16.0} tolerance={0.2} unit="$\text{pF}$" explanation="$C_M = C_{gd}(1 + |A_v|) = 1 \cdot (1 + 15) = 16.0\,\text{pF}$." />
-
-<StepCheck client:load lang="it" prompt="Calcola la frequenza di taglio superiore $f_H$ dello stadio (in $\text{MHz}$):" expected={3.617} tolerance={0.12} unit="$\text{MHz}$" explanation="$\tau_H = 2\,\text{k}\Omega \cdot (4 + 16)\,\text{pF} + 4\,\text{k}\Omega \cdot 1\,\text{pF} = 40\,\text{ns} + 4\,\text{ns} = 44\,\text{ns} \implies f_H = 1/(2\pi \cdot 44\times 10^{-9}) \approx 3.62\,\text{MHz}$." />
-
-<details className="dc-solution">
-<summary>Mostra Risposta Orale Modello</summary>
-
-1. **Capacità di Miller all'ingresso:** applicando il Teorema di Miller con $K = -15$, la capacità $C_{gd} = 1\,\text{pF}$ si riflette al Gate come:
-
-$$
-C_M = C_{gd}(1 + |A_v|) = 1\,\text{pF} \cdot (1 + 15) = 16.0\,\text{pF}
-$$
-
-2. **Costante di tempo OCTC e frequenza $f_H$:** all'ingresso $R_{sig}'$ carica $C_{gs} + C_M = 20\,\text{pF}$, mentre all'uscita $R_L'$ vede $C_{gd} = 1\,\text{pF}$ (senza contare due volte il termine di interazione). Sommando le costanti di tempo:
-
-$$
-\tau_H = 2\,\text{k}\Omega \cdot 20\,\text{pF} + 4\,\text{k}\Omega \cdot 1\,\text{pF} = 40\,\text{ns} + 4\,\text{ns} = 44\,\text{ns} \implies f_H \approx \frac{1}{2\pi \cdot 44 \times 10^{-9}} \approx 3.62\,\text{MHz}
-$$
+1. **Common Source:** $C_{gd}$ fa da ponte tra Gate e Drain invertito ($K = -g_m R_L'$), riflettendo al Gate la grande capacità di Miller $C_M = C_{gd}(1 + |A_v|)$ che domina $\tau_H$ e abbatte $f_H$.
+2. **Common Drain e Common Gate:** nel CD il Drain è a massa AC e il Source insegue il Gate in fase (*bootstrapping*); nel CG il Gate a massa AC scherma Source e Drain annullando l'effetto Miller.
 
 </details>
 

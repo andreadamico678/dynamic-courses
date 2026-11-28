@@ -1,32 +1,53 @@
 #flashcards/automatica/06_03_kalman_decomposition
 
-Cosa garantisce la proprietà di $\mathbf{A}$-invarianza del sottospazio di raggiungibilità $\mathcal{X}_r = \operatorname{Im}(\mathcal{P})$?
+Into which four structural subspaces does the Kalman Canonical Decomposition partition $\mathbb{R}^n$?
 ?
-Garantisce che la moltiplicazione per la matrice dinamica $\mathbf{A}$ mantiene qualsiasi vettore di $\mathcal{X}_r$ all'interno di $\mathcal{X}_r$ stesso: $\mathbf{A} \mathcal{X}_r \subseteq \mathcal{X}_r$.
+$\mathbb{R}^n = \mathcal{X}_{co} \oplus \mathcal{X}_{c\bar{o}} \oplus \mathcal{X}_{\bar{c}o} \oplus \mathcal{X}_{\bar{c}\bar{o}}$ (controllable/uncontrollable paired with observable/unobservable).
 
-Come si costruisce la matrice di trasformazione di similarità $\mathbf{T}$ per isolare il sottosistema controllabile nella Decomposizione Canonica di Kalman?
-?
-$$\mathbf{T} = \begin{bmatrix} \mathbf{T}_c & \mathbf{T}_{nc} \end{bmatrix}$$
-dove le colonne di $\mathbf{T}_c \in \mathbb{R}^{n \times r}$ formano una base di $\operatorname{Im}(\mathcal{P})$ ($r = \operatorname{rank}(\mathcal{P})$) e $\mathbf{T}_{nc}$ completa la base in $\mathbb{R}^n$.
+---
 
-Qual è la struttura a blocchi della matrice dinamica trasformata $\tilde{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ nella Decomposizione Canonica di Kalman per la controllabilità?
+How are $\mathcal{X}_{c\bar{o}}$, $\mathcal{X}_{co}$, and $\mathcal{X}_{\bar{c}\bar{o}}$ defined algebraically from $\mathcal{X}_c = \operatorname{Im}(\mathcal{R})$ and $\mathcal{X}_{no} = \ker(\mathcal{O})$?
 ?
-$$\tilde{\mathbf{A}} = \begin{bmatrix} \mathbf{A}_c & \mathbf{A}_{12} \\ \mathbf{0} & \mathbf{A}_{nc} \end{bmatrix}$$
-con il blocco nullo $\tilde{\mathbf{A}}_{21} = \mathbf{0}$ che impedisce agli stati non controllabili di essere influenzati da quelli controllabili.
+$\mathcal{X}_{c\bar{o}} = \mathcal{X}_c \cap \mathcal{X}_{no}$, while $\mathcal{X}_{co}$ complements $\mathcal{X}_{c\bar{o}}$ in $\mathcal{X}_c$ and $\mathcal{X}_{\bar{c}\bar{o}}$ complements $\mathcal{X}_{c\bar{o}}$ in $\mathcal{X}_{no}$.
 
-Qual è la struttura a blocchi della matrice di ingresso trasformata $\tilde{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$ nella Decomposizione Canonica di Kalman?
-?
-$$\tilde{\mathbf{B}} = \begin{bmatrix} \mathbf{B}_c \\ \mathbf{0} \end{bmatrix}$$
-le righe corrispondenti al sottosistema non controllabile sono identicamente nulle.
+---
 
-In quanti sottospazi fondamentali scompone lo spazio di stato la Decomposizione Canonica Completa di Kalman a 4 vie?
+Which of the four Kalman canonical subsystems determines the transfer function matrix $\mathbf{W}(s)$?
 ?
-In quattro sottospazi disgiunti:
-1. Controllabile e osservabile ($\mathcal{X}_{co}$)
-2. Controllabile e non osservabile ($\mathcal{X}_{c\bar{o}}$)
-3. Non controllabile e osservabile ($\mathcal{X}_{\bar{c}o}$)
-4. Non controllabile e non osservabile ($\mathcal{X}_{\bar{c}\bar{o}}$)
+Exclusively the controllable and observable core $(\mathbf{A}_{co}, \mathbf{B}_{co}, \mathbf{C}_{co}, \mathbf{D})$.
 
-Quale dei 4 sottospazi della Decomposizione Completa di Kalman determina l'intera funzione di trasferimento ingresso-uscita $W(s)$?
+---
+
+In Kalman Canonical Form, what happens algebraically to eigenvalues belonging to $\mathcal{X}_{c\bar{o}}$, $\mathcal{X}_{\bar{c}o}$, and $\mathcal{X}_{\bar{c}\bar{o}}$ when forming $\mathbf{W}(s)$?
 ?
-Esclusivamente il sottospazio contemporaneamente controllabile e osservabile ($\mathcal{X}_{co}$). I modi negli altri tre sottospazi si cancellano algebricamente in $W(s)$.
+They cancel identically between $\operatorname{adj}(s\mathbf{I} - \mathbf{A})$ and $\det(s\mathbf{I} - \mathbf{A})$, leaving $\mathbf{W}(s)$ blind to those modes.
+
+---
+
+What is the McMillan degree condition for a state-space realization $(\mathbf{A}, \mathbf{B}, \mathbf{C}, \mathbf{D})$ to be minimal?
+?
+State dimension equals the controllable-observable order ($n = n_{co}$), holding iff $(\mathbf{A}, \mathbf{B})$ is controllable and $(\mathbf{A}, \mathbf{C})$ is observable.
+
+---
+
+In the two-block controllability decomposition $\mathbf{T} = \begin{bmatrix} \mathbf{T}_c & \mathbf{T}_{\bar{c}} \end{bmatrix}$, where is $\mathbf{T}_c$ placed and how is it chosen?
+?
+Placed on the **left**, using $r_c$ linearly independent columns of $\mathcal{R}$ spanning $\operatorname{Im}(\mathcal{R})$, then completed on the right so $\det(\mathbf{T}) \neq 0$.
+
+---
+
+What block structure do $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ and $\hat{\mathbf{B}} = \mathbf{T}^{-1}\mathbf{B}$ take in controllability decomposition?
+?
+$\hat{\mathbf{A}} = \begin{bmatrix} \mathbf{A}_c & \mathbf{A}_{12} \\ \mathbf{0} & \mathbf{A}_{\bar{c}} \end{bmatrix}$ (block upper-triangular) and $\hat{\mathbf{B}} = \begin{bmatrix} \mathbf{B}_c \\ \mathbf{0} \end{bmatrix}$.
+
+---
+
+In the two-block observability decomposition $\mathbf{T} = \begin{bmatrix} \mathbf{T}_o & \mathbf{T}_{\bar{o}} \end{bmatrix}$, where is $\mathbf{T}_{\bar{o}}$ placed and how is it chosen?
+?
+Placed on the **right**, using $n - r_o$ basis vectors spanning $\ker(\mathcal{O})$, then completed on the left so $\det(\mathbf{T}) \neq 0$.
+
+---
+
+What block structure do $\hat{\mathbf{A}} = \mathbf{T}^{-1}\mathbf{A}\mathbf{T}$ and $\hat{\mathbf{C}} = \mathbf{C}\mathbf{T}$ take in observability decomposition?
+?
+$\hat{\mathbf{A}} = \begin{bmatrix} \mathbf{A}_o & \mathbf{0} \\ \mathbf{A}_{21} & \mathbf{A}_{\bar{o}} \end{bmatrix}$ (block lower-triangular) and $\hat{\mathbf{C}} = \begin{bmatrix} \mathbf{C}_o & \mathbf{0} \end{bmatrix}$.

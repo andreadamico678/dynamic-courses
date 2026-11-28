@@ -74,69 +74,41 @@ Suppose producer instruction $i$ writes destination register `rd` (`rd != x0`) i
 | **Distance $k = 3$** ($i + 3$) | Cycle 6 (`ID` in C5) | Cycle 5 | **0 stall cycles** (split-cycle double-pumping in C5) |
 | **Distance $k \ge 4$** | Cycle $\ge 7$ | Cycle 5 | **0 stall cycles** (`rd` already committed) |
 
-### Forwarding Unit Boolean Logic
+### Hardware Forwarding Paths
 
-An arithmetic instruction (`add`, `sub`, `addi`, `and`, `or`, `slt`) finishes computing its 32-bit result at the **end of stage `EX`**—two full cycles before stage `WB`. **Hardware forwarding (bypassing)** feeds the outputs of interstage registers `EX/MEM` and `MEM/WB` directly back into 3-to-1 multiplexers (`ForwardA` for `rs1`, `ForwardB` for `rs2`) ahead of the ALU inputs in stage `EX`, as shown in [the figure](#fig-forwarding-paths).
+An arithmetic instruction (`add`, `sub`, `addi`, `and`, `or`, `slt`) computes its 32-bit result at the **end of stage `EX`**—two cycles before stage `WB`. **Hardware forwarding (bypassing)** routes results directly from the interstage pipeline registers (`EX/MEM` and `MEM/WB`) into multiplexers ahead of the functional units so dependent instructions never wait for Register File write-back, as shown in [the figure](#fig-forwarding-paths).
 
 <figure id="fig-forwarding-paths" className="dc-svg-wrap">
   <img src="/dynamic-courses/diagrams/computer-architecture/fig-forwarding-paths.svg" alt="Hardware Forwarding Datapath showing bypass buses from EX/MEM (distance 1) and MEM/WB (distance 2) into the ALU input multiplexers controlled by ForwardA and ForwardB." />
-  <figcaption>Hardware forwarding datapath: combinational comparisons in the Forwarding Unit steer `EX/MEM` (`10`) or `MEM/WB` (`01`) directly into the stage `EX` ALU input multiplexers.</figcaption>
+  <figcaption>Hardware forwarding datapath: the Forwarding Unit steers `EX/MEM` (`10`) or `MEM/WB` (`01`) directly into the stage `EX` ALU input multiplexers (`ForwardA` for `rs1`, `ForwardB` for `rs2`).</figcaption>
 </figure>
 
-The combinational **Forwarding Unit** inspects register indices latched in `ID/EX`, `EX/MEM`, and `MEM/WB` and drives `ForwardA` according to two prioritized Boolean equations (with identical equations replacing `RegisterRs1` by `RegisterRs2` for `ForwardB`):
+Three forwarding paths cover all register bypasses in the 5-stage pipeline:
 
-1. **`EX` Hazard** (Distance $k = 1$, `ForwardA = 10`):
+1. **`EX/MEM` $\to$ `EX` (`EX` Hazard, Distance $k = 1$, `ForwardA/B = 10`):** Forwards an ALU result produced at the end of `EX` directly to the immediately following instruction's ALU input (`ALU -> ALU` or `ALU -> lw/sw` base address) with **0 stalls**.
+2. **`MEM/WB` $\to$ `EX` (`MEM` Hazard, Distance $k = 2$, `ForwardA/B = 01`):** Forwards either an ALU result or a `lw` memory result from `MEM/WB` to the consumer two instructions later with **0 stalls**.
+3. **`MEM/WB` $\to$ `MEM` (Store-Data Forwarding):** When an ALU or `lw` instruction produces a value immediately stored by `sw` (`add x8, x3, x2` $\to$ `sw x8, 0(x4)`), `sw` only needs `x8` as its memory write payload (`dataw`) in stage **`MEM`**—not in `EX`—so a bypass from `MEM/WB` into Data Memory's write-data mux resolves the hazard in **0 stalls**.
 
-$$
-\begin{aligned}
-\text{if } &\big(\text{EX/MEM.RegWrite} = 1\big) \\
-\land\; &\big(\text{EX/MEM.RegisterRd} \neq 0\big) \\
-\land\; &\big(\text{EX/MEM.RegisterRd} = \text{ID/EX.RegisterRs1}\big) \\
-\implies\; &\text{ForwardA} = 10 \quad (\text{select } \text{EX/MEM.ALU\_Result})
-\end{aligned}
-$$
+<Callout type="tip" title="Context: What the Forwarding Unit Wires Check">
 
-2. **`MEM` Hazard** (Distance $k = 2$, `ForwardA = 01`):
+Written exam questions do **not** require memorizing formal `if (...)` Boolean syntax, but knowing what the Forwarding Unit wires check explains why edge cases behave the way they do:
+- **Match & `RegWrite = 1`:** Forward only if the older stage actually writes a register (`RegWrite = 1`) and its `Rd` matches `ID/EX.Rs1` (`ForwardA`) or `ID/EX.Rs2` (`ForwardB`).
+- **`EX/MEM` Priority Over `MEM/WB`:** If both `EX/MEM` ($k = 1$) and `MEM/WB` ($k = 2$) write the same `Rd` (e.g., `addi x1, x1, 1` $\to$ `addi x1, x1, 2` $\to$ `add x4, x1, x5`), **`EX/MEM` (`10`) wins** because it holds the newer value.
+- **`Rd != 0` (`x0` Guard):** Writes targeting `x0` (`zero`) are ignored so stale ALU outputs from `addi x0, ...` never overwrite `0`.
 
-$$
-\begin{aligned}
-\text{if } &\big(\text{MEM/WB.RegWrite} = 1\big) \\
-\land\; &\big(\text{MEM/WB.RegisterRd} \neq 0\big) \\
-\land\; &\neg\Big(\text{EX/MEM.RegWrite} = 1 \;\land\; \text{EX/MEM.RegisterRd} \neq 0 \;\land\; \text{EX/MEM.RegisterRd} = \text{ID/EX.RegisterRs1}\Big) \\
-\land\; &\big(\text{MEM/WB.RegisterRd} = \text{ID/EX.RegisterRs1}\big) \\
-\implies\; &\text{ForwardA} = 01 \quad (\text{select } \text{MEM/WB write-back mux output})
-\end{aligned}
-$$
-
-3. **Default** (No Hazard, `ForwardA = 00`): Select `ID/EX.Data1` read normally from the Register File.
-
-Two guards inside these equations are mandatory for architectural correctness:
-
-- **`EX/MEM` Priority Over `MEM/WB`:** Consider `addi x1, x1, 1` ($I_1$), `addi x1, x1, 2` ($I_2$), `add x4, x1, x5` ($I_3$). When $I_3$ is in `EX`, both `MEM/WB` ($I_1$) and `EX/MEM` ($I_2$) hold valid writes to `x1`. Because $I_2$ is the **most recent** instruction prior to $I_3$, `EX/MEM` holds the architecturally live value of `x1`; the negated `EX`-hazard clause inside the `MEM`-hazard equation prevents older data in `MEM/WB` from overriding `EX/MEM`.
-- **`RegisterRd != 0` Guard:** In RISC-V, register `x0` (`zero`) is hardwired to `0`. An instruction such as `addi x0, x2, 5` (or `jal x0, label` saving `PC + 4` to `x0`) computes a non-zero ALU output in `EX`. Without `RegisterRd != 0`, forwarding `EX/MEM` to a subsequent `add x3, x0, x4` would inject `x2 + 5` instead of `0`!
+</Callout>
 
 ### Load-Use Hazard Interlock
 
-While `ALU -> ALU` and `ALU -> lw/sw` dependencies incur **0 stalls** with forwarding, a `lw` instruction only retrieves `Read_Data` at the **end of stage `MEM`**. When the very next instruction ($k = 1$) needs that loaded register at the start of stage `EX`, forwarding alone cannot bridge the 1-cycle gap.
+While `ALU -> ALU` and `ALU -> lw/sw` dependencies incur **0 stalls** with forwarding, a `lw` instruction only retrieves `Read_Data` at the **end of stage `MEM`**. When the very next instruction ($k = 1$) needs that loaded register at the start of stage `EX`, forwarding cannot send data backward in time.
 
-A combinational **Hazard Detection Unit** in stage `ID` tests whether the instruction currently in `EX` (`ID/EX`) is a load whose destination matches either source operand of the instruction currently in `ID` (`IF/ID`):
-
-$$
-\begin{aligned}
-\text{if } &\big(\text{ID/EX.MemRead} = 1\big) \\
-\land\; &\big(\text{ID/EX.RegisterRd} \neq 0\big) \\
-\land\; &\big(\text{ID/EX.RegisterRd} = \text{IF/ID.RegisterRs1} \;\lor\; \text{ID/EX.RegisterRd} = \text{IF/ID.RegisterRs2}\big) \\
-\implies\; &\text{Stall Pipeline for 1 Cycle}
-\end{aligned}
-$$
-
-When triggered, the Hazard Detection Unit executes three synchronous actions on the next clock edge:
+A **Hazard Detection Unit (HDU)** in stage `ID` monitors whether the instruction currently in `EX` is a load (`ID/EX.MemRead = 1`) whose destination `ID/EX.RegisterRd` ($\neq 0$) matches either `IF/ID.RegisterRs1` or `IF/ID.RegisterRs2`. When a Load-Use conflict is detected, the HDU executes three synchronous actions on the next clock edge to insert **1 stall bubble**:
 
 1. **Zero `ID/EX` Controls:** Forces a multiplexer ahead of `ID/EX` to set `RegWrite = 0` and `MemWrite = 0`, launching a harmless `NOP` bubble into stage `EX`.
-2. **Freeze `IF/ID`:** Setting `IF/IDWrite = 0` holds the stalled consumer instruction inside `IF/ID` so it repeats `ID` on the next cycle.
-3. **Freeze `PC`:** Setting `PCWrite = 0` holds `PC` unchanged so the instruction after the consumer is re-fetched rather than lost.
+2. **Freeze `IF/ID`:** Disables `IF/ID` writing so the stalled consumer repeats `ID` on the next cycle.
+3. **Freeze `PC`:** Disables `PC` updating so the instruction after the consumer is re-fetched rather than lost.
 
-One cycle later, the `lw` data sits in `MEM/WB`, and the Forwarding Unit (`ForwardA = 01` or `ForwardB = 01`) routes it cleanly into the resumed consumer's `EX` stage. (Note: if `lw x1, 0(x2)` is immediately followed by `sw x1, 0(x3)`, where `x1` is only the *stored payload* `rs2` needed in `MEM` rather than the base address `rs1` needed in `EX`, a `MEM/WB -> MEM` store-data bypass forwards `x1` in **0 stalls**; unless a problem explicitly invokes store-data forwarding, check whether `lw` feeds an `EX` operand.)
+One cycle later, the `lw` data sits in `MEM/WB`, and the Forwarding Unit (`MEM/WB -> EX`, `ForwardA/B = 01`) routes it cleanly into the consumer's `EX` stage.
 
 ### Zero-Cost Compiler Scheduling
 
@@ -216,56 +188,31 @@ Embedded RISC-V and ARM Cortex-M microcontrollers rely on static compiler schedu
 <Exercise
   client:load
   id="ex-16-1"
-  title="Exercise 16.1 — Pipeline Cycle Trace With x0 Guard"
+  title="Exercise 16.1 — Written Theory: Data Hazards and Forwarding"
   level="Exam"
-  hint="Check each RAW dependency carefully: `addi x0, x3, 8` targets `x0`, which is hardwired to zero and NEVER causes a RAW stall or forwarding trigger!"
+  hint="Cover why RAW hazards happen, how EX/MEM -> EX, MEM/WB -> EX, and MEM/WB -> MEM forwarding paths work, and why lw -> ALU at k = 1 still needs 1 stall cycle from the HDU."
 >
 
-Trace the following five-instruction RV32I sequence on a 5-stage pipeline (split I/D memories):
-
-```asm
-lw   x1, 0(x2)       # I1
-sub  x4, x1, x3      # I2
-and  x5, x4, x1      # I3
-addi x0, x4, 8       # I4
-or   x6, x0, x4      # I5
-```
-
-1. List all true `RAW` dependencies (`producer -> consumer`, register, and instruction distance $k$). Explain why `x0` between $I_4$ and $I_5$ is or is not a hazard.
-2. Compute the total clock cycles required **without forwarding** (double-pumped Register File active).
-3. Compute the total clock cycles required **with full forwarding**, and state `(ForwardA, ForwardB)` for $I_3$ (`and x5, x4, x1`) during its `EX` stage.
-
-<StepCheck
-  client:load
-  prompt="With **full forwarding** enabled, how many total clock cycles are required from fetching $I_1$ in Cycle 1 until $I_5$ completes `WB`?"
-  expected={10}
-  tolerance={0.05}
-  unit="cycles"
-  explanation="Only $I_1 \to I_2$ (`lw` to `sub` on `x1` at $k = 1$) causes 1 Load-Use stall; all remaining dependencies on `x4` and `x1` forward with 0 stalls, and `x0` causes 0 hazards. Thus $5 + 4 + 1 = 10$ cycles."
-/>
+*(Question 5 Written Essay — January 2026 C1 Exam)* **Discutere della gestione dei data hazard mediante il data forwarding.** (Discuss how data hazards are handled through data forwarding: explain why data hazards occur, describe the hardware bypass paths, and identify the Load-Use case where forwarding alone is insufficient.)
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Reveal Grading Checklist & Model Written Answer</summary>
 
-1. **True `RAW` Dependencies:**
-   - $I_1 \to I_2$ on `x1` ($k = 1$, Load-Use).
-   - $I_1 \to I_3$ on `x1` ($k = 2$, `lw` to `ALU`).
-   - $I_2 \to I_3$ on `x4` ($k = 1$, `ALU` to `ALU`).
-   - $I_2 \to I_4$ on `x4` ($k = 2$, `ALU` to `ALU`).
-   - $I_2 \to I_5$ on `x4` ($k = 3$, `ALU` to `ALU`).
-   - **`x0` Exemption** ($I_4 \to I_5$): `x0` is hardwired to `0`; $I_4$ (`addi x0, x4, 8`) discards its write in `WB`, and the `RegisterRd != 0` guard prevents `EX/MEM` from forwarding `x4 + 8` into $I_5$.
-2. **Without Forwarding (Cycle-by-Cycle):**
-   - $I_1$ (`lw x1`): `IF`(C1) `ID`(C2) `EX`(C3) `MEM`(C4) `WB`(C5).
-   - $I_2$ (`sub x4, x1, x3`): `IF`(C2) `ID`(C3), **2 stalls** (C4, C5 waiting for `x1`), `EX`(C6) `MEM`(C7) `WB`(C8).
-   - $I_3$ (`and x5, x4, x1`): held in `IF`(C3–C5), enters `ID`(C6), **2 stalls** (C7, C8 waiting for `x4` from $I_2$'s `WB` in C8; `x1` already committed in C5), `EX`(C9) `MEM`(C10) `WB`(C11).
-   - $I_4$ (`addi x0, x4, 8`): held in `IF`(C6–C8), enters `ID`(C9) — `x4` committed in C8 (**0 additional stalls**), `EX`(C10) `MEM`(C11) `WB`(C12).
-   - $I_5$ (`or x6, x0, x4`): `IF`(C9) `ID`(C10) `EX`(C11) `MEM`(C12) `WB`(C13).
-   - **Total without forwarding:** **$13\text{ clock cycles}$** ($4$ stall cycles).
-3. **With Full Forwarding:**
-   - $I_1 \to I_2$ incurs **1 Load-Use stall** in Cycle 4 (`ID/EX.MemRead == 1` on `x1`), so $I_2$ runs `EX` in C5 (`ForwardA = 01` from `MEM/WB`).
-   - $I_3$ (`and x5, x4, x1`, where `rs1 = x4`, `rs2 = x1`) enters `EX` in **Cycle 6**: at that instant, $I_2$ is in `MEM` (`EX/MEM.RegisterRd = x4`) and $I_1$ is in `WB` (`MEM/WB.RegisterRd = x1`). Thus **`ForwardA = 10`** (forwarding `x4` from `EX/MEM`) and **`ForwardB = 01`** (forwarding `x1` from `MEM/WB`), with **0 stalls**!
-   - $I_4$ runs `EX` in C7 (`ForwardA = 01` for `x4` from `MEM/WB`, 0 stalls), and $I_5$ reads `x0 = 0` and `x4` via double-pumping in C7 (`EX` in C8, `WB` in C10).
-   - **Total with forwarding:** $5 + 4 + 1 = \mathbf{10\text{ clock cycles}}$.
+**Grading Checklist (Full Marks):**
+- Definition of **Read-After-Write (RAW)** data hazard (reading an uncommitted register in `ID` before an older instruction commits in `WB`).
+- Core idea of **Data Forwarding / Bypassing** (using the result directly from interstage registers `EX/MEM` or `MEM/WB` via multiplexers ahead of the ALU, without waiting for `WB`).
+- The bypass paths: `EX/MEM -> EX` ($k = 1$, 0 stalls for ALU producers), `MEM/WB -> EX` ($k = 2$, 0 stalls), and `MEM/WB -> MEM` (store-data bypass for `sw`).
+- **Load-Use limit:** `lw` only produces memory data at the end of `MEM`, so a dependent instruction at $k = 1$ requires **1 stall bubble** inserted by the Hazard Detection Unit (freeze `PC`, freeze `IF/ID`, inject `NOP` into `ID/EX`) before `MEM/WB -> EX` forwarding delivers the value.
+
+**Model Written Answer:**
+> A **data hazard (RAW — Read-After-Write)** occurs when an instruction in stage `ID` tries to read a source register whose updated value has not yet been written back in stage `WB` by an earlier in-flight instruction. Without forwarding, `k = 1` dependencies require 2 stall cycles and `k = 2` dependencies require 1 stall cycle.
+>
+> **Data forwarding (bypassing)** avoids waiting for `WB` by routing computed results directly from intermediate pipeline registers into multiplexers at the functional unit inputs:
+> - **`EX/MEM` $\to$ `EX` (distance $k = 1$):** Forwards an ALU result computed at the end of `EX` straight to the next instruction's ALU input (`0` stalls).
+> - **`MEM/WB` $\to$ `EX` (distance $k = 2$):** Forwards an ALU or load result from `MEM/WB` to the ALU input (`0` stalls).
+> - **`MEM/WB` $\to$ `MEM` (store-data forwarding):** Forwards data directly to the Data Memory write port (`dataw`) for a following `sw` (`0` stalls).
+>
+> Forwarding cannot violate causality in the **Load-Use hazard** (`lw` followed at $k = 1$ by an instruction needing the loaded value in `EX`): `lw` only reads memory at the end of `MEM`, while the consumer needs the operand at the start of `EX`. The **Hazard Detection Unit** therefore inserts **1 stall cycle** (freezing `PC` and `IF/ID` and forcing `NOP` controls into `ID/EX`), after which `MEM/WB -> EX` forwarding resolves the dependency.
 
 </details>
 
@@ -274,43 +221,40 @@ or   x6, x0, x4      # I5
 <Exercise
   client:load
   id="ex-16-2"
-  title="Exercise 16.2 — Zero-Cost Compiler Rescheduling With Pointer Update"
+  title="Exercise 16.2 — Written Theory: Alternatives and Zero-Hardware-Cost Software Scheduling"
   level="Exam"
-  hint="Hoist `addi s0, s0, 4` right after `lw t0, 0(s0)` to fill the Load-Use slot. Because `s0` is now larger by 4 when `sw` executes, adjust the store displacement from `0(s0)` to `-4(s0)`!"
+  hint="Contrast hardware stall interlocks and forwarding against compiler Software Scheduling (0 extra hardware). Show a concrete unscheduled vs. scheduled assembly snippet eliminating a Load-Use bubble (remembering pointer offset adjustment if needed!)."
 >
 
-Consider an in-place array calibration body executed on a 5-stage RISC-V pipeline with full forwarding:
-
-```asm
-lw   t0, 0(s0)       # Read array[i]
-addi t1, t0, -128    # Subtract sensor offset
-sw   t1, 0(s0)       # Write calibrated array[i] back in place
-addi s0, s0, 4       # Advance pointer to array[i+1]
-```
-
-1. Identify why the unscheduled 4-instruction block incurs $1$ stall cycle even with full forwarding.
-2. Reschedule the four instructions (without adding registers or hardware) so the block executes with **0 stall cycles**, adjusting any immediate offset required to keep memory behavior identical.
-
-<StepCheck
-  client:load
-  prompt="In the rescheduled 0-stall sequence where `addi s0, s0, 4` is placed before `sw t1, offset(s0)`, what signed integer byte `offset` must be written in `sw`?"
-  expected={-4}
-  tolerance={0.01}
-  unit="bytes"
-  explanation="Since `addi s0, s0, 4` has already incremented `s0` by $+4$ bytes before `sw` computes its effective address, `sw t1, -4(s0)` writes to `(s0_old + 4) - 4 = s0_old`."
-/>
+*(Question 5 Written Essay — June 25, 2026 Exam)* **Per la gestione dei data hazard oltre a utilizzare il data forwarding, quali altre soluzioni possiamo usare? Esiste una soluzione a costo zero dal punto di vista dei componenti hardware? Se sì, mostrare un esempio di utilizzo di tale soluzione.**
 
 <details className="dc-solution">
-<summary>Reveal Worked Solution</summary>
+<summary>Reveal Grading Checklist & Model Written Answer</summary>
 
-1. **Unscheduled Bottleneck:** `addi t1, t0, -128` reads `t0` at distance $k = 1$ immediately after `lw t0, 0(s0)`, triggering the `ID/EX.MemRead` Load-Use interlock for **1 stall cycle**.
-2. **Zero-Stall Scheduled Sequence:** Moving the independent pointer increment `addi s0, s0, 4` into the Load-Use delay slot separates `lw t0` and `addi t1, t0, -128` to distance $k = 2$ (`MEM/WB` bypass, 0 stalls). Because `s0` now holds `s0_old + 4` when `sw` executes `EX`, changing the store offset from `0` to `-4` preserves the exact target address `s0_old`:
-   ```asm
-   lw   t0, 0(s0)       # Read array[i] from s0_old
-   addi s0, s0, 4       # Fill Load-Use slot: s0 <- s0_old + 4
-   addi t1, t0, -128    # 0 stalls (t0 forwarded from MEM/WB)
-   sw   t1, -4(s0)      # 0 stalls (t1 forwarded from EX/MEM; writes to s0 - 4 = s0_old)
-   ```
+**Grading Checklist (Full Marks):**
+- Alternative solutions named clearly: **hardware stalls (bubbles / `NOP` via HDU)** and **compiler Software Scheduling (instruction reordering)**.
+- Explicitly identify **Software Scheduling** as the **zero-hardware-cost** solution (performed statically by the compiler with zero extra gates, muxes, or wires).
+- Provide a concrete **before/after RISC-V assembly example** where an independent instruction (such as an independent `lw` or pointer increment `addi s0, s0, 4` with adjusted `-4(s0)` offset) fills the Load-Use slot after `lw`, eliminating the stall cycle.
+
+**Model Written Answer:**
+> Besides data forwarding, data hazards can be handled in two ways:
+> 1. **Hardware Stall Insertion (Bubbles / `NOP`):** The Hazard Detection Unit freezes `PC` and `IF/ID` and injects `NOP` control signals into `ID/EX` until the producer commits or reaches a valid forwarding stage (2 stalls at $k = 1$ and 1 stall at $k = 2$ without forwarding; 1 stall for Load-Use with forwarding).
+> 2. **Software Scheduling (Zero Hardware Cost):** Yes—**compiler instruction scheduling** requires **zero additional hardware components**. At compile time, the compiler analyzes data dependencies and reorders independent instructions into the delay slot immediately following a `lw` (pushing the dependent consumer to distance $k \ge 2$ so `MEM/WB` forwarding resolves it with 0 stalls).
+>
+> **Example (with full forwarding):**
+> ```asm
+> # Unscheduled (1 Load-Use stall after lw t0):
+> lw   t0, 0(s0)
+> addi t1, t0, -128    # 1 stall bubble here!
+> sw   t1, 0(s0)
+> addi s0, s0, 4       # Independent pointer update
+>
+> # Software-Scheduled (0 stalls, 0 extra hardware):
+> lw   t0, 0(s0)
+> addi s0, s0, 4       # Hoisted into Load-Use slot!
+> addi t1, t0, -128    # Distance k = 2 -> MEM/WB forwards t0 with 0 stalls
+> sw   t1, -4(s0)      # Adjusted offset preserves original address
+> ```
 
 </details>
 
@@ -319,43 +263,41 @@ addi s0, s0, 4       # Advance pointer to array[i+1]
 <Exercise
   client:load
   id="ex-16-3"
-  title="Exercise 16.3 — Load-Use CPI Impact and Compiler Optimization"
+  title="Exercise 16.3 — Data-Hazard CPI Drill: Forwarding ON vs. OFF"
   level="Exam"
-  hint="Only `lw` instructions followed immediately by a dependent consumer generate data stalls under full forwarding. Multiply $f_{\text{load}}$ by the fraction of loads that trigger Load-Use."
+  hint="Without forwarding, count 2 stalls for distance k=1 and 1 stall for distance k=2. With forwarding, ALU->ALU at k=1 or k=2 costs 0 stalls, and only Load->ALU at k=1 costs 1 stall!"
 >
 
-An embedded RV32I processor with split L1 caches and full hardware forwarding runs at $f_{\text{clk}} = 500\text{ MHz}$ on a benchmark of $\text{IC} = 2 \times 10^6$ instructions with mix: **$50\%$ ALU**, **$25\%$ Load**, **$10\%$ Store**, and **$15\%$ Branch** (assume zero control stalls here to isolate data hazards). Profiling reveals:
+*(Question 3 Data-Stall Drill — modeled on February 2026 C2)* A 5-stage RISC-V pipeline with split `I-Cache` / `D-Cache` (zero structural stalls) and zero branch stalls executes an instruction mix of **$55\%$ `ALU`**, **$18\%$ `Load`**, **$12\%$ `Store`**, and **$15\%$ `Branch`**. Runtime profiling reports only the following `RAW` dependencies:
+- $30\%$ of `ALU` instructions depend on the preceding `ALU` instruction at distance $k = 1$.
+- $15\%$ of `ALU` instructions depend on an `ALU` instruction at distance $k = 2$.
+- $25\%$ of `ALU` instructions depend on an immediately preceding `Load` instruction at distance $k = 1$.
 
-- $40\%$ of ALU instructions depend on the immediately preceding ALU instruction ($k = 1$).
-- $36\%$ of Load instructions are immediately followed by an instruction that uses the loaded register in `EX` ($k = 1$).
-
-1. Compute $\text{CPI}_{\text{pipe}}$ and total execution time $T_{\text{exec}}$ (in $\text{ms}$) for the unscheduled binary.
-2. Recompiling with `-O2` instruction scheduling fills two-thirds ($2/3$) of those Load-Use delay slots with independent instructions already present in the basic blocks (leaving $\text{IC}$ unchanged). Compute the new $\text{CPI}_{\text{sched}}$ and execution time $T_{\text{exec,sched}}$ (in $\text{ms}$).
+1. Compute $\text{CPI}_{\text{no-fwd}}$ when **hardware forwarding is disabled** (Register File double-pumping active).
+2. Compute $\text{CPI}_{\text{fwd}}$ when **full hardware forwarding is enabled**.
 
 <StepCheck
   client:load
-  prompt="What is the effective $\text{CPI}_{\text{sched}}$ after `-O2` instruction scheduling eliminates two-thirds of the Load-Use hazards?"
-  expected={1.03}
+  prompt="What is the effective $\text{CPI}_{\text{no-fwd}}$ when **hardware forwarding is disabled** (to 4 decimal places)?"
+  expected={1.6875}
   tolerance={0.005}
   unit="cycles/instr"
-  explanation="Unscheduled Load-Use stalls are $0.25 \times 0.36 \times 1 = 0.09$ cycles/instr (ALU-to-ALU forwarding costs 0 stalls). Removing $2/3$ leaves $0.09 \times (1/3) = 0.03$, giving $\text{CPI}_{\text{sched}} = 1.03$."
+  explanation="All three dependencies are consumer-relative to $f_{\text{ALU}} = 0.55$: $k = 1$ `ALU->ALU` ($0.55 \times 0.30 \times 2 = 0.33$), $k = 2$ `ALU->ALU` ($0.55 \times 0.15 \times 1 = 0.0825$), and $k = 1$ `Load->ALU` ($0.55 \times 0.25 \times 2 = 0.275$). Summing $1.00 + 0.33 + 0.0825 + 0.275 = 1.6875$."
 />
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Unscheduled Binary:**
-   - Split caches $\implies \text{Stalls}_{\text{struct}} = 0$.
-   - `ALU -> ALU` at $k = 1$ ($40\%$ of ALU) resolves via `EX/MEM` forwarding $\implies 0\text{ stalls}$.
-   - Load-Use at $k = 1$ ($36\%$ of the $25\%$ Load instructions):
-     $$\text{Stalls}_{\text{data}} = 0.25 \times 0.36 \times 1 = 0.09\text{ cycles/instr} \implies \text{CPI}_{\text{pipe}} = 1.00 + 0.09 = 1.09$$
-   - With $T_{\text{clk}} = 1 / 500\text{ MHz} = 2.0\text{ ns}$:
-     $$T_{\text{exec}} = 2 \times 10^6 \times 1.09 \times 2.0\text{ ns} = 4.36 \times 10^{-3}\text{ s} = 4.36\text{ ms}$$
-2. **Compiler-Scheduled Binary (`-O2`):**
-   - Remaining Load-Use fraction is $(1 - 2/3) = 1/3$ of $0.09$:
-     $$\text{Stalls}_{\text{data,sched}} = 0.09 \times \frac{1}{3} = 0.03\text{ cycles/instr} \implies \text{CPI}_{\text{sched}} = 1.03$$
-   - Execution time drops to:
-     $$T_{\text{exec,sched}} = 2 \times 10^6 \times 1.03 \times 2.0\text{ ns} = 4.12\text{ ms}$$
+1. **Without Hardware Forwarding** ($k = 1 \implies 2\text{ stalls}$, $k = 2 \implies 1\text{ stall}$):
+   - `ALU -> ALU` ($k = 1$): $0.55 \times 0.30 \times 2 = 0.3300$.
+   - `ALU -> ALU` ($k = 2$): $0.55 \times 0.15 \times 1 = 0.0825$.
+   - `Load -> ALU` ($k = 1$): $0.55 \times 0.25 \times 2 = 0.2750$.
+   $$\text{CPI}_{\text{no-fwd}} = 1.00 + 0.3300 + 0.0825 + 0.2750 = \mathbf{1.6875\text{ cycles/instr}}$$
+
+2. **With Full Hardware Forwarding** (`ALU -> ALU` $= 0$ stalls; only `Load -> ALU` at $k = 1$ stalls $1$ cycle):
+   - `ALU -> ALU` ($k = 1$ and $k = 2$): $0$ stalls via `EX/MEM` and `MEM/WB` bypasses.
+   - `Load -> ALU` ($k = 1$, Load-Use): $0.55 \times 0.25 \times 1 = 0.1375$.
+   $$\text{CPI}_{\text{fwd}} = 1.00 + 0.1375 = \mathbf{1.1375\text{ cycles/instr}}$$
 
 </details>
 

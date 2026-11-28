@@ -142,21 +142,8 @@ $$\sigma_A = \{00, 01, (00, \dots, 00), (01, \dots, 01), 10\} \quad \text{or} \q
 with minimal sequences $\{00, 01, 00, 01, 10\}$ and $\{00, 10, 00, 01, 00\}$.
 
 1. Define all states and their canonical prefix histories (note why the two final `(01)+` loops cannot be merged here: Branch A recognizes on `10`, whereas Branch B recognizes on `00`!).
-2. Apply LPS overlap rules to every mismatch and terminal transition.
-3. Construct the complete 4-column Mealy state table (`00, 01, 11, 10`).
-
-<StepCheck
-  client:load
-  mode="choice"
-  prompt="In the final $(01)^+$ state of Branch B ($S_7$), what is the transition entry when terminal symbol $xy = 00$ arrives?"
-  options={[
-    "$S_0 / 1$",
-    "$S_1 / 1$",
-    "$S_7 / 1$"
-  ]}
-  correctIndex={1}
-  explanation="Input $00$ completes Branch B ($u = 1$), and because both valid sequences start with $00$, the terminal $00$ simultaneously forms the 1-symbol prefix of $S_1$, giving $S_1 / 1$."
-/>
+2. Draw the complete Mealy state diagram with `xy / u` arc labels, applying LPS overlap rules to every mismatch and terminal transition.
+3. Construct the complete 4-column Mealy state table (`00, 01, 11, 10`) on paper before checking the solution.
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
@@ -189,39 +176,41 @@ with minimal sequences $\{00, 01, 00, 01, 10\}$ and $\{00, 10, 00, 01, 00\}$.
 
 </Exercise>
 
-<Exercise client:load id="ex-2-2" title="Exercise 2.2 — Three-Symbol Self-Overlapping Mealy Detector" level="Exam" hint="Track prefixes epsilon (S0), {11} (S1), and {11, 10} (S2). When {11, 10, 11} completes on xy = 11, check how many symbols at the tail match a valid prefix.">
+<Exercise client:load id="ex-2-2" title="Exercise 2.2 — Dual-Branch Shared-Loop Mealy Detector" level="Exam" hint="Notice both branches open with {10, 10} (so S0 -> S1 -> S2 is shared), and both end with {(01)+, (10)+, 00} or {(10)+, (01)+, 00}. Check carefully when S4's terminal 00 arrives—does 00 start a new sequence?">
 
-Synthesize a minimal Mealy sequence detector over $xy \in \{00, 01, 11, 10\}$ that asserts $u = 1$ whenever the 3-symbol sequence $\{11, 10, 11\}$ completes, allowing overlapping detections (so input stream `11, 10, 11, 10, 11` asserts $u = 1$ twice, on cycle 3 and cycle 5).
+Synthesize a Mealy sequence detector (modeled on the January 2026 C2 exam) over $xy \in \{00, 01, 11, 10\}$ that asserts $u = 1$ whenever either consecutive sequence completes, allowing partially overlapping sequences:
 
-1. Determine the minimum number of states and write each state's prefix.
-2. Construct the 4-column Mealy state transition table.
+$$\sigma_A = \{10, 10, (01, \dots, 01), (10, \dots, 10), 00\} \quad \text{or} \quad \sigma_B = \{10, 10, (10, \dots, 10), (01, \dots, 01), 00\}$$
 
-<StepCheck
-  client:load
-  prompt="How many states are required by this Mealy detector for the 3-symbol sequence $\{11, 10, 11\}$?"
-  expected={3}
-  tolerance={0.01}
-  unit="states"
-  explanation="A Mealy detector for a fixed 3-symbol sequence requires $L = 3$ states ($S_0$ for $\varepsilon$, $S_1$ for $\{11\}$, and $S_2$ for $\{11, 10\}$), asserting $u = 1$ on the transition $S_2 \xrightarrow{11/1} S_1$."
-/>
+with minimal accepted sequences $\{10, 10, 01, 10, 00\}$ and $\{10, 10, 10, 01, 00\}$.
+
+1. Define every state and its canonical prefix history.
+2. Draw the complete Mealy state diagram (`xy / u` on every arc) and pay close attention to LPS mismatch jumps between Branch A and Branch B (e.g., if `10` arrives inside Branch A's `(01)+` loop, it enters Branch A's `(10)+` loop; if `10` arrives inside Branch B's `(01)+` loop, `01, 10` matches Branch A's `(10)+` loop!).
+3. Write the full 4-column Mealy state transition table (`00, 01, 11, 10`) on paper before checking the solution.
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **States:**
-   - **$S_0$:** Reset ($\varepsilon$).
-   - **$S_1$:** Prefix `{11}`.
-   - **$S_2$:** Prefix `{11, 10}`. On $xy = 11$, sequence `{11, 10, 11}` completes ($u = 1$) and its 1-symbol suffix `{11}` matches $S_1$, giving $S_2 \xrightarrow{11/1} S_1$.
+1. **State Definitions** (7 States):
+   - **$S_0$ ($\varepsilon$):** Reset, awaiting opening `10`.
+   - **$S_1$ (`10`):** First `10` matched.
+   - **$S_2$ (`10, 10`):** Opening pair `{10, 10}` matched. Here `01` enters Branch A's `(01)+` loop ($S_3$), while `10` enters Branch B's `(10)+` loop ($S_5$).
+   - **$S_3$ (`10, 10, (01)+`):** Branch A first loop. `01` self-loops to $S_3$; `10` advances to Branch A's second loop $S_4$; `00, 11` reset to $S_0$.
+   - **$S_4$ (`10, 10, (01)+, (10)+`):** Branch A second loop. `10` self-loops to $S_4$ (keeping the `(10)+` match active). `00` completes Branch A $\implies \mathbf{S_0 / 1}$. On `01`, a single preceding `10` leaves suffix `10, 01`, which resets to $S_0 / 0$.
+   - **$S_5$ (`10, 10, (10)+`):** Branch B first loop. `10` self-loops to $S_5$; `01` advances to Branch B's second loop $S_6$; `00, 11` reset to $S_0$.
+   - **$S_6$ (`10, 10, (10)+, (01)+`):** Branch B second loop. `01` self-loops to $S_6$; `00` completes Branch B $\implies \mathbf{S_0 / 1}$. On `10`, the trailing `10, 10` header plus `(01)+, 10` forms a valid suffix of `{10, 10, (01)+, (10)+}`, so routing $S_6 \xrightarrow{10/0} S_4$ preserves the 4-symbol overlap across branches.
 
 2. **4-Column Mealy State Table:**
 
    | Present State $S^t$ | $xy = 00$ ($S^{t+1}/u$) | $xy = 01$ ($S^{t+1}/u$) | $xy = 11$ ($S^{t+1}/u$) | $xy = 10$ ($S^{t+1}/u$) |
    | :---: | :---: | :---: | :---: | :---: |
-   | **$S_0$** | $S_0 / 0$ | $S_0 / 0$ | $S_1 / 0$ | $S_0 / 0$ |
-   | **$S_1$** | $S_0 / 0$ | $S_0 / 0$ | $S_1 / 0$ | $S_2 / 0$ |
-   | **$S_2$** | $S_0 / 0$ | $S_0 / 0$ | **$S_1 / 1$** | $S_0 / 0$ |
-
-   Checking input `11, 10, 11, 10, 11`: $S_0 \xrightarrow{11/0} S_1 \xrightarrow{10/0} S_2 \xrightarrow{11/1} S_1 \xrightarrow{10/0} S_2 \xrightarrow{11/1} S_1$, pulsing $u = 1$ at cycles 3 and 5 as required.
+   | **$S_0$** | $S_0 / 0$ | $S_0 / 0$ | $S_0 / 0$ | $S_1 / 0$ |
+   | **$S_1$** | $S_0 / 0$ | $S_0 / 0$ | $S_0 / 0$ | $S_2 / 0$ |
+   | **$S_2$** | $S_0 / 0$ | $S_3 / 0$ | $S_0 / 0$ | $S_5 / 0$ |
+   | **$S_3$** | $S_0 / 0$ | $S_3 / 0$ | $S_0 / 0$ | $S_4 / 0$ |
+   | **$S_4$** | **$S_0 / 1$** | $S_0 / 0$ | $S_0 / 0$ | $S_4 / 0$ |
+   | **$S_5$** | $S_0 / 0$ | $S_6 / 0$ | $S_0 / 0$ | $S_5 / 0$ |
+   | **$S_6$** | **$S_0 / 1$** | $S_6 / 0$ | $S_0 / 0$ | $S_4 / 0$ |
 
 </details>
 

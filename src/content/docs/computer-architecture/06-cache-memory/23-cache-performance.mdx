@@ -91,8 +91,8 @@ $$\text{AMAT} = t_{\text{hit},L1} + \text{MR}_{L1}\big(t_{\text{hit},L2} + \text
 
 Be careful to distinguish the two ways `L2` miss rates are reported:
 
-- **Local Miss Rate ($\text{MR}_{L2}$):** $\frac{\text{Misses}_{L2}}{\text{Accesses}_{L2}} = \frac{\text{Misses}_{L2}}{\text{Misses}_{L1}}$—the fraction of `L1` misses that *also* miss in `L2`. Because `L1` already filters out easy hits, local $\text{MR}_{L2}$ often looks numerically high ($10\%\text{--}30\%$). Always use **local $\text{MR}_{L2}$** inside the nested $\text{AMAT}$ formula above.
-- **Global Miss Rate ($\text{MR}_{L2,\text{global}}$):** $\frac{\text{Misses}_{L2}}{\text{Total CPU References}} = \text{MR}_{L1} \cdot \text{MR}_{L2}$—the fraction of all CPU accesses that miss in *both* caches and reach DRAM. Expanding the nested formula confirms $\text{AMAT} = t_{\text{hit},L1} + \text{MR}_{L1} t_{\text{hit},L2} + \text{MR}_{L2,\text{global}} \cdot \text{MP}_{L2}$.
+- **Local Miss Rate ($\text{MR}_{L2}$):** $\frac{\text{Misses}_{L2}}{\text{Accesses}_{L2}} = \frac{\text{Misses}_{L2}}{\text{Misses}_{L1}}$—the fraction of `L1` misses that *also* miss in `L2`. Because `L1` already filters out easy hits, local $\text{MR}_{L2}$ often looks numerically high ($10\%\text{--}50\%$). Always use **local $\text{MR}_{L2}$** inside the nested $\text{AMAT}$ formula above.
+- **Global Miss Rate ($\text{MR}_{L2,\text{global}}$):** $\frac{\text{Misses}_{L2}}{\text{Total CPU References}} = \text{MR}_{L1} \cdot \text{MR}_{L2}$—the fraction of all CPU accesses that miss in *both* caches and reach DRAM. Expanding the nested formula confirms $\text{AMAT} = t_{\text{hit},L1} + \text{MR}_{L1} t_{\text{hit},L2} + \text{MR}_{L2,\text{global}} \cdot \text{MP}_{L2}$. When a problem reports absolute miss counts over $N$ instructions (e.g., $40$ `L1` misses and $20$ `L2` misses per $1{,}000$ instructions, as in the course slides), compute $\text{MR}_{L1} = 40/1000 = 4\%$ and local $\text{MR}_{L2} = 20/40 = 50\%$ (so $\text{MR}_{L2,\text{global}} = 20/1000 = 2\%$).
 
 ### Processor CPI with Memory Stalls
 
@@ -203,36 +203,35 @@ Three candidate $8\text{ KiB}$ data caches share a DRAM miss penalty $\text{MP} 
 
 </Exercise>
 
-<Exercise client:load id="ex-23-2" title="Exercise 23.2 — Nested Two-Level Hierarchy AMAT" level="Exam" hint="First compute $\text{AMAT}_{L2} = t_{\text{hit},L2} + \text{MR}_{L2} \cdot \text{MP}_{L2}$, then plug $\text{AMAT}_{L2}$ in as the miss penalty of L1.">
+<Exercise client:load id="ex-23-2" title="Exercise 23.2 — Nested Two-Level Hierarchy AMAT (Absolute Miss Counts)" level="Exam" hint="Compute $\text{MR}_{L1} = \text{Misses}_{L1} / 1000$ and **local** $\text{MR}_{L2} = \text{Misses}_{L2} / \text{Misses}_{L1}$ before plugging into $\text{AMAT} = t_{\text{hit},L1} + \text{MR}_{L1}(t_{\text{hit},L2} + \text{MR}_{L2} \cdot \text{MP}_{L2})$." >
 
-A computer system employs a two-level cache hierarchy:
-- **L1 Cache:** $t_{\text{hit},L1} = 1.2\text{ ns}$, Miss Rate $\text{MR}_{L1} = 4\%$.
-- **L2 Cache:** $t_{\text{hit},L2} = 5.0\text{ ns}$, Local Miss Rate $\text{MR}_{L2} = 10\%$.
-- **Main DRAM:** Miss Penalty $\text{MP}_{L2} = 60\text{ ns}$.
+*(Modeled on Official Slide Deck CA-INF25)* A program executes $1{,}000$ memory accesses on a processor with a two-level cache hierarchy, generating **$40$ misses in `L1`** and **$20$ misses in `L2`**. The timing parameters (in CPU clock cycles) are:
+- **L1 Hit Time:** $t_{\text{hit},L1} = 1\text{ cycle}$.
+- **L2 Hit Time:** $t_{\text{hit},L2} = 10\text{ cycles}$.
+- **Main DRAM Miss Penalty:** $\text{MP}_{L2} = 100\text{ cycles}$.
 
-1. Compute the effective miss penalty $\text{MP}_{L1} = \text{AMAT}_{L2}$ seen by the `L1` cache.
-2. Compute the overall two-level system $\text{AMAT}$ and compare it against an `L1`-only design connected directly to the $60\text{ ns}$ DRAM.
-3. Compute the **global miss rate** of the `L2` cache.
+1. Compute $\text{MR}_{L1}$, the **local** miss rate $\text{MR}_{L2}$, and the **global** miss rate $\text{MR}_{L2,\text{global}}$.
+2. Compute the overall two-level $\text{AMAT}$ (in cycles) and compare it against an `L1`-only design wired directly to $100\text{-cycle}$ DRAM.
 
 <StepCheck
   client:load
-  prompt="What is the overall two-level system $\text{AMAT}$ (in $\text{ns}$)?"
-  expected={1.64}
+  prompt="What is the overall two-level $\text{AMAT}$ (in clock cycles)?"
+  expected={3.4}
   tolerance={0.01}
-  unit="ns"
-  explanation="First $\text{AMAT}_{L2} = 5.0 + (0.10 \times 60) = 11.0\text{ ns}$. Then $\text{AMAT} = 1.2 + (0.04 \times 11.0) = 1.2 + 0.44 = 1.64\text{ ns}$."
+  unit="cycles"
+  explanation="$\text{MR}_{L1} = 40/1000 = 4\%$, local $\text{MR}_{L2} = 20/40 = 50\%$. Then $\text{AMAT} = 1 + 0.04 \times (10 + 0.50 \times 100) = 1 + 0.04 \times 60 = 1 + 0.4 + 2.0 = 3.4\text{ cycles}$."
 />
 
 <details className="dc-solution">
 <summary>Reveal Worked Solution</summary>
 
-1. **Effective L1 Penalty** ($\text{AMAT}_{L2}$):
-   $$\text{MP}_{L1} = \text{AMAT}_{L2} = t_{\text{hit},L2} + \text{MR}_{L2} \cdot \text{MP}_{L2} = 5.0 + (0.10 \times 60) = 5.0 + 6.0 = \mathbf{11.0\text{ ns}}$$
-2. **Two-Level vs. L1-Only:**
-   $$\text{AMAT}_{\text{L1+L2}} = t_{\text{hit},L1} + \text{MR}_{L1} \cdot \text{AMAT}_{L2} = 1.2 + (0.04 \times 11.0) = 1.2 + 0.44 = \mathbf{1.64\text{ ns}}$$
-   Without `L2`, $\text{AMAT}_{\text{L1-only}} = 1.2 + (0.04 \times 60) = 1.2 + 2.40 = 3.60\text{ ns}$—adding `L2` cuts average memory latency by $2.20\times$.
-3. **Global L2 Miss Rate:**
-   $$\text{MR}_{L2,\text{global}} = \text{MR}_{L1} \cdot \text{MR}_{L2} = 0.04 \times 0.10 = 0.004 = \mathbf{0.4\%}$$
+1. **Miss Rates:**
+   - $\text{MR}_{L1} = \frac{40}{1{,}000} = 0.04 = \mathbf{4\%}$.
+   - **Local** $\text{MR}_{L2} = \frac{20}{40} = 0.50 = \mathbf{50\%}$ (misses in `L2` divided by accesses reaching `L2`).
+   - **Global** $\text{MR}_{L2,\text{global}} = \frac{20}{1{,}000} = 0.04 \times 0.50 = 0.02 = \mathbf{2\%}$.
+2. **Two-Level vs. L1-Only AMAT:**
+   $$\text{AMAT}_{L1+L2} = 1 + 0.04 \times 10 + (0.04 \times 0.50) \times 100 = 1 + 0.40 + 2.00 = \mathbf{3.4\text{ cycles}}$$
+   Without `L2`, $\text{AMAT}_{L1\text{-only}} = 1 + 0.04 \times 100 = 5.0\text{ cycles}$.
 
 </details>
 

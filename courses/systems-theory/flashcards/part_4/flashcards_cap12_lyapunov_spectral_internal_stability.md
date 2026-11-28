@@ -1,31 +1,53 @@
 #flashcards/automatica/04_02_spectral_stability
 
-Qual è la definizione formale di stato di equilibrio $\mathbf{x}_e$ **stabile** secondo Lyapunov?
+What is the $\varepsilon$-$\delta$ definition of simple (Lyapunov) stability for $\mathbf{x}_e = \mathbf{0}$?
 ?
-Per ogni intorno $\epsilon > 0$ di $\mathbf{x}_e$, esiste un intorno $\delta > 0$ tale che, se $\|\mathbf{x}(0) - \mathbf{x}_e\| < \delta$, allora la traiettoria rimane confinata in $\|\mathbf{x}(t) - \mathbf{x}_e\| < \epsilon$ per tutti i $t \ge 0$.
+For every $\varepsilon > 0$ there exists $\delta(\varepsilon) > 0$ such that $\|\mathbf{x}(0)\| < \delta \implies \|\mathbf{x}(t)\| < \varepsilon$ for all $t \ge 0$.
 
-Qual è la definizione formale di stato di equilibrio $\mathbf{x}_e$ **asintoticamente stabile** secondo Lyapunov?
-?
-È stabile secondo Lyapunov e inoltre attrattivo: esiste $\delta > 0$ tale che se $\|\mathbf{x}(0) - \mathbf{x}_e\| < \delta$, allora $\lim_{t \to \infty} \|\mathbf{x}(t) - \mathbf{x}_e\| = 0$.
+---
 
-Qual è la condizione necessaria e sufficiente sugli autovalori $\lambda_i(\mathbf{A})$ per l'asintotica stabilità di un sistema LTI continuo?
+What extra property distinguishes asymptotic stability from simple Lyapunov stability?
 ?
-Tutti gli autovalori devono avere parte reale strettamente negativa:
-$$\forall i, \quad \operatorname{Re}(\lambda_i) < 0$$
+Attractivity: in addition to Lyapunov boundedness, trajectories converge back to equilibrium, $\lim_{t \to \infty} \|\mathbf{x}(t)\| = \mathbf{0}$.
 
-Qual è la condizione necessaria e sufficiente sugli autovalori per la semplice stabilità di un sistema LTI continuo?
-?
-Tutti gli autovalori hanno $\operatorname{Re}(\lambda_i) \le 0$, e per ciascun autovalore con $\operatorname{Re}(\lambda_i) = 0$ la molteplicità geometrica deve eguagliare quella algebrica ($m_g(\lambda) = m_a(\lambda)$).
+---
 
-Cosa rappresenta la molteplicità geometrica $m_g(\lambda)$ di un autovalore $\lambda$?
+Why is asymptotic stability in continuous-time LTI systems always global and exponential rather than local?
 ?
-La dimensione dell'autospazio associato, ovvero il numero di autovettori linearmente indipendenti:
-$$m_g(\lambda) = n - \operatorname{rank}(\lambda\mathbf{I} - \mathbf{A}) = \dim(\ker(\lambda\mathbf{I} - \mathbf{A}))$$
+By linearity, scaling any convergent initial state $\mathbf{x}(0)$ scales $\mathbf{x}(t) = e^{\mathbf{A}t}\mathbf{x}(0)$ identically, so all $\mathbf{x}(0) \in \mathbb{R}^n$ decay exponentially.
 
-Perché una matrice $\mathbf{A}$ con un autovalore $\lambda = 0$ avente $m_g < m_a$ genera instabilità temporale?
-?
-Perché nella forma canonica di Jordan compare un blocco non diagonale di dimensione $\ge 2$, che genera nella risposta libera un modo secolare $t^k$ divergente per $t \to \infty$.
+---
 
-Nei sistemi LTI, la stabilità dell'equilibrio dipende dallo stato iniziale $\mathbf{x}(0)$ o è una proprietà globale del sistema?
+What exact eigenvalue condition makes an LTI matrix $\mathbf{A}$ asymptotically stable (Hurwitz)?
 ?
-È una proprietà globale indipendente dallo stato iniziale e dal punto di equilibrio scelto: un sistema LTI è asintoticamente stabile in un punto se e solo se è asintoticamente stabile ovunque.
+Every eigenvalue of $\mathbf{A}$ lies strictly in the open left half-plane: $\operatorname{Re}(\lambda_i) < 0$ for all $i = 1, \dots, n$.
+
+---
+
+Do defective (non-diagonalizable) eigenvalues strictly inside the open left half-plane ($\operatorname{Re}(\lambda) < 0$) break asymptotic stability?
+?
+No; exponential decay $e^{-|\sigma|t}$ dominates any polynomial factor $t^k$, so $\lim_{t \to \infty} t^k e^{-|\sigma|t} = 0$.
+
+---
+
+What are the exact necessary and sufficient spectral conditions for simple (marginal) stability?
+?
+All eigenvalues satisfy $\operatorname{Re}(\lambda_i) \le 0$, at least one lies on $\operatorname{Re}(\lambda_k) = 0$, and every boundary eigenvalue is non-defective ($m_g(\lambda_k) = m_a(\lambda_k)$).
+
+---
+
+What geometric multiplicity formula determines whether an eigenvalue $\lambda_k$ on the imaginary axis is non-defective?
+?
+$$m_g(\lambda_k) = \dim(\ker(\lambda_k\mathbf{I} - \mathbf{A})) = n - \operatorname{rank}(\lambda_k\mathbf{I} - \mathbf{A}) = m_a(\lambda_k)$$
+
+---
+
+When does an LTI system with $\max \operatorname{Re}(\lambda_i) = 0$ become unstable?
+?
+Whenever at least one imaginary-axis eigenvalue (including $\lambda = 0$) is defective ($m_g(\lambda_k) < m_a(\lambda_k)$), generating unbounded $t^k e^{j\omega_k t}$ growth.
+
+---
+
+How is the asymptotic stability margin (degree of stability) $\alpha$ computed for a Hurwitz matrix $\mathbf{A}$?
+?
+$$\alpha = \min_{i=1,\dots,n} |\operatorname{Re}(\lambda_i)| > 0$$

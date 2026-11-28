@@ -1,23 +1,47 @@
 #flashcards/automatica/04_01_equilibrium_points
 
-Qual è la condizione algebrica affinché uno stato $\mathbf{x}_e$ sia un punto di equilibrio (*equilibrium state*) per un sistema LTI autonomo $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x}$?
+What algebraic equation defines an equilibrium state $\mathbf{x}_e$ of $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$ under constant input $\mathbf{u}(t) \equiv \mathbf{u}_0$?
 ?
-La derivata temporale dello stato deve essere identicamente nulla:
-$$\dot{\mathbf{x}} = \mathbf{0} \iff \mathbf{A} \mathbf{x}_e = \mathbf{0}$$
+$$\mathbf{A}\mathbf{x}_e = -\mathbf{B}\mathbf{u}_0$$
 
-Se la matrice dinamica $\mathbf{A}$ è non singolare ($\det(\mathbf{A}) \neq 0$), quanti punti di equilibrio possiede il sistema autonomo $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x}$?
-?
-Un unico punto di equilibrio isolato nell'origine dello spazio di stato: $\mathbf{x}_e = \mathbf{0}$.
+---
 
-Cosa accade ai punti di equilibrio di un sistema LTI autonomo quando la matrice dinamica $\mathbf{A}$ è singolare ($\det(\mathbf{A}) = 0$)?
+What are the unique equilibrium state $\mathbf{x}_e$ and steady-state output $\mathbf{y}_e$ when $\det(\mathbf{A}) \neq 0$?
 ?
-Esistono infiniti punti di equilibrio che costituiscono un intero sottospazio vettoriale coincidente con il nucleo di $\mathbf{A}$: $\mathcal{X}_e = \ker(\mathbf{A})$.
+$$\mathbf{x}_e = -\mathbf{A}^{-1}\mathbf{B}\mathbf{u}_0, \qquad \mathbf{y}_e = (\mathbf{D} - \mathbf{C}\mathbf{A}^{-1}\mathbf{B})\mathbf{u}_0 = \mathbf{W}(0)\mathbf{u}_0$$
 
-Dato un ingresso costante costante a regime $\mathbf{u}(t) = \mathbf{u}_e$, come si calcola lo stato di equilibrio forzato $\mathbf{x}_e$ se $\det(\mathbf{A}) \neq 0$?
-?
-$$\mathbf{0} = \mathbf{A} \mathbf{x}_e + \mathbf{B} \mathbf{u}_e \iff \mathbf{x}_e = -\mathbf{A}^{-1} \mathbf{B} \mathbf{u}_e$$
+---
 
-Qual è l'uscita di equilibrio corrispondente $\mathbf{y}_e$ per un ingresso costante $\mathbf{u}_e$ se $\det(\mathbf{A}) \neq 0$?
+When $\det(\mathbf{A}) = 0$, what Rouché-Capelli condition determines whether equilibrium states exist for a constant input $\mathbf{u}_0$?
 ?
-$$\mathbf{y}_e = \mathbf{C} \mathbf{x}_e + \mathbf{D} \mathbf{u}_e = \left( -\mathbf{C} \mathbf{A}^{-1} \mathbf{B} + \mathbf{D} \right) \mathbf{u}_e = W(0) \mathbf{u}_e$$
-dove $W(0)$ è il guadagno statico (*DC gain*) del sistema.
+Equilibria exist if and only if $-\mathbf{B}\mathbf{u}_0 \in \operatorname{Im}(\mathbf{A})$, equivalently $\operatorname{rank}(\mathbf{A}) = \operatorname{rank}([\mathbf{A} \mid -\mathbf{B}\mathbf{u}_0])$.
+
+---
+
+If $\det(\mathbf{A}) = 0$ and $-\mathbf{B}\mathbf{u}_0 \notin \operatorname{Im}(\mathbf{A})$, how many equilibria exist and what happens to trajectories?
+?
+Zero equilibria exist; the constant input forces unbounded state drift along an unconstrained direction.
+
+---
+
+If $\operatorname{rank}(\mathbf{A}) = r < n$ and $-\mathbf{B}\mathbf{u}_0 \in \operatorname{Im}(\mathbf{A})$, what geometric set do the equilibria form?
+?
+An $(n - r)$-dimensional affine manifold $\mathbf{x}_e = \mathbf{x}_{e,\text{part}} + \ker(\mathbf{A})$.
+
+---
+
+For zero input $\mathbf{u}_0 = \mathbf{0}$, what is the equilibrium set when $\det(\mathbf{A}) \neq 0$ versus when $\det(\mathbf{A}) = 0$?
+?
+When $\det(\mathbf{A}) \neq 0$, only the origin $\mathbf{x}_e = \mathbf{0}$; when $\det(\mathbf{A}) = 0$, the entire null space $\ker(\mathbf{A})$.
+
+---
+
+In perturbation coordinates $\mathbf{z}(t) = \mathbf{x}(t) - \mathbf{x}_e$ and $\mathbf{v}(t) = \mathbf{u}(t) - \mathbf{u}_0$, what differential equation governs $\mathbf{z}(t)$?
+?
+$$\dot{\mathbf{z}}(t) = \mathbf{A}\mathbf{z}(t) + \mathbf{B}\mathbf{v}(t)$$
+
+---
+
+Why does analyzing stability around any non-zero trim $\mathbf{x}_e$ reduce to analyzing the origin $\mathbf{z} = \mathbf{0}$?
+?
+Because $\dot{\mathbf{x}}_e = \mathbf{0}$ and $\mathbf{A}\mathbf{x}_e + \mathbf{B}\mathbf{u}_0 = \mathbf{0}$ cancel, leaving perturbation dynamics with the exact same matrix $\mathbf{A}$.
