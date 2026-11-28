@@ -1,29 +1,36 @@
 #flashcards/computer-architecture/01_synchronous_digital_systems/04_implication_table_minimization
 
-Come si etichettano righe e colonne della tabella delle implicazioni triangolare inferiore per $N$ stati $\{S_0, \dots, S_{N-1}\}$?
+What are the two formal conditions for two states $S_i$ and $S_j$ of a completely specified FSM to be equivalent ($S_i \equiv S_j$)?
 ?
-Righe dall'alto in basso con $S_1 \dots S_{N-1}$ e colonne da sinistra a destra con $S_0 \dots S_{N-2}$, formando $\frac{N(N-1)}{2}$ celle.
+1. **Output compatibility:** identical output on every input ($\lambda(S_i, x) = \lambda(S_j, x)$ for Mealy; $\lambda(S_i) = \lambda(S_j)$ for Moore).
+2. **Next-state compatibility:** $\delta(S_i, x) \equiv \delta(S_j, x)$ for every input $x$.
 
 ---
 
-Quale regola determina la sbarratura immediata ($\times$) al Passo 1 della tabella delle implicazioni?
+How are rows and columns arranged in a lower-triangular Implication Table for $N$ states $\{S_0, \dots, S_{N-1}\}$?
 ?
-Se gli stati $S_i$ e $S_j$ producono uscite diverse ($\lambda(S_i, x) \neq \lambda(S_j, x)$) anche per un solo ingresso $x$, la cella $(S_i, S_j)$ viene immediatamente marcata con $\times$.
+Rows top-to-bottom hold $S_1 \dots S_{N-1}$ and columns left-to-right hold $S_0 \dots S_{N-2}$, yielding $\binom{N}{2} = \frac{N(N-1)}{2}$ unique unordered pair cells.
 
 ---
 
-Cosa si inserisce al Passo 2 in una cella non sbarrata $(S_i, S_j)$ quando gli stati prossimi coincidono ($P = Q$) o formano un'auto-implicazione ($\{P, Q\} = \{S_i, S_j\}$)?
+What occurs during **Pass 1** of Implication Table minimization?
 ?
-Tali vincoli banali si scartano; se tutti gli ingressi producono solo identità o auto-implicazioni, la cella si marca con $\checkmark$ (equivalenza incondizionata).
+Any state pair $(S_i, S_j)$ whose immediate output signatures differ on at least one input is immediately crossed out with **`X`**.
 
 ---
 
-Come funziona la cancellazione a cascata nella tabella delle implicazioni e quando termina?
+How are **identities** ($P = Q$) and **self-implications** ($\{P, Q\} = \{S_i, S_j\}$) handled when filling implied next-state pairs in Pass 2?
 ?
-In ogni scansione si sbarra con $\times$ qualunque cella che implichi almeno una coppia $(P, Q)$ già marcata $\times$; si ripete finché un'intera passata non produce zero nuove $\times$ (punto fisso).
+Both are trivially satisfied under $S_i \equiv S_j$ and discarded; if no unresolved pairs remain in cell $(S_i, S_j)$, mark it **$\checkmark$** (unconditionally equivalent).
 
 ---
 
-Come si ricavano le classi di stato minime dalle celle sopravvissute al punto fisso della tabella delle implicazioni?
+How does **Pass 3 (Cascade Elimination)** work, and when is it safe to stop?
 ?
-Ogni cella non sbarrata indica $S_i \equiv S_j$; si uniscono le coppie per chiusura transitiva ($S_i \equiv S_j \land S_j \equiv S_k \implies \{S_i, S_j, S_k\}$) lasciando isolati gli stati senza compatibilità.
+Scan uncrossed cells top-to-bottom and cross out (`X`) any cell referencing an implied pair already marked `X`; repeat full sweeps until an entire pass adds **zero new `X` marks** (fixed point).
+
+---
+
+How do surviving uncrossed cells form the reduced FSM table, and what transitivity check catches table errors?
+?
+Merge surviving pairs by **transitivity** ($S_i \equiv S_j \land S_j \equiv S_k \implies S_i \equiv S_k$) into equivalence classes and replace every state with its class representative; if $(B, A)$ and $(C, B)$ survive while $(C, A)$ is `X`, re-audit immediately because equivalence must be transitive.

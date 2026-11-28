@@ -188,31 +188,44 @@ Embedded RISC-V and ARM Cortex-M microcontrollers rely on static compiler schedu
 <Exercise
   client:load
   id="ex-16-1"
-  title="Exercise 16.1 — Written Theory: Data Hazards and Forwarding"
+  title="Exercise 16.1 — Compiler Instruction Scheduling for Load-Use Hazards"
   level="Exam"
-  hint="Cover why RAW hazards happen, how EX/MEM -> EX, MEM/WB -> EX, and MEM/WB -> MEM forwarding paths work, and why lw -> ALU at k = 1 still needs 1 stall cycle from the HDU."
+  hint="Hoist the independent pointer update (`addi s0, s0, 4`) into the slot directly after `lw t0, 0(s0)`, and update the `sw` offset so it still stores to the original address."
 >
 
-*(Question 5 Written Essay — January 2026 C1 Exam)* **Discutere della gestione dei data hazard mediante il data forwarding.** (Discuss how data hazards are handled through data forwarding: explain why data hazards occur, describe the hardware bypass paths, and identify the Load-Use case where forwarding alone is insufficient.)
+A 5-stage RISC-V processor with full hardware forwarding executes the following unscheduled sequence inside an array-scaling loop:
+
+```asm
+lw   t0, 0(s0)
+addi t1, t0, -128
+sw   t1, 0(s0)
+addi s0, s0, 4
+```
+
+1. Identify the Load-Use hazard and count how many stall cycles occur before scheduling.
+2. Reorder the four instructions (adjusting any affected memory offset) to achieve **$0$ stall cycles** at zero extra hardware cost while preserving exact program semantics.
+
+<StepCheck
+  client:load
+  prompt="How many Load-Use stall cycles occur in the unscheduled 4-instruction sequence under full forwarding?"
+  expected={1}
+  tolerance={0}
+  unit="stalls"
+  explanation="Only `lw t0, 0(s0)` -> `addi t1, t0, -128` at distance k = 1 incurs 1 Load-Use stall; `addi -> sw` resolves in 0 stalls via EX/MEM forwarding."
+/>
 
 <details className="dc-solution">
-<summary>Reveal Grading Checklist & Model Written Answer</summary>
+<summary>Reveal Worked Solution</summary>
 
-**Grading Checklist (Full Marks):**
-- Definition of **Read-After-Write (RAW)** data hazard (reading an uncommitted register in `ID` before an older instruction commits in `WB`).
-- Core idea of **Data Forwarding / Bypassing** (using the result directly from interstage registers `EX/MEM` or `MEM/WB` via multiplexers ahead of the ALU, without waiting for `WB`).
-- The bypass paths: `EX/MEM -> EX` ($k = 1$, 0 stalls for ALU producers), `MEM/WB -> EX` ($k = 2$, 0 stalls), and `MEM/WB -> MEM` (store-data bypass for `sw`).
-- **Load-Use limit:** `lw` only produces memory data at the end of `MEM`, so a dependent instruction at $k = 1$ requires **1 stall bubble** inserted by the Hazard Detection Unit (freeze `PC`, freeze `IF/ID`, inject `NOP` into `ID/EX`) before `MEM/WB -> EX` forwarding delivers the value.
+1. **Before Scheduling:** `lw t0, 0(s0)` followed immediately by `addi t1, t0, -128` ($k = 1$) creates **$1$ Load-Use stall cycle** (`t0` arrives at the end of `MEM`, after `addi` enters `EX`). Meanwhile, `addi -> sw` forwards cleanly from `EX/MEM -> EX` in `0` stalls.
+2. **After Compiler Instruction Scheduling (`0` stalls, `0` extra hardware):** Move the independent pointer increment `addi s0, s0, 4` into the slot right after `lw`, and adjust `sw`'s offset from `0(s0)` to `-4(s0)` so it writes to the original element address:
 
-**Model Written Answer:**
-> A **data hazard (RAW — Read-After-Write)** occurs when an instruction in stage `ID` tries to read a source register whose updated value has not yet been written back in stage `WB` by an earlier in-flight instruction. Without forwarding, `k = 1` dependencies require 2 stall cycles and `k = 2` dependencies require 1 stall cycle.
->
-> **Data forwarding (bypassing)** avoids waiting for `WB` by routing computed results directly from intermediate pipeline registers into multiplexers at the functional unit inputs:
-> - **`EX/MEM` $\to$ `EX` (distance $k = 1$):** Forwards an ALU result computed at the end of `EX` straight to the next instruction's ALU input (`0` stalls).
-> - **`MEM/WB` $\to$ `EX` (distance $k = 2$):** Forwards an ALU or load result from `MEM/WB` to the ALU input (`0` stalls).
-> - **`MEM/WB` $\to$ `MEM` (store-data forwarding):** Forwards data directly to the Data Memory write port (`dataw`) for a following `sw` (`0` stalls).
->
-> Forwarding cannot violate causality in the **Load-Use hazard** (`lw` followed at $k = 1$ by an instruction needing the loaded value in `EX`): `lw` only reads memory at the end of `MEM`, while the consumer needs the operand at the start of `EX`. The **Hazard Detection Unit** therefore inserts **1 stall cycle** (freezing `PC` and `IF/ID` and forcing `NOP` controls into `ID/EX`), after which `MEM/WB -> EX` forwarding resolves the dependency.
+```asm
+lw   t0, 0(s0)       # Reads memory at original s0
+addi s0, s0, 4       # Independent -> fills the Load-Use slot!
+addi t1, t0, -128    # Distance k = 2 -> MEM/WB forwards t0 with 0 stalls
+sw   t1, -4(s0)      # Adjusted offset (s0 - 4) writes to the original word!
+```
 
 </details>
 
@@ -221,49 +234,7 @@ Embedded RISC-V and ARM Cortex-M microcontrollers rely on static compiler schedu
 <Exercise
   client:load
   id="ex-16-2"
-  title="Exercise 16.2 — Written Theory: Alternatives and Zero-Hardware-Cost Software Scheduling"
-  level="Exam"
-  hint="Contrast hardware stall interlocks and forwarding against compiler Software Scheduling (0 extra hardware). Show a concrete unscheduled vs. scheduled assembly snippet eliminating a Load-Use bubble (remembering pointer offset adjustment if needed!)."
->
-
-*(Question 5 Written Essay — June 25, 2026 Exam)* **Per la gestione dei data hazard oltre a utilizzare il data forwarding, quali altre soluzioni possiamo usare? Esiste una soluzione a costo zero dal punto di vista dei componenti hardware? Se sì, mostrare un esempio di utilizzo di tale soluzione.**
-
-<details className="dc-solution">
-<summary>Reveal Grading Checklist & Model Written Answer</summary>
-
-**Grading Checklist (Full Marks):**
-- Alternative solutions named clearly: **hardware stalls (bubbles / `NOP` via HDU)** and **compiler Software Scheduling (instruction reordering)**.
-- Explicitly identify **Software Scheduling** as the **zero-hardware-cost** solution (performed statically by the compiler with zero extra gates, muxes, or wires).
-- Provide a concrete **before/after RISC-V assembly example** where an independent instruction (such as an independent `lw` or pointer increment `addi s0, s0, 4` with adjusted `-4(s0)` offset) fills the Load-Use slot after `lw`, eliminating the stall cycle.
-
-**Model Written Answer:**
-> Besides data forwarding, data hazards can be handled in two ways:
-> 1. **Hardware Stall Insertion (Bubbles / `NOP`):** The Hazard Detection Unit freezes `PC` and `IF/ID` and injects `NOP` control signals into `ID/EX` until the producer commits or reaches a valid forwarding stage (2 stalls at $k = 1$ and 1 stall at $k = 2$ without forwarding; 1 stall for Load-Use with forwarding).
-> 2. **Software Scheduling (Zero Hardware Cost):** Yes—**compiler instruction scheduling** requires **zero additional hardware components**. At compile time, the compiler analyzes data dependencies and reorders independent instructions into the delay slot immediately following a `lw` (pushing the dependent consumer to distance $k \ge 2$ so `MEM/WB` forwarding resolves it with 0 stalls).
->
-> **Example (with full forwarding):**
-> ```asm
-> # Unscheduled (1 Load-Use stall after lw t0):
-> lw   t0, 0(s0)
-> addi t1, t0, -128    # 1 stall bubble here!
-> sw   t1, 0(s0)
-> addi s0, s0, 4       # Independent pointer update
->
-> # Software-Scheduled (0 stalls, 0 extra hardware):
-> lw   t0, 0(s0)
-> addi s0, s0, 4       # Hoisted into Load-Use slot!
-> addi t1, t0, -128    # Distance k = 2 -> MEM/WB forwards t0 with 0 stalls
-> sw   t1, -4(s0)      # Adjusted offset preserves original address
-> ```
-
-</details>
-
-</Exercise>
-
-<Exercise
-  client:load
-  id="ex-16-3"
-  title="Exercise 16.3 — Data-Hazard CPI Drill: Forwarding ON vs. OFF"
+  title="Exercise 16.2 — Data-Hazard CPI: Forwarding ON vs. OFF"
   level="Exam"
   hint="Without forwarding, count 2 stalls for distance k=1 and 1 stall for distance k=2. With forwarding, ALU->ALU at k=1 or k=2 costs 0 stalls, and only Load->ALU at k=1 costs 1 stall!"
 >

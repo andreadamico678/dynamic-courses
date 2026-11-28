@@ -119,45 +119,91 @@ Just as compiler instruction scheduling eliminates pipeline stalls at zero silic
 
 <Divider label="4 · Exercises" />
 
-<Exercise client:load id="ex-22-1" title="Exercise 22.1 — Written Theory: The 3 C's of Cache Misses" level="Exam" hint="Define Compulsory, Capacity, and Conflict misses cleanly, pair each with the hardware parameter that reduces it (B, C, N), and explicitly state the negative AMAT side-effect of each fix.">
+<Exercise client:load id="ex-22-1" title="Exercise 22.1 — Classifying Misses on a Cache Block Trace" level="Exam" hint="In the 4-block Direct-Mapped cache, compute $j \bmod 4$ for each access (notice blocks 0 and 4 both map to Block 0!). In the 2-way LRU cache ($NS = 4 / 2 = 2$), blocks 0 and 4 both map to Set 0, which has 2 ways.">
 
-*(Question 5 Written Essay Practice)* **Discutere della classificazione dei miss di cache secondo il modello delle "3 C" (Compulsory, Capacity, Conflict), indicando per ciascuna categoria le tecniche hardware di riduzione e i relativi compromessi sulle prestazioni (AMAT).**
+An initially empty cache of $NB = 4$ blocks receives the sequence of main memory block addresses $\{0,\; 4,\; 1,\; 0,\; 4,\; 1\}$.
+
+1. Classify every access as Hit, Compulsory miss, or Conflict miss in a **Direct-Mapped** cache ($NS = 4$).
+2. Classify every access in a **2-Way Set-Associative LRU** cache ($NS = 2$) and report total Compulsory and Conflict misses.
+
+<StepCheck
+  client:load
+  prompt="How many Conflict misses occur on trace {0, 4, 1, 0, 4, 1} in the 4-block Direct-Mapped cache?"
+  expected={2}
+  tolerance={0}
+  unit="misses"
+  explanation="Accesses 1–3 (`0, 4, 1`) are first-ever touches (3 Compulsory misses; `4` evicts `0` from Block 0). Accesses 4 (`0`) and 5 (`4`) re-collide on Block 0 (2 Conflict misses), while access 6 (`1`) hits cleanly in Block 1."
+/>
 
 <details className="dc-solution">
-<summary>Reveal Grading Checklist & Model Written Answer</summary>
+<summary>Reveal Worked Solution</summary>
 
-**Grading Checklist (Full Marks):**
-- **Compulsory (Cold-Start):** First access ever to a block $\to$ reduce by increasing **block size $B$** $\to$ trade-off: higher **Miss Penalty** ($\text{MP}$) and fewer blocks $NB = C/B$ (can raise conflict/capacity misses).
-- **Capacity:** Working set exceeds cache capacity $C$ $\to$ reduce by increasing **cache size $C$** $\to$ trade-off: slower **Hit Time** ($t_{\text{hit}}$) and larger area/power.
-- **Conflict (Collision):** Multiple blocks map to the same set in DM/$N$-way caches $\to$ reduce by increasing **associativity $N$** $\to$ trade-off: slower **Hit Time** ($t_{\text{hit}}$) due to $N$ comparators and way-selection mux (so lower $\text{MR}$ does not guarantee lower $\text{AMAT}$).
-
-**Model Written Answer:**
-> Cache misses in a uniprocessor are classified into three categories (**3 C's**):
-> 1. **Compulsory (Cold-Start) Misses:** Occur on the very first access to a block not yet in cache. Increasing **block size $B$** exploits spatial locality to fetch adjacent words together and cut compulsory misses, but increases **Miss Penalty** (longer transfer time) and reduces total block count $NB = C/B$, which can worsen conflict/capacity misses in small caches.
-> 2. **Capacity Misses:** Occur when the cache cannot hold the program's entire active working set, forcing blocks to be evicted and later reloaded. Increasing **cache capacity $C$** reduces capacity misses, at the cost of higher **Hit Time** ($t_{\text{hit}}$), silicon area, and power.
-> 3. **Conflict (Collision) Misses:** Occur in direct-mapped or set-associative caches when more than $N$ active blocks map to the same set. Increasing **associativity $N$** reduces conflict misses (reaching zero in a fully associative cache), but adds parallel comparators and multiplexers that increase **Hit Time** ($t_{\text{hit}}$)—so reducing miss rate does not necessarily improve $\text{AMAT} = t_{\text{hit}} + \text{MR} \cdot \text{MP}$.
+1. **Direct-Mapped Trace** ($\text{Block} = j \bmod 4$):
+   - Access $1$: $j = 0 \to$ Block $0$: **Compulsory Miss** (cache holds `B0: 0`).
+   - Access $2$: $j = 4 \to$ Block $0$: **Compulsory Miss** (first touch of `4`; evicts `0`, cache holds `B0: 4`).
+   - Access $3$: $j = 1 \to$ Block $1$: **Compulsory Miss** (`B0: 4, B1: 1`).
+   - Access $4$: $j = 0 \to$ Block $0$: **Conflict Miss** (`0` was already fetched earlier and evicted only by `0 mod 4 == 4 mod 4`; evicts `4`).
+   - Access $5$: $j = 4 \to$ Block $0$: **Conflict Miss** (evicts `0`).
+   - Access $6$: $j = 1 \to$ Block $1$: **Hit**!
+   Total: **$3$ Compulsory + $2$ Conflict = $5$ misses** ($1$ hit).
+2. **2-Way Set-Associative LRU Trace** ($NS = 2$, $\text{Set} = j \bmod 2$):
+   - Accesses $1$ (`0 -> Set 0 Way 0`), $2$ (`4 -> Set 0 Way 1`), $3$ (`1 -> Set 1 Way 0`): **$3$ Compulsory Misses** (`0` and `4` coexist in Set `0`!).
+   - Accesses $4$ (`0`), $5$ (`4`), $6$ (`1`): **$3$ Hits**.
+   Total: **$3$ Compulsory + $0$ Conflict = $3$ misses** ($3$ hits).
 
 </details>
 
 </Exercise>
 
-<Exercise client:load id="ex-22-2" title="Exercise 22.2 — Written Theory: Compiler Cache Optimizations" level="Exam" hint="Explain all three zero-hardware software optimizations from the course slides (Merging Arrays, Loop Interchange, Loop Fusion) with brief C before/after snippets showing why misses drop.">
+<Exercise client:load id="ex-22-2" title="Exercise 22.2 — Applying Compiler Cache Optimizations" level="Exam" hint="In Snippet A, C lays out 2D arrays row-major (`A[i][0], A[i][1], ...`), so `j` belongs in the inner loop. In Snippet B, `X[i]` and `C[i]` are evicted before the second loop starts unless both loops share one body.">
 
-*(Question 5 Written Essay Practice)* **Quali ottimizzazioni software del compilatore possono ridurre il miss rate della memoria cache senza modificare l'hardware? Descriverle brevemente con un esempio.**
+Optimize the two C snippets below for a standard row-major cache hierarchy **with zero hardware changes**:
+
+```c
+// Snippet A (256 x 256 integer matrix)
+for (j = 0; j < 256; j++)
+    for (i = 0; i < 256; i++)
+        A[i][j] = A[i][j] + 1;
+
+// Snippet B (large arrays exceeding L1 capacity)
+for (i = 0; i < N; i++)
+    X[i] = B[i] + C[i];
+for (i = 0; i < N; i++)
+    Y[i] = X[i] * C[i];
+```
+
+1. Name the compiler optimization from Chapter 22 that improves each snippet and identify whether it boosts **spatial** or **temporal** locality.
+2. Write the refactored C code for both snippets.
+
+<StepCheck
+  client:load
+  mode="choice"
+  prompt="Which pair of compiler cache optimizations improves Snippet A and Snippet B respectively?"
+  options={[
+    "Merging Arrays for Snippet A; Loop Interchange for Snippet B",
+    "Loop Interchange (spatial locality) for Snippet A; Loop Fusion (temporal locality) for Snippet B",
+    "Loop Fusion for Snippet A; Merging Arrays for Snippet B"
+  ]}
+  correctIndex={1}
+  explanation="Snippet A traverses column-major (`i` inner) over row-major `A[i][j]`, fixed by Loop Interchange (`j` inner) for spatial locality. Snippet B touches `X` and `C` across two separate loops, fixed by Loop Fusion so `X[i]` and `C[i]` stay hot in L1 (temporal locality)."
+/>
 
 <details className="dc-solution">
-<summary>Reveal Grading Checklist & Model Written Answer</summary>
+<summary>Reveal Worked Solution</summary>
 
-**Grading Checklist (Full Marks):**
-- **Merging Arrays:** Combine parallel arrays into an array of `struct`s so paired elements sit in the same block (avoids conflict misses, boosts spatial locality).
-- **Loop Interchange:** Swap nested loops so 2D arrays are traversed sequentially in memory order (row-major in C, boosting spatial locality).
-- **Loop Fusion:** Combine two consecutive loops with identical bounds sharing arrays so cached blocks are reused immediately before eviction (temporal locality).
-
-**Model Written Answer:**
-> Three compiler optimizations reduce cache misses at **zero hardware cost**:
-> 1. **Merging Arrays:** When two arrays are accessed together (`Val[i] + Key[i]`), they may collide in the same cache set. Combining them into a `struct { int Val; int Key; } MA[SIZE];` places paired elements into the same cache block (or consecutive blocks), eliminating conflict misses and improving spatial locality.
-> 2. **Loop Interchange:** Reordering nested loops so multi-dimensional arrays are accessed sequentially in memory layout (row-major in C: outer `i`, inner `j` for `x[i][j]`) ensures all words inside a fetched block are used before moving to the next block, improving spatial locality.
-> 3. **Loop Fusion:** Combining two sequential loops with the same bounds that touch the same arrays (`a[i][j]` and `c[i][j]`) into one loop body exploits temporal locality, serving both operations from cache before the blocks are evicted.
+1. **Snippet A — Loop Interchange (boosts Spatial Locality):** Swap `i` and `j` so the inner loop traverses contiguous row-major elements `A[i][0], A[i][1], ...` inside each fetched cache block:
+   ```c
+   for (i = 0; i < 256; i++)
+       for (j = 0; j < 256; j++)
+           A[i][j] = A[i][j] + 1;
+   ```
+2. **Snippet B — Loop Fusion (boosts Temporal Locality):** Merge both identical-bound loops so `X[i]` and `C[i]` are reused immediately while still present in L1 cache:
+   ```c
+   for (i = 0; i < N; i++) {
+       X[i] = B[i] + C[i];
+       Y[i] = X[i] * C[i];
+   }
+   ```
 
 </details>
 

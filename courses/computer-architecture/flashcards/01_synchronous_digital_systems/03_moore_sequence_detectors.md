@@ -1,23 +1,30 @@
 #flashcards/computer-architecture/01_synchronous_digital_systems/03_moore_sequence_detectors
 
-Da cosa dipende l'uscita $u^t$ in una macchina di Moore e dove si riporta nel grafo e nella tabella degli stati?
+Upon what does output $u^t$ depend in a Moore FSM, and where is it written in diagrams and tables?
 ?
-Dipende esclusivamente dallo stato presente ($u^t = \lambda(S^t)$): si scrive dentro i cerchi di stato ($S_k / u$) e in una colonna d'uscita separata nella tabella (mai sugli archi).
+It depends **exclusively on present state** $S^t$ ($u^t = \lambda(S^t)$), written inside state circles ($S_k / u$) and in a dedicated `Output u` column (never `/ u` on arcs or next-state cells).
 
 ---
 
-Quanti stati richiede un riconoscitore di sequenze di Moore per una sequenza di lunghezza minima $L$ e perché?
+How many states does a Moore sequence detector require for a fixed length-$L$ pattern compared to Mealy, and why?
 ?
-$L + 1$ stati: gli $L$ stati di avanzamento con $u = 0$ più uno stato di riconoscimento dedicato $S_{\text{rec}} / 1$, poiché $S_0$ deve mantenere $u = 0$ al reset.
+**$L + 1$ states**: $L$ prefix states with $u = 0$ plus a dedicated recognition state $S_{\text{rec}} / 1$, since reset state $S_0$ must hold $u = 0$.
 
 ---
 
-Quale latenza temporale introduce un riconoscitore di Moore rispetto a uno di Mealy?
+What are the two hardware consequences of registering outputs in a Moore machine instead of using a Mealy machine?
 ?
-Un ritardo di $1$ ciclo di clock: $u$ commuta a `1` solo sul fronte attivo successivo che campiona $S_{\text{rec}} / 1$ nei flip-flop, eliminando i glitch asincroni sugli ingressi.
+1. **1-cycle output latency:** $u = 1$ asserts on cycle $L + 1$ after the clock edge latches $S_{\text{rec}} / 1$.
+2. **Input glitch immunity & shorter critical paths:** no combinational path connects primary input $xy^t$ to $u^t$.
 
 ---
 
-Come si calcolano i 4 archi uscenti dallo stato di riconoscimento $S_{\text{rec}} / 1$ in un riconoscitore di Moore con sovrapposizione?
+How must outgoing transitions from a Moore recognition state $S_{\text{rec}} / 1$ be routed for overlapping detection?
 ?
-Si concatena ciascun ingresso $xy \in \{00, 01, 11, 10\}$ all'intera sequenza riconosciuta $W$ e si instrada l'arco verso lo stato corrispondente al massimo suffisso valido (LPS), senza resettare ciecamente a $S_0$.
+Append each input $xy \in \{00, 01, 11, 10\}$ to the completed string $W$ and apply the LPS rule to jump straight to any valid suffix prefix ($S_1, S_2, \dots$) rather than resetting blindly to $S_0$.
+
+---
+
+When can a dual-branch Moore sequence detector NOT share a single recognition state $S_{\text{rec}} / 1$?
+?
+Whenever the two completed branches end in **different suffix histories** that require different outgoing LPS transitions on subsequent inputs; each suffix history needs its own $u = 1$ state.

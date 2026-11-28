@@ -2,7 +2,7 @@
 
 ---
 
-> **Exam Target (UniCT L-8 — Written & Lab Exam, 2h 30m, 32 pts max — No Oral Exam):** Strict mandatory per-section pass thresholds: **Section I Digital Systems (Q1+Q2) $\ge 6/11$**, **Section II Pipelined Architectures & Cache Performance (Q3+Q4+Q5) $\ge 7/12$**, and **Section III RISC-V Assembly (Q6) $\ge 5/9$**. Chapters align strictly to prof. Ascia's slides (`CA-INF00`–`CA-INF29`) and 2023–2026 written exams: full step-by-step mechanical synthesis for Q1/Q2/Q6, exact numeric drills for Q3/Q4, and written-essay simulators (grading checklist + model written answer) for Q5.
+> **Exam Target (UniCT L-8 — Written & Lab Exam, 2h 30m, 32 pts max — No Oral Exam):** Strict mandatory per-section pass thresholds: **Section I Digital Systems (Q1+Q2) $\ge 6/11$**, **Section II Pipelined Architectures & Cache Performance (Q3+Q4+Q5) $\ge 7/12$**, and **Section III RISC-V Assembly (Q6) $\ge 5/9$**. Chapters align strictly to prof. Ascia's slides (`CA-INF00`–`CA-INF29`) and 2023–2026 written exams: full step-by-step mechanical synthesis for Q1/Q2/Q6 and concrete quantitative/code exercises for Q3/Q4, while atomic Obsidian flashcards cover all Q5 written-theory concepts and trade-offs.
 
 ## PART I: SYNCHRONOUS DIGITAL SYSTEMS
 

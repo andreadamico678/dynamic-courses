@@ -177,32 +177,3 @@ A 5-stage pipelined processor runs at $f_{\text{clk}} = 1.5\text{ GHz}$ on a ben
 </details>
 
 </Exercise>
-
-<Exercise
-  client:load
-  id="ex-15-2"
-  title="Exercise 15.2 — Written Theory: Structural Hazards and Hardware Fixes"
-  level="Exam"
-  hint="Address both hardware bottlenecks in a 5-stage pipeline (IF vs MEM on unified memory, and WB vs ID on the Register File) along with their exact hardware resolutions."
->
-
-*(Question 5 Written Essay Practice)* Discuss structural hazards in a 5-stage pipelined processor: explain when they arise, identify the two main structural conflicts in the RISC-V pipeline, and describe the hardware solutions that eliminate them.
-
-<details className="dc-solution">
-<summary>Reveal Grading Checklist & Model Written Answer</summary>
-
-**Grading Checklist (Full Marks):**
-- Definition: two in-flight instructions contend for the same physical hardware resource in the same clock cycle.
-- Conflict 1 (`IF` vs. `MEM` on unified single-port memory) + penalty ($+1$ stall cycle per `lw`/`sw`) + fix (separate L1 `I-Cache` and `D-Cache`, Harvard split).
-- Conflict 2 (`WB` vs. `ID` on Register File at distance $k = 3$) + fix (dedicated read/write ports with split-cycle double-pumping: write in 1st half of clock cycle, read in 2nd half).
-
-**Model Written Answer:**
-> A **structural hazard** occurs when two instructions in different pipeline stages require the same physical hardware unit during the same clock cycle, forcing the pipeline to stall one instruction by inserting a `NOP` bubble.
->
-> In a 5-stage pipeline, two structural conflicts arise if resources are shared:
-> 1. **Unified Memory Contention (`IF` vs. `MEM`):** With a single unified memory for instructions and data, whenever a `lw` or `sw` reaches stage `MEM` (Cycle 4), it contends with the instruction fetch in `IF` of instruction $i+3$. Stalling `IF` adds $+1$ cycle per load/store. The standard hardware fix is splitting L1 into two separate caches (**I-Cache** for `IF` and **D-Cache** for `MEM`, Harvard architecture), eliminating structural memory stalls.
-> 2. **Register File Contention (`WB` vs. `ID`):** When instruction $i$ writes back in `WB` during the same cycle that $i+3$ reads source registers in `ID`, both use the Register File. Hardware solves this with separate read/write ports and **split-cycle double-pumping**: writes commit in the **first half** of the clock cycle and reads sample in the **second half**, avoiding any stall.
-
-</details>
-
-</Exercise>

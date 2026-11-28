@@ -1,29 +1,41 @@
 #flashcards/computer-architecture/01_synchronous_digital_systems/01_karnaugh_map_minimization
 
-Qual è la sequenza obbligatoria delle intestazioni di riga e colonna in una mappa di Karnaugh a 4 variabili?
+What Boolean law allows Karnaugh map grouping to eliminate a variable?
 ?
-Il codice Gray riflesso `00, 01, 11, 10` (distanza di Hamming $d_H = 1$ tra celle adiacenti e tra i bordi opposti `00` e `10`).
+The **Adjacency Law**: $A \cdot B + A \cdot \overline{B} = A$, canceling any single variable that complements between two adjacent cells (Hamming distance $d_H = 1$).
 
 ---
 
-Quali dimensioni possono avere i raggruppamenti rettangolari validi su una mappa di Karnaugh e quante variabili elimina un gruppo di $2^k$ celle?
+What is the mandatory 2-bit Gray-code header ordering for rows and columns in a 4-variable Karnaugh map?
 ?
-Esclusivamente potenze di due ($2^k \in \{1, 2, 4, 8, 16, 32\}$); un gruppo di $2^k$ celle elimina esattamente $k$ variabili che cambiano valore.
+Reflected Gray code **`00, 01, 11, 10`**, so adjacent entries—including the opposite wrap-around borders `00` and `10`—differ in exactly $1$ bit.
 
 ---
 
-Come vanno trattate le celle *don't care* ($X$) nella minimizzazione SOP su mappa di Karnaugh?
+What sizes are valid for rectangular groups in a Karnaugh map, and how many variables does a group of $2^k$ cells eliminate?
 ?
-Si includono solo se raddoppiano la dimensione di un gruppo che contiene almeno un `1`; non si formano mai gruppi composti esclusivamente da `X`, e le `X` non raggruppate valgono `0`.
+Only powers of two ($2^k \in \{1, 2, 4, 8, 16, 32\}$); grouping $2^k$ cells eliminates exactly **$k$** variables that change across the group.
 
 ---
 
-Come si riconosce operativamente un Implicante Primo Essenziale (EPI) su una mappa di Karnaugh?
+What is a **Prime Implicant (PI)** on a Karnaugh map?
 ?
-È un implicante primo massimale che copre almeno una cella `1` non coperta da nessun altro implicante primo; va inserito obbligatoriamente nell'espressione SOP minima.
+A maximally expanded power-of-two implicant of `1`s (and optional `X`s) that cannot be doubled to $2^{k+1}$ cells without absorbing a `0`.
 
 ---
 
-Come si organizza una mappa di Karnaugh a 5 variabili $f(a, b, c, d, e)$ e quando si elimina la variabile $a$?
+What defines an **Essential Prime Implicant (EPI)**, and how is it handled in minimal SOP?
 ?
-In due sottogriglie $4 \times 4$ sovrapposte: Layer 0 ($a = 0$, mintermini $0 \dots 15$) e Layer 1 ($a = 1$, mintermini $16 \dots 31$ con offset $+16$). Due blocchi con identiche coordinate $(bc, de)$ sui due layer si fondono in 3D eliminando $a$.
+A prime implicant that covers at least one `1`-minterm covered by **no other** prime implicant; every EPI **must** appear in the final minimal SOP expression.
+
+---
+
+How must **Don't Care (`X`)** cells be treated during Karnaugh map minimization?
+?
+Include an `X` **only** when it enlarges a valid group containing at least one `1`; never create a group of `X`s alone, and treat ungrouped `X`s as `0`.
+
+---
+
+How are minterms mapped onto a 5-variable Karnaugh map $f(a, b, c, d, e)$?
+?
+Split across two stacked $4 \times 4$ grids over $(bc, de)$: **Layer 0** ($a = 0$) holds $m_0 \dots m_{15}$, and **Layer 1** ($a = 1$) holds $m_{16} \dots m_{31}$ at matching coordinates shifted by $+16$; identical $(bc, de)$ blocks across both layers merge in 3D to eliminate $a$.

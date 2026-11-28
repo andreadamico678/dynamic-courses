@@ -66,6 +66,7 @@ dynamic-courses/
 │   ├── symbols.yaml                 # Canonical symbol registry
 │   ├── checkpoints.md               # Study milestones
 │   ├── context/                     # Syllabus (raw exam PDFs stay gitignored locally)
+│   ├── drills/                      # Obsidian mid-exercise vulnerability drills
 │   └── flashcards/                  # Obsidian spaced-repetition decks
 └── src/
     ├── lib/courseRegistry.mjs       # Single source of truth for Bachelor & Master shells

@@ -235,30 +235,3 @@ With $NB = 8{,}192 / 64 = 128\text{ blocks}$ and $j = 245$:
 </details>
 
 </Exercise>
-
-<Exercise client:load id="ex-19-3" title="Exercise 19.3 — Written Theory: Block Placement Policies Comparison" level="Exam" hint="Define Direct-Mapped, N-Way Set-Associative, and Fully Associative placement, then compare all three explicitly on Miss Rate (conflict misses) and Hit Time (comparators + mux).">
-
-*(Written Theory Exam Question — June 2025 & July 2024)* **Discutere delle politiche di block placement nella memoria cache. Confrontare tali politiche rispetto a miss rate e hit time.**
-
-<details className="dc-solution">
-<summary>Reveal Grading Checklist & Model Written Answer</summary>
-
-**Grading Checklist (Full Marks):**
-- **Direct-Mapped ($N = 1$):** Block $j$ maps to one fixed slot ($j \bmod NB$); $1$ comparator, no way mux $\implies$ **lowest hit time**, **highest miss rate** (conflict thrashing).
-- **$N$-Way Set-Associative ($NS = NB / N$):** Block $j$ maps to one set ($j \bmod NS$) and any of its $N$ ways; $N$ parallel comparators + $N$-to-$1$ mux $\implies$ **balanced** (sharply lower conflict misses than DM, slightly slower hit time).
-- **Fully Associative ($N = NB, NS = 1$):** Block $j$ can sit anywhere in the cache; $NB$ parallel comparators $\implies$ **zero conflict misses (lowest miss rate)**, **slowest hit time** and highest hardware cost.
-- Explicit **Miss Rate vs. Hit Time trade-off** across the three organizations (and note that reducing miss rate by increasing $N$ does not always improve AMAT if $t_{\text{hit}}$ grows too much).
-
-**Model Written Answer:**
-> **Block placement policies** determine where a main memory block $j$ can be stored inside an $NB$-block cache:
-> 1. **Direct-Mapped ($N = 1$):** Each block maps to a single fixed location, $\text{Index} = j \bmod NB$. Hardware checks only $1$ tag with no way-selection multiplexer.
-> 2. **$N$-Way Set-Associative:** The cache is partitioned into $NS = NB / N$ sets of $N$ ways each. Block $j$ maps to $\text{Set Index} = j \bmod NS$ and can occupy any of the $N$ ways inside that set, requiring $N$ parallel tag comparators and an $N$-to-$1$ data multiplexer (plus a replacement policy such as LRU/Random when a set is full).
-> 3. **Fully Associative ($NS = 1$):** Block $j$ can be placed in any of the $NB$ cache slots, requiring $NB$ parallel tag comparators.
->
-> **Comparison (Miss Rate vs. Hit Time):**
-> - **Miss Rate:** Direct-Mapped suffers the **highest miss rate** due to conflict misses whenever active blocks map to the same index. Increasing associativity ($2$-way, $4$-way) sharply reduces conflict misses, and Fully Associative achieves the **lowest miss rate** (zero conflict misses).
-> - **Hit Time:** Direct-Mapped achieves the **fastest hit time** (1 tag check, no mux). Increasing $N$ adds parallel comparators and a wider output multiplexer, **increasing hit time**—making Fully Associative the slowest and most power-hungry. Consequently, moderate associativity ($2$-way or $4$-way) typically minimizes $\text{AMAT}$.
-
-</details>
-
-</Exercise>
